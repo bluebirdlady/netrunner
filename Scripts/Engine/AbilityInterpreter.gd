@@ -339,6 +339,54 @@ func _evaluate_condition(condition: Dictionary, ctx: GameContext) -> bool:
 			var rtns_run_server: String = ctx.current_event_data.get("server_id", "")
 			return rtns_run_server != "" and rtns_run_server != rtns_self_card.server_id
 
+		"run_target_is_self_server":
+			# True when the active run is targeting the server this card is installed in.
+			# Used by VP64 Flagship (approach_server) and VP65 Shackleton Grid.
+			var rtss_iid: String = ctx.current_event_data.get("card_instance_id", "")
+			var rtss_card: InstalledCard = ctx.get_installed_card_by_instance_id(rtss_iid)
+			if rtss_card == null:
+				return false
+			return ctx.run_target_server != "" and ctx.run_target_server == rtss_card.server_id
+
+		"installed_card_is_hardware":
+			# True when the runner_installs_card event data refers to a hardware card.
+			# Used by VP17 Hiram to filter the install trigger.
+			var ich_iid: String = ctx.current_event_data.get("card_instance_id", "")
+			var ich_card: InstalledCard = ctx.get_installed_card_by_instance_id(ich_iid)
+			if ich_card == null:
+				return false
+			return ich_card.card_record != null and ich_card.card_record.card_type == "hardware"
+
+		"hardware_trashed_source_is_runner":
+			# True when the hardware_trashed event was sourced by the runner (not Corp or game).
+			# Used by VP17 Hiram to exclude Corp-caused and game-caused hardware trashes.
+			return ctx.current_event_data.get("source", "") == "runner"
+
+		# ── VP36 Méliès U conditions ─────────────────────────────────────────────
+
+		"run_target_is_central_server":
+			# True when the run target is any central server (hq, rd, or archives).
+			# Used by Méliès U front-side to gate the flip trigger on successful_run.
+			var rtcs_server: String = ctx.current_event_data.get("server_id", "")
+			return rtcs_server in ["hq", "rd", "archives"]
+
+		"melies_u_not_flipped":
+			# True when Méliès U is on its front side (not currently flipped to a back side).
+			# Used to gate the +1 credit trigger at runner_action_phase_ends.
+			return not ctx.melies_u_flipped
+
+		"melies_u_is_flipped":
+			# True when Méliès U is on one of its three back sides.
+			# Used to gate the flip-back trigger at runner_discard_phase_ends.
+			return ctx.melies_u_flipped
+
+		"melies_u_secret_matches_run_server":
+			# True when the Corp's secretly chosen side matches the server in the current event.
+			# Used to gate the back-side ability on melies_u_flipped: ability only resolves
+			# when the prediction was correct.
+			var smrs_server: String = ctx.current_event_data.get("server_id", "")
+			return ctx.melies_u_secret_side != "" and ctx.melies_u_secret_side == smrs_server
+
 		_:
 			push_error("AbilityInterpreter: unknown condition type '%s'" % ctype)
 			return false
@@ -674,6 +722,11 @@ func _execute_effect(effect: Dictionary, ctx: GameContext, chosen_target: Varian
 						ctx.runner_discard.append(target.card_record)
 					ctx.unregister_all_card_effects(target.runtime_instance_id)
 					ctx.send_log("%s trashes %s's %s." % [ctx.corp_name(), ctx.runner_name(), target.display_name()])
+					# VP17 Hiram: fire hardware_trashed for Corp-caused hardware trashes too
+					if target.card_record != null and target.card_record.card_type == "hardware":
+						await ctx.notify_event("hardware_trashed", {
+							"card_id": target.card_id, "source": "corp"
+						}, self)
 
 		"rfg_runner_heap_card":
 			# Corp removes 1 card from the Runner's discard (heap) from the game.
@@ -1082,6 +1135,11 @@ func _execute_effect(effect: Dictionary, ctx: GameContext, chosen_target: Varian
 				# Unregister all its listeners
 				ctx.unregister_all_card_effects(iid)
 				ctx.send_log("%s is trashed (empty)." % self_card.display_name())
+				# VP17 Hiram: runner hardware self-trashing triggers look-at-R&D
+				if self_card.card_record != null and self_card.card_record.card_type == "hardware":
+					await ctx.notify_event("hardware_trashed", {
+						"card_id": self_card.card_id, "source": "runner"
+					}, self)
 				# Grant bonus clicks on self-trash (e.g. Otto Campaign: Corp gains 2 clicks)
 				var otgc = effect.get("on_trash_gain_clicks", null)
 				if otgc != null:
@@ -1107,6 +1165,11 @@ func _execute_effect(effect: Dictionary, ctx: GameContext, chosen_target: Varian
 				ctx.runner_rig.erase(self_card)
 				ctx.unregister_all_card_effects(iid)
 				ctx.send_log("%s is trashed (empty)." % self_card.display_name())
+				# VP17 Hiram: runner hardware self-trashing triggers look-at-R&D
+				if self_card.card_record != null and self_card.card_record.card_type == "hardware":
+					await ctx.notify_event("hardware_trashed", {
+						"card_id": self_card.card_id, "source": "runner"
+					}, self)
 				# Draw 1 card for the Corp
 				if not ctx.corp_deck.is_empty():
 					var drawn: CardRecord = ctx.corp_deck.pop_front() as CardRecord
@@ -1252,6 +1315,8 @@ func _execute_effect(effect: Dictionary, ctx: GameContext, chosen_target: Varian
 			ctx.corp_bad_pub += gbp_amount
 			ctx.send_log("%s takes %d bad publicity. (%d total)" % [
 				ctx.corp_name(), gbp_amount, ctx.corp_bad_pub])
+			# VP46 Ad Nihilum: notify all listeners that Corp gained bad pub
+			await ctx.notify_event("corp_gains_bad_pub", {"amount": gbp_amount}, self)
 
 		"clearinghouse_activate":
 			# Clearinghouse: At turn start, Corp may add 1 advancement counter,
@@ -1530,6 +1595,11 @@ func _execute_effect(effect: Dictionary, ctx: GameContext, chosen_target: Varian
 				ctx.runner_rig.erase(self_card)
 				ctx.unregister_all_card_effects(iid)
 				ctx.send_log("%s is trashed (end of run)." % self_card.display_name())
+				# VP17 Hiram: runner hardware self-trashing triggers look-at-R&D
+				if self_card.card_record != null and self_card.card_record.card_type == "hardware":
+					await ctx.notify_event("hardware_trashed", {
+						"card_id": self_card.card_id, "source": "runner"
+					}, self)
 
 		"self_trash":
 			# Unconditionally trash the owning card (Tranquilizer, Fermenter, Spin Doctor, etc.)
@@ -1579,6 +1649,11 @@ func _execute_effect(effect: Dictionary, ctx: GameContext, chosen_target: Varian
 								ctx.runner_discard.append(self_card.card_record)
 				ctx.unregister_all_card_effects(iid)
 				ctx.send_log("%s is trashed." % self_card.display_name())
+				# VP17 Hiram: runner hardware self-trashing triggers look-at-R&D
+				if self_card.card_record != null and self_card.card_record.card_type == "hardware":
+					await ctx.notify_event("hardware_trashed", {
+						"card_id": self_card.card_id, "source": "runner"
+					}, self)
 
 		# ── Spin Doctor: shuffle cards from Archives into R&D ─────────────────
 
@@ -2622,6 +2697,10 @@ func _execute_effect(effect: Dictionary, ctx: GameContext, chosen_target: Varian
 				thgfs_card.display_name(), thgfs_trashed.title,
 				thgfs_amount, thgfs_card.get_counter("stealth_credits")
 			])
+			# VP17 Hiram: runner trashing hardware from grip (any location) triggers look-at-R&D
+			await ctx.notify_event("hardware_trashed", {
+				"card_id": thgfs_trashed.id, "source": "runner", "from_grip": true
+			}, self)
 
 		# ── Corp card management ──────────────────────────────────────────────────
 
@@ -2877,6 +2956,11 @@ func _execute_effect(effect: Dictionary, ctx: GameContext, chosen_target: Varian
 				if mtd_self.card_record != null:
 					ctx.runner_discard.append(mtd_self.card_record)
 				ctx.send_log("%s is trashed." % mtd_self.display_name())
+				# VP17 Hiram: runner hardware self-trashing triggers look-at-R&D
+				if mtd_self.card_record != null and mtd_self.card_record.card_type == "hardware":
+					await ctx.notify_event("hardware_trashed", {
+						"card_id": mtd_self.card_id, "source": "runner"
+					}, self)
 
 		"corp_derez_chosen_ice":
 			# Corp derezzes up to count rezzed ice of their choice.
@@ -2944,6 +3028,11 @@ func _execute_effect(effect: Dictionary, ctx: GameContext, chosen_target: Varian
 					mttb_self.display_name(),
 					ctx.current_event_data.get("ice", null).display_name()
 				])
+				# VP17 Hiram: runner hardware self-trashing triggers look-at-R&D
+				if mttb_self.card_record != null and mttb_self.card_record.card_type == "hardware":
+					await ctx.notify_event("hardware_trashed", {
+						"card_id": mttb_self.card_id, "source": "runner"
+					}, self)
 
 		# ── Boomerang: optional heap recursion after successful run ─────────────
 
@@ -5998,6 +6087,11 @@ func _execute_effect(effect: Dictionary, ctx: GameContext, chosen_target: Varian
 			if ccrt_chosen.card_record != null:
 				ctx.runner_discard.append(ccrt_chosen.card_record)
 			ctx.send_log("Chain Reaction: %s trashes %s." % [ctx.corp_name(), ccrt_chosen.display_name()])
+			# VP17 Hiram: Corp trashing runner hardware fires hardware_trashed (Corp source)
+			if ccrt_chosen.card_record != null and ccrt_chosen.card_record.card_type == "hardware":
+				await ctx.notify_event("hardware_trashed", {
+					"card_id": ccrt_chosen.card_id, "source": "corp"
+				}, self)
 
 		# ── VP56 Sacrifice Zone Expansion: reactive meat damage on runner run ──────
 
@@ -6052,6 +6146,193 @@ func _execute_effect(effect: Dictionary, ctx: GameContext, chosen_target: Varian
 				}, self)
 			else:
 				ctx.send_log("Tranquilizer: %s is already unrezzed." % dhi_host.display_name())
+
+		# ── VP17 Hiram: look at top card of R&D ─────────────────────────────────
+
+		"look_at_top_rd":
+			# Runner looks at the top card of R&D (does not draw it; not an expose).
+			if ctx.corp_deck.is_empty():
+				ctx.send_log("%s looks at top of R&D — R&D is empty." % ctx.runner_name())
+			else:
+				var ltr_top: CardRecord = ctx.corp_deck[0] as CardRecord
+				ctx.send_log("%s looks at top of R&D: %s." % [ctx.runner_name(), ltr_top.title])
+				# Notify UI if a display callback is registered
+				if ctx.has_meta("on_look_at_rd_top"):
+					var ltr_cb: Callable = ctx.get_meta("on_look_at_rd_top") as Callable
+					await ltr_cb.call(ltr_top)
+
+		# ── VP64 Flagship: suppress run success ──────────────────────────────────
+
+		"suppress_run_success":
+			# When set, _phase_success() skips run_successful and the successful_run event.
+			# The breach still happens normally.
+			ctx.run_success_suppressed = true
+			ctx.send_log("Flagship: run success suppressed — breach proceeds without success effects.")
+
+		# ── VP46 Ad Nihilum: search R&D for non-agenda card by subtypes ──────────
+
+		"search_rd_non_agenda_by_subtypes":
+			# Search R&D for a non-agenda card with one of the specified subtypes.
+			# params: { subtypes: Array[String], destination: "hq" }
+			var srnas_subtypes: Array = params.get("subtypes", []) as Array
+			# Collect matching cards
+			var srnas_matches: Array = []
+			for srnas_cr in ctx.corp_deck:
+				var srnas_r: CardRecord = srnas_cr as CardRecord
+				if srnas_r == null or srnas_r.is_agenda():
+					continue
+				var srnas_match := false
+				for srnas_st in srnas_subtypes:
+					if srnas_r.has_subtype(srnas_st as String):
+						srnas_match = true
+						break
+				if srnas_match:
+					srnas_matches.append(srnas_r)
+			if srnas_matches.is_empty():
+				ctx.send_log("%s: no matching card in R&D — shuffles R&D." % ctx.corp_name())
+				ctx.corp_deck.shuffle()
+				return
+			# Corp may choose which card to take (may also decline)
+			var srnas_chosen: CardRecord = null
+			if ctx.corp_decision_maker != null and \
+					ctx.corp_decision_maker.has_method("choose_from_rd_by_subtypes"):
+				srnas_chosen = await ctx.corp_decision_maker.choose_from_rd_by_subtypes(
+					srnas_matches, ctx)
+			else:
+				srnas_chosen = srnas_matches[0]   # AI default: take first match
+			ctx.corp_deck.erase(srnas_chosen)
+			ctx.corp_deck.shuffle()
+			if srnas_chosen != null:
+				ctx.corp_hand.append({"card_id": srnas_chosen.id, "card_record": srnas_chosen})
+				ctx.send_log("Ad Nihilum: %s searches R&D — reveals and adds %s to HQ." % [
+					ctx.corp_name(), srnas_chosen.title
+				])
+			else:
+				ctx.send_log("Ad Nihilum: %s declines to search R&D." % ctx.corp_name())
+
+		# ── VP65 Shackleton Grid: Corp may do 4 meat damage ─────────────────────
+
+		"corp_may_deal_meat_damage":
+			# Corp may choose to deal N meat damage to the runner.
+			# params: { amount: int }
+			var cmdd_amount: int = params.get("amount", 4)
+			var cmdd_deal := true
+			if ctx.corp_decision_maker != null and ctx.corp_decision_maker.has_method("choose_modes"):
+				var cmdd_modes: Array = [
+					{"label": "Deal %d meat damage (Shackleton Grid)" % cmdd_amount},
+					{"label": "Decline"}
+				]
+				var cmdd_chosen: Array = await ctx.corp_decision_maker.choose_modes(cmdd_modes, 1, ctx)
+				cmdd_deal = (not cmdd_chosen.is_empty() and cmdd_chosen[0] == 0)
+			else:
+				cmdd_deal = true   # AI default: always deal the damage
+			if cmdd_deal:
+				ctx.send_log("Shackleton Grid: %s deals %d meat damage." % [ctx.corp_name(), cmdd_amount])
+				await _deal_damage("meat", cmdd_amount, ctx)
+			else:
+				ctx.send_log("Shackleton Grid: %s declines." % ctx.corp_name())
+
+		# ── VP36 Méliès U effects ─────────────────────────────────────────────────
+
+		"flip_melies_u":
+			# Flip Méliès U to its back side and reveal the Corp's prediction.
+			# Fires the internal melies_u_flipped event so the back-side ability
+			# can check whether the prediction matches the run server.
+			ctx.melies_u_flipped = true
+			var fmu_server: String = ctx.current_event_data.get("server_id", "")
+			var fmu_secret: String = ctx.melies_u_secret_side
+			if fmu_secret == "":
+				ctx.send_log("Méliès U flips! No prediction was set — back-side ability does not resolve.")
+			elif fmu_secret == fmu_server:
+				ctx.send_log("Méliès U flips! Prediction correct — %s predicted %s and run is on %s!" % [
+					ctx.corp_name(), fmu_secret.to_upper(), fmu_server.to_upper()])
+			else:
+				ctx.send_log("Méliès U flips! Prediction wrong — %s predicted %s but run is on %s." % [
+					ctx.corp_name(), fmu_secret.to_upper(), fmu_server.to_upper()])
+			# Notify UI so GameUI can immediately refresh the identity card display.
+			if ctx.has_meta("on_melies_u_flip"):
+				(ctx.get_meta("on_melies_u_flip") as Callable).call(true, fmu_server)
+			# Fire internal event so back-side ability can resolve (condition guards it).
+			await ctx.notify_event("melies_u_flipped", {"server_id": fmu_server}, self)
+
+		"flip_melies_u_back":
+			# Flip Méliès U back to its front side at end of Runner's discard phase.
+			if ctx.melies_u_flipped:
+				ctx.melies_u_flipped = false
+				ctx.send_log("Méliès U flips back to its front side.")
+				# Notify UI so the identity card reverts to its front-face art.
+				if ctx.has_meta("on_melies_u_flip"):
+					(ctx.get_meta("on_melies_u_flip") as Callable).call(false, "")
+
+		"corp_secretly_select_melies_side":
+			# Corp secretly chooses which central server to predict for next Runner turn.
+			# Logged only as "Corp sets identity" — the specific choice stays hidden.
+			var css_sides: Array = ["hq", "rd", "archives"]
+			var css_labels: Array = [
+				{"label": "Predict HQ (Tenure Floors)"},
+				{"label": "Predict R&D"},
+				{"label": "Predict Archives (Disposal Grounds)"}
+			]
+			var css_idx: int = 0
+			if ctx.corp_decision_maker != null and ctx.corp_decision_maker.has_method("choose_modes"):
+				var css_chosen: Array = await ctx.corp_decision_maker.choose_modes(css_labels, 1, ctx)
+				css_idx = css_chosen[0] if not css_chosen.is_empty() else 0
+			# AI fallback: pick the central the runner is most likely to run next.
+			# Simple heuristic — prefer the central they haven't run successfully this turn.
+			else:
+				if not ctx.runner_successful_run_on_rd_this_turn:
+					css_idx = 1   # R&D
+				elif not ctx.runner_successful_run_on_archives_this_turn:
+					css_idx = 2   # Archives
+				else:
+					css_idx = 0   # HQ
+			ctx.melies_u_secret_side = css_sides[css_idx]
+			ctx.send_log("Méliès U: %s secretly sets their identity (choice hidden)." % ctx.corp_name())
+
+		"may_trash_top_rd_add_archives_to_hq":
+			# Méliès U back-side ability: Corp looks at top of R&D, may trash it,
+			# and if they do, add 1 card from Archives to HQ.
+			if ctx.corp_deck.is_empty():
+				ctx.send_log("Méliès U: R&D is empty — no card to look at.")
+				return
+			var mta_top: CardRecord = ctx.corp_deck[0] as CardRecord
+			ctx.send_log("Méliès U: %s looks at top of R&D: %s." % [ctx.corp_name(), mta_top.title])
+			# Corp may trash the top card.
+			var mta_trash := false
+			if ctx.corp_decision_maker != null and ctx.corp_decision_maker.has_method("choose_modes"):
+				var mta_modes: Array = [
+					{"label": "Trash %s from R&D" % mta_top.title},
+					{"label": "Leave %s on top" % mta_top.title}
+				]
+				var mta_chosen: Array = await ctx.corp_decision_maker.choose_modes(mta_modes, 1, ctx)
+				mta_trash = (not mta_chosen.is_empty() and mta_chosen[0] == 0)
+			else:
+				mta_trash = true   # AI default: always trash (disruptive)
+			if not mta_trash:
+				ctx.send_log("Méliès U: %s leaves %s on top of R&D." % [ctx.corp_name(), mta_top.title])
+				return
+			# Trash the top card to Archives (faceup — Corp placed it, not runner accessed it).
+			ctx.corp_deck.erase(mta_top)
+			ctx.corp_discard.append(mta_top)
+			ctx.corp_discard_facedown[mta_top.title] = false
+			ctx.send_log("Méliès U: %s trashes %s from R&D to Archives." % [ctx.corp_name(), mta_top.title])
+			# Now add 1 card from Archives to HQ.
+			if ctx.corp_discard.is_empty():
+				ctx.send_log("Méliès U: Archives is empty — no card to add to HQ.")
+				return
+			var mta_arch_card: CardRecord = null
+			if ctx.corp_decision_maker != null and ctx.corp_decision_maker.has_method("choose_from_archives"):
+				mta_arch_card = await ctx.corp_decision_maker.choose_from_archives(
+					ctx.corp_discard.duplicate(), ctx)
+			else:
+				mta_arch_card = ctx.corp_discard[0] as CardRecord   # AI default: first card
+			if mta_arch_card == null:
+				ctx.send_log("Méliès U: %s does not take a card from Archives." % ctx.corp_name())
+				return
+			ctx.corp_discard.erase(mta_arch_card)
+			ctx.corp_discard_facedown.erase(mta_arch_card.title)
+			ctx.corp_hand.append({"card_id": mta_arch_card.id, "card_record": mta_arch_card})
+			ctx.send_log("Méliès U: %s adds %s from Archives to HQ." % [ctx.corp_name(), mta_arch_card.title])
 
 		_:
 			push_error("AbilityInterpreter: unknown effect type '%s'" % etype)
@@ -6258,11 +6539,18 @@ func process_encounter_action(action: Dictionary, encounter: EncounterState,
 
 	match action_type:
 		"boost_strength":
-			return _do_boost(action, encounter, ctx, ability_registry)
+			var boost_ok: bool = _do_boost(action, encounter, ctx, ability_registry)
+			# VP65 Shackleton Grid: check for outside-credit spend (stealth/Overclock)
+			await ctx.check_outside_credits_trigger(self)
+			return boost_ok
 		"break_subroutine":
-			return _do_break_sub(action, encounter, ctx, ability_registry)
+			var break_ok: bool = _do_break_sub(action, encounter, ctx, ability_registry)
+			await ctx.check_outside_credits_trigger(self)
+			return break_ok
 		"break_all":
-			return _do_break_all(action, encounter, ctx, ability_registry)
+			var break_all_ok: bool = _do_break_all(action, encounter, ctx, ability_registry)
+			await ctx.check_outside_credits_trigger(self)
+			return break_all_ok
 		"spend_hosted_credits":
 			return _do_spend_hosted_credits(action, encounter, ctx)
 		"break_with_click":

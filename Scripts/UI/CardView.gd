@@ -24,6 +24,9 @@ var _hover_tween:        Tween      = null
 var _is_hovering:        bool       = false
 var _rest_position:      Vector2    = Vector2.ZERO
 var _original_screen_pos: Vector2   = Vector2.ZERO
+# When non-empty, _populate uses this key (and an explicit URL) instead of
+# _card_record.printing_id.  Set by setup_with_face(); cleared by setup().
+var _art_key_override: String = ""
 
 # Shared statics
 static var _rounded_corner_shader: Shader         = null
@@ -37,9 +40,23 @@ static var _card_back_texture:     Texture2D      = preload("res://Assets/Art/co
 func setup(record: CardRecord, rezzed: bool = true) -> void:
 	if _art_rect == null:
 		_build_ui()   # _ready() may not have fired yet if card isn't in the tree
-	_card_record = record
-	_is_rezzed   = rezzed
+	_card_record      = record
+	_is_rezzed        = rezzed
+	_art_key_override = ""   # clear any face override
 	_populate()
+
+
+# Show a specific flip face rather than the card's default printing.
+# face_url  — v2 CDN image URL (e.g. "https://.../v2/large/36036-0.jpg")
+# face_key  — stable cache key derived from the filename (e.g. "36036-0")
+# record is still stored for hover/click info; only the art changes.
+func setup_with_face(record: CardRecord, face_url: String, face_key: String, rezzed: bool = true) -> void:
+	if _art_rect == null:
+		_build_ui()
+	_card_record      = record
+	_is_rezzed        = rezzed
+	_art_key_override = face_key
+	_populate_face(face_url, face_key)
 
 
 func set_rezzed(rezzed: bool) -> void:
@@ -202,6 +219,24 @@ func _populate() -> void:
 	_unrezzed_overlay.visible = not _is_rezzed
 
 
+# Used by setup_with_face() — fetches via explicit URL so v2 CDN face images work.
+func _populate_face(face_url: String, face_key: String) -> void:
+	var art_manager = _get_art_manager()
+	if art_manager:
+		if art_manager.has_method("get_texture_from_url"):
+			_art_rect.texture = art_manager.get_texture_from_url(face_url, face_key)
+		else:
+			# ArtStorage not yet extended — fall back to printing_id lookup
+			_art_rect.texture = art_manager.get_texture(face_key)
+	else:
+		_art_rect.texture = null
+	_unrezzed_overlay.visible = not _is_rezzed
+
+
 func _on_texture_ready(printing_id: String, texture: Texture2D) -> void:
-	if _card_record != null and printing_id == _card_record.printing_id:
+	if _card_record == null:
+		return
+	# When a face is being shown, match against the face key; otherwise the card's printing_id.
+	var expected: String = _art_key_override if _art_key_override != "" else _card_record.printing_id
+	if printing_id == expected:
 		_art_rect.texture = texture

@@ -146,3 +146,38 @@ func _should_rez_non_ice(card: InstalledCard, ctx: GameContext) -> bool:
 func _log(message: String) -> void:
 	if not silent:
 		print("[CorpRunAI] " + message)
+
+# Return true if the Corp should rez this ice during a run.
+# Uses a heuristic to avoid wasting credits on ice the runner can easily break.
+func should_rez_ice(ice: InstalledCard, ctx: GameContext) -> bool:
+	var rez_cost = ctx.query_rez_cost(ice)
+
+	# Always rez if cost is 0
+	if rez_cost <= 0:
+		return true
+
+	# Never rez if the Corp cannot afford it
+	if ctx.corp_credits < rez_cost:
+		return false
+
+	# Heuristic: if the runner has very few credits (≤ rez_cost), they probably cannot break it.
+	# This encourages rezzing when the runner is poor.
+	if ctx.runner_credits <= rez_cost:
+		return true
+
+	# If this ice is the only piece protecting a server that contains an agenda,
+	# be more willing to rez (defend the agenda).
+	var server = ctx.get_server(ice.server_id)
+	if server != null and server.get_agenda_or_asset() != null:
+		# Agenda present – rez even if moderately expensive
+		if rez_cost <= ctx.corp_credits * 0.3:   # up to 30% of corp credits
+			return true
+
+	# Default: only rez if the cost is relatively low (≤ 4) or if the Corp has a huge surplus
+	if rez_cost <= 4:
+		return true
+	if ctx.corp_credits > 20 and rez_cost <= 10:
+		return true
+
+	# Otherwise, hold back – don't waste credits on ice that likely won't stop the runner
+	return false

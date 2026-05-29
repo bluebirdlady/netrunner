@@ -84,6 +84,12 @@ func _init_and_start() -> void:
 
 	game_ui.setup(ctx, turn_manager, run_machine, ability_registry)
 
+	# VP36 Méliès U: refresh the identity card display whenever the identity flips.
+	# The callback fires from flip_melies_u / flip_melies_u_back in AbilityInterpreter.
+	ctx.set_meta("on_melies_u_flip", func(_flipped: bool, _server: String) -> void:
+		game_ui._update_all_displays()
+	)
+
 	# Route UI actions to the runner brain, and observe them for the AI model
 	game_ui.action_requested.connect(func(action: GameAction):
 		if ctx.active_player == "runner":

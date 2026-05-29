@@ -47,6 +47,11 @@ var is_unique:    bool    # black diamond next to title
 var printing_id:  String  # first printing id — used to construct image URL
 var image_url:    String  # constructed: https://card-images.netrunnerdb.com/v1/large/{printing_id}.jpg
 
+# Flip faces (multi-face cards like Méliès U).
+# Each entry: { "title": String, "printing_id": String, "image_url": String }
+# Indexed by face order (0, 1, 2…). Empty for single-face cards.
+var faces: Array = []
+
 
 # ── Constructor ───────────────────────────────────────────────────────────────
 
@@ -112,6 +117,22 @@ static func from_api_data(data: Dictionary) -> CardRecord:
 	var printing_ids: Array = attrs.get("printing_ids", []) as Array
 	r.printing_id = printing_ids[0] if not printing_ids.is_empty() else r.id
 	r.image_url   = "https://card-images.netrunnerdb.com/v1/large/%s.jpg" % r.printing_id
+
+	# Flip faces (v3 API only).  Each face carries its own title and image URL.
+	# We store the printing_id derived from the CDN filename so ArtStorage can
+	# cache it the same way it handles normal cards.
+	var raw_faces: Array = attrs.get("faces", []) as Array
+	for face_data in raw_faces:
+		var fd: Dictionary = face_data as Dictionary
+		var fd_nrdb: Dictionary = (fd.get("images", {}) as Dictionary).get("nrdb_classic", {}) as Dictionary
+		var fd_url_large: String = fd_nrdb.get("large", "")
+		# Derive printing_id from the filename: ".../v2/large/36036-0.jpg" → "36036-0"
+		var fd_pid: String = fd_url_large.get_file().get_basename()
+		r.faces.append({
+			"title":      fd.get("title", ""),
+			"printing_id": fd_pid,
+			"image_url":  fd_url_large,
+		})
 
 	return r
 

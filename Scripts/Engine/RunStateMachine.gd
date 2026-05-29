@@ -78,6 +78,8 @@ func execute(server_id: String) -> void:
 	ctx.global_ice_strength_bonus_this_run    = 0     # reset for VP39 ezaM
 	ctx.beta_build_installed_card_id          = ""    # reset for VP19 Beta Build
 	ctx.runner_steal_trash_blocked_card_ids   = []    # reset for VP35 Perfect Recall
+	ctx.run_success_suppressed                = false  # reset for VP64 Flagship
+	ctx.runner_outside_credits_spent_pending  = 0     # reset for VP65 Shackleton Grid
 
 	ctx.send_log("--- Run on %s begins ---" % server.display_name())
 	await _phase_initiation()
@@ -389,41 +391,49 @@ func _phase_movement() -> void:
 
 func _phase_success() -> void:
 	_set_phase(Phase.SUCCESS)
-	ctx.run_successful = true
-	ctx.send_log("[Success] Run successful on %s!" % _target_server.display_name())
-	emit_signal("run_succeeded", _target_server.server_id)
-	# Track successful runs on each central for Chain Reaction (VP1) and other per-central guards.
-	# Set here (not only in TurnManager) so event-card-initiated runs also populate these flags.
-	match _target_server.server_id:
-		"rd":
-			ctx.runner_successful_run_on_rd_this_turn = true
-		"archives":
-			ctx.runner_successful_run_on_archives_this_turn = true
-		"hq":
-			ctx.runner_hq_successful_run_this_turn = true
 
-	# Global announcement triggers
-	await ctx.notify_event("successful_run", {"server_id": _target_server.server_id}, interpreter)
+	# VP64 Flagship: when suppressed the run reaches the server but is not "successful"
+	# for card-ability purposes.  The breach still occurs normally.
+	if ctx.run_success_suppressed:
+		ctx.run_success_suppressed = false
+		ctx.send_log("[Success] Run reaches %s but success is suppressed (Flagship)." % \
+			_target_server.display_name())
+	else:
+		ctx.run_successful = true
+		ctx.send_log("[Success] Run successful on %s!" % _target_server.display_name())
+		emit_signal("run_succeeded", _target_server.server_id)
+		# Track successful runs on each central for Chain Reaction (VP1) and other per-central guards.
+		# Set here (not only in TurnManager) so event-card-initiated runs also populate these flags.
+		match _target_server.server_id:
+			"rd":
+				ctx.runner_successful_run_on_rd_this_turn = true
+			"archives":
+				ctx.runner_successful_run_on_archives_this_turn = true
+			"hq":
+				ctx.runner_hq_successful_run_this_turn = true
 
-	# Run-event "gain on success" reward (e.g. Clean Getaway: gain 6cr if successful)
-	var gain_on_success: int = ctx.run_modifiers.get("gain_on_success", 0)
-	if gain_on_success > 0:
-		ctx.runner_credits += gain_on_success
-		ctx.send_log("%s gains %d cr (run successful)." % [ctx.runner_name(), gain_on_success])
+		# Global announcement triggers
+		await ctx.notify_event("successful_run", {"server_id": _target_server.server_id}, interpreter)
 
-	# Transfer of Wealth: take 1 tag, Corp loses up to 3cr, Runner gains 2× the amount lost.
-	if ctx.run_modifiers.get("transfer_of_wealth_on_success", 0) > 0:
-		ctx.runner_tags += 1
-		ctx.send_log("Transfer of Wealth: %s takes 1 tag (%d total)." % [ctx.runner_name(), ctx.runner_tags])
-		await ctx.notify_event("runner_takes_tags", {"amount": 1}, interpreter)
-		if not ctx.game_over:
-			var tow_lost: int   = min(3, ctx.corp_credits)
-			ctx.corp_credits   -= tow_lost
-			var tow_gained: int = tow_lost * 2
-			ctx.runner_credits += tow_gained
-			ctx.send_log("Transfer of Wealth: %s loses %d cr; %s gains %d cr." % [
-				ctx.corp_name(), tow_lost, ctx.runner_name(), tow_gained
-			])
+		# Run-event "gain on success" reward (e.g. Clean Getaway: gain 6cr if successful)
+		var gain_on_success: int = ctx.run_modifiers.get("gain_on_success", 0)
+		if gain_on_success > 0:
+			ctx.runner_credits += gain_on_success
+			ctx.send_log("%s gains %d cr (run successful)." % [ctx.runner_name(), gain_on_success])
+
+		# Transfer of Wealth: take 1 tag, Corp loses up to 3cr, Runner gains 2× the amount lost.
+		if ctx.run_modifiers.get("transfer_of_wealth_on_success", 0) > 0:
+			ctx.runner_tags += 1
+			ctx.send_log("Transfer of Wealth: %s takes 1 tag (%d total)." % [ctx.runner_name(), ctx.runner_tags])
+			await ctx.notify_event("runner_takes_tags", {"amount": 1}, interpreter)
+			if not ctx.game_over:
+				var tow_lost: int   = min(3, ctx.corp_credits)
+				ctx.corp_credits   -= tow_lost
+				var tow_gained: int = tow_lost * 2
+				ctx.runner_credits += tow_gained
+				ctx.send_log("Transfer of Wealth: %s loses %d cr; %s gains %d cr." % [
+					ctx.corp_name(), tow_lost, ctx.runner_name(), tow_gained
+				])
 
 	# Red Team payout: take hosted credits before breach
 	if ctx.has_meta("red_team_pending_payout"):
@@ -557,6 +567,11 @@ func _breach_server() -> void:
 	# root cards mixed with HQ/Archives targets.
 	var access_count: int = 0
 	while not access_list.is_empty() and not ctx.game_over:
+		# VP64 Flagship: max_access caps how many cards can be accessed this breach.
+		var max_acc: int = ctx.run_modifiers.get("max_access", -1)
+		if max_acc >= 0 and access_count >= max_acc:
+			ctx.send_log("[Breach] Access limited to %d card(s) this breach." % max_acc)
+			break
 		var target: Variant = await _runner_choose_access_target(access_list)
 		access_list.erase(target)
 		await _access_card(target)
@@ -933,6 +948,8 @@ func _offer_trash(card: Variant, card_record: CardRecord) -> void:
 
 	if should_trash:
 		ctx.runner_spend_for_trash(effective_trash_cost)
+		# VP65 Shackleton Grid: check if outside-pool credits were used for this trash cost
+		await ctx.check_outside_credits_trigger(interpreter)
 		ctx.send_log("[Access] Runner trashes %s." % card_record.title)
 		if card is InstalledCard:
 			var installed: InstalledCard = card as InstalledCard
@@ -1097,7 +1114,8 @@ func _register_rezzed_listeners(card: InstalledCard) -> void:
 						"corp_scores_agenda", "runner_steals_agenda", "runner_trashes_during_breach",
 						"before_breach", "runner_installs_virus",
 						"on_advance", "breach_complete", "run_start", "runner_takes_tags",
-						"archives_cards_turned_faceup"]:
+						"archives_cards_turned_faceup",
+						"hardware_trashed", "runner_spends_outside_credits", "corp_gains_bad_pub"]:
 		var trigger_def = card_def.get(event_type, null)
 		if trigger_def != null:
 			ctx.register_listener(event_type, instance_id, trigger_def as Dictionary)
@@ -1364,6 +1382,15 @@ func _process_window_action(action: GameAction, actor: String, can_rez_ice: bool
 			if paw_def == null:
 				ctx.send_log("PAW use_installed_card: '%s' has no paw_action." % paw_card_id)
 				return
+
+			# ── Server restriction (VP45 Red Room) ──────────────────────────────────
+			# paw_requires_run_on_other_server: ability is only legal when the active
+			# run is targeting a different server from the card's own server.
+			if (paw_def as Dictionary).get("paw_requires_run_on_other_server", false):
+				if not ctx.run_active or ctx.run_target_server == "" or \
+						(paw_card != null and ctx.run_target_server == paw_card.server_id):
+					ctx.send_log("PAW: '%s' can only be used during a run on another server." % paw_card_id)
+					return
 
 			# ── Once-per-turn guard ────────────────────────────────────────────────
 			var paw_opt_key: String = (paw_def as Dictionary).get("once_per_turn_key", "")

@@ -287,6 +287,11 @@ func _runner_turn() -> void:
 			ctx.send_log("%s action rejected: %s" % [ctx.runner_name(), result["reason"]])
 			break
 
+	# Action phase ends — fire before discard phase begins.
+	# VP36 Méliès U front-side passive (+1 cr) triggers here when not flipped.
+	if not ctx.game_over:
+		await ctx.notify_event("runner_action_phase_ends", {}, interpreter)
+
 	# Discard phase: runner discards down to max hand size (relevant after core damage)
 	await _runner_discard_to_hand_limit()
 	if not ctx.game_over:
@@ -858,6 +863,11 @@ func _do_play_operation(player: String, action: GameAction) -> void:
 		if op_tc_target.card_record != null:
 			ctx.runner_discard.append(op_tc_target.card_record)
 		ctx.send_log("%s trashes %s as an additional cost." % [ctx.runner_name(), op_tc_target.display_name()])
+		# VP17 Hiram: fire hardware_trashed if the runner trashed a hardware as a cost
+		if op_tc_target.card_record != null and op_tc_target.card_record.card_type == "hardware":
+			await ctx.notify_event("hardware_trashed", {
+				"card_id": op_tc_target.card_id, "source": "runner"
+			}, interpreter)
 
 	# Remove from hand
 	_remove_from_hand(player, record)
@@ -1348,7 +1358,10 @@ func _register_identity_listeners(instance_id: String, card_id: String) -> void:
 					"runner_discards_to_hand_limit", "corp_discard_phase_ends",
 					"runner_discard_phase_ends",
 					"tag_removed", "corp_gains_credits_via_ability",
-				"archives_cards_turned_faceup", "runner_plays_event"]:
+					"archives_cards_turned_faceup", "runner_plays_event",
+					"hardware_trashed", "runner_installs_card",
+					"runner_spends_outside_credits", "corp_gains_bad_pub",
+					"runner_action_phase_ends", "melies_u_flipped"]:
 		var trigger_def = card_def.get(event_type, null)
 		if trigger_def != null:
 			ctx.register_listener(event_type, instance_id, trigger_def as Dictionary)
@@ -1385,7 +1398,9 @@ func _register_card_listeners(installed: InstalledCard) -> void:
 						"runner_successful_hq_run",
 						"on_advance", "breach_complete", "run_start",
 						"corp_discard_phase_ends", "runner_discard_phase_ends",
-						"archives_cards_turned_faceup", "runner_plays_event"]:
+						"archives_cards_turned_faceup", "runner_plays_event",
+						"hardware_trashed", "runner_spends_outside_credits", "corp_gains_bad_pub",
+						"runner_action_phase_ends", "melies_u_flipped"]:
 		var trigger_def = card_def.get(event_type, null)
 		if trigger_def != null:
 			ctx.register_listener(event_type, instance_id, trigger_def as Dictionary)

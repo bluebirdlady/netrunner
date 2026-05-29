@@ -163,6 +163,20 @@ var beta_build_installed_card_id: String = ""
 # Card IDs the Runner cannot steal or trash during this run (VP35 Perfect Recall).
 # Populated by Perfect Recall paw_action; cleared at the start of each run.
 var runner_steal_trash_blocked_card_ids: Array = []
+# VP64 Flagship: when set, _phase_success() runs the breach but skips run_successful
+# and the successful_run event.  Cleared at the start of each run.
+var run_success_suppressed: bool = false
+# VP65 Shackleton Grid: credits spent from outside the runner's own pool (stealth,
+# Overclock, recurring) in the current action.  Set by spend helpers; checked and
+# reset by async callers to fire runner_spends_outside_credits event.
+var runner_outside_credits_spent_pending: int = 0
+# VP36 Méliès U: which central server the Corp secretly predicted ("hq", "rd", "archives").
+# Set by corp_secretly_select_melies_side at corp_discard_phase_ends; read by flip_melies_u.
+# Empty string means no prediction has been made yet (before Corp's first discard phase).
+var melies_u_secret_side: String = ""
+# VP36 Méliès U: true when the identity is on its back side (any of the three flip faces).
+# Set by flip_melies_u on successful_run; cleared by flip_melies_u_back at runner_discard_phase_ends.
+var melies_u_flipped: bool = false
 # Tracks whether the Corp rezzed at least one piece of ice this turn (VP16 Underdome Irregulars).
 # Cleared at the start of each Corp turn.
 var ice_rezzed_this_turn: bool = false
@@ -814,6 +828,9 @@ func runner_spend_credits(amount: int) -> bool:
 	var from_own: int       = amount - from_overclock
 	run_modifiers["overclock_credits"] = overclock - from_overclock
 	runner_credits -= from_own
+	# VP65 Shackleton Grid: Overclock is "outside the credit pool"
+	if from_overclock > 0 and run_active:
+		runner_outside_credits_spent_pending += from_overclock
 	return true
 
 
@@ -852,6 +869,9 @@ func runner_spend_for_trash(amount: int) -> bool:
 					card.display_name(), spend, card.get_counter("recurring_credits")
 				])
 				remaining -= spend
+				# VP65 Shackleton Grid: recurring credits are "outside the credit pool"
+				if run_active:
+					runner_outside_credits_spent_pending += spend
 	# Then drain Overclock pool
 	if remaining > 0:
 		var overclock: int = run_modifiers.get("overclock_credits", 0)
@@ -859,6 +879,9 @@ func runner_spend_for_trash(amount: int) -> bool:
 		if from_oc > 0:
 			run_modifiers["overclock_credits"] = overclock - from_oc
 			remaining -= from_oc
+			# VP65 Shackleton Grid: Overclock is "outside the credit pool"
+			if run_active:
+				runner_outside_credits_spent_pending += from_oc
 	# Finally drain runner's own credits
 	if remaining > 0:
 		runner_credits -= remaining
@@ -959,6 +982,9 @@ func runner_spend_stealth_credits(amount: int) -> bool:
 		send_log("%s: spends %d stealth credit(s) (%d remaining)." % [
 			c.display_name(), spend, c.get_counter("stealth_credits")])
 		remaining -= spend
+	# VP65 Shackleton Grid: all stealth credits are "outside the credit pool"
+	if run_active:
+		runner_outside_credits_spent_pending += amount
 	return true
 
 
@@ -972,6 +998,20 @@ func get_counters_on_accessed_card(counter_type: String) -> int:
 	if card == null:
 		return 0
 	return card.get_counter(counter_type)
+
+
+# ── Shackleton Grid helper ────────────────────────────────────────────────────
+
+# Called by async contexts (process_encounter_action, _offer_trash) after any
+# spend that may have drawn from outside-pool credits.  If the pending counter is
+# positive it fires the runner_spends_outside_credits event and then resets the
+# counter so the same spend does not fire Shackleton twice.
+func check_outside_credits_trigger(interpreter: Object) -> void:
+	if runner_outside_credits_spent_pending <= 0 or not run_active:
+		runner_outside_credits_spent_pending = 0
+		return
+	runner_outside_credits_spent_pending = 0
+	await notify_event("runner_spends_outside_credits", {}, interpreter)
 
 
 # ── Log ───────────────────────────────────────────────────────────────────────

@@ -287,7 +287,38 @@ func _create_server_column(server_id: String, server: Server) -> VBoxContainer:
 		var id_view := CardView.new()
 		id_view.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 		col.add_child(id_view)
-		id_view.setup(_ctx.corp_identity, true)
+
+		# VP36 Méliès U: show the revealed back-side face when flipped.
+		# Face index: hq → 0 (Tenure Floors), rd → 1 (Subsurface Labs), archives → 2 (Disposal Grounds).
+		var melies_face_name: String = ""
+		if _ctx.melies_u_flipped and _ctx.corp_identity.id == "melies_u_only_the_brightest":
+			var face_map := {"hq": 0, "rd": 1, "archives": 2}
+			var face_idx: int = face_map.get(_ctx.melies_u_secret_side, -1)
+			if face_idx >= 0 and face_idx < _ctx.corp_identity.faces.size():
+				var face: Dictionary = _ctx.corp_identity.faces[face_idx] as Dictionary
+				var face_url: String = face.get("image_url", "")
+				var face_pid: String = face.get("printing_id", "")
+				melies_face_name = face.get("title", "")
+				if face_url != "" and face_pid != "":
+					id_view.setup_with_face(_ctx.corp_identity, face_url, face_pid, true)
+				else:
+					id_view.setup(_ctx.corp_identity, true)   # no face data — show front
+			else:
+				id_view.setup(_ctx.corp_identity, true)
+		else:
+			id_view.setup(_ctx.corp_identity, true)
+
+		# Label showing the revealed face name when flipped (e.g. "Tenure Floors: Méliès U")
+		if melies_face_name != "":
+			var face_lbl := Label.new()
+			face_lbl.text = melies_face_name
+			face_lbl.add_theme_font_size_override("font_size", 9)
+			face_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			face_lbl.modulate = Color(1.0, 0.85, 0.4)   # gold tint marks the reveal
+			face_lbl.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+			face_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD
+			face_lbl.custom_minimum_size = Vector2(130, 0)
+			col.add_child(face_lbl)
 
 	# Ice stack – only add if there are ice cards
 	var ice_container = VBoxContainer.new()

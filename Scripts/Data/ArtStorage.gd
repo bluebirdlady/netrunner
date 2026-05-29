@@ -66,6 +66,25 @@ func clear_memory_cache() -> void:
 	_memory_cache.clear()
 
 
+# Fetch by an explicit URL (e.g. the v2 CDN URL for flip-face images).
+# cache_key is the stable on-disk key — use the printing_id derived from the filename
+# (e.g. "36036-0") so it won't collide with the main card's printing_id ("36036").
+# Emits texture_ready(cache_key, texture) on success, just like get_texture().
+func get_texture_from_url(url: String, cache_key: String) -> Texture2D:
+	if url == "" or cache_key == "":
+		return _placeholder
+	if _memory_cache.has(cache_key):
+		return _memory_cache[cache_key]
+	var disk_tex := _load_from_disk(cache_key)
+	if disk_tex != null:
+		_memory_cache[cache_key] = disk_tex
+		return disk_tex
+	if not _pending.has(cache_key):
+		_pending[cache_key] = true
+		_fetch_from_url.call_deferred(url, cache_key)
+	return _placeholder
+
+
 # ── Fetching ──────────────────────────────────────────────────────────────────
 
 func _fetch(printing_id: String) -> void:
@@ -104,6 +123,33 @@ func _fetch(printing_id: String) -> void:
 	var texture := ImageTexture.create_from_image(image)
 	_memory_cache[printing_id] = texture
 	emit_signal("texture_ready", printing_id, texture)
+
+
+func _fetch_from_url(url: String, cache_key: String) -> void:
+	var http := HTTPRequest.new()
+	add_child(http)
+	var err := http.request(url)
+	if err != OK:
+		push_error("ArtStorage: request failed for %s" % url)
+		http.queue_free()
+		_pending.erase(cache_key)
+		return
+	var response = await http.request_completed
+	http.queue_free()
+	_pending.erase(cache_key)
+	var http_code: int        = response[1]
+	var body: PackedByteArray = response[3]
+	if http_code != 200:
+		push_warning("ArtStorage: got HTTP %d for %s" % [http_code, url])
+		return
+	_write_to_disk(cache_key, body)
+	var image := Image.new()
+	if image.load_jpg_from_buffer(body) != OK:
+		push_warning("ArtStorage: could not decode image for %s" % cache_key)
+		return
+	var texture := ImageTexture.create_from_image(image)
+	_memory_cache[cache_key] = texture
+	emit_signal("texture_ready", cache_key, texture)
 
 
 # ── Disk cache ────────────────────────────────────────────────────────────────

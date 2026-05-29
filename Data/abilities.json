@@ -4873,5 +4873,99 @@
 				}
 			]
 		}
+	},
+	"hiram_0mission_svensson": {
+		"runner_installs_card": {
+			"condition": {"type": "installed_card_is_hardware"},
+			"effects": [
+				{"type": "look_at_top_rd", "params": {}}
+			]
+		},
+		"hardware_trashed": {
+			"condition": {"type": "hardware_trashed_source_is_runner"},
+			"effects": [
+				{"type": "look_at_top_rd", "params": {}}
+			]
+		}
+	},
+	"the_red_room": {
+		"corp_scores_agenda": {
+			"once_per_turn_key": "rr_counter",
+			"effects": [
+				{"type": "add_self_counters", "counter": "power", "amount": 1}
+			]
+		},
+		"runner_steals_agenda": {
+			"once_per_turn_key": "rr_counter",
+			"effects": [
+				{"type": "add_self_counters", "counter": "power", "amount": 1}
+			]
+		},
+		"paw_action": {
+			"cost_counters": {"counter": "power", "amount": 1},
+			"paw_requires_run_on_other_server": true,
+			"effects": [
+				{"type": "end_run", "params": {}}
+			]
+		}
+	},
+	"editorial_division_ad_nihilum": {
+		"corp_gains_bad_pub": {
+			"once_per_turn_key": "adn_search",
+			"effects": [
+				{
+					"type": "search_rd_non_agenda_by_subtypes",
+					"params": {
+						"subtypes": ["black_ops", "gray_ops", "liability"]
+					}
+				}
+			]
+		}
+	},
+	"flagship": {
+		"approach_server": {
+			"condition": {"type": "run_target_is_self_server"},
+			"effects": [
+				{"type": "suppress_run_success", "params": {}},
+				{"type": "set_run_modifier", "params": {"key": "max_access", "value": 1}}
+			]
+		}
+	},
+	"shackleton_grid": {
+		"runner_spends_outside_credits": {
+			"once_per_turn_key": "shackleton",
+			"condition": {"type": "run_target_is_self_server"},
+			"effects": [
+				{"type": "corp_may_deal_meat_damage", "params": {"amount": 4}}
+			]
+		}
+	},
+
+	"melies_u_only_the_brightest": {
+		"_note": "VP36 Méliès U: Only the Brightest. Corp identity (Division). 3-sided flip. Card ID matches NRDB slug.",
+
+		"successful_run": {
+			"condition": {"type": "run_target_is_central_server"},
+			"effects": [{"type": "flip_melies_u", "params": {}}]
+		},
+
+		"melies_u_flipped": {
+			"condition": {"type": "melies_u_secret_matches_run_server"},
+			"effects": [{"type": "may_trash_top_rd_add_archives_to_hq", "params": {}}]
+		},
+
+		"runner_action_phase_ends": {
+			"condition": {"type": "melies_u_not_flipped"},
+			"effects": [{"type": "gain_credits", "params": {"subject": "corp", "amount": 1}}]
+		},
+
+		"runner_discard_phase_ends": {
+			"condition": {"type": "melies_u_is_flipped"},
+			"effects": [{"type": "flip_melies_u_back", "params": {}}]
+		},
+
+		"corp_discard_phase_ends": {
+			"effects": [{"type": "corp_secretly_select_melies_side", "params": {}}]
+		}
 	}
 }
