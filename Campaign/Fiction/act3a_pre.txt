@@ -1,0 +1,39 @@
+PRECISION
+
+The workshop was darker than Lee remembered. The servo arms were folded and still, the displays running screensavers — abstract geometric forms drifting slowly across three monitors. Tāo sat at the workstation with the lights turned down, a habit Lee had learned meant they were thinking rather than working.
+
+Lee set the memchip on the desk without speaking.
+
+Tāo reached for it, turned it over once in their fingers, and slotted it into the reader. The displays blinked.
+
+"Jinteki's incident response team flagged my subnet three days after the run," Lee said. "I lost two safe-routes getting here."
+
+"Mm." Tāo's eyes were moving through the data. "The Black Site is air-gapped. What you got was the research layer — protocols, not patient files. But that's enough." A pause, longer than usual. "Look at this."
+
+One display expanded: a licensing agreement header, eight years old. Haas-Bioroid Precision Design Research Division. Jinteki Technologies. A joint development framework for what the document called the Longitudinal Antisenescence Initiative.
+
+Lee read it twice.
+
+"They built it together."
+
+"HB built the baseline. Jinteki licensed it, adapted it, and took it underground. The methodology in the Black Site's Antisenescence Project is identical to what HB was developing for bioroid longevity." Tāo closed the display. "Bioroids don't age the way humans do. Whatever they figured out — they applied it to something else."
+
+Lee said nothing.
+
+"HB's research campus on Heinlein Station runs the original program. Their central archive has everything: the protocols, the licensing correspondence, the authorisation signatures from both sides." Tāo finally looked up. "If you can access that archive, you have both ends of the chain. Not just what Jinteki did. Who helped them do it."
+
+Lee thought about the seventeen faces Jinteki's security division had circulated in the last week. One of them looked enough like Lee to be uncomfortable.
+
+"They'll be hardening the campus."
+
+"Yes." Tāo slid the chip back across the desk. "HB runs Precision Design protocols on everything. Their ICE adapts. Their security learns." A pause. "You'll need to be faster than their response window."
+
+Lee pocketed the chip and stood.
+
+Outside, Heinlein Station hummed with its usual pressurised quiet. Somewhere in the corporate district, in a server room Lee had never seen, a clock was already running.
+
+—
+
+TARGET: Haas-Bioroid: Precision Design
+FACILITY: HB Research Campus, Heinlein Station Hub 7
+OBJECTIVE: Access the central research archive. Pull the Pale Horse licensing agreements.

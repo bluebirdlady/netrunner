@@ -1,0 +1,293 @@
+{
+	"version": 1,
+	"arc": "runner",
+	"title": "CONVENTION BREAKER",
+	"subtitle": "A Runner Campaign",
+
+	"missions": [
+		{
+			"id": "act1_hb",
+			"title": "First Run",
+			"subtitle": "Kaguya Data Vault, Lunacent",
+			"act": 1,
+			"ai_level": 0,
+			"fiction_pre": "act1_pre",
+			"fiction_post": "act1_post",
+			"opponent_id": "hb_syndicate",
+			"unlocks_missions": ["act2a_weyland", "act2b_jinteki", "act2c_nbn"],
+			"unlocks_cards": [],
+			"prerequisite_missions": []
+		},
+		{
+			"id": "act2a_weyland",
+			"title": "Rush Job",
+			"subtitle": "Blue Sun Helium-3 Processing, Heinlein Surface",
+			"act": 2,
+			"ai_level": 0,
+			"fiction_pre": "act2a_pre",
+			"fiction_post": "act2a_post",
+			"opponent_id": "weyland_built_to_last",
+			"unlocks_missions": ["act3a_hb"],
+			"unlocks_cards": [
+				{"id": "conduit", "count": 2},
+				{"id": "mutual_favor", "count": 3},
+				{"id": "leech", "count": 3},
+				"zahya_sadeghi_versatile_smuggler"
+			],
+			"prerequisite_missions": ["act1_hb"]
+		},
+		{
+			"id": "act2c_nbn",
+			"title": "Broadcast",
+			"subtitle": "NBN Regional Relay, Heinlein Broadcast Tower",
+			"act": 2,
+			"ai_level": 1,
+			"fiction_pre": "act2c_pre",
+			"fiction_post": "act2c_post",
+			"opponent_id": "nbn_reality_plus",
+			"unlocks_missions": ["act3a_hb"],
+			"unlocks_cards": [
+				"conduit", "mutual_favor", "unity", "tread_lightly",
+				"tao_salonga_telepresence_magician"
+			],
+			"prerequisite_missions": ["act1_hb"]
+		},
+		{
+			"id": "act2b_jinteki",
+			"title": "Gachapon",
+			"subtitle": "Jinteki Research Division, Heinlein Network",
+			"act": 2,
+			"ai_level": 1,
+			"fiction_pre": "act2b_pre",
+			"fiction_post": "act2b_post",
+			"opponent_id": "jinteki_replicating",
+			"unlocks_missions": ["act3a_hb"],
+			"unlocks_cards": [
+				"conduit", "mutual_favor", "leech",
+				"rene_loup_arcemont_party_animal"
+			],
+			"prerequisite_missions": ["act1_hb"]
+		},
+		{
+			"id": "act3a_hb",
+			"title": "Precision",
+			"subtitle": "HB Research Campus, Heinlein Station",
+			"act": 3,
+			"ai_level": 1,
+			"fiction_pre": "act3a_pre",
+			"fiction_post": "act3a_post",
+			"opponent_id": "hb_precision_design",
+			"unlocks_missions": ["act3b_jinteki_rh"],
+			"unlocks_cards": [
+				{"id": "wildcat_strike", "count": 3},
+				{"id": "dzmz_optimizer", "count": 3},
+				{"id": "echelon", "count": 3},
+				{"id": "t400_memory_diamond", "count": 3},
+				{"id": "buzzsaw", "count": 3},
+				{"id": "pantograph", "count": 3},
+				"tao_salonga_telepresence_magician",
+				{"id": "tread_lightly",        "count": 3},
+				{"id": "unity",                "count": 3},
+				{"id": "creative_commission",  "count": 3},
+				{"id": "vrcation",             "count": 3},
+				{"id": "overclock",            "count": 3},
+				{"id": "telework_contract",    "count": 3},
+				{"id": "smartware_distributor","count": 3},
+				{"id": "mayfly",               "count": 3},
+				{"id": "cleaver",              "count": 3},
+				{"id": "carmen",               "count": 3}
+			],
+			"prerequisite_missions": ["act2a_weyland", "act2b_jinteki"]
+		},
+		{
+			"id": "act3b_jinteki_rh",
+			"title": "Recombination",
+			"subtitle": "Jinteki Black Site, Heinlein Deep Core",
+			"act": 3,
+			"ai_level": 2,
+			"fiction_pre": "act3b_pre",
+			"fiction_post": "act3b_post",
+			"opponent_id": "jinteki_restoring_humanity",
+			"unlocks_missions": [],
+			"unlocks_cards": [
+				{"id": "botulus", "count": 3},
+				{"id": "cookbook", "count": 3},
+				{"id": "fermenter", "count": 3},
+				{"id": "tranquilizer", "count": 3},
+				{"id": "marjanah", "count": 3},
+				{"id": "carnivore", "count": 3},
+				{"id": "docklands_pass", "count": 3},
+				{"id": "pennyshaver", "count": 3},
+				{"id": "red_team", "count": 3},
+				{"id": "verbal_plasticity", "count": 3}
+			],
+			"prerequisite_missions": ["act3a_hb"]
+		}
+	],
+
+	"opponents": {
+		"hb_syndicate": {
+			"name": "Haas-Bioroid",
+			"identity": "the_syndicate_profit_over_principle",
+			"description": "A Haas-Bioroid subsidiary. Efficient. Cold. They did not expect you.",
+			"deck": [
+				"offworld_office", "offworld_office", "offworld_office",
+				"send_a_message", "send_a_message",
+				"superconducting_hub", "superconducting_hub",
+				"nico_campaign", "nico_campaign",
+				"urtica_cipher", "urtica_cipher",
+				"regolith_mining_license", "regolith_mining_license",
+				"hedge_fund", "hedge_fund", "hedge_fund",
+				"government_subsidy", "government_subsidy",
+				"seamless_launch", "seamless_launch",
+				"manegarm_skunkworks",
+				"bran_1_0", "bran_1_0",
+				"diviner", "diviner",
+				"karuna", "karuna",
+				"palisade", "palisade", "palisade",
+				"whitespace", "whitespace",
+				"tithe", "tithe"
+			]
+		},
+		"weyland_built_to_last": {
+			"name": "Weyland Consortium",
+			"identity": "weyland_consortium_built_to_last",
+			"description": "They build things meant to last. Their ICE is no exception.",
+			"deck": [
+				"above_the_law",
+				"orbital_superiority", "orbital_superiority", "orbital_superiority",
+				"send_a_message", "send_a_message", "send_a_message",
+				"superconducting_hub",
+				"spin_doctor", "spin_doctor", "spin_doctor",
+				"clearinghouse", "clearinghouse", "clearinghouse",
+				"regolith_mining_license", "regolith_mining_license", "regolith_mining_license",
+				"malapert_data_vault", "malapert_data_vault", "malapert_data_vault",
+				"government_subsidy", "government_subsidy", "government_subsidy",
+				"retribution", "retribution", "retribution",
+				"hedge_fund", "hedge_fund", "hedge_fund",
+				"pharos", "pharos", "pharos",
+				"palisade", "palisade", "palisade",
+				"whitespace", "whitespace", "whitespace",
+				"ballista", "ballista", "ballista",
+				"tithe", "tithe", "tithe"
+			]
+		},
+		"hb_precision_design": {
+			"name": "Haas-Bioroid",
+			"identity": "haas_bioroid_precision_design",
+			"description": "Nothing wasted. Nothing overlooked. They designed the system that built the Black Site, and they have been waiting for someone to find out.",
+			"deck": [
+				"luminal_transubstantiation",
+				"orbital_superiority", "orbital_superiority", "orbital_superiority",
+				"send_a_message", "send_a_message", "send_a_message",
+				"superconducting_hub",
+				"nico_campaign", "nico_campaign", "nico_campaign",
+				"urtica_cipher", "urtica_cipher", "urtica_cipher",
+				"spin_doctor", "spin_doctor", "spin_doctor",
+				"regolith_mining_license", "regolith_mining_license", "regolith_mining_license",
+				"manegarm_skunkworks", "manegarm_skunkworks", "manegarm_skunkworks",
+				"sprint", "sprint", "sprint",
+				"hedge_fund", "hedge_fund", "hedge_fund",
+				"bran_1_0", "bran_1_0", "bran_1_0",
+				"palisade", "palisade", "palisade",
+				"whitespace", "whitespace", "whitespace",
+				"ansel_1_0", "ansel_1_0", "ansel_1_0",
+				"karuna", "karuna", "karuna"
+			]
+		},
+		"jinteki_restoring_humanity": {
+			"name": "Jinteki",
+			"identity": "jinteki_restoring_humanity",
+			"description": "Director Kase calls it progress. The Black Site has no name, no entry in the balance sheet, and no mercy. You have seen what they are building down there.",
+			"deck": [
+				"longevity_serum",
+				"orbital_superiority", "orbital_superiority", "orbital_superiority",
+				"send_a_message", "send_a_message", "send_a_message",
+				"superconducting_hub",
+				"urtica_cipher", "urtica_cipher", "urtica_cipher",
+				"spin_doctor", "spin_doctor", "spin_doctor",
+				"regolith_mining_license", "regolith_mining_license", "regolith_mining_license",
+				"anoetic_void", "anoetic_void", "anoetic_void",
+				"hansei_review", "hansei_review", "hansei_review",
+				"neurospike", "neurospike", "neurospike",
+				"predictive_planogram", "predictive_planogram", "predictive_planogram",
+				"government_subsidy", "government_subsidy", "government_subsidy",
+				"hedge_fund", "hedge_fund", "hedge_fund",
+				"bran_1_0", "bran_1_0", "bran_1_0",
+				"diviner", "diviner", "diviner",
+				"karuna", "karuna", "karuna"
+			]
+		},
+		"jinteki_replicating": {
+			"name": "Jinteki",
+			"identity": "jinteki_replicating_perfection",
+			"description": "Patience as a weapon. They will wait you out, or wear you down trying.",
+			"deck": [
+				"longevity_serum",
+				"offworld_office", "offworld_office", "offworld_office",
+				"orbital_superiority",
+				"send_a_message", "send_a_message", "send_a_message",
+				"superconducting_hub",
+				"urtica_cipher", "urtica_cipher", "urtica_cipher",
+				"spin_doctor", "spin_doctor", "spin_doctor",
+				"regolith_mining_license", "regolith_mining_license", "regolith_mining_license",
+				"manegarm_skunkworks", "manegarm_skunkworks", "manegarm_skunkworks",
+				"anoetic_void", "anoetic_void", "anoetic_void",
+				"hansei_review", "hansei_review", "hansei_review",
+				"neurospike", "neurospike", "neurospike",
+				"predictive_planogram",
+				"hedge_fund", "hedge_fund", "hedge_fund",
+				"palisade", "palisade", "palisade",
+				"diviner", "diviner", "diviner",
+				"whitespace", "whitespace", "whitespace",
+				"karuna", "karuna", "karuna",
+				"tithe", "tithe", "tithe"
+			]
+		},
+		"nbn_reality_plus": {
+			"name": "NBN",
+			"identity": "nbn_reality_plus",
+			"description": "Every tag you take is a profit centre. They are watching, and every mistake makes them richer.",
+			"deck": [
+				"tomorrows_headline",
+				"offworld_office", "offworld_office", "offworld_office",
+				"orbital_superiority", "orbital_superiority", "orbital_superiority",
+				"send_a_message",
+				"superconducting_hub",
+				"spin_doctor", "spin_doctor", "spin_doctor",
+				"regolith_mining_license", "regolith_mining_license", "regolith_mining_license",
+				"amaze_amusements", "amaze_amusements", "amaze_amusements",
+				"predictive_planogram", "predictive_planogram", "predictive_planogram",
+				"public_trail", "public_trail", "public_trail",
+				"retribution", "retribution", "retribution",
+				"hedge_fund", "hedge_fund", "hedge_fund",
+				"ping", "ping", "ping",
+				"pharos", "pharos", "pharos",
+				"funhouse", "funhouse", "funhouse",
+				"whitespace", "whitespace",
+				"tithe", "tithe", "tithe"
+			]
+		}
+	},
+
+	"runner_starter_deck": [
+		"tread_lightly", "tread_lightly",
+		"creative_commission", "creative_commission",
+		"vrcation", "vrcation",
+		"overclock", "overclock",
+		"jailbreak", "jailbreak", "jailbreak",
+		"sure_gamble", "sure_gamble", "sure_gamble",
+		"docklands_pass",
+		"pennyshaver",
+		"red_team",
+		"telework_contract", "telework_contract",
+		"smartware_distributor", "smartware_distributor",
+		"verbal_plasticity",
+		"cleaver", "cleaver",
+		"carmen", "carmen",
+		"unity", "unity",
+		"mayfly", "mayfly"
+	],
+
+	"runner_identity": "the_catalyst_convention_breaker"
+}

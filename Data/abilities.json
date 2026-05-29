@@ -1,0 +1,4876 @@
+{
+	"hedge_fund": {
+		"on_play": {
+			"effects": [
+				{
+					"type": "gain_credits",
+					"params": {
+						"subject": "corp",
+						"amount": 9
+					}
+				}
+			]
+		}
+	},
+	"palisade": {
+		"subroutines": [
+			{
+				"label": "End the run.",
+				"effects": [
+					{
+						"type": "end_run"
+					}
+				]
+			}
+		]
+	},
+	"whitespace": {
+		"subroutines": [
+			{
+				"label": "The Runner loses 3[credit].",
+				"effects": [
+					{
+						"type": "lose_credits",
+						"params": {
+							"subject": "runner",
+							"amount": 3
+						}
+					}
+				]
+			},
+			{
+				"label": "If the Runner has 6[credit] or fewer, end the run.",
+				"condition": {
+					"type": "credits_compare",
+					"params": {
+						"subject": "runner",
+						"operator": "lte",
+						"value": 6
+					}
+				},
+				"effects": [
+					{
+						"type": "end_run"
+					}
+				]
+			}
+		]
+	},
+	"urtica_cipher": {
+		"_note": "Jinteki ambush (Elevation). When the Runner accesses this card, the Corp may pay 2[cr]. If the Corp does, the Runner takes net damage equal to 2 plus the number of hosted advancement counters. The Corp payment is optional and must be declared before damage resolves.",
+		"on_access": {
+			"effects": [
+				{
+					"type": "urtica_cipher_trigger"
+				}
+			]
+		}
+	},
+	"byte": {
+		"on_access": {
+			"effects": [
+				{
+					"type": "corp_optional_pay_tag_and_damage",
+					"params": {
+						"cost": 4,
+						"tags": 1,
+						"damage_type": "net",
+						"damage": 3
+					}
+				}
+			]
+		}
+	},
+	"phat_gioan_baotixita": {
+		"_note": "Jinteki asset. Discard phase ends → place 1 power counter. First time each turn an agenda is scored or stolen → may remove up to 2 power counters; do 1 + removed net damage.",
+		"corp_discard_phase_ends": {
+			"condition": {
+				"type": "self_is_rezzed"
+			},
+			"effects": [
+				{
+					"type": "add_self_counters",
+					"counter": "power",
+					"amount": 1
+				}
+			]
+		},
+		"corp_scores_agenda": {
+			"once_per_turn_key": "phat_agenda_trigger",
+			"condition": {
+				"type": "self_is_rezzed"
+			},
+			"effects": [
+				{
+					"type": "phat_optional_damage"
+				}
+			]
+		},
+		"runner_steals_agenda": {
+			"once_per_turn_key": "phat_agenda_trigger",
+			"condition": {
+				"type": "self_is_rezzed"
+			},
+			"effects": [
+				{
+					"type": "phat_optional_damage"
+				}
+			]
+		}
+	},
+	"retribution": {
+		"on_play": {
+			"condition": {
+				"type": "runner_is_tagged"
+			},
+			"target": {
+				"type": "installed_card",
+				"params": {
+					"controller": "runner",
+					"card_types": [
+						"program",
+						"hardware"
+					],
+					"count": 1
+				}
+			},
+			"effects": [
+				{
+					"type": "trash_card",
+					"params": {
+						"target": "chosen"
+					}
+				}
+			]
+		}
+	},
+	"cleaver": {
+		"break": {
+			"subtype_restriction": "barrier",
+			"cost_per_sub": 1,
+			"subs_per_use": 1
+		},
+		"boost": {
+			"cost": 1,
+			"strength_gained": 2
+		}
+	},
+	"unity": {
+		"break": {
+			"subtype_restriction": "code_gate",
+			"cost_per_sub": 1,
+			"subs_per_use": 1
+		},
+		"boost": {
+			"cost": 1,
+			"strength_gained": 1,
+			"strength_gained_modifier": "installed_icebreaker_count"
+		},
+		"passive_modifiers": [
+			{
+				"type": "dynamic_base_strength",
+				"card_id": "unity",
+				"method": "installed_icebreaker_count",
+				"conditions": {}
+			}
+		]
+	},
+	"carmen": {
+		"break": {
+			"subtype_restriction": "sentry",
+			"cost_per_sub": 1,
+			"subs_per_use": 1
+		},
+		"boost": {
+			"cost": 1,
+			"strength_gained": 3
+		},
+		"install_cost_if_successful_run": 3
+	},
+	"sure_gamble": {
+		"on_play": {
+			"effects": [
+				{
+					"type": "gain_credits",
+					"params": {
+						"subject": "runner",
+						"amount": 9
+					}
+				}
+			]
+		}
+	},
+	"government_subsidy": {
+		"on_play": {
+			"effects": [
+				{
+					"type": "gain_credits",
+					"params": {
+						"subject": "corp",
+						"amount": 14
+					}
+				}
+			]
+		}
+	},
+	"offworld_office": {
+		"on_score": {
+			"effects": [
+				{
+					"type": "gain_credits",
+					"params": {
+						"subject": "corp",
+						"amount": 7
+					}
+				}
+			]
+		}
+	},
+	"luminal_transubstantiation": {
+		"on_score": {
+			"effects": [
+				{
+					"type": "gain_credits",
+					"params": {
+						"subject": "corp",
+						"amount": 2
+					}
+				},
+				{
+					"type": "draw_cards",
+					"params": {
+						"subject": "corp",
+						"amount": 2
+					}
+				}
+			]
+		}
+	},
+	"tithe": {
+		"subroutines": [
+			{
+				"label": "The Runner loses 1[credit].",
+				"effects": [
+					{
+						"type": "lose_credits",
+						"params": {
+							"subject": "runner",
+							"amount": 1
+						}
+					}
+				]
+			},
+			{
+				"label": "End the run.",
+				"effects": [
+					{
+						"type": "end_run"
+					}
+				]
+			}
+		]
+	},
+	"creative_commission": {
+		"on_play": {
+			"effects": [
+				{
+					"type": "gain_credits",
+					"params": {
+						"subject": "runner",
+						"amount": 5
+					}
+				},
+				{
+					"type": "lose_clicks_next_turn",
+					"params": {
+						"subject": "runner",
+						"amount": 1
+					}
+				}
+			]
+		}
+	},
+	"vrcation": {
+		"on_play": {
+			"effects": [
+				{
+					"type": "draw_cards",
+					"params": {
+						"subject": "runner",
+						"amount": 4
+					}
+				},
+				{
+					"type": "lose_clicks_next_turn",
+					"params": {
+						"subject": "runner",
+						"amount": 1
+					}
+				}
+			]
+		}
+	},
+	"sprint": {
+		"on_play": {
+			"effects": [
+				{
+					"type": "draw_cards",
+					"params": {
+						"subject": "corp",
+						"amount": 3
+					}
+				},
+				{
+					"type": "choose_and_return_to_deck",
+					"params": {
+						"subject": "corp"
+					}
+				}
+			]
+		}
+	},
+	"seamless_launch": {
+		"on_play": {
+			"target": {
+				"type": "installed_card",
+				"params": {
+					"controller": "corp",
+					"card_types": [
+						"agenda",
+						"asset",
+						"ice",
+						"upgrade"
+					],
+					"count": 1,
+					"exclude_installed_this_turn": true
+				}
+			},
+			"effects": [
+				{
+					"type": "add_counters_to_target",
+					"params": {
+						"counter_type": "advancement",
+						"amount": 2
+					}
+				}
+			]
+		}
+	},
+	"predictive_planogram": {
+		"on_play": {
+			"modes": [
+				{
+					"label": "Gain 3 credits",
+					"effects": [
+						{
+							"type": "gain_credits",
+							"params": {
+								"subject": "corp",
+								"amount": 3
+							}
+						}
+					]
+				},
+				{
+					"label": "Draw 3 cards",
+					"effects": [
+						{
+							"type": "draw_cards",
+							"params": {
+								"subject": "corp",
+								"amount": 3
+							}
+						}
+					]
+				}
+			],
+			"max_choices": 1,
+			"bonus_condition": {
+				"type": "runner_is_tagged"
+			}
+		}
+	},
+	"nico_campaign": {
+		"on_rez": {
+			"effects": [
+				{
+					"type": "add_self_counters",
+					"counter": "credits",
+					"amount": 9
+				}
+			]
+		},
+		"corp_turn_start": {
+			"effects": [
+				{
+					"type": "take_hosted_credits",
+					"subject": "corp",
+					"amount": 3
+				},
+				{
+					"type": "self_trash_if_empty_and_draw",
+					"counter": "credits"
+				}
+			]
+		}
+	},
+	"daily_casts": {
+		"on_rez": {
+			"effects": [
+				{
+					"type": "add_self_counters",
+					"counter": "credits",
+					"amount": 8
+				}
+			]
+		},
+		"runner_turn_start": {
+			"effects": [
+				{
+					"type": "take_hosted_credits",
+					"subject": "runner",
+					"amount": 2
+				},
+				{
+					"type": "self_trash_if_empty",
+					"counter": "credits"
+				}
+			]
+		}
+	},
+	"earthrise_hotel": {
+		"on_rez": {
+			"effects": [
+				{
+					"type": "add_self_counters",
+					"counter": "power",
+					"amount": 3
+				}
+			]
+		},
+		"runner_turn_start": {
+			"effects": [
+				{
+					"type": "draw_cards",
+					"params": {
+						"subject": "runner",
+						"amount": 2
+					}
+				},
+				{
+					"type": "remove_self_counter",
+					"counter": "power",
+					"amount": 1
+				},
+				{
+					"type": "self_trash_if_empty",
+					"counter": "power"
+				}
+			]
+		}
+	},
+	"superconducting_hub": {
+		"on_score": {
+			"effects": [
+				{
+					"type": "increase_hand_size",
+					"params": {
+						"subject": "corp",
+						"amount": 2
+					}
+				},
+				{
+					"type": "draw_cards",
+					"params": {
+						"subject": "corp",
+						"amount": 2
+					}
+				}
+			]
+		},
+		"on_steal": {
+			"effects": [
+				{
+					"type": "draw_cards",
+					"params": {
+						"subject": "runner",
+						"amount": 2
+					}
+				}
+			]
+		}
+	},
+	"send_a_message": {
+		"on_score": {
+			"effects": [
+				{
+					"type": "rez_card_free",
+					"params": {
+						"target_zone": "ice"
+					}
+				}
+			]
+		},
+		"on_steal": {
+			"effects": [
+				{
+					"type": "rez_card_free",
+					"params": {
+						"target_zone": "ice"
+					}
+				}
+			]
+		}
+	},
+	"ip_enforcement": {
+		"_note": "NBN operation. Cost X. Additional cost: remove X tags. Install 1 agenda from Runner's score area with printed AP = X. If Runner is still tagged after, place 1 advancement counter on it. Handled by ip_enforcement_execute which picks the best valid X.",
+		"on_play": {
+			"condition": {
+				"type": "runner_is_tagged"
+			},
+			"effects": [
+				{
+					"type": "ip_enforcement_execute"
+				}
+			]
+		}
+	},
+	"jailbreak": {
+		"on_play": {
+			"effects": [
+				{
+					"type": "set_run_modifier",
+					"params": {
+						"key": "bonus_access",
+						"value": 1
+					}
+				},
+				{
+					"type": "choose_and_run",
+					"params": {
+						"servers": [
+							"hq",
+							"rd"
+						]
+					}
+				}
+			]
+		}
+	},
+	"shred": {
+		"_note": "Criminal event. Run any server. The first time the Corp would end that run, prevent the run from ending unless the Corp reveals and trashes X cards from HQ at random. X = number of cards in the root of the attacked server.",
+		"on_play": {
+			"effects": [
+				{
+					"type": "set_run_modifier",
+					"params": {
+						"key": "prevent_first_etr",
+						"value": 1
+					}
+				},
+				{
+					"type": "choose_and_run",
+					"params": {
+						"servers": [
+							"hq",
+							"rd",
+							"archives",
+							"remote"
+						]
+					}
+				}
+			]
+		}
+	},
+	"overclock": {
+		"on_play": {
+			"effects": [
+				{
+					"type": "set_run_modifier",
+					"params": {
+						"key": "overclock_credits",
+						"value": 5
+					}
+				},
+				{
+					"type": "choose_and_run",
+					"params": {
+						"servers": [
+							"hq",
+							"rd",
+							"archives",
+							"remote"
+						]
+					}
+				}
+			]
+		}
+	},
+	"tread_lightly": {
+		"on_play": {
+			"effects": [
+				{
+					"type": "set_run_modifier",
+					"params": {
+						"key": "extra_rez_cost",
+						"value": 3
+					}
+				},
+				{
+					"type": "choose_and_run",
+					"params": {
+						"servers": [
+							"hq",
+							"rd",
+							"archives"
+						]
+					}
+				}
+			]
+		}
+	},
+	"k2cp_turbine": {
+		"passive_modifiers": [
+			{
+				"type": "breaker_strength",
+				"value": 2,
+				"conditions": {}
+			}
+		]
+	},
+	"mutual_favor": {
+		"on_play": {
+			"effects": [
+				{
+					"type": "search_deck",
+					"params": {
+						"subject": "runner",
+						"subtypes": [
+							"fracter",
+							"decoder",
+							"killer"
+						],
+						"reveal": true
+					}
+				}
+			]
+		}
+	},
+	"conduit": {
+		"successful_run": {
+			"effects": [
+				{
+					"type": "add_self_counter_if_server",
+					"counter": "virus",
+					"amount": 1,
+					"params": {
+						"server": "rd"
+					}
+				},
+				{
+					"type": "set_bonus_access_from_counters",
+					"counter": "virus",
+					"params": {
+						"server": "rd"
+					}
+				}
+			]
+		}
+	},
+	"leech": {
+		"encounter_spend_credits": true,
+		"on_rez": {
+			"effects": [
+				{
+					"type": "add_self_counters",
+					"counter": "credits",
+					"amount": 1
+				}
+			]
+		},
+		"encounter_ice": {
+			"effects": [
+				{
+					"type": "add_self_counters",
+					"counter": "credits",
+					"amount": 1
+				}
+			]
+		}
+	},
+	"bran_1_0": {
+		"subroutines": [
+			{
+				"label": "You may install 1 piece of ice from HQ or Archives directly inward from this ice, ignoring all costs.",
+				"effects": [
+					{
+						"type": "install_ice_from_hq",
+						"params": {
+							"also_archives": true
+						}
+					}
+				]
+			},
+			{
+				"label": "End the run.",
+				"effects": [
+					{
+						"type": "end_run"
+					}
+				]
+			},
+			{
+				"label": "End the run.",
+				"effects": [
+					{
+						"type": "end_run"
+					}
+				]
+			}
+		]
+	},
+	"ansel_1_0": {
+		"subroutines": [
+			{
+				"label": "Trash 1 installed resource or connection.",
+				"effects": [
+					{
+						"type": "trash_runner_installed",
+						"params": {
+							"card_types": [
+								"resource"
+							],
+							"subtypes": []
+						}
+					}
+				]
+			},
+			{
+				"label": "You may install 1 piece of ice from HQ in the outermost position protecting this server, ignoring all costs.",
+				"effects": [
+					{
+						"type": "install_ice_from_hq",
+						"params": {
+							"also_archives": false
+						}
+					}
+				]
+			},
+			{
+				"label": "End the run.",
+				"effects": [
+					{
+						"type": "end_run"
+					}
+				]
+			}
+		]
+	},
+	"manegarm_skunkworks": {
+		"approach_server": {
+			"effects": [
+				{
+					"type": "runner_must_pay_or_end_run",
+					"params": {
+						"options": [
+							{
+								"type": "clicks",
+								"amount": 2
+							},
+							{
+								"type": "credits",
+								"amount": 4
+							}
+						]
+					}
+				}
+			]
+		}
+	},
+	"regolith_mining_license": {
+		"on_rez": {
+			"effects": [
+				{
+					"type": "add_self_counters",
+					"counter": "credits",
+					"amount": 15
+				}
+			]
+		},
+		"click_action": {
+			"label": "Regolith: Take 3[cr] from this asset",
+			"subject": "corp",
+			"effects": [
+				{
+					"type": "take_hosted_credits_amount",
+					"counter": "credits",
+					"amount": 3,
+					"subject": "corp"
+				},
+				{
+					"type": "self_trash_if_empty",
+					"counter": "credits"
+				}
+			]
+		}
+	},
+	"diviner": {
+		"subroutines": [
+			{
+				"label": "Do 1 net damage. If the trashed card has an odd printed cost, end the run.",
+				"effects": [
+					{
+						"type": "deal_damage_etr_if_odd_cost",
+						"params": {
+							"damage_type": "net",
+							"amount": 1
+						}
+					}
+				]
+			}
+		]
+	},
+	"karuna": {
+		"subroutines": [
+			{
+				"label": "Do 2 net damage. The Runner may jack out.",
+				"effects": [
+					{
+						"type": "deal_damage_then_may_jack_out",
+						"params": {
+							"damage_type": "net",
+							"amount": 2
+						}
+					}
+				]
+			},
+			{
+				"label": "End the run.",
+				"effects": [
+					{
+						"type": "end_run"
+					}
+				]
+			}
+		]
+	},
+	"mayfly": {
+		"break": {
+			"subtype_restriction": null,
+			"cost_per_sub": 1,
+			"subs_per_use": 1
+		},
+		"boost": {
+			"cost": 1,
+			"strength_gained": 1
+		},
+		"run_end": {
+			"effects": [
+				{
+					"type": "self_trash_if_used_this_run"
+				}
+			]
+		}
+	},
+	"pennyshaver": {
+		"on_rez": {
+			"effects": [
+				{
+					"type": "add_self_counters",
+					"counter": "credits",
+					"amount": 1
+				}
+			]
+		},
+		"successful_run": {
+			"effects": [
+				{
+					"type": "add_self_counters_if_central",
+					"counter": "credits",
+					"amount": 1,
+					"params": {}
+				}
+			]
+		},
+		"passive_modifiers": [
+			{
+				"type": "mu_bonus",
+				"value": 1,
+				"conditions": {}
+			}
+		],
+		"click_action": {
+			"label": "Pennyshaver: Load 1[cr] then take all",
+			"subject": "runner",
+			"effects": [
+				{
+					"type": "add_self_counters",
+					"counter": "credits",
+					"amount": 1
+				},
+				{
+					"type": "take_all_hosted_credits",
+					"counter": "credits",
+					"subject": "runner"
+				}
+			]
+		}
+	},
+	"docklands_pass": {
+		"successful_run": {
+			"effects": [
+				{
+					"type": "add_bonus_access_if_server",
+					"params": {
+						"server": "hq",
+						"amount": 1
+					}
+				}
+			]
+		}
+	},
+	"fransofia_ward": {
+		"passive_modifiers": [
+			{
+				"type": "rez_cost",
+				"value": 1,
+				"conditions": {
+					"card_type": "ice"
+				}
+			}
+		],
+		"encounter_ice": {
+			"effects": [
+				{
+					"type": "may_trash_self_to_bypass",
+					"params": {
+						"trigger_if_corp_credits_gte": 15
+					}
+				}
+			]
+		}
+	},
+	"maglectric_rapid_748_mod": {
+		"successful_run": {
+			"effects": [
+				{
+					"type": "may_trash_self_to_derez_corp_card",
+					"params": {
+						"required_server": "hq"
+					}
+				}
+			]
+		}
+	},
+	"red_team": {
+		"on_rez": {
+			"effects": [
+				{
+					"type": "add_self_counters",
+					"counter": "credits",
+					"amount": 12
+				}
+			]
+		},
+		"click_action": {
+			"label": "Red Team: Run a central (take 3cr on success)",
+			"effects": [
+				{
+					"type": "run_central_if_unrun",
+					"params": {
+						"payout_counter": "credits",
+						"payout_amount": 3
+					}
+				}
+			]
+		}
+	},
+	"telework_contract": {
+		"on_rez": {
+			"effects": [
+				{
+					"type": "add_self_counters",
+					"counter": "credits",
+					"amount": 9
+				}
+			]
+		},
+		"click_action": {
+			"label": "Telework: Take 3[cr] from this resource",
+			"subject": "runner",
+			"effects": [
+				{
+					"type": "take_hosted_credits_amount",
+					"counter": "credits",
+					"amount": 3,
+					"subject": "runner"
+				},
+				{
+					"type": "self_trash_if_empty",
+					"counter": "credits"
+				}
+			]
+		}
+	},
+	"smartware_distributor": {
+		"runner_turn_start": {
+			"effects": [
+				{
+					"type": "add_self_counters",
+					"counter": "credits",
+					"amount": 1
+				}
+			]
+		},
+		"click_action": {
+			"label": "Smartware: Take credits from this resource",
+			"subject": "runner",
+			"effects": [
+				{
+					"type": "take_all_hosted_credits",
+					"counter": "credits",
+					"subject": "runner"
+				}
+			]
+		}
+	},
+	"verbal_plasticity": {
+		"passive_modifiers": [
+			{
+				"type": "extra_draw_on_click_draw",
+				"value": 1,
+				"conditions": {}
+			}
+		]
+	},
+	"the_syndicate_profit_over_principle": {},
+	"the_catalyst_convention_breaker": {},
+	"botulus": {
+		"install_on_ice": true,
+		"corp_turn_start": {
+			"effects": [
+				{
+					"type": "add_self_counters",
+					"counter": "virus",
+					"amount": 1
+				}
+			]
+		},
+		"break": {
+			"subtype_restriction": null,
+			"cost_per_sub": 0,
+			"cost_virus_counter": 1,
+			"subs_per_use": 1,
+			"host_only": true
+		},
+		"on_rez": {
+			"effects": [
+				{
+					"type": "add_self_counters",
+					"counter": "virus",
+					"amount": 1
+				}
+			]
+		}
+	},
+	"tranquilizer": {
+		"install_on_ice": true,
+		"corp_turn_start": {
+			"effects": [
+				{
+					"type": "derez_host_ice"
+				}
+			]
+		},
+		"on_derez": {
+			"effects": [
+				{
+					"type": "self_trash"
+				}
+			]
+		}
+	},
+	"wildcat_strike": {
+		"on_play": {
+			"chooser": "corp",
+			"modes": [
+				{
+					"label": "Runner draws 4 cards",
+					"effects": [
+						{
+							"type": "draw_cards",
+							"params": {
+								"subject": "runner",
+								"amount": 4
+							}
+						}
+					]
+				},
+				{
+					"label": "Runner gains 4 credits",
+					"effects": [
+						{
+							"type": "gain_credits",
+							"params": {
+								"subject": "runner",
+								"amount": 4
+							}
+						}
+					]
+				}
+			],
+			"max_choices": 1
+		}
+	},
+	"echelon": {
+		"break": {
+			"subtype_restriction": "code_gate",
+			"cost_per_sub": 1,
+			"subs_per_use": 1
+		},
+		"boost": {
+			"cost": 1,
+			"strength_gained": 2
+		},
+		"passive_modifiers": [
+			{
+				"type": "dynamic_base_strength",
+				"card_id": "echelon",
+				"method": "installed_icebreaker_count",
+				"conditions": {}
+			}
+		]
+	},
+	"marjanah": {
+		"break": {
+			"subtype_restriction": "barrier",
+			"cost_per_sub": 2,
+			"subs_per_use": 1
+		},
+		"boost": {
+			"cost": 1,
+			"strength_gained": 1
+		},
+		"pass_ice": {
+			"effects": [
+				{
+					"type": "add_self_counters",
+					"counter": "power",
+					"amount": 1
+				}
+			]
+		}
+	},
+	"pantograph": {
+		"corp_scores_agenda": {
+			"effects": [
+				{
+					"type": "install_from_grip_free"
+				}
+			]
+		}
+	},
+	"anoetic_void": {
+		"before_breach": {
+			"effects": [
+				{
+					"type": "corp_may_end_breach",
+					"params": {
+						"cost_credits": 2,
+						"cost_trash_hq": 2
+					}
+				}
+			]
+		}
+	},
+	"tao_salonga": {
+		"successful_run": {
+			"effects": [
+				{
+					"type": "may_swap_two_ice"
+				}
+			]
+		}
+	},
+	"rene_loup_arcemont": {
+		"runner_trashes_during_breach": {
+			"effects": [
+				{
+					"type": "gain_credits_first_trash_this_turn",
+					"params": {
+						"amount": 2
+					}
+				}
+			]
+		}
+	},
+	"dzmz_optimizer": {
+		"_note": "First program install each turn costs 1cr less. Handled in TurnManager._do_install."
+	},
+	"fermenter": {
+		"on_rez": {
+			"effects": [
+				{
+					"type": "add_self_counters",
+					"counter": "virus",
+					"amount": 1
+				}
+			]
+		},
+		"runner_turn_start": {
+			"effects": [
+				{
+					"type": "add_self_counters",
+					"counter": "virus",
+					"amount": 1
+				}
+			]
+		},
+		"click_action": {
+			"label": "Fermenter: [trash] Gain 2cr per virus counter",
+			"subject": "runner",
+			"effects": [
+				{
+					"type": "gain_credits_per_counter",
+					"counter": "virus",
+					"credits_per": 2
+				},
+				{
+					"type": "self_trash"
+				}
+			]
+		}
+	},
+	"cookbook": {
+		"runner_installs_virus": {
+			"effects": [
+				{
+					"type": "add_counters_to_installed_virus",
+					"counter": "virus",
+					"amount": 1
+				}
+			]
+		}
+	},
+	"carnivore": {
+		"passive_modifiers": [
+			{
+				"type": "mu_bonus",
+				"value": 1,
+				"conditions": {}
+			}
+		],
+		"access_interrupt": {
+			"once_per_turn": true,
+			"effects": [
+				{
+					"type": "may_trash_accessed_by_discarding",
+					"params": {
+						"grip_cost": 2
+					}
+				}
+			]
+		}
+	},
+	"knickknack_obrian": {
+		"_note": "Shaper resource. The first time each turn a run begins, you may trash 1 of your other installed cards. If you do, gain credits equal to its printed install cost and draw 1 card.",
+		"run_start": {
+			"once_per_turn_key": "knickknack_run_start",
+			"effects": [
+				{
+					"type": "trash_installed_for_credits_and_draw",
+					"params": {
+						"optional": true,
+						"exclude_self": true,
+						"draw": 1
+					}
+				}
+			]
+		}
+	},
+	"boomerang": {
+		"choose_target_on_install": {
+			"card_types": [
+				"ice"
+			],
+			"controller": "corp"
+		},
+		"break": {
+			"subtype_restriction": null,
+			"target_only": true,
+			"trash_self_on_use": true,
+			"cost_per_sub": 0,
+			"subs_per_use": 2
+		},
+		"run_end": {
+			"effects": [
+				{
+					"type": "boomerang_recur_from_heap"
+				}
+			]
+		}
+	},
+	"orbital_superiority": {
+		"on_score": {
+			"effects": [
+				{
+					"type": "deal_damage",
+					"params": {
+						"damage_type": "meat",
+						"amount": 4
+					}
+				}
+			]
+		}
+	},
+	"spin_doctor": {
+		"on_rez": {
+			"effects": [
+				{
+					"type": "draw_cards",
+					"params": {
+						"subject": "corp",
+						"amount": 2
+					}
+				}
+			]
+		},
+		"click_action": {
+			"label": "Spin Doctor: [trash] Shuffle up to 2 cards from Archives into R&D",
+			"subject": "corp",
+			"effects": [
+				{
+					"type": "shuffle_archives_to_rd",
+					"params": {
+						"max_count": 2
+					}
+				},
+				{
+					"type": "self_trash"
+				}
+			]
+		}
+	},
+	"haas_bioroid_precision_design": {
+		"corp_scores_agenda": {
+			"effects": [
+				{
+					"type": "fetch_from_archives_to_hq"
+				}
+			]
+		}
+	},
+	"zahya_sadeghi_versatile_contractor": {
+		"breach_complete": {
+			"effects": [
+				{
+					"type": "gain_credits_per_access_beyond_first",
+					"params": {
+						"servers": [
+							"hq",
+							"archives"
+						]
+					}
+				}
+			]
+		}
+	},
+	"t400_memory_diamond": {
+		"passive_modifiers": [
+			{
+				"type": "mu_bonus",
+				"value": 2,
+				"conditions": {}
+			},
+			{
+				"type": "link_bonus",
+				"value": 1,
+				"conditions": {}
+			}
+		]
+	},
+	"buzzsaw": {
+		"break": {
+			"subtype_restriction": "barrier",
+			"cost_per_sub": 1,
+			"subs_per_use": 1
+		},
+		"boost": {
+			"cost": 2,
+			"strength_gained": 3
+		}
+	},
+	"hansei_review": {
+		"on_play": {
+			"condition": {
+				"type": "runner_made_successful_run"
+			},
+			"effects": [
+				{
+					"type": "gain_credits",
+					"params": {
+						"subject": "corp",
+						"amount": 3
+					}
+				},
+				{
+					"type": "discard_from_corp_hand",
+					"params": {
+						"amount": 1
+					}
+				}
+			]
+		}
+	},
+	"longevity_serum": {
+		"on_play": {
+			"effects": [
+				{
+					"type": "shuffle_discard_to_deck_gain_credits",
+					"params": {
+						"subject": "corp"
+					}
+				}
+			]
+		}
+	},
+	"weyland_consortium_built_to_last": {
+		"on_advance": {
+			"effects": [
+				{
+					"type": "gain_credits_first_advance_this_turn",
+					"params": {
+						"amount": 2
+					}
+				}
+			]
+		}
+	},
+	"jinteki_replicating_perfection": {
+		"passive_modifiers": [
+			{
+				"type": "block_remote_runs_unless_ran_central"
+			}
+		]
+	},
+	"jinteki_restoring_humanity": {
+		"corp_turn_start": {
+			"condition": {
+				"type": "corp_discarded_last_turn"
+			},
+			"effects": [
+				{
+					"type": "draw_cards",
+					"params": {
+						"subject": "corp",
+						"amount": 1
+					}
+				}
+			]
+		}
+	},
+	"clearinghouse": {
+		"corp_turn_start": {
+			"effects": [
+				{
+					"type": "clearinghouse_activate"
+				}
+			]
+		}
+	},
+	"humanoid_resources": {
+		"_note": "HB asset. [click][click][click], trash: Gain 4cr and draw 3 cards. Install up to 2 cards from HQ (one at a time). You may play 1 operation from HQ.",
+		"click_action": {
+			"additional_cost_clicks": 2,
+			"one_shot": true,
+			"effects": [
+				{
+					"type": "self_trash"
+				},
+				{
+					"type": "gain_credits",
+					"params": {
+						"subject": "corp",
+						"amount": 4
+					}
+				},
+				{
+					"type": "draw_cards",
+					"params": {
+						"subject": "corp",
+						"amount": 3
+					}
+				},
+				{
+					"type": "install_any_from_hq",
+					"params": {
+						"max_installs": 2,
+						"optional": true
+					}
+				},
+				{
+					"type": "may_play_operation_from_hq",
+					"params": {
+						"optional": true
+					}
+				}
+			]
+		}
+	},
+	"mycoweb": {
+		"_note": "Jinteki ice. Code Gate. Strength 5. Sub 1: install 1 ice from Archives free. Sub 2: rez 1 ice at 2cr discount. Sub 3: resolve 1 sub on a rezzed sentry. Sub 4: resolve 1 sub on another rezzed code gate.",
+		"subroutines": [
+			{
+				"label": "You may install 1 piece of ice from Archives, ignoring all costs.",
+				"effects": [
+					{
+						"type": "install_ice_from_archives",
+						"params": {
+							"optional": true
+						}
+					}
+				]
+			},
+			{
+				"label": "You may rez 1 installed piece of ice, paying 2[credit] less.",
+				"effects": [
+					{
+						"type": "rez_ice_discounted",
+						"params": {
+							"discount": 2,
+							"optional": true
+						}
+					}
+				]
+			},
+			{
+				"label": "Resolve 1 subroutine on a rezzed sentry.",
+				"effects": [
+					{
+						"type": "resolve_sub_on_rezzed_ice_of_subtype",
+						"params": {
+							"subtype": "sentry"
+						}
+					}
+				]
+			},
+			{
+				"label": "Resolve 1 subroutine on another rezzed code gate.",
+				"effects": [
+					{
+						"type": "resolve_sub_on_rezzed_ice_of_subtype",
+						"params": {
+							"subtype": "code_gate",
+							"exclude_card_id": "mycoweb"
+						}
+					}
+				]
+			}
+		]
+	},
+	"neurospike": {
+		"on_play": {
+			"condition": {
+				"type": "corp_scored_agenda_this_turn"
+			},
+			"effects": [
+				{
+					"type": "deal_damage_from_last_scored_agenda",
+					"params": {
+						"damage_type": "net"
+					}
+				}
+			]
+		}
+	},
+	"above_the_law": {
+		"on_score": {
+			"effects": [
+				{
+					"type": "give_tags",
+					"params": {
+						"amount": 1
+					}
+				}
+			]
+		}
+	},
+	"ballista": {
+		"subroutines": [
+			{
+				"label": "Trash 1 installed program.",
+				"effects": [
+					{
+						"type": "trash_runner_installed",
+						"params": {
+							"card_types": [
+								"program"
+							],
+							"subtypes": []
+						}
+					}
+				]
+			},
+			{
+				"label": "End the run.",
+				"effects": [
+					{
+						"type": "end_run"
+					}
+				]
+			}
+		]
+	},
+	"malapert_data_vault": {
+		"corp_scores_agenda": {
+			"effects": [
+				{
+					"type": "malapert_top_rd_to_hq"
+				}
+			]
+		}
+	},
+	"maintenance_access": {
+		"_note": "Criminal event. +[click] cost. Run Archives; when you would approach the root, redirect to HQ instead.",
+		"additional_cost_clicks": 1,
+		"on_play": {
+			"effects": [
+				{
+					"type": "set_server_approach_redirect",
+					"params": {
+						"from": "archives",
+						"to": "hq"
+					}
+				},
+				{
+					"type": "initiate_run",
+					"params": {
+						"server_id": "archives"
+					}
+				}
+			]
+		}
+	},
+	"pharos": {
+		"subroutines": [
+			{
+				"label": "Give the Runner 1 tag.",
+				"effects": [
+					{
+						"type": "give_tags",
+						"params": {
+							"amount": 1
+						}
+					}
+				]
+			},
+			{
+				"label": "End the run.",
+				"effects": [
+					{
+						"type": "end_run"
+					}
+				]
+			},
+			{
+				"label": "Give the Runner 2 tags. End the run.",
+				"require_advancement": 3,
+				"effects": [
+					{
+						"type": "give_tags",
+						"params": {
+							"amount": 2
+						}
+					},
+					{
+						"type": "end_run"
+					}
+				]
+			}
+		]
+	},
+	"_elevation_phase2_marker": {},
+	"greenmail": {
+		"on_score": {
+			"effects": [
+				{
+					"type": "gain_credits",
+					"params": {
+						"subject": "corp",
+						"amount": 2
+					}
+				}
+			]
+		},
+		"on_forfeit": {
+			"effects": [
+				{
+					"type": "gain_credits",
+					"params": {
+						"subject": "corp",
+						"amount": 4
+					}
+				}
+			]
+		}
+	},
+	"proprionegation": {
+		"_note": "Jinteki agenda 3/2. On score: place 1 agenda counter. Paw: spend 1 agenda counter to move runner to outermost Archives (only during a run).",
+		"on_score": {
+			"effects": [
+				{
+					"type": "add_self_counters",
+					"counter": "agenda",
+					"amount": 1
+				}
+			]
+		},
+		"paw_action": {
+			"condition": {
+				"type": "and",
+				"conditions": [
+					{
+						"type": "run_active"
+					},
+					{
+						"type": "self_counter_gte",
+						"counter": "agenda",
+						"threshold": 1
+					}
+				]
+			},
+			"effects": [
+				{
+					"type": "spend_agenda_counter"
+				},
+				{
+					"type": "move_runner_to_outermost",
+					"params": {
+						"server_id": "archives"
+					}
+				}
+			]
+		}
+	},
+	"biawak": {
+		"forfeit_rez_discount": {
+			"amount": 10
+		},
+		"subroutines": [
+			{
+				"label": "Trash a program or end the run.",
+				"effects": [
+					{
+						"type": "runner_must_trash_program_or_etr"
+					}
+				]
+			},
+			{
+				"label": "Trash a resource or end the run.",
+				"effects": [
+					{
+						"type": "runner_must_trash_resource_or_etr"
+					}
+				]
+			},
+			{
+				"label": "End the run.",
+				"effects": [
+					{
+						"type": "end_run"
+					}
+				]
+			}
+		]
+	},
+	"lamplighter": {
+		"corp_scores_agenda": {
+			"condition": {
+				"type": "agenda_on_my_server"
+			},
+			"effects": [
+				{
+					"type": "self_trash"
+				}
+			]
+		},
+		"runner_steals_agenda": {
+			"condition": {
+				"type": "agenda_on_my_server"
+			},
+			"effects": [
+				{
+					"type": "self_trash"
+				}
+			]
+		},
+		"subroutines": [
+			{
+				"label": "Give the Runner 1 tag unless they pay 3[credit].",
+				"effects": [
+					{
+						"type": "give_tag_unless_runner_pays",
+						"params": {
+							"cost": 3
+						}
+					}
+				]
+			},
+			{
+				"label": "End the run if the Runner is tagged.",
+				"effects": [
+					{
+						"type": "end_run_if_tagged"
+					}
+				]
+			}
+		]
+	},
+	"plutus": {
+		"additional_rez_cost": {
+			"type": "forfeit_or_reveal_trash_hq",
+			"reveal_trash_count": 3
+		},
+		"corp_turn_start": {
+			"effects": [
+				{
+					"type": "may_play_transaction_from_archives_rfg"
+				}
+			]
+		}
+	},
+	"mitra_aman": {
+		"_note": "Jinteki upgrade. Whenever Runner approaches ice on this server, Corp may trash this upgrade to gain 3cr and optionally swap that ice with one from Archives or HQ. The optional activate + all sub-effects are bundled into mitra_aman_approach.",
+		"approach_ice": {
+			"condition": {
+				"type": "ice_on_my_server"
+			},
+			"effects": [
+				{
+					"type": "mitra_aman_approach"
+				}
+			]
+		}
+	},
+	"kessleroid": {
+		"cannot_be_trashed_while_rezzed": true,
+		"subroutines": [
+			{
+				"label": "End the run.",
+				"effects": [
+					{
+						"type": "end_run"
+					}
+				]
+			},
+			{
+				"label": "End the run.",
+				"effects": [
+					{
+						"type": "end_run"
+					}
+				]
+			}
+		]
+	},
+	"anthill_excavation_contract": {
+		"on_rez": {
+			"effects": [
+				{
+					"type": "add_self_counters",
+					"counter": "credits",
+					"amount": 8
+				}
+			]
+		},
+		"corp_turn_start": {
+			"effects": [
+				{
+					"type": "take_hosted_credits",
+					"subject": "corp",
+					"amount": 4
+				},
+				{
+					"type": "draw_cards",
+					"params": {
+						"subject": "corp",
+						"amount": 1
+					}
+				},
+				{
+					"type": "self_trash_if_empty",
+					"counter": "credits"
+				}
+			]
+		}
+	},
+	"otto_campaign": {
+		"on_rez": {
+			"effects": [
+				{
+					"type": "add_self_counters",
+					"counter": "credits",
+					"amount": 6
+				}
+			]
+		},
+		"corp_turn_start": {
+			"effects": [
+				{
+					"type": "take_hosted_credits",
+					"subject": "corp",
+					"amount": 2
+				},
+				{
+					"type": "self_trash_if_empty",
+					"counter": "credits",
+					"on_trash_gain_clicks": {
+						"subject": "corp",
+						"amount": 2
+					}
+				}
+			]
+		}
+	},
+	"public_access_plaza": {
+		"corp_turn_start": {
+			"effects": [
+				{
+					"type": "gain_credits",
+					"params": {
+						"subject": "corp",
+						"amount": 1
+					}
+				}
+			]
+		},
+		"on_trash": {
+			"condition": {
+				"type": "and",
+				"conditions": [
+					{
+						"type": "self_is_rezzed"
+					},
+					{
+						"type": "threat_gte",
+						"value": 2
+					}
+				]
+			},
+			"effects": [
+				{
+					"type": "give_tags",
+					"params": {
+						"amount": 1
+					}
+				}
+			]
+		}
+	},
+	"n_pot": {
+		"runner_self_break": {
+			"cost_per_sub": 3
+		},
+		"subroutines": [
+			{
+				"label": "End the run.",
+				"effects": [
+					{
+						"type": "end_run"
+					}
+				]
+			},
+			{
+				"label": "If the threat level is 2 or greater, end the run.",
+				"effects": [
+					{
+						"type": "end_run_if_threat_gte",
+						"params": {
+							"value": 2
+						}
+					}
+				]
+			},
+			{
+				"label": "If the threat level is 4 or greater, end the run.",
+				"effects": [
+					{
+						"type": "end_run_if_threat_gte",
+						"params": {
+							"value": 4
+						}
+					}
+				]
+			}
+		]
+	},
+	"measured_response": {
+		"on_play": {
+			"condition": {
+				"type": "and",
+				"conditions": [
+					{
+						"type": "threat_gte",
+						"value": 4
+					},
+					{
+						"type": "runner_made_successful_run_last_turn"
+					}
+				]
+			},
+			"effects": [
+				{
+					"type": "deal_damage_unless_runner_pays",
+					"params": {
+						"damage_type": "meat",
+						"damage": 4,
+						"cost": 8
+					}
+				}
+			]
+		}
+	},
+	"cacophony": {
+		"runner_steals_agenda": {
+			"once_per_turn_key": "steal_or_trash_corp_card",
+			"effects": [
+				{
+					"type": "add_self_counters",
+					"counter": "power",
+					"amount": 1
+				}
+			]
+		},
+		"runner_trashes_during_breach": {
+			"once_per_turn_key": "steal_or_trash_corp_card",
+			"effects": [
+				{
+					"type": "add_self_counters",
+					"counter": "power",
+					"amount": 1
+				}
+			]
+		},
+		"runner_turn_end": {
+			"condition": {
+				"type": "self_counter_gte",
+				"counter": "power",
+				"threshold": 2
+			},
+			"effects": [
+				{
+					"type": "optional_spend_counters",
+					"params": {
+						"counter": "power",
+						"cost": 2,
+						"prompt": "Remove 2 power counters from Cacophony to sabotage 3?",
+						"effects": [
+							{
+								"type": "sabotage",
+								"params": {
+									"amount": 3
+								}
+							}
+						]
+					}
+				}
+			]
+		}
+	},
+	"doomscroll": {
+		"subroutines": [
+			{
+				"label": "Give the Runner 1 tag.",
+				"effects": [
+					{
+						"type": "give_tags",
+						"params": {
+							"amount": 1
+						}
+					}
+				]
+			},
+			{
+				"label": "Do 1 net damage.",
+				"effects": [
+					{
+						"type": "deal_damage",
+						"params": {
+							"damage_type": "net",
+							"amount": 1
+						}
+					}
+				]
+			},
+			{
+				"label": "Do 2 net damage if the Runner has at least 2 tags.",
+				"condition": {
+					"type": "tags_compare",
+					"params": {
+						"operator": "gte",
+						"value": 2
+					}
+				},
+				"effects": [
+					{
+						"type": "deal_damage",
+						"params": {
+							"damage_type": "net",
+							"amount": 2
+						}
+					}
+				]
+			}
+		]
+	},
+	"rising_tide": {
+		"break": {
+			"subtype_restriction": "barrier",
+			"cost_per_sub": 1,
+			"subs_per_use": 1
+		},
+		"boost": {
+			"cost": 1,
+			"strength_gained": 1
+		},
+		"passive_modifiers": [
+			{
+				"type": "dynamic_base_strength",
+				"value": 0,
+				"card_id": "rising_tide",
+				"method": "fracter_in_heap_count"
+			}
+		]
+	},
+	"sang_kancil": {
+		"break": {
+			"subtype_restriction": "code_gate",
+			"cost_per_sub": 1,
+			"subs_per_use": 1
+		},
+		"boost": {
+			"cost": 3,
+			"strength_gained": 2,
+			"run_event_cost_reduction": 2
+		}
+	},
+	"hantu": {
+		"on_rez": {
+			"effects": [
+				{
+					"type": "add_self_counters",
+					"counter": "virus",
+					"amount": 2
+				}
+			]
+		},
+		"break": {
+			"subtype_restriction": "sentry",
+			"cost_per_sub": 1,
+			"subs_per_use": 1
+		},
+		"boost": {
+			"cost": 0,
+			"strength_gained": 2,
+			"counter": "virus"
+		}
+	},
+	"principia": {
+		"install_cost_discount_per_icebreaker": 1,
+		"break": {
+			"subtype_restriction": "barrier",
+			"cost_per_sub": 1,
+			"subs_per_use": 1
+		},
+		"boost": {
+			"cost": 2,
+			"strength_gained": 2
+		}
+	},
+	"_elevation_phase3_marker": {},
+	"nanomanagement": {
+		"on_play": {
+			"effects": [
+				{
+					"type": "gain_clicks",
+					"params": {
+						"subject": "corp",
+						"amount": 2
+					}
+				}
+			]
+		}
+	},
+	"flyswatter": {
+		"on_rez": {
+			"effects": [
+				{
+					"type": "purge_virus_counters"
+				}
+			]
+		},
+		"subroutines": [
+			{
+				"label": "End the run.",
+				"effects": [
+					{
+						"type": "end_run"
+					}
+				]
+			}
+		]
+	},
+	"clean_getaway": {
+		"on_play": {
+			"effects": [
+				{
+					"type": "set_run_modifier",
+					"params": {
+						"key": "gain_on_success",
+						"value": 6
+					}
+				},
+				{
+					"type": "choose_and_run",
+					"params": {
+						"servers": [
+							"hq",
+							"rd",
+							"archives",
+							"remote"
+						]
+					}
+				}
+			]
+		}
+	},
+	"rent_rioters": {
+		"click_action": {
+			"additional_cost_clicks": 2,
+			"effects": [
+				{
+					"type": "gain_credits",
+					"params": {
+						"subject": "runner",
+						"amount": 9
+					}
+				},
+				{
+					"type": "self_trash"
+				}
+			]
+		}
+	},
+	"ritual": {
+		"on_play": {
+			"effects": [
+				{
+					"type": "draw_cards_equal_to_remaining_clicks",
+					"params": {
+						"subject": "runner"
+					}
+				}
+			]
+		}
+	},
+	"lie_low": {
+		"additional_cost_clicks": 1,
+		"on_play": {
+			"modes": [
+				{
+					"label": "Draw 4 cards",
+					"effects": [
+						{
+							"type": "draw_cards",
+							"params": {
+								"subject": "runner",
+								"amount": 4
+							}
+						}
+					]
+				},
+				{
+					"label": "Remove up to 2 tags",
+					"effects": [
+						{
+							"type": "remove_tags",
+							"params": {
+								"amount": 2
+							}
+						}
+					]
+				}
+			],
+			"max_choices": 1
+		}
+	},
+	"side_hustle": {
+		"on_rez": {
+			"effects": [
+				{
+					"type": "add_self_counters",
+					"counter": "credits",
+					"amount": 1
+				},
+				{
+					"type": "self_payout_and_trash_at_threshold",
+					"counter": "credits",
+					"threshold": 6
+				}
+			]
+		},
+		"run_start": {
+			"effects": [
+				{
+					"type": "add_self_counters",
+					"counter": "credits",
+					"amount": 1
+				},
+				{
+					"type": "self_payout_and_trash_at_threshold",
+					"counter": "credits",
+					"threshold": 6
+				}
+			]
+		}
+	},
+	"empiricist": {
+		"subroutines": [
+			{
+				"label": "Draw 1 card. You may add 1 card from HQ to the top of R&D.",
+				"effects": [
+					{
+						"type": "draw_cards",
+						"params": {
+							"subject": "corp",
+							"amount": 1
+						}
+					},
+					{
+						"type": "return_card_to_top_from_hand",
+						"params": {
+							"subject": "corp",
+							"optional": true
+						}
+					}
+				]
+			},
+			{
+				"label": "Do 1 net damage. Give the Runner 1 tag.",
+				"effects": [
+					{
+						"type": "deal_damage",
+						"params": {
+							"damage_type": "net",
+							"amount": 1
+						}
+					},
+					{
+						"type": "give_tags",
+						"params": {
+							"amount": 1
+						}
+					}
+				]
+			},
+			{
+				"label": "Do 2 net damage.",
+				"effects": [
+					{
+						"type": "deal_damage",
+						"params": {
+							"damage_type": "net",
+							"amount": 2
+						}
+					}
+				]
+			}
+		]
+	},
+	"syailendra": {
+		"encounter_ice": {
+			"condition": {
+				"type": "self_counter_gte",
+				"counter": "advancement",
+				"threshold": 3
+			},
+			"effects": [
+				{
+					"type": "place_advancement_on_installed",
+					"params": {
+						"optional": true
+					}
+				}
+			]
+		},
+		"subroutines": [
+			{
+				"label": "You may place 1 advancement counter on an installed card you can advance.",
+				"effects": [
+					{
+						"type": "place_advancement_on_installed",
+						"params": {
+							"optional": true
+						}
+					}
+				]
+			},
+			{
+				"label": "The Runner loses 2 credits.",
+				"effects": [
+					{
+						"type": "lose_credits",
+						"params": {
+							"subject": "runner",
+							"amount": 2
+						}
+					}
+				]
+			},
+			{
+				"label": "Do 1 net damage.",
+				"effects": [
+					{
+						"type": "deal_damage",
+						"params": {
+							"damage_type": "net",
+							"amount": 1
+						}
+					}
+				]
+			}
+		]
+	},
+	"scatter_field": {
+		"strength_bonus_if_only_ice": 4,
+		"subroutines": [
+			{
+				"label": "You may install 1 card from HQ.",
+				"effects": [
+					{
+						"type": "install_any_from_hq",
+						"params": {
+							"max_installs": 1,
+							"optional": true
+						}
+					}
+				]
+			},
+			{
+				"label": "End the run.",
+				"effects": [
+					{
+						"type": "end_run"
+					}
+				]
+			}
+		]
+	},
+	"key_performance_indicators": {
+		"on_play": {
+			"modes": [
+				{
+					"label": "Draw 1 card. Shuffle 1 card from HQ into R&D.",
+					"effects": [
+						{
+							"type": "draw_cards",
+							"params": {
+								"subject": "corp",
+								"amount": 1
+							}
+						},
+						{
+							"type": "choose_and_return_to_deck",
+							"params": {
+								"subject": "corp"
+							}
+						}
+					]
+				},
+				{
+					"label": "Install 1 piece of ice from HQ, ignoring all costs.",
+					"effects": [
+						{
+							"type": "install_ice_from_hq_any_server",
+							"params": {}
+						}
+					]
+				},
+				{
+					"label": "Place 1 advancement counter on an installed card you can advance.",
+					"effects": [
+						{
+							"type": "place_advancement_on_installed",
+							"params": {
+								"optional": false
+							}
+						}
+					]
+				},
+				{
+					"label": "Gain 2 credits.",
+					"effects": [
+						{
+							"type": "gain_credits",
+							"params": {
+								"subject": "corp",
+								"amount": 2
+							}
+						}
+					]
+				}
+			],
+			"max_choices": 2
+		}
+	},
+	"top_down_solutions": {
+		"on_play": {
+			"effects": [
+				{
+					"type": "draw_cards",
+					"params": {
+						"subject": "corp",
+						"amount": 2
+					}
+				},
+				{
+					"type": "install_any_from_hq",
+					"params": {
+						"max_installs": 2,
+						"optional": true
+					}
+				}
+			]
+		}
+	},
+	"peer_review": {
+		"on_play": {
+			"effects": [
+				{
+					"type": "reveal_hq_except_one"
+				},
+				{
+					"type": "gain_credits",
+					"params": {
+						"subject": "corp",
+						"amount": 7
+					}
+				},
+				{
+					"type": "install_any_from_hq",
+					"params": {
+						"max_installs": 1,
+						"optional": true,
+						"zone": "root"
+					}
+				}
+			]
+		}
+	},
+	"_elevation_recurring_credits_marker": "___ Elevation: Recurring Credits ___",
+	"azimat": {
+		"on_rez": {
+			"effects": [
+				{
+					"type": "add_self_counters",
+					"counter": "recurring_credits",
+					"amount": 2
+				}
+			]
+		},
+		"runner_turn_start": {
+			"effects": [
+				{
+					"type": "refill_recurring_credits",
+					"counter": "recurring_credits",
+					"max": 2
+				}
+			]
+		},
+		"passive_modifiers": [
+			{
+				"type": "runner_trash_recurring_credits",
+				"value": 0
+			}
+		]
+	},
+	"mahkota_langit_grid": {
+		"on_rez": {
+			"effects": [
+				{
+					"type": "add_self_counters",
+					"counter": "recurring_credits",
+					"amount": 2
+				}
+			]
+		},
+		"corp_turn_start": {
+			"effects": [
+				{
+					"type": "refill_recurring_credits",
+					"counter": "recurring_credits",
+					"max": 2
+				}
+			]
+		},
+		"passive_modifiers": [
+			{
+				"type": "corp_rez_recurring_credits",
+				"value": 0,
+				"server_scoped": true
+			}
+		],
+		"trash_cost_increase_own_server_assets": 2
+	},
+	"_elevation_phase4_marker": "___ Elevation: Dividends ___",
+	"project_ingatan": {
+		"on_score": {
+			"effects": [
+				{
+					"type": "place_dividend_counters",
+					"dividends": 1
+				}
+			]
+		},
+		"click_action": {
+			"label": "Project Ingatan: Install from Archives, ignoring all costs",
+			"effects": [
+				{
+					"type": "spend_agenda_counter"
+				},
+				{
+					"type": "install_from_archives_free"
+				}
+			]
+		}
+	},
+	"sericulture_expansion": {
+		"on_score": {
+			"effects": [
+				{
+					"type": "place_dividend_counters",
+					"dividends": 1
+				}
+			]
+		},
+		"click_action": {
+			"label": "Sericulture Expansion: Place 2 advancement counters on an installed card",
+			"effects": [
+				{
+					"type": "spend_agenda_counter"
+				},
+				{
+					"type": "place_advancement_on_installed",
+					"params": {
+						"amount": 2,
+						"optional": false
+					}
+				}
+			]
+		}
+	},
+	"embedded_reporting": {
+		"on_score": {
+			"effects": [
+				{
+					"type": "place_dividend_counters",
+					"dividends": 2
+				}
+			]
+		},
+		"click_action": {
+			"label": "Embedded Reporting: Search R&D for an operation and place it on top",
+			"effects": [
+				{
+					"type": "spend_agenda_counter"
+				},
+				{
+					"type": "search_rd_to_top",
+					"params": {
+						"card_types": [
+							"operation"
+						]
+					}
+				}
+			]
+		}
+	},
+	"off_the_books": {
+		"on_score": {
+			"effects": [
+				{
+					"type": "place_dividend_counters",
+					"dividends": 1
+				}
+			]
+		},
+		"click_action": {
+			"label": "Off the Books: Search R&D and install a card, ignoring all costs",
+			"effects": [
+				{
+					"type": "spend_agenda_counter"
+				},
+				{
+					"type": "search_rd_install_free"
+				}
+			]
+		}
+	},
+	"_nbn_reality_plus_marker": "___ NBN: Reality Plus deck ___",
+	"tomorrows_headline": {
+		"on_score": {
+			"effects": [
+				{
+					"type": "give_tags",
+					"params": {
+						"amount": 1
+					}
+				}
+			]
+		},
+		"on_steal": {
+			"effects": [
+				{
+					"type": "give_tags",
+					"params": {
+						"amount": 1
+					}
+				}
+			]
+		}
+	},
+	"ping": {
+		"on_rez": {
+			"effects": [
+				{
+					"type": "give_tags",
+					"params": {
+						"amount": 1
+					}
+				}
+			]
+		},
+		"subroutines": [
+			{
+				"label": "End the run.",
+				"effects": [
+					{
+						"type": "end_run"
+					}
+				]
+			}
+		]
+	},
+	"funhouse": {
+		"encounter_ice": {
+			"effects": [
+				{
+					"type": "runner_must_take_tag_or_end_run",
+					"params": {
+						"amount": 1
+					}
+				}
+			]
+		},
+		"subroutines": [
+			{
+				"label": "Give the Runner 1 tag unless they pay 4[credit].",
+				"effects": [
+					{
+						"type": "give_tag_unless_runner_pays",
+						"params": {
+							"cost": 4
+						}
+					}
+				]
+			}
+		]
+	},
+	"amaze_amusements": {
+		"run_end": {
+			"effects": [
+				{
+					"type": "give_tags_if_agenda_stolen_this_run",
+					"params": {
+						"amount": 2
+					}
+				}
+			]
+		}
+	},
+	"public_trail": {
+		"on_play": {
+			"condition": {
+				"type": "runner_made_successful_run_last_turn"
+			},
+			"effects": [
+				{
+					"type": "give_tag_unless_runner_pays",
+					"params": {
+						"cost": 8
+					}
+				}
+			]
+		}
+	},
+	"nbn_reality_plus": {
+		"runner_takes_tags": {
+			"effects": [
+				{
+					"type": "reality_plus_trigger"
+				}
+			]
+		}
+	},
+	"transfer_of_wealth": {
+		"_note": "Criminal run event. Run HQ. If successful: take 1 tag, Corp loses up to 3cr, Runner gains 2x the amount lost. The success effects are handled by the transfer_of_wealth_on_success run modifier in RunStateMachine._success_phase.",
+		"on_play": {
+			"effects": [
+				{
+					"type": "set_run_modifier",
+					"params": {
+						"key": "transfer_of_wealth_on_success",
+						"value": 1
+					}
+				},
+				{
+					"type": "initiate_run",
+					"params": {
+						"server_id": "hq"
+					}
+				}
+			]
+		}
+	},
+	"open_market": {
+		"on_rez": {
+			"effects": [
+				{
+					"type": "add_self_counters",
+					"counter": "credits",
+					"amount": 6
+				}
+			]
+		},
+		"runner_turn_start": {
+			"condition": {
+				"type": "self_is_rezzed"
+			},
+			"effects": [
+				{
+					"type": "take_hosted_credits",
+					"subject": "runner",
+					"amount": 1
+				},
+				{
+					"type": "self_trash_if_empty",
+					"counter": "credits"
+				}
+			]
+		},
+		"install_credits_for_subtypes": [
+			"connection",
+			"job"
+		]
+	},
+	"devadatta_drone": {
+		"_note": "Shaper program. Place 2 power counters on install. Whenever you breach R&D, may remove 1 power counter to access 1 additional card. No refill.",
+		"on_rez": {
+			"effects": [
+				{
+					"type": "add_self_counters",
+					"counter": "power",
+					"amount": 2
+				}
+			]
+		},
+		"before_breach": {
+			"effects": [
+				{
+					"type": "spend_counters_for_bonus_access",
+					"params": {
+						"counter": "power",
+						"server": "rd"
+					}
+				}
+			]
+		}
+	},
+	"dewi_subrotoputri_pedagogical_dhalang": {
+		"_note": "Primary face. Successful run + MU full → may flip to Shadow Guide + gain 1cr.",
+		"successful_run": {
+			"effects": [
+				{
+					"type": "flip_identity",
+					"params": {
+						"face": "runner",
+						"flip_to": "dewi_shadow_guide",
+						"flip_title": "Dewi Subrotoputri: Shadow Guide",
+						"condition": "mu_full",
+						"optional": true,
+						"on_flip": [
+							{
+								"type": "gain_credits",
+								"params": {
+									"subject": "runner",
+									"amount": 1
+								}
+							}
+						]
+					}
+				}
+			]
+		}
+	},
+	"dewi_shadow_guide": {
+		"_note": "Flip face. Successful run + unused MU → may flip to Pedagogical Dhalang + draw 1.",
+		"successful_run": {
+			"effects": [
+				{
+					"type": "flip_identity",
+					"params": {
+						"face": "runner",
+						"flip_to": "dewi_subrotoputri_pedagogical_dhalang",
+						"flip_title": "Dewi Subrotoputri: Pedagogical Dhalang",
+						"condition": "mu_has_unused",
+						"optional": true,
+						"on_flip": [
+							{
+								"type": "draw_cards",
+								"params": {
+									"subject": "runner",
+									"amount": 1
+								}
+							}
+						]
+					}
+				}
+			]
+		}
+	},
+	"nebula_talent_management_making_stars": {
+		"_note": "Primary face. Corp action phase ends + played an op → flip to Burning Bright + gain 1cr.",
+		"corp_turn_end": {
+			"effects": [
+				{
+					"type": "flip_identity",
+					"params": {
+						"face": "corp",
+						"flip_to": "nebula_gemilang_arena_burning_bright",
+						"flip_title": "Gemilang Arena: Burning Bright",
+						"condition": "corp_played_operation",
+						"optional": false,
+						"on_flip": [
+							{
+								"type": "gain_credits",
+								"params": {
+									"subject": "corp",
+									"amount": 1
+								}
+							}
+						]
+					}
+				}
+			]
+		}
+	},
+	"nebula_gemilang_arena_burning_bright": {
+		"_note": "Flip face. First op played each turn → Corp gains a click. Runner hits HQ/R&D → flip back.",
+		"corp_plays_operation": {
+			"once_per_turn_key": "burning_bright_click",
+			"effects": [
+				{
+					"type": "gain_clicks",
+					"params": {
+						"subject": "corp",
+						"amount": 1
+					}
+				}
+			]
+		},
+		"successful_run": {
+			"effects": [
+				{
+					"type": "flip_identity",
+					"params": {
+						"face": "corp",
+						"flip_to": "nebula_talent_management_making_stars",
+						"flip_title": "Nebula Talent Management: Making Stars",
+						"condition": "server_is_hq_or_rd",
+						"optional": false,
+						"on_flip": []
+					}
+				}
+			]
+		}
+	},
+	"bling": {
+		"passive_modifiers": [
+			{
+				"type": "mu_bonus",
+				"value": 1,
+				"conditions": {}
+			}
+		],
+		"runner_installs_card": {
+			"effects": [
+				{
+					"type": "host_top_of_stack_faceup",
+					"params": {
+						"only_if_free": true
+					}
+				}
+			]
+		},
+		"runner_discard_phase_ends": {
+			"effects": [
+				{
+					"type": "trash_faceup_hosted_cards",
+					"params": {}
+				}
+			]
+		}
+	},
+	"detente": {
+		"passive_modifiers": [
+			{
+				"type": "mu_bonus",
+				"value": 1,
+				"conditions": {}
+			}
+		],
+		"runner_successful_hq_run": {
+			"once_per_turn_key": "detente_host",
+			"effects": [
+				{
+					"type": "host_random_hq_card",
+					"params": {}
+				}
+			]
+		},
+		"click_action": {
+			"effects": [
+				{
+					"type": "detente_trash_hosted_and_access_hq",
+					"params": {}
+				}
+			]
+		}
+	},
+	"madani": {
+		"click_action": {
+			"effects": [
+				{
+					"type": "host_programs_from_grip_and_optionally_install",
+					"params": {}
+				}
+			]
+		}
+	},
+	"gamedragon_pro": {
+		"on_rez": {
+			"effects": [
+				{
+					"type": "gamedragon_attach_to_icebreaker",
+					"params": {}
+				}
+			]
+		},
+		"runner_turn_start": {
+			"effects": [
+				{
+					"type": "gamedragon_attach_to_icebreaker",
+					"params": {}
+				}
+			]
+		}
+	},
+	"scrounge": {
+		"additional_cost_clicks": 1,
+		"on_play": {
+			"effects": [
+				{
+					"type": "install_from_heap",
+					"params": {
+						"card_types": [
+							"program"
+						]
+					}
+				},
+				{
+					"type": "return_heap_card_to_stack",
+					"params": {
+						"card_types": [
+							"program"
+						],
+						"optional": true
+					}
+				}
+			]
+		}
+	},
+	"illumination": {
+		"on_play": {
+			"effects": [
+				{
+					"type": "initiate_run",
+					"params": {
+						"server_id": "rd"
+					}
+				},
+				{
+					"type": "install_from_grip_discounted",
+					"params": {
+						"max_installs": 3,
+						"discount_per_card": 1,
+						"requires_successful_run": true
+					}
+				}
+			]
+		}
+	},
+	"charm_offensive": {
+		"on_play": {
+			"effects": [
+				{
+					"type": "initiate_run",
+					"params": {
+						"server_id": "archives"
+					}
+				},
+				{
+					"type": "charm_offensive_trash_rezzed_copy"
+				}
+			]
+		}
+	},
+	"chromatophores": {
+		"_note": "Shaper trojan program. Installs on ice; host ice gains barrier, code gate, and sentry.",
+		"install_on_ice": true,
+		"on_rez": {
+			"effects": [
+				{
+					"type": "grant_subtypes_to_host_ice",
+					"params": {
+						"subtypes": [
+							"barrier",
+							"code gate",
+							"sentry"
+						]
+					}
+				}
+			]
+		}
+	},
+	"semak_samun": {
+		"_note": "Jinteki barrier/AP ICE str 3. Only fracters may break the printed subroutine (AI excluded). Sub: ETR unless runner suffers 3 net damage.",
+		"fracter_only_break": true,
+		"subroutines": [
+			{
+				"label": "End the run unless the Runner suffers 3 net damage.",
+				"effects": [
+					{
+						"type": "etr_unless_runner_suffers_damage",
+						"params": {
+							"damage_type": "net",
+							"amount": 3
+						}
+					}
+				]
+			}
+		]
+	},
+	"bumi_1_0": {
+		"_note": "Haas-Bioroid AP/Bioroid/Destroyer/Sentry. Str 3. Rez triggers trojan trash during runs. Two subs: trash program, core damage. Bioroid break handled by UI via subtype.",
+		"on_rez": {
+			"condition": {
+				"type": "run_active"
+			},
+			"effects": [
+				{
+					"type": "trash_runner_installed",
+					"params": {
+						"card_types": [
+							"program"
+						],
+						"subtypes": [
+							"trojan"
+						]
+					}
+				}
+			]
+		},
+		"subroutines": [
+			{
+				"label": "Trash 1 installed program.",
+				"effects": [
+					{
+						"type": "trash_runner_installed",
+						"params": {
+							"card_types": [
+								"program"
+							],
+							"subtypes": []
+						}
+					}
+				]
+			},
+			{
+				"label": "Do 1 core damage.",
+				"effects": [
+					{
+						"type": "deal_damage",
+						"params": {
+							"damage_type": "core",
+							"amount": 1
+						}
+					}
+				]
+			}
+		]
+	},
+	"ryo_phoenix_ono_out_of_the_ashes": {
+		"_note": "Runner identity. The first time each turn a run becomes successful after a subroutine resolved during that run, gain 1[cr] and the Corp trashes 1 card from HQ.",
+		"successful_run": {
+			"once_per_turn_key": "ryo_successful_run_after_sub",
+			"condition": {
+				"type": "subroutine_resolved_this_run"
+			},
+			"effects": [
+				{
+					"type": "gain_credits",
+					"params": {
+						"subject": "runner",
+						"amount": 1
+					}
+				},
+				{
+					"type": "discard_from_corp_hand",
+					"params": {
+						"amount": 1
+					}
+				}
+			]
+		}
+	},
+	"topan_ormas_leader": {
+		"_note": "Runner identity. Once per turn [click]: Install 1 card from your grip, paying 2[cr] less. When you install that card, suffer 1 meat damage.",
+		"click_action": {
+			"label": "Topan: Install 1 card from grip (2cr discount, then 1 meat damage)",
+			"subject": "runner",
+			"once_per_turn_key": "topan_install_discounted",
+			"effects": [
+				{
+					"type": "topan_install_from_grip_discounted"
+				}
+			]
+		}
+	},
+	"muslihat_multifarious_marketeer": {
+		"_note": "Runner identity. When your turn begins, look at the top card of your stack. If that card is an icebreaker or a run event, you may reveal it and add it to your grip.",
+		"runner_turn_start": {
+			"effects": [
+				{
+					"type": "muslihat_peek_top_card"
+				}
+			]
+		}
+	},
+	"poetri_luxury_brands_all_the_rage": {
+		"_note": "Corp identity. Whenever you score an agenda, look at the top 3 cards of R&D and may install 1 non-agenda. Whenever an agenda is stolen, you may install 1 non-agenda from HQ.",
+		"corp_scores_agenda": {
+			"effects": [
+				{
+					"type": "look_top_3_rd_install_non_agenda"
+				}
+			]
+		},
+		"runner_steals_agenda": {
+			"effects": [
+				{
+					"type": "install_non_agenda_from_hq"
+				}
+			]
+		}
+	},
+	"mercia_b4ll4rd": {
+		"_note": "Corp upgrade. Trash 2. When your action phase ends, you may install 1 piece of ice from HQ paying 1[cr] less. If you do, move this upgrade to the root of the server that piece of ice is protecting.",
+		"corp_turn_end": {
+			"effects": [
+				{
+					"type": "mercia_install_ice_and_move_self"
+				}
+			]
+		}
+	},
+	"next_big_thing": {
+		"_note": "Corp agenda 2/1 (Weyland). On score OR steal: place 1 agenda counter on the InstalledCard (corp_score_area_cards or runner_score_area_cards). [click], hosted agenda counter: Draw 4, shuffle any from HQ into R&D. Corp can use from Runner's score area — runner_score_area_cards searched by get_scored_agenda_by_instance_id and CorpTurnAI.",
+		"on_score": {
+			"effects": [
+				{
+					"type": "add_self_counters",
+					"counter": "agenda",
+					"amount": 1
+				}
+			]
+		},
+		"on_steal": {
+			"effects": [
+				{
+					"type": "add_self_counters",
+					"counter": "agenda",
+					"amount": 1
+				}
+			]
+		},
+		"click_action": {
+			"label": "Next Big Thing: Draw 4, shuffle any HQ cards into R&D",
+			"subject": "corp",
+			"effects": [
+				{
+					"type": "spend_agenda_counter"
+				},
+				{
+					"type": "next_big_thing_draw_and_shuffle"
+				}
+			]
+		}
+	},
+	"idiosyncresis": {
+		"_note": "Corp asset (Jinteki). Trash 2. You can advance this asset. When your turn begins, you may trash this asset. If you do, for each hosted advancement counter: gain 3[cr] and the Runner loses 2[cr].",
+		"corp_turn_start": {
+			"effects": [
+				{
+					"type": "idiosyncresis_activate"
+				}
+			]
+		}
+	},
+	"gourmand": {
+		"_note": "Runner program. Access → [trash]: Trash the non-agenda card you are accessing. If you do, draw 1 card. Logic is hardcoded in RunStateMachine._access_card (like Carnivore). Gourmand is trashed as the cost, then the accessed card is trashed for free, then draw 1."
+	},
+	"aggressive_trendsetting": {
+		"_note": "Corp agenda (Haas-Bioroid). Ongoing effect while scored: first time each Runner turn the Runner trashes an installed Corp card, they may spend [click]. If they do not, Corp gets +1 allotted click next turn (via pending_click_bonuses). Listener registered at install, persists through scoring; self_in_corp_score_area guards against firing while still face-down.",
+		"runner_trashes_during_breach": {
+			"once_per_turn_key": "aggressive_trendsetting_trash",
+			"condition": {
+				"type": "self_in_corp_score_area"
+			},
+			"effects": [
+				{
+					"type": "aggressive_trendsetting_choice"
+				}
+			]
+		}
+	},
+	"leo_construction_labor_solutions": {
+		"_note": "Corp identity. Once per turn PAW during a run: trash 1 rezzed bioroid in the root of or protecting the attacked server to end the run. Uses paw_action + once_per_turn_key via identity fallback in RunStateMachine._process_window_action.",
+		"paw_action": {
+			"once_per_turn_key": "leo_trash_bioroid_etr",
+			"condition": {
+				"type": "run_active"
+			},
+			"effects": [
+				{
+					"type": "leo_trash_bioroid_to_etr"
+				}
+			]
+		}
+	},
+	"magdalene_keino_chemutai_cryptarchitect": {
+		"_note": "Runner identity. Whenever you discard cards to reach your maximum hand size, you may install 1 program or piece of hardware from among those cards (ignoring cost). Fires on runner_discards_to_hand_limit event emitted by TurnManager._runner_discard_to_hand_limit().",
+		"runner_discards_to_hand_limit": {
+			"effects": [
+				{
+					"type": "magdalene_install_from_discarded"
+				}
+			]
+		}
+	},
+	"barry_baz_wong_tri_maf_veteran": {
+		"_note": "Runner identity. Whenever the Corp rezzes a piece of ice, you may install 1 resource or piece of hardware from your grip (ignoring install cost). Fires on corp_rezzes_ice event emitted by RunStateMachine._rez_card().",
+		"corp_rezzes_ice": {
+			"effects": [
+				{
+					"type": "install_resource_or_hardware_from_grip"
+				}
+			]
+		}
+	},
+	"au_co_the_gold_standard_in_clones": {
+		"_note": "Corp identity. Whenever you do damage or trash 1+ cards from HQ, place 1 power counter (hardcoded in _deal_damage and discard_from_corp_hand). When your turn begins, you may remove 2 power counters to look at top 3 R&D, trash 1, add rest to HQ.",
+		"corp_turn_start": {
+			"effects": [
+				{
+					"type": "au_co_activate"
+				}
+			]
+		}
+	},
+	"pt_untaian_lifes_building_blocks": {
+		"_note": "Corp identity. When Corp discard phase ends, if HQ has ≤3 cards, Corp may pay 1cr to place 1 advancement counter on an unrezzed advanceable card (cannot score that card this turn). Fires on corp_discard_phase_ends event emitted from TurnManager after _corp_discard_to_hand_limit().",
+		"corp_discard_phase_ends": {
+			"effects": [
+				{
+					"type": "pt_untaian_advance"
+				}
+			]
+		}
+	},
+	"bigger_picture": {
+		"_note": "Corp operation (NBN). Play only if Runner is tagged. Modal: (0) Drain — remove any number of tags, Runner loses 5cr per tag removed, Corp gains equal credits; (1) Give Runner 1 tag. AI defaults to mode 0 (drain). Uses bigger_picture_drain effect and choose_tags_to_remove decision method.",
+		"on_play": {
+			"condition": {
+				"type": "runner_is_tagged"
+			},
+			"modes": [
+				{
+					"label": "Drain: remove any number of tags (Runner loses 5cr each, Corp gains)",
+					"effects": [
+						{
+							"type": "bigger_picture_drain"
+						}
+					]
+				},
+				{
+					"label": "Give Runner 1 tag",
+					"effects": [
+						{
+							"type": "give_tags",
+							"params": {
+								"amount": 1
+							}
+						}
+					]
+				}
+			]
+		}
+	},
+	"the_zwicky_group_invisible_hands": {
+		"_note": "Corp identity (Weyland). First time each turn Corp gains credits via an ability on an agenda or operation: may draw 1 card. Tracking: TurnManager sets ctx.current_ability_source_card_type = 'operation'/'agenda' around execute_trigger calls for on_play/on_score/click_action. AbilityInterpreter fires corp_gains_credits_via_ability event from gain_credits, take_hosted_credits, shuffle_discard_to_deck_gain_credits, and bigger_picture_drain when the source qualifies. Once-per-turn_key guards the draw to the first trigger per turn.",
+		"corp_gains_credits_via_ability": {
+			"once_per_turn_key": "zwicky_draw",
+			"effects": [
+				{
+					"type": "zwicky_optional_draw"
+				}
+			]
+		}
+	},
+	"bangun_when_disaster_strikes": {
+		"_note": "Corp identity (Weyland). (1) Corp may install agendas faceup — handled in TurnManager._do_install via choose_install_faceup decision method. Faceup agendas are 'neither rezzed nor unrezzed'; their abilities are NOT active. (2) Whenever Runner accesses a faceup installed agenda: 2 meat damage + 1 tag — hardcoded in RunStateMachine._access_card before the steal/trash flow. RunnerThreatModel treats faceup agendas as deterrents scaled by grip size."
+	},
+	"petty_cash": {
+		"_note": "Corp operation (neutral, 0 cost). Condition: first action this turn (requires_first_action_this_turn). Gain 5cr. If played from Archives (not HQ), gain 1 click. [click]: Play from Archives then RFG. Archives recur handled via GameAction.play_from_archives dispatched by CorpTurnAI._find_petty_cash_in_archives. Pre-condition and RFG cleanup handled in TurnManager._do_play_from_archives.",
+		"requires_first_action_this_turn": true,
+		"on_play": {
+			"effects": [
+				{
+					"type": "gain_credits",
+					"params": {
+						"subject": "corp",
+						"amount": 5
+					}
+				},
+				{
+					"type": "petty_cash_gain_click_if_not_hq"
+				}
+			]
+		}
+	},
+	"touch_ups": {
+		"_note": "Corp operation (Weyland). Additional cost: 1 extra [click] (2 clicks total). Place 2 advancement counters on an advanceable card. If you do, choose a runner card type, reveal runner's grip, choose up to 2 cards of that type, runner shuffles them into their stack.",
+		"additional_cost_clicks": 1,
+		"on_play": {
+			"effects": [
+				{
+					"type": "touch_ups_advance_and_shuffle"
+				}
+			]
+		}
+	},
+	"synapse_global_faster_than_thought": {
+		"_note": "Corp identity. (1) First time each turn a tag is removed, Corp may reveal and install 1 card from HQ ignoring all costs. (2) [click], remove 1 tag: Gain 2cr. tag_removed fires from remove_tags effect and from synapse_remove_tag_gain_credits.",
+		"tag_removed": {
+			"once_per_turn_key": "synapse_install_trigger",
+			"effects": [
+				{
+					"type": "synapse_install_from_hq"
+				}
+			]
+		},
+		"click_action": {
+			"condition": {
+				"type": "tags_compare",
+				"params": {
+					"operator": "gte",
+					"value": 1
+				}
+			},
+			"effects": [
+				{
+					"type": "synapse_remove_tag_gain_credits"
+				}
+			]
+		}
+	},
+	"sell_out": {
+		"_note": "Criminal event VP11. Additional cost: trash 1 installed resource. Gain 4cr and draw 2.",
+		"additional_cost_trash_installed": {
+			"card_types": [
+				"resource"
+			]
+		},
+		"on_play": {
+			"effects": [
+				{
+					"type": "gain_credits",
+					"params": {
+						"subject": "runner",
+						"amount": 4
+					}
+				},
+				{
+					"type": "draw_cards",
+					"params": {
+						"subject": "runner",
+						"amount": 2
+					}
+				}
+			]
+		}
+	},
+	"borrowed_goods": {
+		"_note": "Criminal chip hardware VP13. +1 MU. On install if not tagged: take 1 tag.",
+		"passive_modifiers": [
+			{
+				"type": "mu_bonus",
+				"value": 1,
+				"conditions": {}
+			}
+		],
+		"on_rez": {
+			"condition": {
+				"type": "runner_not_tagged"
+			},
+			"effects": [
+				{
+					"type": "give_tags",
+					"params": {
+						"amount": 1
+					}
+				}
+			]
+		}
+	},
+	"stowaway": {
+		"_note": "Shaper trojan program VP24. Install on ice. Whenever you make a successful run on this server, gain 2cr.",
+		"install_on_ice": true,
+		"successful_run": {
+			"condition": {
+				"type": "run_was_on_host_server"
+			},
+			"effects": [
+				{
+					"type": "gain_credits",
+					"params": {
+						"subject": "runner",
+						"amount": 2
+					}
+				}
+			]
+		}
+	},
+	"melies_city_luxury_line": {
+		"_note": "Neutral 5/3 agenda VP26. Steal costs [click]. On score: gain [click].",
+		"steal_costs_click": true,
+		"on_score": {
+			"effects": [
+				{
+					"type": "gain_clicks",
+					"params": {
+						"subject": "corp",
+						"amount": 1
+					}
+				}
+			]
+		}
+	},
+	"ansel_2_0": {
+		"_note": "HB Bioroid Sentry-Destroyer VP28. Str 5. Bioroid: lose 2 clicks to break up to 2 subs. 4 subroutines.",
+		"bioroid_break_clicks": 2,
+		"subroutines": [
+			{
+				"label": "Trash 1 installed Runner card.",
+				"effects": [
+					{
+						"type": "trash_runner_installed",
+						"params": {
+							"card_types": [
+								"program",
+								"hardware",
+								"resource"
+							]
+						}
+					}
+				]
+			},
+			{
+				"label": "Remove 1 card in the heap from the game.",
+				"effects": [
+					{
+						"type": "rfg_runner_heap_card"
+					}
+				]
+			},
+			{
+				"label": "You may install 1 card from HQ or Archives.",
+				"effects": [
+					{
+						"type": "install_any_from_hq",
+						"params": {
+							"max_installs": 1,
+							"optional": true,
+							"also_archives": true
+						}
+					}
+				]
+			},
+			{
+				"label": "End the run.",
+				"effects": [
+					{
+						"type": "end_run"
+					}
+				]
+			}
+		]
+	},
+	"reverb": {
+		"_note": "HB Harmonic Barrier VP29. Rez cost −1 per other unrezzed ice. 2x End the run.",
+		"rez_cost_reduction_per_unrezzed_ice": 1,
+		"subroutines": [
+			{
+				"label": "End the run.",
+				"effects": [
+					{
+						"type": "end_run"
+					}
+				]
+			},
+			{
+				"label": "End the run.",
+				"effects": [
+					{
+						"type": "end_run"
+					}
+				]
+			}
+		]
+	},
+	"sleipnir": {
+		"_note": "HB Code Gate VP30. 3 subs: optional draw, optional shuffle HQ/Archives card to R&D, ETR.",
+		"subroutines": [
+			{
+				"label": "You may draw 1 card.",
+				"effects": [
+					{
+						"type": "draw_cards_optional",
+						"params": {
+							"subject": "corp",
+							"amount": 1
+						}
+					}
+				]
+			},
+			{
+				"label": "You may shuffle 1 card from HQ or Archives into R&D.",
+				"effects": [
+					{
+						"type": "shuffle_hq_or_archives_card_to_rd"
+					}
+				]
+			},
+			{
+				"label": "End the run.",
+				"effects": [
+					{
+						"type": "end_run"
+					}
+				]
+			}
+		]
+	},
+	"retirement_plan": {
+		"_note": "HB Double operation VP34. Install 1 agenda, asset, or ice from Archives.",
+		"additional_cost_clicks": 1,
+		"on_play": {
+			"effects": [
+				{
+					"type": "install_from_archives_filtered",
+					"params": {
+						"card_types": [
+							"agenda",
+							"asset",
+							"ice"
+						]
+					}
+				}
+			]
+		}
+	},
+	"lotus_haze": {
+		"_note": "Jinteki 2/4 Agenda VP37. On score: place 3 agenda counters. Counter: move 1 rezzed upgrade to another server root.",
+		"on_score": {
+			"effects": [
+				{
+					"type": "add_self_counters",
+					"counter": "agenda",
+					"amount": 3
+				}
+			]
+		},
+		"corp_discard_phase_ends": {
+			"condition": {
+				"type": "and",
+				"conditions": [
+					{
+						"type": "self_in_corp_score_area"
+					},
+					{
+						"type": "self_counter_gte",
+						"counter": "agenda",
+						"threshold": 1
+					}
+				]
+			},
+			"effects": [
+				{
+					"type": "spend_agenda_counter"
+				},
+				{
+					"type": "move_rezzed_upgrade_to_server"
+				}
+			]
+		}
+	},
+	"esca": {
+		"_note": "Jinteki Ambush Asset VP38. On access: Runner loses 1cr. If tagged: 1 net damage.",
+		"on_access": {
+			"effects": [
+				{
+					"type": "lose_credits",
+					"params": {
+						"subject": "runner",
+						"amount": 1
+					}
+				},
+				{
+					"type": "deal_damage",
+					"params": {
+						"damage_type": "net",
+						"amount": 1
+					},
+					"condition": {
+						"type": "runner_is_tagged"
+					}
+				}
+			]
+		}
+	},
+	"lionsmane": {
+		"_note": "Jinteki AP Sentry VP41. 3 subs: 2 net; 2 net unless pay 3; 2 net unless jack out.",
+		"subroutines": [
+			{
+				"label": "Do 2 net damage.",
+				"effects": [
+					{
+						"type": "deal_damage",
+						"params": {
+							"damage_type": "net",
+							"amount": 2
+						}
+					}
+				]
+			},
+			{
+				"label": "Do 2 net damage unless the Runner pays 3[credit].",
+				"effects": [
+					{
+						"type": "deal_damage_unless_runner_pays",
+						"params": {
+							"damage_type": "net",
+							"damage": 2,
+							"cost": 3
+						}
+					}
+				]
+			},
+			{
+				"label": "Do 2 net damage unless the Runner jacks out.",
+				"effects": [
+					{
+						"type": "deal_damage_unless_jack_out",
+						"params": {
+							"damage_type": "net",
+							"damage": 2
+						}
+					}
+				]
+			}
+		]
+	},
+	"vicsek": {
+		"_note": "Jinteki AP Observer Trap VP42. Sub 1: X net + X tags (X = runner tags). Sub 2: 1 tag + trash self.",
+		"subroutines": [
+			{
+				"label": "Do X net damage and give the Runner X tags. X is equal to the number of tags the Runner has.",
+				"effects": [
+					{
+						"type": "x_net_damage_and_x_tags_by_runner_tags"
+					}
+				]
+			},
+			{
+				"label": "Give the Runner 1 tag. Trash this ice.",
+				"effects": [
+					{
+						"type": "give_tags",
+						"params": {
+							"amount": 1
+						}
+					},
+					{
+						"type": "self_trash"
+					}
+				]
+			}
+		]
+	},
+	"cultivate": {
+		"_note": "Jinteki operation VP43. Look at top 5 of R&D; trash 1, add 1 to HQ, arrange rest.",
+		"on_play": {
+			"effects": [
+				{
+					"type": "cultivate_top_5"
+				}
+			]
+		}
+	},
+	"grubber": {
+		"_note": "NBN Liability Barrier VP50. On rez if central: take 1 bad pub. 2x ETR unless pay 3.",
+		"on_rez": {
+			"condition": {
+				"type": "self_on_central_server"
+			},
+			"effects": [
+				{
+					"type": "give_bad_pub",
+					"params": {
+						"amount": 1
+					}
+				}
+			]
+		},
+		"subroutines": [
+			{
+				"label": "End the run unless the Runner pays 3[credit].",
+				"effects": [
+					{
+						"type": "runner_must_pay_or_end_run",
+						"params": {
+							"options": [
+								{
+									"type": "credits",
+									"amount": 3
+								}
+							]
+						}
+					}
+				]
+			},
+			{
+				"label": "End the run unless the Runner pays 3[credit].",
+				"effects": [
+					{
+						"type": "runner_must_pay_or_end_run",
+						"params": {
+							"options": [
+								{
+									"type": "credits",
+									"amount": 3
+								}
+							]
+						}
+					}
+				]
+			}
+		]
+	},
+	"paywall": {
+		"_note": "NBN Barrier VP52. On encounter: Runner loses 1cr. Sub: ETR unless pay 1.",
+		"encounter_ice": {
+			"effects": [
+				{
+					"type": "lose_credits",
+					"params": {
+						"subject": "runner",
+						"amount": 1
+					}
+				}
+			]
+		},
+		"subroutines": [
+			{
+				"label": "End the run unless the Runner pays 1[credit].",
+				"effects": [
+					{
+						"type": "runner_must_pay_or_end_run",
+						"params": {
+							"options": [
+								{
+									"type": "credits",
+									"amount": 1
+								}
+							]
+						}
+					}
+				]
+			}
+		]
+	},
+	"luana_campos": {
+		"_note": "Weyland Executive Liability Asset VP57. Turn begin: may host 1 bad pub → gain 3cr, draw 1. Interrupt on uninstall deferred.",
+		"corp_turn_start": {
+			"condition": {
+				"type": "self_is_rezzed"
+			},
+			"effects": [
+				{
+					"type": "luana_campos_turn_begin"
+				}
+			]
+		}
+	},
+	"event_horizon": {
+		"_note": "Weyland Destroyer Sentry VP58. [trash]: End the run (during run on this server). Sub 1: trash program or pay 3. Sub 2: ETR unless pay 3.",
+		"encounter_ice": {
+			"effects": [
+				{
+					"type": "corp_trash_self_to_end_run"
+				}
+			]
+		},
+		"subroutines": [
+			{
+				"label": "Trash 1 installed program unless the Runner pays 3[credit].",
+				"effects": [
+					{
+						"type": "trash_runner_program_unless_pay",
+						"params": {
+							"cost": 3
+						}
+					}
+				]
+			},
+			{
+				"label": "End the run unless the Runner pays 3[credit].",
+				"effects": [
+					{
+						"type": "runner_must_pay_or_end_run",
+						"params": {
+							"options": [
+								{
+									"type": "credits",
+									"amount": 3
+								}
+							]
+						}
+					}
+				]
+			}
+		]
+	},
+	"flywheel": {
+		"_note": "Weyland Sentry VP59. 2 subs: gain 1cr, may draw 1 card.",
+		"subroutines": [
+			{
+				"label": "Gain 1[credit]. You may draw 1 card.",
+				"effects": [
+					{
+						"type": "gain_credits",
+						"params": {
+							"subject": "corp",
+							"amount": 1
+						}
+					},
+					{
+						"type": "draw_cards_optional",
+						"params": {
+							"subject": "corp",
+							"amount": 1
+						}
+					}
+				]
+			},
+			{
+				"label": "Gain 1[credit]. You may draw 1 card.",
+				"effects": [
+					{
+						"type": "gain_credits",
+						"params": {
+							"subject": "corp",
+							"amount": 1
+						}
+					},
+					{
+						"type": "draw_cards_optional",
+						"params": {
+							"subject": "corp",
+							"amount": 1
+						}
+					}
+				]
+			}
+		]
+	},
+	"reanimation_protocol": {
+		"_note": "Weyland Liability operation VP62. Install and rez 1 ice from Archives, paying 10cr less. If non-Liability ice: take 1 bad pub.",
+		"on_play": {
+			"effects": [
+				{
+					"type": "install_and_rez_from_archives_discounted",
+					"params": {
+						"discount": 10
+					}
+				}
+			]
+		}
+	},
+	"vulture_fund": {
+		"_note": "Weyland Transaction Liability operation VP63. Gain 14cr and take 1 bad pub.",
+		"on_play": {
+			"effects": [
+				{
+					"type": "gain_credits",
+					"params": {
+						"subject": "corp",
+						"amount": 14
+					}
+				},
+				{
+					"type": "give_bad_pub",
+					"params": {
+						"amount": 1
+					}
+				}
+			]
+		}
+	},
+	"witch_hunt": {
+		"_note": "Jinteki 1-pt agenda VP47. On score/steal: Corp takes 1 bad pub. At Corp discard phase end (while scored): remove all runner tags, then give runner 3 tags.",
+		"on_score": {
+			"effects": [
+				{
+					"type": "give_bad_pub",
+					"params": {
+						"amount": 1
+					}
+				}
+			]
+		},
+		"on_steal": {
+			"effects": [
+				{
+					"type": "give_bad_pub",
+					"params": {
+						"amount": 1
+					}
+				}
+			]
+		},
+		"corp_discard_phase_ends": {
+			"condition": {
+				"type": "self_in_corp_score_area"
+			},
+			"effects": [
+				{
+					"type": "remove_all_runner_tags"
+				},
+				{
+					"type": "give_tags",
+					"params": {
+						"amount": 3
+					}
+				}
+			]
+		}
+	},
+	"nihilo_agent": {
+		"_note": "Corp asset VP48. On rez: place 3 power counters. Corp turn start (while rezzed): remove 1 runner tag and 1 Corp bad pub. Corp discard phase end: give 1 tag + 1 bad pub, remove 1 power counter, self-trash if out of counters.",
+		"on_rez": {
+			"effects": [
+				{
+					"type": "add_self_counters",
+					"counter": "power",
+					"amount": 3
+				}
+			]
+		},
+		"corp_turn_start": {
+			"condition": {
+				"type": "self_is_rezzed"
+			},
+			"effects": [
+				{
+					"type": "remove_tags",
+					"params": {
+						"amount": 1
+					}
+				},
+				{
+					"type": "remove_bad_pub",
+					"params": {
+						"amount": 1
+					}
+				}
+			]
+		},
+		"corp_discard_phase_ends": {
+			"condition": {
+				"type": "self_is_rezzed"
+			},
+			"effects": [
+				{
+					"type": "give_tags",
+					"params": {
+						"amount": 1
+					}
+				},
+				{
+					"type": "give_bad_pub",
+					"params": {
+						"amount": 1
+					}
+				},
+				{
+					"type": "remove_self_counter",
+					"counter": "power",
+					"amount": 1
+				},
+				{
+					"type": "self_trash_if_empty",
+					"counter": "power"
+				}
+			]
+		}
+	},
+	"magistrate_revontulet": {
+		"_note": "Runner agenda VP49. Costs runner 3 credits to steal. On score: runner loses 3 credits.",
+		"steal_costs_credits": 3,
+		"on_score": {
+			"effects": [
+				{
+					"type": "lose_credits",
+					"params": {
+						"subject": "runner",
+						"amount": 3
+					}
+				}
+			]
+		}
+	},
+	"myoshu": {
+		"_note": "Corp operation VP61. Play only if Corp scored a non-installed agenda this turn. On play: score self as a 2-point agenda.",
+		"pre_play_condition": "corp_scored_non_installed_agenda_this_turn",
+		"on_play": {
+			"effects": [
+				{
+					"type": "add_self_to_score_area",
+					"params": {
+						"points": 2
+					}
+				}
+			]
+		}
+	},
+	"scapegoat": {
+		"_note": "Corp operation VP54. Runner chooses: Corp removes 2 bad pub, OR Corp bounces 1 runner installed card to the stack.",
+		"on_play": {
+			"modes": [
+				{
+					"label": "Remove 2 bad publicity",
+					"effects": [
+						{
+							"type": "remove_bad_pub",
+							"params": {
+								"amount": 2
+							}
+						}
+					]
+				},
+				{
+					"label": "Return 1 runner installed card to the stack",
+					"effects": [
+						{
+							"type": "shuffle_runner_installed_to_stack",
+							"params": {}
+						}
+					]
+				}
+			],
+			"chooser": "runner"
+		}
+	},
+	"underdome_irregulars": {
+		"_note": "Corp asset VP16. At Corp discard phase end (while rezzed): if ice was rezzed this turn, Corp draws 2 or removes 1 runner tag; else self-trashes.",
+		"corp_discard_phase_ends": {
+			"condition": {
+				"type": "self_is_rezzed"
+			},
+			"effects": [
+				{
+					"type": "underdome_irregulars_end_of_turn"
+				}
+			]
+		}
+	},
+	"synchrocyclotron": {
+		"_note": "Corp upgrade VP27. While rezzed in a server root, the first double operation the Corp plays per turn costs 1 fewer additional click. Logic is handled entirely in TurnManager._do_play_operation by checking for this card_id in server roots; no ability triggers needed."
+	},
+	"caveat_emptor": {
+		"_note": "Corp operation VP32. Runner chooses: gain 1 click next turn, or Corp loses 1 click next turn.",
+		"on_play": {
+			"modes": [
+				{
+					"label": "Runner gains 1 click next turn",
+					"effects": [
+						{
+							"type": "gain_clicks_next_turn",
+							"params": {
+								"subject": "runner",
+								"amount": 1
+							}
+						}
+					]
+				},
+				{
+					"label": "Corp loses 1 click next turn",
+					"effects": [
+						{
+							"type": "gain_clicks_next_turn",
+							"params": {
+								"subject": "corp",
+								"amount": -1
+							}
+						}
+					]
+				}
+			],
+			"chooser": "runner"
+		}
+	},
+	"realloc": {
+		"_note": "Corp operation double VP33. Costs 1 additional click (total: [click][click][click]). On play: Corp picks 2 rezzed ice, gains their printed rez costs, then derezzes both.",
+		"is_double": true,
+		"additional_cost_clicks": 1,
+		"on_play": {
+			"effects": [
+				{
+					"type": "derez_two_rezzed_ice_gain_rez_costs",
+					"params": {}
+				}
+			]
+		}
+	},
+	"unleash": {
+		"_note": "Runner event VP44. Additional cost: remove 1 tag. On play: rez 1 installed ice for free; Corp may optionally resolve 1 subroutine on it.",
+		"additional_cost_remove_tag": true,
+		"on_play": {
+			"effects": [
+				{
+					"type": "rez_installed_ice_free_and_optionally_fire_sub",
+					"params": {}
+				}
+			]
+		}
+	},
+	"flood_the_market": {
+		"_note": "Corp operation double VP53. Costs 1 additional click (total: [click][click][click]). On play: count remotes with a root card AND ice; place that many advancement counters on a chosen card.",
+		"is_double": true,
+		"additional_cost_clicks": 1,
+		"on_play": {
+			"effects": [
+				{
+					"type": "count_remotes_place_advancements",
+					"params": {}
+				}
+			]
+		}
+	},
+	"hype_machine": {
+		"_note": "Corp asset VP55. While rezzed: rez cost is reduced by 6 if an agenda was scored or stolen this turn. Logic handled in TurnManager._do_rez_card and RunStateMachine._rez_card via rez_cost_reduction_if_agenda_scored_stolen field.",
+		"rez_cost_reduction_if_agenda_scored_stolen": 6
+	},
+	"tailgate": {
+		"_note": "Runner event VP12. Play cost is reduced by 1 per piece of ice protecting HQ. On play: gain 7 credits.",
+		"play_cost_reduction_per_ice_on_server": {
+			"server": "hq"
+		},
+		"on_play": {
+			"effects": [
+				{
+					"type": "gain_credits",
+					"params": {
+						"subject": "runner",
+						"amount": 7
+					}
+				}
+			]
+		}
+	},
+	"take_a_dive": {
+		"_note": "Runner event VP2. Remove from game. Run HQ or R&D. If run successful AND a subroutine resolved: Corp gains 1 bad pub.",
+		"remove_from_game": true,
+		"on_play": {
+			"effects": [
+				{
+					"type": "choose_and_run",
+					"params": {
+						"servers": [
+							"hq",
+							"rd"
+						]
+					}
+				},
+				{
+					"type": "give_bad_pub",
+					"params": {
+						"amount": 1
+					},
+					"condition": {
+						"type": "and",
+						"conditions": [
+							{
+								"type": "run_was_successful"
+							},
+							{
+								"type": "subroutine_resolved_this_run"
+							}
+						]
+					}
+				}
+			]
+		}
+	},
+	"kompromat": {
+		"_note": "Runner event VP10. Remove from game. Run HQ or R&D. If run successful: Corp must derez 1 ice on the run server or take 1 bad pub.",
+		"remove_from_game": true,
+		"on_play": {
+			"effects": [
+				{
+					"type": "choose_and_run",
+					"params": {
+						"servers": [
+							"hq",
+							"rd"
+						]
+					}
+				},
+				{
+					"type": "kompromat_run_end_check",
+					"params": {},
+					"condition": {
+						"type": "run_was_successful"
+					}
+				}
+			]
+		}
+	},
+	"rotary": {
+		"_note": "Runner hardware VP14. Console: +1 MU. Before breaching HQ or R&D, runner may take 1 tag to access 1 additional card.",
+		"passive_modifiers": [
+			{
+				"type": "runner_mu_bonus",
+				"value": 1
+			}
+		],
+		"before_breach": {
+			"effects": [
+				{
+					"type": "may_take_tag_for_extra_access",
+					"params": {
+						"servers": [
+							"hq",
+							"rd"
+						]
+					}
+				}
+			]
+		}
+	},
+	"beta_build": {
+		"_note": "Runner event VP19. Remove from game. Search stack for a non-virus program, install it free. Make a run. At run end, return the program to top of stack.",
+		"remove_from_game": true,
+		"on_play": {
+			"effects": [
+				{
+					"type": "search_stack_install_non_virus_program",
+					"params": {}
+				},
+				{
+					"type": "choose_and_run",
+					"params": {
+						"servers": [
+							"hq",
+							"rd",
+							"archives",
+							"remote"
+						]
+					}
+				}
+			]
+		}
+	},
+	"sipa": {
+		"_note": "Corp ICE VP23. pass_ice trigger (once per turn): if Sipa is the outermost ice passed and all subs were broken, Corp may swap Sipa with any other installed ice.",
+		"pass_ice": {
+			"once_per_turn_key": "sipa_swap",
+			"condition": {
+				"type": "and",
+				"conditions": [
+					{
+						"type": "pass_ice_is_self"
+					},
+					{
+						"type": "pass_ice_is_outermost"
+					},
+					{
+						"type": "pass_ice_all_subs_broken"
+					}
+				]
+			},
+			"effects": [
+				{
+					"type": "corp_may_swap_passed_ice_with_any_installed",
+					"params": {}
+				}
+			]
+		}
+	},
+	"vertigo": {
+		"_note": "Corp ICE VP31. Subroutine: Runner loses 1 click. pass_ice trigger: if runner has no clicks after passing, runner cannot steal or trash for the rest of this run.",
+		"subroutines": [
+			{
+				"label": "The Runner loses 1[click].",
+				"effects": [
+					{
+						"type": "lose_clicks",
+						"params": {
+							"subject": "runner",
+							"amount": 1
+						}
+					}
+				]
+			}
+		],
+		"pass_ice": {
+			"condition": {
+				"type": "and",
+				"conditions": [
+					{
+						"type": "pass_ice_is_self"
+					},
+					{
+						"type": "runner_has_no_clicks"
+					}
+				]
+			},
+			"effects": [
+				{
+					"type": "set_runner_cannot_steal_or_trash",
+					"params": {}
+				}
+			]
+		}
+	},
+	"ezam": {
+		"_note": "Corp ICE VP39. Subs: (1) look at top of R&D, may move to bottom; (2) all ICE +1 strength this run. paw_action: Corp spends 1 click to swap ezaM with any other installed ice.",
+		"subroutines": [
+			{
+				"label": "Look at the top card of R&D. You may move it to the bottom.",
+				"effects": [
+					{
+						"type": "look_top_rd_may_move_to_bottom",
+						"params": {}
+					}
+				]
+			},
+			{
+				"label": "For the remainder of this run, all ICE has +1 strength.",
+				"effects": [
+					{
+						"type": "set_global_ice_strength_bonus",
+						"params": {
+							"amount": 1
+						}
+					}
+				]
+			}
+		],
+		"paw_action": {
+			"cost_clicks": 1,
+			"once_per_turn_key": "ezam_swap",
+			"effects": [
+				{
+					"type": "swap_self_with_any_installed_ice",
+					"params": {}
+				}
+			]
+		}
+	},
+	"knowledge_seeker": {
+		"_note": "Corp ICE VP40. Subs: (1) place 1 virus counter on self; (2) look at top 4 R&D, arrange in any order; (3) end the run. encounter_ended trigger: if self has >=3 virus counters, purge them and derez self.",
+		"subroutines": [
+			{
+				"label": "Place 1 virus counter on Knowledge Seeker.",
+				"effects": [
+					{
+						"type": "place_virus_counter_on_self",
+						"params": {}
+					}
+				]
+			},
+			{
+				"label": "Look at the top 4 cards of R&D and arrange them in any order.",
+				"effects": [
+					{
+						"type": "look_top_n_rd_arrange",
+						"params": {
+							"count": 4
+						}
+					}
+				]
+			},
+			{
+				"label": "End the run.",
+				"effects": [
+					{
+						"type": "end_run"
+					}
+				]
+			}
+		],
+		"encounter_ended": {
+			"condition": {
+				"type": "and",
+				"conditions": [
+					{
+						"type": "encounter_ended_is_self"
+					},
+					{
+						"type": "self_counter_gte",
+						"counter": "virus",
+						"threshold": 3
+					}
+				]
+			},
+			"effects": [
+				{
+					"type": "purge_self_counters_and_derez",
+					"params": {
+						"counter": "virus"
+					}
+				}
+			]
+		}
+	},
+	"nurse_hanh": {
+		"archives_cards_turned_faceup": {
+			"condition": {
+				"type": "event_param_gte",
+				"key": "count",
+				"threshold": 2
+			},
+			"effects": [
+				{
+					"type": "draw_cards",
+					"params": {
+						"subject": "runner",
+						"amount": 2
+					}
+				}
+			]
+		}
+	},
+	"aircheck": {
+		"remove_from_game": true,
+		"on_play": {
+			"effects": [
+				{
+					"type": "gain_credits",
+					"params": {
+						"subject": "runner",
+						"amount": 4
+					}
+				},
+				{
+					"type": "choose_and_run",
+					"params": {
+						"servers": [
+							"hq",
+							"rd"
+						]
+					}
+				},
+				{
+					"type": "optional_run",
+					"params": {
+						"servers": [
+							"remote"
+						]
+					},
+					"condition": {
+						"type": "run_was_successful"
+					}
+				}
+			]
+		}
+	},
+	"read_write_share": {
+		"on_rez": {
+			"effects": [
+				{
+					"type": "host_card_from_grip_facedown_draw",
+					"params": {
+						"limit": 4
+					}
+				}
+			]
+		},
+		"runner_turn_start": {
+			"effects": [
+				{
+					"type": "host_card_from_grip_facedown_draw",
+					"params": {
+						"limit": 4
+					}
+				}
+			]
+		},
+		"on_trash": {
+			"effects": [
+				{
+					"type": "shuffle_hosted_grip_to_stack",
+					"params": {}
+				}
+			]
+		}
+	},
+	"word_on_the_street": {
+		"corp_scores_agenda": {
+			"effects": [
+				{
+					"type": "word_on_the_street_corp_scores_response",
+					"params": {}
+				}
+			]
+		}
+	},
+	"perfect_recall": {
+		"on_rez": {
+			"effects": [
+				{
+					"type": "add_self_counters",
+					"counter": "power",
+					"amount": 1
+				}
+			]
+		},
+		"corp_scores_agenda": {
+			"condition": {
+				"type": "agenda_on_my_server"
+			},
+			"effects": [
+				{
+					"type": "add_self_counters",
+					"counter": "power",
+					"amount": 1
+				}
+			]
+		},
+		"runner_steals_agenda": {
+			"condition": {
+				"type": "agenda_on_my_server"
+			},
+			"effects": [
+				{
+					"type": "add_self_counters",
+					"counter": "power",
+					"amount": 1
+				}
+			]
+		},
+		"paw_action": {
+			"cost_counters": {
+				"counter": "power",
+				"amount": 1
+			},
+			"once_per_turn_key": "pr_reveal",
+			"effects": [
+				{
+					"type": "reveal_hq_card_and_block_steal_trash",
+					"params": {}
+				}
+			]
+		}
+	},
+	"the_tungsten_tailor": {
+		"passive_modifiers": [
+			{
+				"type": "ice_strength",
+				"value": -1
+			}
+		]
+	},
+	"chain_reaction": {
+		"remove_from_game": true,
+		"on_play": {
+			"condition": {
+				"type": "all_centrals_successful_run_this_turn"
+			},
+			"effects": [
+				{
+					"type": "runner_chooses_corp_installed_to_trash",
+					"params": {
+						"count": 2
+					}
+				},
+				{
+					"type": "corp_chooses_runner_installed_to_trash",
+					"params": {}
+				}
+			]
+		}
+	},
+	"sacrifice_zone_expansion": {
+		"install_faceup": true,
+		"on_advance": {
+			"once_per_turn_key": "sze_first_advance",
+			"condition": {
+				"type": "advance_target_is_self"
+			},
+			"effects": [
+				{
+					"type": "gain_credits",
+					"params": {
+						"subject": "corp",
+						"amount": 3
+					}
+				}
+			]
+		},
+		"successful_run": {
+			"once_per_turn_key": "sze_reactive",
+			"condition": {
+				"type": "run_target_is_not_self_server"
+			},
+			"effects": [
+				{
+					"type": "sacrifice_zone_expansion_reactive",
+					"params": {}
+				}
+			]
+		}
+	},
+	"touchstone": {
+		"runner_plays_event": {
+			"once_per_turn_key": "ts_stealth",
+			"effects": [
+				{
+					"type": "place_stealth_credits",
+					"params": {
+						"amount": 1
+					}
+				}
+			]
+		}
+	},
+	"methuselah": {
+		"run_start": {
+			"effects": [
+				{
+					"type": "trash_hardware_from_grip_for_stealth",
+					"params": {
+						"amount": 2
+					}
+				}
+			]
+		}
+	},
+	"corsair": {
+		"break": {
+			"subtype_restriction": "barrier",
+			"cost_per_sub": 1,
+			"subs_per_use": 1
+		},
+		"boost": {
+			"cost": 1,
+			"strength_gained": 3,
+			"costs_stealth": true,
+			"target_ice": true
+		}
+	},
+	"baker": {
+		"click_action": {
+			"once_per_turn_key": "baker_run",
+			"effects": [
+				{
+					"type": "set_run_modifier",
+					"params": {
+						"key": "baker_active",
+						"value": 1
+					}
+				},
+				{
+					"type": "initiate_run",
+					"params": {
+						"server_id": "archives"
+					}
+				}
+			]
+		}
+	},
+	"lampades": {
+		"on_rez": {
+			"effects": [
+				{
+					"type": "add_self_counters",
+					"counter": "power",
+					"amount": 3
+				}
+			]
+		}
+	},
+	"virtual_intelligence_p_i_you_can_call_me_vic": {
+		"identity_click_action": {
+			"once_per_turn_key": "vic_ability",
+			"credit_cost": 1,
+			"effects": [
+				{
+					"type": "draw_cards",
+					"params": {
+						"subject": "runner",
+						"amount": 1
+					}
+				},
+				{
+					"type": "remove_tags",
+					"params": {
+						"amount": 1
+					}
+				}
+			]
+		}
+	}
+}

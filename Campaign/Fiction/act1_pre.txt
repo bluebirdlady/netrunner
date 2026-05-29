@@ -1,0 +1,36 @@
+STARTER
+by eniteris
+
+You disembark the maglev onto the platform into Lunacent, taking care not to misstep in the low gravity. The dome vaults high above you; one of the oldest on Luna, the plascrete walls give way to a transplas ceiling, Earthshine casting faint shadows under the bustling crowds. The pedestrians take long, bounding strides, taking advantage of the low gravity, but the Earthers who disembark with you take slow, shuffling steps, weighted down to anchor them to the ground.
+
+You shuffle forward out of the security checkpoint. A vidscreen hangs up above, warning of increased security after an intrusion attempt on Kaguya. The queue of passengers waiting to board snakes halfway along the concourse and back. You went through the same security at the spaceport; nothing is going in or out without being searched. But luckily you're travelling light, and the only thing you need to smuggle in is hanging from your left ear.
+
+You make your way out into the plaza, where buildings rise up to meet ad-virts projected against the domed sky, but you take the mag-lift down, past the subdome with its tourist trap shops and restaurants, and into the sublevels below. The smooth metal walls give way to rough-hewn rock, sprayed with quick-setting sealant, and as you step off the mag-lift, someone bumps into you getting on, slipping a small memstrip into your hand. You glance down at it when you clear the crowd, and on its label is written an address deep in the undercity. You head off.
+
+The echoing sounds of people fade quickly as you make your way through the winding tunnels, lights strung from the walls at regular intervals. By the time you finally reach the indicated address, an empty stretch of tunnel, it has been many minutes since you last passed a threedee advertising the latest sensie.
+
+You look around the tunnel, and note the thin layer of dust on the floor. The walls are rougher than the core, and at points the sealant was never applied. Upon closer inspection, a small dataport is embedded into the wall, hidden in the shadows cast from above. You plug in the memstrip, and, silently, the walls begin to move.
+
+A section of the tunnel wall pulls back and slides upwards to reveal a maintenance duct, descending into the dark. You pull the key and slip under the door on its way back down, and your cybernetic eye kicks in as the door slides smoothly shut, throwing the dark side-passage into monochrome relief. The passage is smaller than the tunnels, and at points you duck your head to avoid scraping against the low ceiling. But eventually, the ceiling starts to rise, the walls begin to broaden, and as you step into the chamber, a light switches on.
+
+It takes a moment for your implants to adjust, and the first thing you see is a security camera mounted in the wall, staring at you, a modified SDS101 swivel gun hanging loosely below. It blinks.
+
+You blink back.
+
+It turns away from you, laser sight pointing to one of the many boxes littering the floor. The edges of the room show signs of habitation; some pieces of art, a bookcase and wardrobe, a mattress in the corner. But the floor of the room is littered with boxes, stacked six or seven high, labels exposing their contents. Military-grade weapons. Consumer electronics. Cybernetic implants.
+
+The box with your name on it sits to the side, half-open, and you pull out the console nestled against the form-fitting foam. It's a standard model, barely more than a PAD. But that's just like you asked, and as you pull out the vidscreen, you see it's already been jailbroken, and loaded with a basic breaker suite.
+
+That won't do. You remove your earring, and, in a few short moments, twist it into shape. You plug it in, and the small diamond lights up as it talks to the console. You can already feel the breaker vibrating within, ready to get to work.
+
+An anonymous message pings on the vid, but you don't need a name to know who it's from.
+
+GOOD LUCK.
+
+You smile. Time to run.
+
+—
+
+TARGET: Haas-Bioroid: Profit over Principle
+FACILITY: Kaguya Data Vault, Lunacent sublevel 7
+OBJECTIVE: Breach their servers. See what they're hiding.

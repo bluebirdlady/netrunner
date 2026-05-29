@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://bv7gas0isjum3"]
+
+[ext_resource type="Script" uid="uid://wmay34el6rvp" path="res://Scripts/Engine/CampaignController.gd" id="1_oc2vc"]
+
+[node name="CampaignController" type="Node" unique_id=1242507554]
+script = ExtResource("1_oc2vc")

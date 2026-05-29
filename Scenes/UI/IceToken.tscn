@@ -1,0 +1,44 @@
+[gd_scene format=3 uid="uid://dryy4kci52w1m"]
+
+[ext_resource type="Script" uid="uid://bekq5jghrejua" path="res://Scripts/UI/IceToken.gd" id="1_6l25h"]
+
+[node name="IceToken" type="Control" unique_id=1568335801]
+custom_minimum_size = Vector2(120, 44)
+layout_mode = 3
+anchors_preset = 0
+offset_right = 120.0
+offset_bottom = 44.0
+script = ExtResource("1_6l25h")
+
+[node name="Background" type="Panel" parent="." unique_id=554903889]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Background" unique_id=1386943840]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 2
+alignment = 1
+
+[node name="NameLabel" type="Label" parent="Background/VBoxContainer" unique_id=829061036]
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "Ice Name"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="InfoLabel" type="Label" parent="Background/VBoxContainer" unique_id=1165002517]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.65, 0.65, 0.65, 1)
+theme_override_font_sizes/font_size = 10
+text = "Strength: 0"
+horizontal_alignment = 1
+vertical_alignment = 1

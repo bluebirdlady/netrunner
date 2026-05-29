@@ -1,0 +1,38 @@
+RESIDUAL DATA
+
+The access log was clean.
+
+Mercer almost missed it — a single authenticated session, opened at 03:14 from a valid internal terminal on Sub-Level 4, closed cleanly at 03:31. Seventeen minutes of read access to the Restricted Research Archive. No failed authentication attempts. No error codes. Nothing that would have triggered an automated alert.
+
+The terminal in question had been reporting as idle since 22:00.
+
+He ran the badge records for Sub-Level 4. The swipe at 03:12 matched the credential of Dr. Asel Nurlanovna, who was currently on extended medical leave and had not entered the facility in eleven days. He checked her PAD's last network ping. It was in her apartment in Sub-2.
+
+Mercer sat with this for a moment.
+
+He queried the session's access list. The system returned 847 files, all marked RESTRICTED-COLLAB under the joint framework agreement with Jinteki Technologies. Eight years of records. Original research correspondence. The Longitudinal Antisenescence Initiative licensing terms. The Chairman's authorisation signature on the final protocol transfer.
+
+He stared at the screen for a while.
+
+The correct response was immediate escalation. Automated notification to Legal, Security, and the VP of Research Operations. Incident response mobilised within the hour. He pulled up the escalation form.
+
+He thought about the 847 files. He had seen a portion of them — three years ago, when his department assumed responsibility for the joint framework archive. He had spent two weeks organising the records. He had read enough to understand what the research was for. He had not read any further than he needed to, and he had not thought about it since.
+
+He submitted the escalation.
+
+He powered down his terminal, collected his coat from the rack by the door, and walked to the lift. In the lobby, the night security guard nodded at him. He nodded back.
+
+By the time the lift reached street level, the incident response team would be mobilising. By morning, HB's Legal division would have contacted Jinteki. The archive layer that had been accessed would be purged and rebuilt.
+
+The data was already gone.
+
+Mercer stepped out into the pressurised cold of Heinlein Station and walked in a direction that was not home.
+
+—
+
+The licensing agreements are in the networks now.
+Both corporations know what was taken. Both are moving.
+
+You have the chain: what Jinteki built, and who helped them build it.
+
+One run left.

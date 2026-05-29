@@ -1,0 +1,73 @@
+[gd_scene format=3 uid="uid://cvhiaa7w0u2cw"]
+
+[ext_resource type="Script" uid="uid://c8yy0tgj40etc" path="res://Scripts/UI/GameUI.gd" id="1_13cgw"]
+
+[node name="GameUI" type="CanvasLayer" unique_id=58628976]
+script = ExtResource("1_13cgw")
+
+[node name="MarginContainer" type="MarginContainer" parent="." unique_id=2091854683]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 8
+
+[node name="MainContainer" type="HBoxContainer" parent="MarginContainer" unique_id=2133621166]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="StatePanel" type="PanelContainer" parent="MarginContainer/MainContainer" unique_id=1809680194]
+custom_minimum_size = Vector2(680, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="StateVBox" type="VBoxContainer" parent="MarginContainer/MainContainer/StatePanel" unique_id=1696679481]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="ResourceLabel" type="RichTextLabel" parent="MarginContainer/MainContainer/StatePanel/StateVBox" unique_id=911204523]
+layout_mode = 2
+bbcode_enabled = true
+text = "=== RESOURCES ==="
+fit_content = true
+scroll_active = false
+
+[node name="ServersArea" type="ScrollContainer" parent="MarginContainer/MainContainer/StatePanel/StateVBox" unique_id=623200376]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 1
+vertical_scroll_mode = 2
+
+[node name="ServersContainer" type="HBoxContainer" parent="MarginContainer/MainContainer/StatePanel/StateVBox/ServersArea" unique_id=1367858956]
+layout_mode = 2
+size_flags_horizontal = 4
+
+[node name="RunnerHandContainer" type="HBoxContainer" parent="MarginContainer/MainContainer/StatePanel/StateVBox" unique_id=1112406968]
+custom_minimum_size = Vector2(200, 200)
+layout_mode = 2
+
+[node name="CorpHandContainer" type="HBoxContainer" parent="MarginContainer/MainContainer/StatePanel/StateVBox" unique_id=1223050271]
+visible = false
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="ControlPanel" type="VBoxContainer" parent="MarginContainer/MainContainer" unique_id=1655012836]
+custom_minimum_size = Vector2(200, 200)
+layout_mode = 2
+
+[node name="LogText" type="TextEdit" parent="MarginContainer/MainContainer/ControlPanel" unique_id=533216495]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+editable = false
+wrap_mode = 1
+
+[node name="ActionMenu" type="VBoxContainer" parent="MarginContainer/MainContainer/ControlPanel" unique_id=614931401]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 200)
+layout_mode = 2
+theme_override_constants/separation = 6
