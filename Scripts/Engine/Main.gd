@@ -47,12 +47,14 @@ func _init_and_start() -> void:
 	else:
 		print("AbilityRegistry loaded %d card definitions" % ability_registry._abilities.size())
 
-	# Select Corp AI level — heuristic (0), tactical 1-ply (1), strategic 2-ply (2)
+	# Select Corp AI level — heuristic (0), tactical 1-ply (1), strategic 2-ply (2), MCTS (3)
 	match campaign_ai_level:
 		1:
 			corp_brain = CorpTurnAI_Tactical.new(ability_registry)
 		2:
 			corp_brain = CorpTurnAI_Strategic.new(ability_registry)
+		3:
+			corp_brain = CorpTurnAI_MCTS.new(ability_registry)
 		_:
 			corp_brain = CorpTurnAI.new(ability_registry)
 

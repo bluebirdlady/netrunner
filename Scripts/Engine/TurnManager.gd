@@ -51,7 +51,7 @@ func _init(game_ctx: GameContext, ab_registry: AbilityRegistry) -> void:
 
 # ── Main loop ─────────────────────────────────────────────────────────────────
 
-func run_game() -> void:
+func run_game(max_turns: int = 0) -> void:
 	# Set win threshold: starter identities play to 6, all others to 7
 	var corp_id:   String = ctx.corp_identity.id   if ctx.corp_identity   != null else ""
 	var runner_id: String = ctx.runner_identity.id if ctx.runner_identity != null else ""
@@ -75,11 +75,15 @@ func run_game() -> void:
 		_register_identity_listeners(instance_id, new_card_id)
 	)
 
+	var turns_run: int = 0
 	while not ctx.game_over:
+		if max_turns > 0 and turns_run >= max_turns:
+			break
 		await _corp_turn()
 		if ctx.game_over:
 			break
 		await _runner_turn()
+		turns_run += 1
 
 
 # ── Corp turn ─────────────────────────────────────────────────────────────────
@@ -113,7 +117,7 @@ func _corp_turn() -> void:
 
 	# Draw phase: mandatory draw, then start-of-turn events
 	_corp_mandatory_draw()
-	emit_signal("turn_started", "corp", ctx.turn_number)
+	if not ctx.simulation_mode: emit_signal("turn_started", "corp", ctx.turn_number)
 	ctx.send_log("=== %s Turn %d begins. Credits: %d, Clicks: %d ===" % [
 		ctx.corp_name(), ctx.turn_number, ctx.corp_credits, ctx.corp_clicks
 	])
@@ -161,8 +165,8 @@ func _corp_mandatory_draw() -> void:
 	
 	# Package it into the dictionary format your hand structure expects
 	ctx.corp_hand.append({"card_id": drawn.id, "card_record": drawn})
-	
-	emit_signal("hand_changed", "corp")
+
+	if not ctx.simulation_mode: emit_signal("hand_changed", "corp")
 	ctx.send_log("%s draws %s." % [ctx.corp_name(), drawn.title])
 
 
@@ -178,7 +182,7 @@ func _corp_discard_to_hand_limit() -> void:
 		ctx.send_log("%s discards %s to hand limit." % [ctx.corp_name(), record.title if record else "?"])
 		did_discard = true
 	ctx.corp_discarded_to_hand_limit_last_turn = did_discard
-	emit_signal("hand_changed", "corp")
+	if not ctx.simulation_mode: emit_signal("hand_changed", "corp")
 
 
 func _runner_discard_to_hand_limit() -> void:
@@ -197,7 +201,7 @@ func _runner_discard_to_hand_limit() -> void:
 		ctx.send_log("%s discards %s to hand limit (%d)." % [
 			ctx.runner_name(), record.title if record else "?", limit
 		])
-	emit_signal("hand_changed", "runner")
+	if not ctx.simulation_mode: emit_signal("hand_changed", "runner")
 	# Magdalene Keino Chemutai: fire event so identity can install from discarded cards
 	if not discarded_records.is_empty():
 		await ctx.notify_event("runner_discards_to_hand_limit", {
@@ -228,7 +232,7 @@ func _runner_turn() -> void:
 		ctx.send_log("%s loses %d click(s) this turn (deferred penalty)." % [ctx.runner_name(), runner_penalty])
 	ctx.turn_number   += 1
 
-	emit_signal("turn_started", "runner", ctx.turn_number)
+	if not ctx.simulation_mode: emit_signal("turn_started", "runner", ctx.turn_number)
 	ctx.send_log("=== %s Turn %d begins. Credits: %d, Clicks: %d ===" % [
 		ctx.runner_name(), ctx.turn_number, ctx.runner_credits, ctx.runner_clicks
 	])
@@ -262,7 +266,7 @@ func _execute_action(player: String, action: GameAction) -> Dictionary:
 	# Validate first
 	var valid := _validate_action(player, action)
 	if not valid["ok"]:
-		emit_signal("action_rejected", player, action, valid["reason"])
+		if not ctx.simulation_mode: emit_signal("action_rejected", player, action, valid["reason"])
 		return valid
 
 	# Execute
@@ -285,7 +289,7 @@ func _execute_action(player: String, action: GameAction) -> Dictionary:
 	if player == "corp" and action.type not in ["rez_card", "pass", "end_turn"]:
 		ctx.corp_finished_an_action_this_turn = true
 
-	emit_signal("action_executed", player, action)
+	if not ctx.simulation_mode: emit_signal("action_executed", player, action)
 	_check_win_conditions()
 	return {"ok": true, "reason": ""}
 
@@ -392,7 +396,7 @@ func _validate_action(player: String, action: GameAction) -> Dictionary:
 func _do_gain_credits(player: String) -> void:
 	_spend_click(player)
 	ctx.set_credits(player, ctx.get_credits(player) + 1)
-	emit_signal("credits_changed", player, ctx.get_credits(player))
+	if not ctx.simulation_mode: emit_signal("credits_changed", player, ctx.get_credits(player))
 	ctx.send_log("%s gains 1 credit. (%d total)" % [ctx.player_name(player), ctx.get_credits(player)])
 
 
@@ -416,7 +420,7 @@ func _do_draw_card(player: String) -> void:
 	else:
 		ctx.runner_hand.append(hand_entry)
 		
-	emit_signal("hand_changed", player)
+	if not ctx.simulation_mode: emit_signal("hand_changed", player)
 	ctx.send_log("%s draws %s." % [ctx.player_name(player), drawn.title])
 
 	# Verbal Plasticity: draw 1 extra card on the FIRST click-draw of the runner's turn only.
@@ -435,7 +439,7 @@ func _do_draw_card(player: String) -> void:
 					var extra_card: CardRecord = deck.pop_front() as CardRecord
 					ctx.runner_hand.append({"card_id": extra_card.id, "card_record": extra_card})
 					ctx.send_log("Verbal Plasticity: %s draws %s." % [ctx.runner_name(), extra_card.title])
-				emit_signal("hand_changed", player)
+				if not ctx.simulation_mode: emit_signal("hand_changed", player)
 
 
 func _do_install(player: String, action: GameAction) -> void:
@@ -621,8 +625,8 @@ func _do_install(player: String, action: GameAction) -> void:
 			ctx.current_event_data = {"card": installed, "card_instance_id": installed.runtime_instance_id}
 			await interpreter.execute_trigger(on_rez_def as Dictionary, ctx)
 			ctx.current_event_data = {}
-		emit_signal("card_installed", record, "runner_rig")
-		emit_signal("hand_changed", player)
+		if not ctx.simulation_mode: emit_signal("card_installed", record, "runner_rig")
+		if not ctx.simulation_mode: emit_signal("hand_changed", player)
 		# Fire runner_installs_virus for Cookbook
 		if record.card_type == "program" and record.has_subtype("virus"):
 			await ctx.notify_event("runner_installs_virus", {
@@ -689,8 +693,8 @@ func _do_install(player: String, action: GameAction) -> void:
 	# Remove from hand
 	_remove_from_hand(player, record)
 
-	emit_signal("card_installed", record, server_id)
-	emit_signal("hand_changed", player)
+	if not ctx.simulation_mode: emit_signal("card_installed", record, server_id)
+	if not ctx.simulation_mode: emit_signal("hand_changed", player)
 	ctx.send_log("%s installs %s in %s." % [ctx.player_name(player), record.title, server.display_name()])
 	# Track Corp installs this turn for Seamless Launch restriction
 	if player == "corp":
@@ -700,7 +704,7 @@ func _do_install(player: String, action: GameAction) -> void:
 func _do_advance(player: String, action: GameAction) -> void:
 	_spend_click(player)
 	ctx.set_credits(player, ctx.get_credits(player) - 1)
-	emit_signal("credits_changed", player, ctx.get_credits(player))
+	if not ctx.simulation_mode: emit_signal("credits_changed", player, ctx.get_credits(player))
 
 	var card_id: String  = action.params.get("card_id", "")
 	var card := _find_advanceable_card(card_id)
@@ -708,7 +712,7 @@ func _do_advance(player: String, action: GameAction) -> void:
 		return
 
 	card.add_counter("advancement", 1)
-	emit_signal("card_advanced", card_id, card.get_counter("advancement"))
+	if not ctx.simulation_mode: emit_signal("card_advanced", card_id, card.get_counter("advancement"))
 	ctx.send_log("%s advances %s (%d counters)." % [
 		ctx.player_name(player), card.display_name(), card.get_counter("advancement")
 	])
@@ -758,7 +762,7 @@ func _do_play_operation(player: String, action: GameAction) -> void:
 					record.title, pir_count, pir_server.to_upper(), cost])
 
 	ctx.set_credits(player, ctx.get_credits(player) - cost)
-	emit_signal("credits_changed", player, ctx.get_credits(player))
+	if not ctx.simulation_mode: emit_signal("credits_changed", player, ctx.get_credits(player))
 
 	# Additional click costs (e.g. Lie Low, Maintenance Access: spend 1 extra click).
 	var op_extra_clicks: int = op_card_def.get("additional_cost_clicks", 0)
@@ -862,7 +866,7 @@ func _do_play_operation(player: String, action: GameAction) -> void:
 		if record.card_type == "event":
 			await ctx.notify_event("runner_plays_event", {"card_id": record.id}, interpreter)
 	ctx.send_log("%s plays %s." % [ctx.player_name(player), record.title])
-	emit_signal("hand_changed", player)
+	if not ctx.simulation_mode: emit_signal("hand_changed", player)
 
 
 func _do_play_from_archives(player: String, action: GameAction) -> void:
@@ -920,7 +924,8 @@ func _do_run(action: GameAction) -> void:
 	if ctx.has_meta("on_run_started"):
 		var cb: Callable = ctx.get_meta("on_run_started") as Callable
 		cb.call(server_id)
-		await Engine.get_main_loop().process_frame
+		if not ctx.simulation_mode:
+			await Engine.get_main_loop().process_frame
 
 	# Reuse the run_state_machine stored on ctx so RunScene stays connected
 	var run: RunStateMachine
@@ -981,7 +986,7 @@ func _do_use_installed_card(player: String, action: GameAction) -> void:
 					ctx.send_log("%s: cannot afford identity ability (need %dcr)." % [id_record.title, id_cc])
 					return
 				ctx.set_credits(player, ctx.get_credits(player) - id_cc)
-				emit_signal("credits_changed", player, ctx.get_credits(player))
+				if not ctx.simulation_mode: emit_signal("credits_changed", player, ctx.get_credits(player))
 			var id_opt_key: String = id_ca_def.get("once_per_turn_key", "")
 			if id_opt_key != "":
 				var id_opt_full := "%s:%s" % [id_iid, id_opt_key]
@@ -1161,7 +1166,7 @@ func _do_rez_card(player: String, action: GameAction) -> void:
 		ctx.current_event_data = {}
 
 	ctx.send_log("%s rezzes %s for %d cr." % [ctx.player_name(player), installed.display_name(), rez_cost])
-	emit_signal("card_installed", installed.card_record, installed.server_id)
+	if not ctx.simulation_mode: emit_signal("card_installed", installed.card_record, installed.server_id)
 
 
 func _do_end_turn(player: String) -> void:
@@ -1189,7 +1194,7 @@ func _check_win_conditions() -> void:
 			elif ctx.winner == "corp":
 				reason = "%s wins" % ctx.corp_name()
 			ctx.send_log("Game over — %s wins. %s" % [ctx.player_name(ctx.winner), reason])
-			emit_signal("game_over", ctx.winner, reason)
+			if not ctx.simulation_mode: emit_signal("game_over", ctx.winner, reason)
 		return
 
 	# Agenda point victory
@@ -1212,7 +1217,7 @@ func _end_game(winner: String, reason: String) -> void:
 	ctx.send_log("Game over — %s wins. %s" % [ctx.player_name(winner), reason])
 	if not _game_over_signaled:
 		_game_over_signaled = true
-		emit_signal("game_over", winner, reason)
+		if not ctx.simulation_mode: emit_signal("game_over", winner, reason)
 
 
 # ── Agenda scoring ────────────────────────────────────────────────────────────

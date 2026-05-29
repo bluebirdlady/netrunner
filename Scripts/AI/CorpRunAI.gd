@@ -20,6 +20,7 @@ const CREDIT_FLOOR := 2
 const MIN_USEFUL_STRENGTH := 1
 
 var ability_registry: AbilityRegistry
+var silent: bool = false
 
 
 func _init(registry: AbilityRegistry) -> void:
@@ -143,4 +144,5 @@ func _should_rez_non_ice(card: InstalledCard, ctx: GameContext) -> bool:
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 func _log(message: String) -> void:
-	print("[CorpRunAI] " + message)
+	if not silent:
+		print("[CorpRunAI] " + message)

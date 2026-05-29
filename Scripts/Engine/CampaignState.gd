@@ -217,12 +217,24 @@ func get_runner_identity_id() -> String:
 # the Corp AI can reason from without knowing the player's exact deck.
 func get_full_card_pool() -> Array:
 	var seen: Dictionary = {}
-	for card_id in _campaign.get("runner_starter_deck", []):
-		seen[card_id] = true
+	for entry in _campaign.get("runner_starter_deck", []):
+		var id: String = _entry_to_id(entry)
+		if id != "":
+			seen[id] = true
 	for mission in _campaign.get("missions", []):
-		for card_id in mission.get("unlocks_cards", []):
-			seen[card_id] = true
+		for entry in mission.get("unlocks_cards", []):
+			var id: String = _entry_to_id(entry)
+			if id != "":
+				seen[id] = true
 	return seen.keys()
+
+
+static func _entry_to_id(entry: Variant) -> String:
+	if entry is String:
+		return entry as String
+	if entry is Dictionary:
+		return (entry as Dictionary).get("id", "") as String
+	return ""
 
 
 # ── Fiction ───────────────────────────────────────────────────────────────────

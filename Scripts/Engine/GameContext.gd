@@ -200,9 +200,12 @@ var runner_hand_size_bonus: int = 0   # added to base of 5
 # Core damage permanently reduces the runner's maximum hand size by 1 per point.
 # Flatline occurs if runner_max_hand_size() drops below 0.
 var runner_core_damage_taken: int = 0
-var active_player: String = "corp"
-var game_over:     bool   = false
-var winner:        String = ""
+var active_player:   String = "corp"
+var game_over:       bool   = false
+var winner:          String = ""
+# Set to true on contexts produced by clone_for_sim().
+# Used by TurnManager and GameContext to suppress UI signals and frame waits.
+var simulation_mode: bool   = false
 
 # ── Identities ────────────────────────────────────────────────────────────────
 var corp_identity:   CardRecord = null
@@ -610,7 +613,7 @@ func _execute_player_trigger_queue(triggers: Array[Dictionary], player: String, 
 	# While simultaneous triggers exist, let the choice maker pick execution order
 	while not triggers.is_empty():
 		var chosen_idx := 0
-		if triggers.size() > 1 and dm != null and dm.has_method("choose_trigger_order"):
+		if not simulation_mode and triggers.size() > 1 and dm != null and dm.has_method("choose_trigger_order"):
 			chosen_idx = await dm.choose_trigger_order(triggers, self)
 			
 		# pop_at removes the element AND returns it cleanly
@@ -966,5 +969,150 @@ func get_counters_on_accessed_card(counter_type: String) -> int:
 # ── Log ───────────────────────────────────────────────────────────────────────
 
 func send_log(message: String) -> void:
+	if simulation_mode:
+		return
 	event_log.append(message)
 	print("[GameContext] " + message)
+
+
+# ── Simulation clone ──────────────────────────────────────────────────────────
+
+# Returns a fully independent copy of this context suitable for headless simulation.
+# CardRecord objects are shared (they are immutable card data).
+# decision_makers are left null — the caller injects sim AIs before running.
+# _event_listeners and _state_modifiers are deep-copied so the clone's listener
+# registry matches its cloned installed cards without re-running registration.
+func clone_for_sim() -> GameContext:
+	var c := GameContext.new()
+
+	# ── Economy / click state ──────────────────────────────────────────────────
+	c.corp_credits   = corp_credits
+	c.runner_credits = runner_credits
+	c.runner_tags    = runner_tags
+	c.corp_bad_pub   = corp_bad_pub
+	c.corp_clicks    = corp_clicks
+	c.runner_clicks  = runner_clicks
+
+	# ── Hands (dict entries share immutable CardRecord refs) ──────────────────
+	c.corp_hand   = corp_hand.duplicate(true)
+	c.runner_hand = runner_hand.duplicate(true)
+
+	# ── Decks / discards / RFG (CardRecord arrays — shared refs are fine) ─────
+	c.corp_deck               = corp_deck.duplicate()
+	c.runner_deck             = runner_deck.duplicate()
+	c.corp_discard            = corp_discard.duplicate()
+	c.runner_discard          = runner_discard.duplicate()
+	c.corp_rfg                = corp_rfg.duplicate()
+	c.runner_rfg              = runner_rfg.duplicate()
+	c.corp_discard_facedown   = corp_discard_facedown.duplicate()
+	c.corp_removed_from_game  = corp_removed_from_game.duplicate()
+
+	# ── Score areas ────────────────────────────────────────────────────────────
+	c.corp_score_area    = corp_score_area.duplicate()
+	c.runner_score_area  = runner_score_area.duplicate()
+	c.corp_score_area_cards = []
+	for ic in corp_score_area_cards:
+		c.corp_score_area_cards.append((ic as InstalledCard).clone())
+	c.runner_score_area_cards = []
+	for ic in runner_score_area_cards:
+		c.runner_score_area_cards.append((ic as InstalledCard).clone())
+
+	# ── Servers ────────────────────────────────────────────────────────────────
+	c.servers = {}
+	for key in servers:
+		c.servers[key] = (servers[key] as Server).clone()
+
+	# ── Runner rig ─────────────────────────────────────────────────────────────
+	c.runner_rig = []
+	for ic in runner_rig:
+		c.runner_rig.append((ic as InstalledCard).clone())
+
+	# ── Per-turn install tracking ──────────────────────────────────────────────
+	c.corp_installed_this_turn = corp_installed_this_turn.duplicate()
+
+	# ── Deferred click modifiers ───────────────────────────────────────────────
+	c.pending_click_penalties = pending_click_penalties.duplicate()
+	c.pending_click_bonuses   = pending_click_bonuses.duplicate()
+
+	# ── Run state ──────────────────────────────────────────────────────────────
+	c.run_active                                  = run_active
+	c.run_ended                                   = run_ended
+	c.run_successful                              = run_successful
+	c.run_target_server                           = run_target_server
+	c.accessed_card_id                            = accessed_card_id
+	c.runner_made_successful_run_this_turn        = runner_made_successful_run_this_turn
+	c.runner_made_successful_run_last_turn        = runner_made_successful_run_last_turn
+	c.runner_stole_agenda_this_run                = runner_stole_agenda_this_run
+	c.corp_used_reality_plus_this_turn            = corp_used_reality_plus_this_turn
+	c.runner_centrals_run_this_turn               = runner_centrals_run_this_turn.duplicate()
+	c.runner_click_draws_this_turn                = runner_click_draws_this_turn
+	c.runner_hq_breached_this_turn                = runner_hq_breached_this_turn
+	c.runner_trashed_during_breach_this_turn      = runner_trashed_during_breach_this_turn
+	c.runner_program_install_discounted_this_turn = runner_program_install_discounted_this_turn
+	c.runner_carnivore_used_this_turn             = runner_carnivore_used_this_turn
+	c.runner_stole_agenda_this_turn               = runner_stole_agenda_this_turn
+	c.runner_successful_run_on_rd_this_turn       = runner_successful_run_on_rd_this_turn
+	c.runner_successful_run_on_archives_this_turn = runner_successful_run_on_archives_this_turn
+	c.run_level_strength_boosts                   = run_level_strength_boosts.duplicate()
+	c.run_had_subroutine_resolve                  = run_had_subroutine_resolve
+	c.runner_cannot_steal_or_trash_this_run       = runner_cannot_steal_or_trash_this_run
+	c.global_ice_strength_bonus_this_run          = global_ice_strength_bonus_this_run
+	c.beta_build_installed_card_id                = beta_build_installed_card_id
+	c.runner_steal_trash_blocked_card_ids         = runner_steal_trash_blocked_card_ids.duplicate()
+	c.run_accessed_archives_card_ids              = run_accessed_archives_card_ids.duplicate()
+	c.run_modifiers                               = run_modifiers.duplicate()
+	c.runner_hq_successful_run_this_turn          = runner_hq_successful_run_this_turn
+
+	# ── Per-turn Corp flags ────────────────────────────────────────────────────
+	c.ice_rezzed_this_turn                        = ice_rezzed_this_turn
+	c.doubles_played_this_turn                    = doubles_played_this_turn
+	c.corp_scored_agenda_not_installed_this_turn  = corp_scored_agenda_not_installed_this_turn
+	c.corp_played_operation_this_turn             = corp_played_operation_this_turn
+	c.corp_finished_an_action_this_turn           = corp_finished_an_action_this_turn
+	c.corp_gained_advance_credits_this_turn       = corp_gained_advance_credits_this_turn
+	c.corp_last_scored_agenda_points              = corp_last_scored_agenda_points
+	c.corp_agendas_scored_this_turn               = corp_agendas_scored_this_turn
+	c.corp_discarded_to_hand_limit_last_turn      = corp_discarded_to_hand_limit_last_turn
+
+	# ── Identity state ─────────────────────────────────────────────────────────
+	c.corp_identity          = corp_identity
+	c.runner_identity        = runner_identity
+	c.corp_identity_counters  = corp_identity_counters.duplicate()
+	c.runner_identity_counters = runner_identity_counters.duplicate()
+	c.runner_identity_face_title = runner_identity_face_title
+	c.corp_identity_face_title   = corp_identity_face_title
+
+	# ── Game state ─────────────────────────────────────────────────────────────
+	c.turn_number              = turn_number
+	c.corp_hand_size_bonus     = corp_hand_size_bonus
+	c.runner_hand_size_bonus   = runner_hand_size_bonus
+	c.runner_core_damage_taken = runner_core_damage_taken
+	c.active_player            = active_player
+	c.game_over                = game_over
+	c.winner                   = winner
+	c.agenda_points_to_win     = agenda_points_to_win
+	c.once_per_turn_triggered  = once_per_turn_triggered.duplicate()
+
+	# Transient execution fields — always reset for sim
+	c.current_event_data              = {}
+	c.current_ability_source_card_type = ""
+	c.current_operation_play_source    = ""
+
+	# ── Listener registry — deep-copy so sim mutations don't bleed back ────────
+	# ability_def dicts are pure JSON data; sharing refs is safe (never mutated).
+	c._event_listeners = {}
+	for event_type in _event_listeners:
+		var cloned_list: Array[Dictionary] = []
+		for entry in (_event_listeners[event_type] as Array):
+			cloned_list.append((entry as Dictionary).duplicate())
+		c._event_listeners[event_type] = cloned_list
+
+	c._state_modifiers = {}
+	for mod_type in _state_modifiers:
+		var cloned_mods: Array[Dictionary] = []
+		for mod in (_state_modifiers[mod_type] as Array):
+			cloned_mods.append((mod as Dictionary).duplicate())
+		c._state_modifiers[mod_type] = cloned_mods
+
+	c.simulation_mode = true
+	return c

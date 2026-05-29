@@ -98,6 +98,35 @@ func display_name() -> String:
 	return "(%s)" % card_id
 
 
+# Produces a fully independent copy for simulation.
+# CardRecord references are shared (CardRecords are immutable data).
+# hosted_runner_resources are cloned independently of runner_rig — the sim does not
+# maintain cross-list identity between a Hackerspace's hosted list and runner_rig.
+func clone() -> InstalledCard:
+	var c                          := InstalledCard.new()
+	c.card_id                      = card_id
+	c.card_record                  = card_record
+	c.is_rezzed                    = is_rezzed
+	c.is_face_up                   = is_face_up
+	c.counters                     = counters.duplicate()
+	c.server_id                    = server_id
+	c.zone                         = zone
+	c.runtime_instance_id          = runtime_instance_id
+	c.hosted_on_id                 = hosted_on_id
+	c.target_id                    = target_id
+	c.extra_subtypes               = extra_subtypes.duplicate()
+	c.granted_subtypes_to_host     = granted_subtypes_to_host.duplicate()
+	c.faceup_hosted_cards          = faceup_hosted_cards.duplicate()
+	c.hosted_grip_cards            = hosted_grip_cards.duplicate()
+	c.hosted_cards = []
+	for h in hosted_cards:
+		c.hosted_cards.append((h as InstalledCard).clone())
+	c.hosted_runner_resources = []
+	for r in hosted_runner_resources:
+		c.hosted_runner_resources.append((r as InstalledCard).clone())
+	return c
+
+
 # Returns true if this installed card (typically ice) has the given subtype considering
 # both its printed subtypes and any dynamically granted extra_subtypes.
 func has_effective_subtype(st: String) -> bool:

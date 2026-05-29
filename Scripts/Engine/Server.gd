@@ -98,6 +98,18 @@ func get_root_access_cards() -> Array:
 
 # ── Display ───────────────────────────────────────────────────────────────────
 
+func clone() -> Server:
+	var s       := Server.new()
+	s.server_id  = server_id
+	s.ice        = []
+	for card in ice:
+		s.ice.append((card as InstalledCard).clone())
+	s.root       = []
+	for card in root:
+		s.root.append((card as InstalledCard).clone())
+	return s
+
+
 func display_name() -> String:
 	match server_id:
 		"hq":       return "HQ"

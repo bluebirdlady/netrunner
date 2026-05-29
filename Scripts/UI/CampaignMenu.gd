@@ -264,10 +264,19 @@ func _make_mission_card(mission: Dictionary) -> Control:
 	var ai_level: int = mission.get("ai_level", 0) as int
 	if ai_level >= 1:
 		var ai_badge := Label.new()
-		ai_badge.text = "◈ TACTICAL AI" if ai_level == 1 else "◈ PREDICTIVE AI"
+		match ai_level:
+			1: ai_badge.text = "◈ TACTICAL AI"
+			2: ai_badge.text = "◈ PREDICTIVE AI"
+			3: ai_badge.text = "◈ MCTS AI"
+			_: ai_badge.text = "◈ AI"
 		ai_badge.add_theme_font_size_override("font_size", 10)
-		ai_badge.add_theme_color_override("font_color",
-			Color(0.85, 0.65, 0.2) if ai_level == 1 else Color(0.9, 0.42, 0.25))
+		var badge_color: Color
+		match ai_level:
+			1: badge_color = Color(0.85, 0.65, 0.2)
+			2: badge_color = Color(0.9, 0.42, 0.25)
+			3: badge_color = Color(0.75, 0.3, 0.85)
+			_: badge_color = Color(0.7, 0.7, 0.7)
+		ai_badge.add_theme_color_override("font_color", badge_color)
 		title_row.add_child(ai_badge)
 
 	var subtitle := Label.new()
@@ -323,6 +332,7 @@ func _make_mission_card(mission: Dictionary) -> Control:
 			{"label": "▶  STANDARD",   "level": 0, "color": COLOR_COMPLETE},
 			{"label": "▶  TACTICAL",   "level": 1, "color": Color(0.85, 0.65, 0.2)},
 			{"label": "▶  PREDICTIVE", "level": 2, "color": Color(0.9, 0.42, 0.25)},
+			{"label": "▶  MCTS",       "level": 3, "color": Color(0.75, 0.3, 0.85)},
 		]
 		for tier in difficulty_tiers:
 			var btn := Button.new()
