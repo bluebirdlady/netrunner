@@ -32,11 +32,12 @@ func choose_action(ctx: GameContext) -> GameAction:
 	if ctx.runner_hand.size() < MIN_HAND_SIZE and not ctx.runner_deck.is_empty():
 		return GameAction.draw_card()
 
-	# 4. Install first program from hand.
-	for entry in ctx.runner_hand:
-		var r: CardRecord = (entry as Dictionary).get("card_record", null) as CardRecord
-		if r != null and r.card_type == "program":
-			return GameAction.install(r, "runner_rig")
+	# 4. Do NOT install programs in simulation rollouts.
+	# SimRunnerAI never breaks ice (choose_encounter_action returns "done"),
+	# so installed programs have no effect on rollout outcomes. Installing
+	# them burns expensive _register_card_listeners + notify_event calls on
+	# every rollout click — tens of thousands per MCTS choose_action call.
+	# Skip installs and gain credits instead; rollout fidelity is unchanged.
 
 	# 5. Fallback.
 	return GameAction.gain_credits()

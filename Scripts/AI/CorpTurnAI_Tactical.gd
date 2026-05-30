@@ -54,6 +54,12 @@ func choose_action(ctx: GameContext) -> GameAction:
 func _generate_candidates(ctx: GameContext) -> Array:
 	var candidates: Array = []
 
+	# ── Identity helper ───────────────────────────────────────────────────────
+	var is_built_to_last: bool = (
+		ctx.corp_identity != null and
+		ctx.corp_identity.id == "weyland_consortium_built_to_last"
+	)
+
 	# ── Score a ready agenda ──────────────────────────────────────────────────
 	var ready: InstalledCard = _find_ready_agenda(ctx)
 	if ready != null:
@@ -61,7 +67,10 @@ func _generate_candidates(ctx: GameContext) -> Array:
 
 	# ── Advance almost-scored agenda ──────────────────────────────────────────
 	var almost: InstalledCard = _find_almost_scored_agenda(ctx)
-	if almost != null and ctx.corp_credits >= 1:
+	# Weyland: Built to Last — first advance on a fresh agenda gains 2cr (net free).
+	# Always include it as a candidate even at 0 credits if it's the first advance.
+	var almost_is_fresh: bool = almost != null and almost.get_counter("advancement") == 0
+	if almost != null and (ctx.corp_credits >= 1 or (is_built_to_last and almost_is_fresh)):
 		candidates.append(GameAction.advance(almost.card_id))
 
 	# ── Play operations from hand ─────────────────────────────────────────────
@@ -70,6 +79,10 @@ func _generate_candidates(ctx: GameContext) -> Array:
 		candidates.append(GameAction.play_operation(op as CardRecord))
 
 	# ── Install agenda ────────────────────────────────────────────────────────
+	var is_rp: bool = (
+		ctx.corp_identity != null and
+		ctx.corp_identity.id == "jinteki_replicating_perfection"
+	)
 	var agenda: CardRecord = _find_agenda_in_hand(ctx)
 	if agenda != null and ctx.corp_credits >= max(0, agenda.cost):
 		var protected: Server = _find_protected_empty_remote(ctx)
@@ -77,10 +90,14 @@ func _generate_candidates(ctx: GameContext) -> Array:
 			# Install into an already-iced remote — best case.
 			candidates.append(GameAction.install(agenda, protected.server_id))
 		else:
-			# No ready remote: install into a new one if we have ICE to follow up.
-			# Use the "new_remote" sentinel; TurnManager creates the server on execute.
+			# No ready remote: install into a new one.
+			# Jinteki RP: runner must run a central first before accessing remotes,
+			# so an unprotected remote is much safer — install without requiring
+			# follow-up ice in hand.
+			# Other identities: require ice in hand to protect next click.
 			var backup_ice: CardRecord = _find_ice_in_hand(ctx)
-			if backup_ice != null and ctx.corp_credits >= max(0, agenda.cost) + 1:
+			var can_open_remote: bool = is_rp or (backup_ice != null and ctx.corp_credits >= max(0, agenda.cost) + 1)
+			if can_open_remote:
 				candidates.append(GameAction.install(agenda, "new_remote"))
 
 	# ── Install asset in new remote ───────────────────────────────────────────
@@ -125,7 +142,10 @@ func _generate_candidates(ctx: GameContext) -> Array:
 	candidates.append(GameAction.gain_credits())
 
 	# ── Draw ──────────────────────────────────────────────────────────────────
-	if ctx.corp_hand.size() < 4 and not ctx.corp_deck.is_empty():
+	# Only draw when there is room in hand.  Uses the identity-aware limit so
+	# HB (max 6) draws one click later than other identities (max 5).
+	# Leave 1 slot as a buffer so we don't draw into mandatory-discard territory.
+	if not ctx.corp_deck.is_empty() and ctx.corp_hand.size() < ctx.corp_max_hand_size() - 1:
 		candidates.append(GameAction.draw_card())
 
 	return candidates

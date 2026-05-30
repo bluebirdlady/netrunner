@@ -61,13 +61,22 @@ layout_mode = 2
 
 [node name="LogText" type="TextEdit" parent="MarginContainer/MainContainer/ControlPanel" unique_id=533216495]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 80)
 layout_mode = 2
 size_flags_vertical = 3
+size_flags_stretch_ratio = 0.4
 editable = false
 wrap_mode = 1
 
-[node name="ActionMenu" type="VBoxContainer" parent="MarginContainer/MainContainer/ControlPanel" unique_id=614931401]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 200)
+[node name="ActionMenuScroll" type="ScrollContainer" parent="MarginContainer/MainContainer/ControlPanel" unique_id=701234567]
 layout_mode = 2
+size_flags_vertical = 3
+size_flags_stretch_ratio = 1.0
+horizontal_scroll_mode = 0
+vertical_scroll_mode = 1
+
+[node name="ActionMenu" type="VBoxContainer" parent="MarginContainer/MainContainer/ControlPanel/ActionMenuScroll" unique_id=614931401]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
 theme_override_constants/separation = 6

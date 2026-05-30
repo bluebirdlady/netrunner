@@ -389,6 +389,8 @@ func _resolve_target(target_spec: Dictionary, ctx: GameContext) -> Variant:
 		"reason": "target",
 		"target_spec": target_spec
 	}
+	if not decision_maker.has_method("choose_target"):
+		return candidates[0]
 	return await decision_maker.choose_target(candidates, choice_context)
 
 
@@ -6026,6 +6028,30 @@ func _execute_effect(effect: Dictionary, ctx: GameContext, chosen_target: Varian
 			sze_card.remove_counter("advancement", 1)
 			ctx.send_log("Sacrifice Zone Expansion: removes 1 advancement counter (%d remaining) — 1 meat damage." % sze_card.get_counter("advancement"))
 			await _deal_damage("meat", 1, ctx)
+
+		"derez_host_ice":
+			# Tranquilizer: at the start of Corp's turn, derez the ice this program is hosted on.
+			var dhi_iid: String = ctx.current_event_data.get("card_instance_id", "")
+			var dhi_self := ctx.get_installed_card_by_instance_id(dhi_iid)
+			if dhi_self == null and dhi_iid != "":
+				dhi_self = ctx.get_installed_card_by_id(dhi_iid)
+			if dhi_self == null:
+				return
+			if dhi_self.hosted_on_id == "":
+				ctx.send_log("Tranquilizer: not hosted on ice — no effect.")
+				return
+			var dhi_host := ctx.get_ice_by_instance_id(dhi_self.hosted_on_id)
+			if dhi_host == null:
+				return
+			if dhi_host.is_rezzed:
+				dhi_host.is_rezzed = false
+				ctx.send_log("Tranquilizer: %s is derezzed." % dhi_host.display_name())
+				await ctx.notify_event("on_derez", {
+					"card": dhi_host,
+					"card_instance_id": dhi_self.runtime_instance_id
+				}, self)
+			else:
+				ctx.send_log("Tranquilizer: %s is already unrezzed." % dhi_host.display_name())
 
 		_:
 			push_error("AbilityInterpreter: unknown effect type '%s'" % etype)

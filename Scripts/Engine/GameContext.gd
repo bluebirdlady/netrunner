@@ -471,6 +471,14 @@ func get_installed_card_by_instance_id(instance_id: String) -> InstalledCard:
 		var c: InstalledCard = card as InstalledCard
 		if c.runtime_instance_id == instance_id:
 			return c
+	# Also check programs hosted on ice (Botulus, Tranquilizer) — these are stored
+	# in ice_card.hosted_cards, not in runner_rig.
+	for server in servers.values():
+		for ice_card in (server as Server).ice:
+			for hosted in (ice_card as InstalledCard).hosted_cards:
+				var hc: InstalledCard = hosted as InstalledCard
+				if hc != null and hc.runtime_instance_id == instance_id:
+					return hc
 	# Also check scored agendas — needed for Dividends counter effects that fire
 	# during on_score (the card has already been removed from its server by then).
 	for card in corp_score_area_cards:

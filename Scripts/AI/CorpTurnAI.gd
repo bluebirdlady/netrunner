@@ -627,6 +627,11 @@ func choose_runner_card_type(types: Array, ctx: GameContext) -> String:
 	return best_type if best_type != "" else types[0]
 
 
+func choose_target(candidates: Array, _context: Dictionary) -> Variant:
+	# Generic target selection — pick the first available candidate.
+	return candidates[0] if not candidates.is_empty() else null
+
+
 func choose_optional_ability(_prompt: String, _ctx: GameContext) -> bool:
 	# Generic optional ability — Corp AI always activates optional abilities.
 	return true

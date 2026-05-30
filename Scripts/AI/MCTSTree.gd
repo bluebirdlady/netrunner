@@ -21,9 +21,9 @@ extends RefCounted
 
 # ── Parameters ────────────────────────────────────────────────────────────────
 
-const DETERMINIZATIONS:   int   = 8
-const ITERATIONS_PER_DET: int   = 50
-const ROLLOUT_DEPTH:       int   = 8
+const DETERMINIZATIONS:   int   = 6
+const ITERATIONS_PER_DET: int   = 30
+const ROLLOUT_DEPTH:       int   = 6
 const UCB_C:               float = 1.414
 
 
@@ -213,8 +213,12 @@ func _pick_best_action(ctx: GameContext) -> GameAction:
 # card records and server state are available.
 func _get_root_candidates(ctx: GameContext) -> Array:
 	var actions: Array = []
+	var identity_id: String = ctx.corp_identity.id if ctx.corp_identity != null else ""
 
-	# Score or advance agendas first.
+	# Score or advance agendas.
+	# Weyland: Built to Last gets +2cr on the first advance of each card, so
+	# advancing a fresh agenda (0 counters) costs nothing net — always offer it.
+	var is_built_to_last: bool = (identity_id == "weyland_consortium_built_to_last")
 	for key in ctx.servers:
 		var s: Server = ctx.servers[key] as Server
 		if s == null or not s.is_remote():
@@ -222,8 +226,10 @@ func _get_root_candidates(ctx: GameContext) -> Array:
 		var agenda: InstalledCard = s.get_agenda_or_asset()
 		if agenda == null or agenda.card_record == null or not agenda.card_record.is_agenda():
 			continue
-		# Advance (auto-scores when requirement met).
-		if ctx.corp_credits >= 1:
+		# Advance: free for Weyland first-advance; costs 1cr otherwise.
+		var is_first_advance: bool = (agenda.get_counter("advancement") == 0)
+		var can_afford: bool = ctx.corp_credits >= 1 or (is_built_to_last and is_first_advance)
+		if can_afford:
 			actions.append(GameAction.advance(agenda.card_id))
 
 	# Play affordable operations.
@@ -234,32 +240,54 @@ func _get_root_candidates(ctx: GameContext) -> Array:
 		if card.card_type == "operation" and ctx.corp_credits >= max(0, card.cost):
 			actions.append(GameAction.play_operation(card))
 
-	# Install ice onto unprotected centrals.
+	# Install ice: prioritise (1) unprotected centrals, (2) unprotected agenda remotes.
+	var ice_card: CardRecord = null
 	for entry in ctx.corp_hand:
 		var card: CardRecord = (entry as Dictionary).get("card_record", null) as CardRecord
-		if card == null or not card.is_ice():
-			continue
+		if card != null and card.is_ice():
+			ice_card = card
+			break
+	if ice_card != null:
+		# Unprotected centrals first
 		for srv_id in ["hq", "rd"]:
 			if ctx.get_server(srv_id).ice_count() == 0:
-				actions.append(GameAction.install(card, srv_id))
+				actions.append(GameAction.install(ice_card, srv_id, "ice"))
 				break
-		break  # one ice install candidate is enough
+		# Also offer to protect an agenda remote that has no ice yet
+		for key in ctx.servers:
+			var s: Server = ctx.servers[key] as Server
+			if s == null or not s.is_remote() or s.ice_count() > 0:
+				continue
+			var agenda_ic: InstalledCard = s.get_agenda_or_asset()
+			if agenda_ic != null and agenda_ic.card_record != null and agenda_ic.card_record.is_agenda():
+				actions.append(GameAction.install(ice_card, s.server_id, "ice"))
+				break
 
-	# Install agenda into an existing empty remote (avoids creating a new server).
-	var empty_remote: Server = _find_empty_remote(ctx)
-	if empty_remote != null:
-		for entry in ctx.corp_hand:
-			var card: CardRecord = (entry as Dictionary).get("card_record", null) as CardRecord
-			if card != null and card.is_agenda():
-				actions.append(GameAction.install(card, empty_remote.server_id))
-				break
+	# Install agenda: prefer an existing protected remote, then any empty remote,
+	# then create a new remote when there is ice in hand to follow up with.
+	var agenda_to_install: CardRecord = null
+	for entry in ctx.corp_hand:
+		var card: CardRecord = (entry as Dictionary).get("card_record", null) as CardRecord
+		if card != null and card.is_agenda():
+			agenda_to_install = card
+			break
+	if agenda_to_install != null:
+		var empty_remote: Server = _find_empty_remote(ctx)
+		if empty_remote != null:
+			actions.append(GameAction.install(agenda_to_install, empty_remote.server_id))
+		else:
+			# No existing empty remote — offer creating a new one.
+			# The evaluator projects an ice layer if ice is in hand, so MCTS will
+			# score this correctly even though the server doesn't exist yet.
+			actions.append(GameAction.install(agenda_to_install, "new_remote"))
 
 	actions.append(GameAction.gain_credits())
 
-	if not ctx.corp_deck.is_empty():
+	# Only draw when there is comfortable room in hand (identity-aware limit).
+	# HB has a limit of 6, all others 5.  Leave 1 slot as a buffer.
+	if not ctx.corp_deck.is_empty() and ctx.corp_hand.size() < ctx.corp_max_hand_size() - 1:
 		actions.append(GameAction.draw_card())
 
-	actions.append(GameAction.end_turn())
 	return actions
 
 

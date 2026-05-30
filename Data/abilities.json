@@ -622,7 +622,8 @@
 						"servers": [
 							"hq",
 							"rd",
-							"archives"
+							"archives",
+							"remote"
 						]
 					}
 				}

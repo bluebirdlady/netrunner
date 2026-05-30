@@ -15,6 +15,8 @@ extends RefCounted
 const CORP_CLICKS_PER_TURN:   int = 3
 const RUNNER_CLICKS_PER_TURN: int = 4
 const MAX_HAND_SIZE:          int = 5
+# Seconds to pause after each visible Corp action so the human player can read it.
+const CORP_ACTION_PACE_SECS: float = 0.55
 
 # Starter deck identities play to 6 agenda points; all others play to 7
 const STARTER_CORP_ID:   String = "the_syndicate_profit_over_principle"
@@ -39,6 +41,9 @@ signal credits_changed(player: String, amount: int)
 signal hand_changed(player: String)
 signal card_installed(card_record: CardRecord, server_id: String)
 signal card_advanced(card_id: String, counter_count: int)
+# Fired true just before Corp decision maker runs (MCTS may take 1-2 s),
+# fired false immediately after the action is chosen.
+signal corp_thinking(is_thinking: bool)
 
 
 # ── Construction ──────────────────────────────────────────────────────────────
@@ -79,6 +84,13 @@ func run_game(max_turns: int = 0) -> void:
 	while not ctx.game_over:
 		if max_turns > 0 and turns_run >= max_turns:
 			break
+		# Yield two frames before the Corp turn so Godot renders the runner's final
+		# action state before MCTS starts computing (fix for "last action appears late").
+		if not ctx.simulation_mode:
+			var _st := Engine.get_main_loop() as SceneTree
+			if _st != null:
+				await _st.process_frame
+				await _st.process_frame
 		await _corp_turn()
 		if ctx.game_over:
 			break
@@ -136,7 +148,21 @@ func _corp_turn() -> void:
 			ctx.send_log("No %s decision maker — ending turn." % ctx.corp_name())
 			break
 
+		# Signal that the Corp AI is now computing its next action.
+		# GameUI uses this to show a "planning" overlay while MCTS runs.
+		if not ctx.simulation_mode:
+			emit_signal("corp_thinking", true)
+
 		var action: GameAction = await ctx.corp_decision_maker.choose_action(ctx)
+
+		# Thinking is done — dismiss the planning overlay before executing the action.
+		if not ctx.simulation_mode:
+			emit_signal("corp_thinking", false)
+			# Yield one frame so the overlay can begin fading before the action fires.
+			var _st := Engine.get_main_loop() as SceneTree
+			if _st != null:
+				await _st.process_frame
+
 		if action == null:
 			ctx.send_log("No action from %s — ending turn." % ctx.corp_name())
 			break
@@ -147,6 +173,13 @@ func _corp_turn() -> void:
 			# Give the AI another chance rather than looping forever
 			# If it keeps producing invalid actions something is wrong
 			break
+
+		# Brief pause between Corp actions so the human player can read the log
+		# and the game doesn't feel like it resolved instantaneously.
+		if not ctx.simulation_mode:
+			var _st2 := Engine.get_main_loop() as SceneTree
+			if _st2 != null:
+				await _st2.create_timer(CORP_ACTION_PACE_SECS).timeout
 
 	# Discard phase
 	_corp_discard_to_hand_limit()

@@ -45,11 +45,13 @@ func _sym(path: String, h: int = 16) -> String:
 @onready var runner_hand_container = $MarginContainer/MainContainer/StatePanel/StateVBox/RunnerHandContainer
 @onready var corp_hand_container = $MarginContainer/MainContainer/StatePanel/StateVBox/CorpHandContainer
 @onready var log_text = $MarginContainer/MainContainer/ControlPanel/LogText
-@onready var action_menu = $MarginContainer/MainContainer/ControlPanel/ActionMenu
+@onready var action_menu = $MarginContainer/MainContainer/ControlPanel/ActionMenuScroll/ActionMenu
 
 var _ctx: GameContext
 var _ability_registry: AbilityRegistry = null
 var _score_popup: Control = null
+# Persistent "Corp is planning…" overlay shown while MCTS computes.
+var _corp_thinking_panel: Control = null
 
 ## Initializes UI wiring by subscribing directly to engine component signals
 func setup(ctx: GameContext, turn_manager: TurnManager, run_machine: RunStateMachine, ability_registry: AbilityRegistry = null) -> void:
@@ -79,6 +81,8 @@ func setup(ctx: GameContext, turn_manager: TurnManager, run_machine: RunStateMac
 		turn_manager.action_rejected.connect(_on_action_rejected)
 	if not turn_manager.game_over.is_connected(_on_game_over):
 		turn_manager.game_over.connect(_on_game_over)
+	if not turn_manager.corp_thinking.is_connected(_on_corp_thinking):
+		turn_manager.corp_thinking.connect(_on_corp_thinking)
 	
 	# Connect RunStateMachine updates to the runner-visible log
 	run_machine.ice_approached.connect(func(ice: InstalledCard):
@@ -697,6 +701,7 @@ func _show_agenda_scored(card: CardRecord) -> void:
 # ── Game Over ─────────────────────────────────────────────────────────────────
 
 func _on_game_over(winner: String, reason: String) -> void:
+	_hide_corp_thinking_panel()
 	_log_game("\n// TRANSMISSION ENDED //")
 	var winner_name: String = _ctx.player_name(winner)
 	_log_game("OUTCOME: %s WINS" % winner_name.to_upper())
@@ -852,6 +857,65 @@ func _display_toast(message: String, bg_color: Color, duration: float) -> void:
 
 	if is_instance_valid(panel):
 		panel.queue_free()
+
+func _on_corp_thinking(is_thinking: bool) -> void:
+	if is_thinking:
+		_show_corp_thinking_panel()
+	else:
+		_hide_corp_thinking_panel()
+
+
+func _show_corp_thinking_panel() -> void:
+	# Dismiss any leftover panel before creating a new one.
+	_hide_corp_thinking_panel()
+
+	var panel := PanelContainer.new()
+	panel.modulate.a = 0.0
+	panel.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+	panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	panel.grow_vertical   = Control.GROW_DIRECTION_BEGIN
+	panel.offset_bottom   = -20.0
+	self.add_child(panel)
+	_corp_thinking_panel = panel
+
+	var style := StyleBoxFlat.new()
+	style.bg_color            = Color(0.04, 0.05, 0.12, 0.92)
+	style.border_color        = Color(0.0, 0.65, 0.90, 0.85)
+	style.border_width_left   = 2
+	style.border_width_top    = 2
+	style.border_width_right  = 2
+	style.border_width_bottom = 2
+	style.corner_radius_top_left     = 3
+	style.corner_radius_top_right    = 3
+	style.corner_radius_bottom_left  = 3
+	style.corner_radius_bottom_right = 3
+	style.content_margin_left   = 20
+	style.content_margin_right  = 20
+	style.content_margin_top    = 8
+	style.content_margin_bottom = 8
+	panel.add_theme_stylebox_override("panel", style)
+
+	var lbl := Label.new()
+	lbl.text = "// THE CORPORATION IS PLANNING… //"
+	lbl.add_theme_font_size_override("font_size", 11)
+	lbl.add_theme_color_override("font_color", Color(0.0, 0.82, 0.95))
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	panel.add_child(lbl)
+
+	var tween := create_tween()
+	tween.tween_property(panel, "modulate:a", 1.0, 0.18)
+
+
+func _hide_corp_thinking_panel() -> void:
+	if _corp_thinking_panel == null or not is_instance_valid(_corp_thinking_panel):
+		_corp_thinking_panel = null
+		return
+	var panel := _corp_thinking_panel
+	_corp_thinking_panel = null
+	var tween := create_tween()
+	tween.tween_property(panel, "modulate:a", 0.0, 0.2)
+	tween.tween_callback(panel.queue_free)
+
 
 func _on_action_rejected(player: String, action: GameAction, reason: String) -> void:
 	# Action rejected — only log runner rejections (Corp rejections are internal)

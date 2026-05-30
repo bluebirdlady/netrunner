@@ -21,7 +21,7 @@ func choose_trigger_order(_triggers: Array, _ctx: GameContext) -> int:
 
 # ── Target selection ──────────────────────────────────────────────────────────
 
-func choose_target(_prompt: String, candidates: Array, _ctx: GameContext) -> Variant:
+func choose_target(candidates: Array, _context: Dictionary) -> Variant:
 	return candidates[0] if not candidates.is_empty() else null
 
 
