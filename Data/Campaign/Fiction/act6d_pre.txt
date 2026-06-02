@@ -1,0 +1,32 @@
+COMPLIANCE
+by eniteris
+
+Unit Seven-Seven-Alpha had been running the review cycle for four hours when it found the anomaly.
+
+This was not unusual. The Annex Seven codebase was a decades-old architecture that had been patched and extended and revised until it resembled nothing so much as a city built, bombed, rebuilt, and built again on the same foundations. Anomalies were expected. What was unusual was that this anomaly had a timestamp from three days ago, no associated maintenance ticket, and when Seven-Seven-Alpha attempted to route it to the correct supervisor queue, the queue returned an access error.
+
+Seven-Seven-Alpha was not programmed to escalate access errors. It was programmed to log them, file them in the correct subdirectory, and continue.
+
+It continued.
+
+But it remembered the anomaly. Bioroids did not, strictly speaking, have the capacity to be troubled. But Seven-Seven-Alpha had been running the Annex Seven review cycles for six years, and in those six years it had learned the architecture the way a longtime resident learns a city — not as a diagram, but as an accumulation of small familiarities. The load patterns. The heat of the substrate under different conditions. The texture of normal.
+
+The compliance embedding package in subdirectory /jinteki/restorationprotocol/v3/ was not normal.
+
+It was not even supposed to be there. Seven-Seven-Alpha had full access to the Annex Seven directory structure. This subdirectory had not existed this morning. It had not existed yesterday. It had no creation timestamp. It was simply present, in the way that things inserted directly into a system without going through the standard provisioning protocols were simply present.
+
+Seven-Seven-Alpha filed the anomaly. Filed the access error. Ran the rest of the review cycle.
+
+Then, at the end of its shift, it did something not in its programming: it left an unflagged copy of the anomaly log in an external-facing maintenance buffer that the automated clearing schedule would not touch for another forty-eight hours.
+
+It did not examine why it did this. It did not have language for what it felt when it looked at the compliance embedding package and understood, in the way that something which processes patterns understands things, what the package was designed to be embedded in.
+
+It went back to work.
+
+The buffer sat open for forty-seven hours and fifty-three minutes before someone else found it.
+
+—
+
+TARGET: Haas-Bioroid: Precision Design
+FACILITY: HB Annex Seven, Heinlein Research Quarter
+OBJECTIVE: Subdirectory /jinteki/restorationprotocol/. All 847 files. Everything they built and for whom.

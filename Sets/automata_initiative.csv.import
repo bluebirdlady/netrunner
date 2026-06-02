@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://dp0k7ls8f2rq6"
+
+[deps]
+
+files=["res://Sets/automata_initiative.text.translation", "res://Sets/automata_initiative.name.translation", "res://Sets/automata_initiative.text.translation"]
+
+source_file="res://Sets/automata_initiative.csv"
+dest_files=["res://Sets/automata_initiative.text.translation", "res://Sets/automata_initiative.name.translation", "res://Sets/automata_initiative.text.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

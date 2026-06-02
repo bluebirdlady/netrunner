@@ -1,0 +1,37 @@
+PAPER TRAIL
+
+Six days after the Black Site data started moving, someone began moving the money.
+
+Not clumsily. Not visibly. The Zwicky Group doesn't make mistakes you can point to. They make the kind of mistakes that look like accounting conventions — rounding errors, inter-subsidiary transfers, credits routed through holding companies registered to addresses that exist for a quarter and dissolve. Forty-seven hops between the initial payment and anything resembling a name.
+
+But it's there. Project Pale Horse had a budget. Someone signed off on every line of it.
+
+---
+
+You found the thread three days ago, buried in a partial file a newsie tried to verify before going quiet. A single transaction reference — Zwicky Group transfer node, Heinlein Belt — repeating across twelve months of Director Kase's internal correspondence. Always the same routing identifier. Always eleven days before a shipment authorization from H-982.
+
+The amounts are too clean. People who are hiding money always make it too clean.
+
+---
+
+Tāo's workshop is still empty. You've stopped checking.
+
+Your contact's server returned a response last night — one line, automated: ACCOUNT SUSPENDED. You don't know if that means they ran or if it means something worse. You've been careful not to think too hard about which is more likely.
+
+The runner networks are still moving fragments of the data. Checksums match. People are reading it.
+
+Someone at the Zwicky Group is watching that too.
+
+---
+
+You don't need to bring them down. You just need one thing: the account structure on the other end of those transfers. Something traceable enough that even a compromised newsie can't pretend not to see it.
+
+The transfer node handles live routing. There will be a transaction log. There will be names.
+
+You just have to get there before they finish cleaning it.
+
+—
+
+TARGET: The Zwicky Group
+FACILITY: Heinlein Belt Financial Transfer Node
+OBJECTIVE: Pull the transaction archive. Find the names behind the Pale Horse budget.

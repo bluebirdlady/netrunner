@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://ip17vwr35rjg"
+
+[deps]
+
+files=["res://Sets/rebellion_without_rehearsal.text.translation", "res://Sets/rebellion_without_rehearsal.name.translation", "res://Sets/rebellion_without_rehearsal.text.translation"]
+
+source_file="res://Sets/rebellion_without_rehearsal.csv"
+dest_files=["res://Sets/rebellion_without_rehearsal.text.translation", "res://Sets/rebellion_without_rehearsal.name.translation", "res://Sets/rebellion_without_rehearsal.text.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

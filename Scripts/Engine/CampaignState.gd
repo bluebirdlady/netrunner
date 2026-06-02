@@ -53,6 +53,24 @@ func _load_save() -> void:
 	if starter_id != "" and not (_save.get("unlocked_cards", {}) as Dictionary).has(starter_id):
 		unlock_card(starter_id, 1)
 		persist()
+	# Retroactively unlock missions that should be available based on completed missions
+	# but are absent from the saved available_missions list.  This handles saves created
+	# before new missions were added to campaign.json — without this, completed missions
+	# whose unlocks_missions entries didn't exist yet would leave those entries frozen out.
+	var _available: Array = _save.get("available_missions", ["act1_hb"])
+	var _missions_gained := false
+	for _mdef in _campaign.get("missions", []):
+		var _mid: String = (_mdef as Dictionary).get("id", "")
+		if _mid not in _save.get("completed_missions", []):
+			continue
+		for _next_id in (_mdef as Dictionary).get("unlocks_missions", []):
+			if _next_id not in _available:
+				_available.append(_next_id)
+				_missions_gained = true
+	if _missions_gained:
+		_save["available_missions"] = _available
+		persist()
+
 	# Retroactively grant any cards added to already-completed missions after the save
 	# was created.  This is the only way existing saves can receive new unlocks, since
 	# complete_mission() is not re-called on replay and there is no in-game save reset.

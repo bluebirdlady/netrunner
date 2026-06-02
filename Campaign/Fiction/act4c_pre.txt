@@ -1,0 +1,37 @@
+CONVERGENCE
+
+AU Co. guarantees their agricultural units to a stated specification. The marketing language is cheerful about this: reliable, consistent, purpose-optimized. The brochures show clone workers in Heinlein's low-gravity farms, smiling in the way that means the expression was designed rather than earned.
+
+They are, by their own accounting, the gold standard in clone production. Their premium lines are well-documented — historical and cultural figures reconstructed at considerable expense, marketed to institutions as "living heritage." You've seen coverage of one of those programs. A panel of reconstructed historical philosophers debating corporate ethics for a media company, their creator watching from off-stage. You remember thinking it was the most honest thing a corporation had ever accidentally produced.
+
+The agricultural lines are less publicized. Nine thousand units per quarter. Shipped to customers across six inhabited bodies.
+
+The batch numbers in the PRH-II files match AU Co. production codes.
+
+---
+
+Somewhere in the Heinlein agricultural zones, AU Co.'s natal division is processing substrate, running viability checks, issuing conditioning protocols, and shipping finished product on a schedule that has not changed in two years. The Zwicky transfers funded it. PT Untaian supplied the modified substrate. The natal division's quality assurance team signed off on every batch.
+
+They may not have known what they were signing.
+
+---
+
+You have been trying to locate a runner named BONES for four days. An old contact name from a Zwicky dead drop record, connected to a newsie who went quiet. You found a handle, a burned account, and three messages that all say some version of: I know. I can't help you. Don't reach out again.
+
+You understand. You're reaching out anyway.
+
+BONES hasn't responded.
+
+---
+
+The natal division records are air-gapped from the research archive. AU Co. separates production data from R&D as standard liability architecture. You'll need to pull the production side and run the cross-reference yourself.
+
+If the link exists — if the agricultural units being shipped across six inhabited bodies carry PRH-II's expression vector — then this stopped being a research program a long time ago.
+
+You go in anyway.
+
+—
+
+TARGET: AU Co.
+FACILITY: Natal Division, Heinlein Agricultural Zones
+OBJECTIVE: Pull production records. Establish the link between AU Co. batches and the PRH-II cohort data.

@@ -1,0 +1,128 @@
+"","text_code","name","text"
+"1","abaasy","Abaasy","The first time each turn this program fully breaks a piece of ice, you may trash 1 card from your grip to draw 1 card.
+Interface → <strong>1[credit]:</strong> Break 1 <strong>code gate</strong> subroutine.
+<strong>2[credit]:</strong> +2 strength."
+"2","ampere_cybernetics_for_anyone","Ampère: Cybernetics For Anyone","Your deck cannot include more than 1 copy of any card.
+Your deck may include up to 2 different agenda cards from each Corp faction."
+"3","anvil","Anvil","When the Runner encounters this ice, you may trash 1 of your other installed cards. If you do, the Runner cannot break this iceʼs printed subroutines for the remainder of this encounter.
+[subroutine] Gain 1[credit]. The Runner loses 1[credit].
+[subroutine] The Runner trashes 1 of their installed cards."
+"4","asmund_pudlat","Asmund Pudlat","When you install this resource, search your stack for up to 2 <strong>virus</strong> or <strong>weapon</strong> cards with different names. Host those cards faceup on this resource. <em>(They are not installed.)</em>
+When your turn begins, you may add 1 hosted card to your grip. If there are no more hosted cards, trash this resource."
+"5","basilar_synthgland_2kvj","Basilar Synthgland 2KVJ","When you install this hardware, suffer 2 core damage.
+You get +1 allotted [click] for each of your turns."
+"6","bloop","Bloop","As an additional cost to rez this ice, derez another piece of <strong>harmonic</strong> ice.
+[subroutine] Do 1 core damage.
+[subroutine] Trash 1 installed program.
+[subroutine] Trash 1 installed program."
+"7","concerto","Concerto","Reveal the top card of your stack and place credits equal to its printed play or install cost on this event. Add the revealed card to your grip.
+Run any server. You can spend hosted credits during that run."
+"8","distributed_tracing","Distributed Tracing","As an additional cost to play this operation, spend [click].
+Play only if the Runner stole an agenda during their last turn.
+Give the Runner 1 tag."
+"9","djupstad_grid","Djupstad Grid","Whenever you score an agenda from the root of this server, do 1 core damage.
+Limit 1 <strong>region</strong> per server."
+"10","dr_nuka_vrolyck","Dr. Nuka Vrolyck","When you install this resource, load 2 power counters onto it. When it is empty, trash it.
+[click], <strong>hosted power counter:</strong> Draw 3 cards."
+"11","dr_vientiane_keeling","Dr. Vientiane Keeling","When you rez this asset and when your turn begins, place 1 power counter on this asset.
+The Runner gets -1 maximum hand size for each hosted power counter."
+"12","end_of_the_line","End of the Line","As an additional cost to play this operation, remove 1 tag.
+Do 4 meat damage."
+"13","finality","Finality","As an additional cost to play this event, suffer 1 core damage.
+Run R&D. If successful, access 3 additional cards when you breach R&D."
+"14","flux_capacitor","Flux Capacitor","Install only on a piece of ice.
+The first time you break a subroutine during each encounter with host ice, you may charge 1 of your installed cards. <em>(Add 1 power counter to a card that already has one.)</em>"
+"15","freedom_of_information","Freedom of Information","This agenda gets -1 advancement requirement for each tag the Runner has."
+"16","gaslight","Gaslight","When your turn begins, you may trash this asset. If you do, search R&D for an operation and reveal it. <em>(Shuffle R&D after searching it.)</em> Add that operation to HQ."
+"17","hafrun","Hafrún","When you rez this ice during a run against this server, you may trash 1 card from HQ. If you do, choose 1 installed Runner card. That cardʼs abilities cannot break subroutines for the remainder of that run.
+[subroutine] End the run."
+"18","hippocampic_mechanocytes","Hippocampic Mechanocytes","When you install this hardware, place 2 power counters on it and suffer 1 meat damage.
+You get +1 maximum hand size for each hosted power counter."
+"19","hostile_architecture","Hostile Architecture","The first time each turn the Runner trashes any of your installed cards <em>(including this asset)</em>, do 2 meat damage."
+"20","hush","Hush","Install only on a piece of ice.
+Host ice cannot gain abilities and loses all abilities except its printed subroutines.
+<strong>[click]:</strong> Host this program on another installed piece of ice."
+"21","hybrid_release","Hybrid Release","When you score this agenda, you may install 1 facedown card from Archives."
+"22","hypoxia","Hypoxia","Play only if the Runner is tagged.
+Do 1 core damage. The Runner gets -1 allotted [click] for their next turn.
+Remove this operation from the game."
+"23","info_bounty","Info Bounty","When your turn begins, identify your mark. <em>(If you donʼt have a mark, a random central server becomes your mark for this turn.)</em>
+The first time each turn a run on your mark ends, gain 2[credit] if you breached that server during that run."
+"24","issuaq_adaptics_sustaining_diversity","Issuaq Adaptics: Sustaining Diversity","Whenever you score an agenda that you did not install or advance this turn, place 1 power counter on this identity.
+For each hosted power counter, you need 1 less agenda point to win the game."
+"25","k2cp_turbine","K2CP Turbine","Each installed non-<strong>AI</strong> <strong>icebreaker</strong> gets +2 strength."
+"26","katorga_breakout","Katorga Breakout","Run any server. If successful, add 1 card from your heap to your grip."
+"27","kimberlite_field","Kimberlite Field","When you score this agenda, you may trash 1 of your rezzed cards. If you do, trash 1 installed Runner card with a printed install cost equal to or less than the printed rez cost of the Corp card you trashed."
+"28","klevetnik","Klevetnik","When you rez this ice during a run against this server, you may have the Runner gain 2[credit]. If you do, choose 1 installed resource. That resource loses all abilities until your next turn ends.
+[subroutine] End the run."
+"29","matryoshka","Matryoshka","When your turn begins, turn each hosted card faceup.
+[click]<strong>:</strong> Host a copy of Matryoshka from your grip faceup on this program. <em>(It is not installed.)</em>
+Interface → <strong>X[credit]</strong>, <strong>turn 1 hosted copy of Matryoshka facedown:</strong> Break X subroutines.
+<strong>1[credit]:</strong> +1 strength.
+Limit 6 per deck."
+"30","mr_hendrik","Mr. Hendrik","When the Runner accesses this upgrade while it is installed, you may pay 2[credit] to do 1 core damage. If the Runner has any [click] remaining, they may lose all their [click] to prevent this damage."
+"31","nanisivik_grid","Nanisivik Grid","Whenever the Runner approaches this server, you may turn 1 facedown piece of ice in Archives faceup. If you do, resolve 1 subroutine on that ice.
+Limit 1 <strong>region</strong> per server."
+"32","nanuq","Nanuq","When this program is uninstalled, remove it from the game.
+When an agenda is scored or stolen, remove this program from the game.
+Interface → <strong>2[credit]:</strong> Break up to 2 subroutines.
+1[credit]: +1 strength."
+"33","nga","Nga","When you install this program, load 3 power counters onto it. When it is empty, trash it.
+The first time each turn you make a successful run, you may remove 1 hosted power counter to sabotage 1. <em>(The Corp trashes 1 card of their choice from HQ or the top of R&D.)</em>"
+"34","nightmare_archive","Nightmare Archive","While the Runner is accessing this asset in R&D, they must reveal it.
+When the Runner accesses this asset, they may add it to their score area as an agenda worth -1 agenda point. If they do not, do 1 core damage and remove this asset from the game."
+"35","nonequivalent_exchange","Nonequivalent Exchange","Gain 5[credit]. You may have each player gain 2[credit]."
+"36","nova_initiumia_catalyst_impetus","Nova Initiumia: Catalyst & Impetus","Your deck cannot include more than 1 copy of any card."
+"37","num","Num","Interface → <strong>2[credit]:</strong> Break 1 <strong>sentry</strong> subroutine."
+"38","ontological_dependence","Ontological Dependence","This agenda gets -1 advancement requirement for each core damage the Runner has taken this game."
+"39","orca","Orca","The first time each turn this program fully breaks a piece of ice, you may charge 1 of your installed cards. <em>(Add 1 power counter to a card that already has one.)</em>
+Interface → <strong>2[credit]:</strong> Break any number of <strong>sentry</strong> subroutines.
+<strong>2[credit]:</strong> +3 strength."
+"40","poison_vial","Poison Vial","When you install this hardware, load 3 power counters onto it. When it is empty, trash it.
+<strong>Hosted power counter:</strong> Break up to 2 subroutines. Use this ability only if you have already broken a subroutine during this encounter."
+"41","post_truth_dividend","Post-Truth Dividend","When you score this agenda, you may draw 1 card."
+"42","pulse","Pulse","When you rez this ice during a run against this server, the Runner loses [click].
+[subroutine] The Runner loses 1[credit] for each rezzed piece of <strong>harmonic</strong> ice.
+[subroutine] End the run unless the Runner spends [click]."
+"43","raindrops_cut_stone","Raindrops Cut Stone","Run any server. Whenever a subroutine resolves during that run <em>(including a subroutine that ends the run)</em>, place 1 power counter on this event.
+When that run ends, draw 1 card for each hosted power counter and gain 3[credit]."
+"44","reaper_function","Reaper Function","When your turn begins, you may trash this asset to do 2 net damage."
+"45","regulatory_capture","Regulatory Capture","For each bad publicity you have up to 4, this agenda gets −1 advancement requirement."
+"46","reprise","Reprise","Play only if you stole an agenda this turn.
+Add 1 installed Corp card to HQ. You may run any server."
+"47","shipment_from_vladisibirsk","Shipment from Vladisibirsk","Play only if the Runner has at least 2 tags.
+Place a total of 4 advancement counters on installed cards you can advance."
+"48","simulation_reset","Simulation Reset","Trash up to 5 cards from HQ. Shuffle that many cards from Archives into R&D. Draw that many cards.
+Remove this operation from the game."
+"49","spark_of_inspiration","Spark of Inspiration","Set aside cards from the top of your stack faceup until you set aside a program. You may install that program, paying 10[credit] less. Shuffle the set-aside cards into your stack."
+"50","superdeep_borehole","Superdeep Borehole","When you rez this asset, load 6 bad publicity counters onto it. When it is empty, you win the game.
+When your turn begins, take 1 bad publicity from this asset."
+"51","thule_subsea_safety_below","Thule Subsea: Safety Below","Whenever the Runner steals an agenda, do 1 core damage unless they spend [click] and 2[credit]."
+"52","time_bomb","Time Bomb","Install only if you made a successful run on a central server this turn. When you install this hardware, place 1 power counter on it.
+When your turn begins, if there are 3 or more hosted power counters, trash this hardware and sabotage 3. <em>(The Corp trashes 3 cards of their choice from HQ and/or the top of R&D.)</em> Otherwise, place 1 power counter on this hardware."
+"53","tremolo","Tremolo","Interface → <strong>3[credit]:</strong> Break up to 2 <strong>barrier</strong> subroutines. This ability costs 1[credit] less to use for each installed piece of <strong>cybernetic</strong> hardware.
+<strong>2[credit]:</strong> +2 strength."
+"54","tsakhia_bankhar_gantulga","Tsakhia ""Bankhar"" Gantulga","When your turn begins, you may choose a server.
+During the first encounter each turn with a piece of ice protecting the chosen server, whenever the Corp would resolve a subroutine, instead they resolve ""[subroutine] Do 1 net damage.""."
+"55","tunnel_vision","Tunnel Vision","When your turn begins, identify your mark. <em>(If you donʼt have a mark, a random central server becomes your mark for this turn.)</em>
+Interface → <strong>2[credit]:</strong> Break up to 2 subroutines on a piece of ice protecting your mark.
+<strong>2[credit]:</strong> +2 strength."
+"56","unsmiling_tsarevna","Unsmiling Tsarevna","When you rez this ice during a run against this server, you may have the Runner gain 2[credit]. If you do, during each encounter with this ice for the remainder of that run, the Runner cannot break more than 1 of its printed subroutines.
+[subroutine] Give the Runner 1 tag.
+[subroutine] Do 2 net damage.
+[subroutine] You may draw 2 cards."
+"57","vampyronassa","Vampyronassa","[subroutine] The Runner loses 2[credit].
+[subroutine] Gain 2[credit].
+[subroutine] Do 2 net damage.
+[subroutine] You may draw 1 or 2 cards."
+"58","vera_ivanovna_shuyskaya","Vera Ivanovna Shuyskaya","Whenever an agenda is scored or stolen, you may reveal the grip. Trash 1 card revealed this way."
+"59","wake_implant_v2a_jrj","WAKE Implant v2A-JRJ","When you install this hardware, suffer 1 meat damage.
+Whenever you make a successful run on HQ, place 1 power counter on this hardware.
+Whenever you breach R&D, you may remove up to 3 hosted power counters to access that many additional cards."
+"60","world_tree","World Tree","The first time each turn you make a successful run, you may trash 1 of your other installed cards to search your stack for 1 card of the same type. <em>(Shuffle your stack after searching it.)</em> Install the card you found, paying 3[credit] less."
+"61","yakov_erikovich_avdakov","Yakov Erikovich Avdakov","Whenever a player trashes a card <em>(including this upgrade)</em> from the root of this server or protecting it, except during installation, gain 2[credit]."
+"62","zato_city_grid","ZATO City Grid","Remote server only.
+Each piece of ice protecting this server gains ""When the Runner encounters this ice, choose 1 subroutine on it. You may trash this ice to resolve that subroutine."".
+Limit 1 <strong>region</strong> per server."
+"63","zenit_chip_jz_2mj","Zenit Chip JZ-2MJ","When you install this hardware, suffer 1 core damage.
+The first time each turn you make a successful run on a central server, draw 1 card."

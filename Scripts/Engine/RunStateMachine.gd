@@ -74,12 +74,22 @@ func execute(server_id: String) -> void:
 	ctx.run_accessed_archives_card_ids = []    # reset for Charm Offensive
 	ctx.run_level_strength_boosts      = {}    # reset for GAMEDRAGON Pro pump persistence
 	ctx.run_had_subroutine_resolve            = false # reset for Ryo "Phoenix" Ōno
-	ctx.runner_cannot_steal_or_trash_this_run = false # reset for VP31 Vertigo
+	ctx.runner_cannot_steal_or_trash_this_run         = false # reset for VP31 Vertigo
+	ctx.runner_cannot_access_except_self_card_id      = ""    # reset for Adrian Seis
 	ctx.global_ice_strength_bonus_this_run    = 0     # reset for VP39 ezaM
 	ctx.beta_build_installed_card_id          = ""    # reset for VP19 Beta Build
 	ctx.runner_steal_trash_blocked_card_ids   = []    # reset for VP35 Perfect Recall
+	ctx.runner_access_blocked_card_iids       = []    # reset for Adrian Seis
 	ctx.run_success_suppressed                = false  # reset for VP64 Flagship
 	ctx.runner_outside_credits_spent_pending  = 0     # reset for VP65 Shackleton Grid
+	ctx.run_clicks_gained_this_run            = 0     # reset for Pichação
+	ctx.run_ice_derezzed_this_run             = false  # reset for Stegodon MK IV
+	ctx.run_runner_broke_any_subroutine       = false  # reset for Mercury
+	ctx.run_breach_redirect                   = ""     # reset for Beatriz / Eru
+	ctx.run_breach_extra_accesses             = 0      # reset for Beatriz / Eru
+	ctx.active_server_additional_steal_cost   = {}     # reset for Daniela Jorge Inácio
+	ctx.active_server_additional_trash_cost   = {}     # reset for Daniela Jorge Inácio
+	ctx.run_event_trash_credits               = 0      # reset for Bahia Bands
 
 	ctx.send_log("--- Run on %s begins ---" % server.display_name())
 	await _phase_initiation()
@@ -93,6 +103,68 @@ func _phase_initiation() -> void:
 
 	# Notify structural event hooks that a run has commenced
 	await ctx.notify_event("run_start", {"server_id": _target_server.server_id}, interpreter)
+
+	# Re-snapshot ice positions: a run_start effect may have reordered ice on the server
+	# (e.g. Tributary moving itself to the outermost position).
+	_ice_positions = _target_server.ice.duplicate()
+
+	# Daniela Jorge Inácio (TAI): scan the target server root for rezzed cards that impose
+	# additional steal/trash costs. Populate ctx fields so _steal_agenda/_offer_trash can check.
+	for _dji_root in _target_server.root:
+		var _dji_c: InstalledCard = _dji_root as InstalledCard
+		if _dji_c == null or not _dji_c.is_rezzed:
+			continue
+		var _dji_def: Dictionary = ability_registry._abilities.get(_dji_c.card_id, {}) as Dictionary
+		var _dji_sc: Dictionary = _dji_def.get("additional_steal_cost", {}) as Dictionary
+		if not _dji_sc.is_empty():
+			ctx.active_server_additional_steal_cost = _dji_sc
+		var _dji_tc: Dictionary = _dji_def.get("additional_trash_cost", {}) as Dictionary
+		if not _dji_tc.is_empty():
+			ctx.active_server_additional_trash_cost = _dji_tc
+
+	# Front Company (TAI): if the runner runs Archives and Front Company is rezzed in a
+	# server with no ice, deal 2 net damage before the first approach.
+	if _target_server.server_id == "archives":
+		for fc_srv in ctx.servers.values():
+			var fc_s: Server = fc_srv as Server
+			if fc_s.server_id == "archives":
+				continue
+			for fc_root in fc_s.root:
+				var fc_c: InstalledCard = fc_root as InstalledCard
+				if fc_c == null or not fc_c.is_rezzed or fc_c.card_id != "front_company":
+					continue
+				if fc_s.ice.is_empty():
+					ctx.send_log("[Front Company] Runner runs Archives while Front Company's server is unprotected — 2 net damage.")
+					await interpreter.execute_trigger(
+						{"effects": [{"type": "deal_damage", "params": {"damage_type": "net", "amount": 2}}]}, ctx)
+					if ctx.game_over:
+						await _phase_end()
+						return
+
+	# Window of Opportunity: runner derezzed 1 ice before this run — offer choice now (initiation).
+	if ctx.run_modifiers.get("woo_active", false):
+		ctx.run_modifiers.erase("woo_active")
+		var woo_rezzed_ice: Array = []
+		for woo_ic in _target_server.ice:
+			var woo_c: InstalledCard = woo_ic as InstalledCard
+			if woo_c != null and woo_c.is_rezzed:
+				woo_rezzed_ice.append(woo_c)
+		if not woo_rezzed_ice.is_empty():
+			var woo_target: InstalledCard = null
+			var woo_dm: Object = ctx.runner_decision_maker
+			if woo_dm != null and woo_dm.has_method("choose_target_ice"):
+				woo_target = await woo_dm.choose_target_ice(woo_rezzed_ice, "Window of Opportunity", ctx)
+			else:
+				woo_target = woo_rezzed_ice[0] as InstalledCard
+			if woo_target != null:
+				ctx.run_modifiers["woo_derez_iid"] = woo_target.runtime_instance_id
+				woo_target.is_rezzed = false
+				ctx.send_log("Window of Opportunity: %s is derezzed." % woo_target.display_name())
+
+	# Cataloguer / breach-only: skip all ice and go straight to the root zone.
+	if ctx.run_modifiers.get("skip_ice_to_breach", false):
+		ctx.run_modifiers.erase("skip_ice_to_breach")
+		_ice_positions.clear()
 
 	# NSG 6.5.1.c: Paid Ability Window opens during Initiation before the first approach
 	await _execute_paid_ability_and_rez_window(false)
@@ -155,6 +227,24 @@ func _phase_approach_ice() -> void:
 			await _phase_approach_ice()
 		return
 
+	# Alarm Clock: on first ice approach, runner may spend 2 clicks to bypass.
+	if ctx.run_modifiers.get("alarm_clock_active", false) and _ice_index == 0 and ice_card.is_rezzed:
+		ctx.run_modifiers.erase("alarm_clock_active")
+		if ctx.runner_clicks >= 2:
+			var ac_use := false
+			var ac_dm: Object = ctx.runner_decision_maker
+			if ac_dm != null and ac_dm.has_method("choose_optional_ability"):
+				ac_use = await ac_dm.choose_optional_ability(
+					"Alarm Clock: spend 2 [click] to bypass %s?" % ice_card.display_name(), ctx)
+			else:
+				ac_use = true  # AI: always bypass if possible
+			if ac_use:
+				ctx.runner_clicks -= 2
+				ctx.run_modifiers["bypass_current_ice"] = true
+				ctx.send_log("Alarm Clock: Runner spends 2 clicks to bypass %s." % ice_card.display_name())
+	elif ctx.run_modifiers.get("alarm_clock_active", false) and _ice_index == 0:
+		ctx.run_modifiers.erase("alarm_clock_active")  # consume even if not used (unrezzed ice)
+
 	if ice_card.is_rezzed:
 		await _phase_encounter_ice(ice_card)
 	else:
@@ -176,6 +266,13 @@ func _phase_encounter_ice(ice_card: InstalledCard) -> void:
 		await _phase_end()
 		return
 
+	# Fire the ice's own "when encountered" abilities (e.g. Jaguarundi's tag-or-click).
+	# These are interruptible by AirbladeX (JSRF Ed.) — see _fire_ice_when_encountered().
+	await _fire_ice_when_encountered(ice_card)
+	if ctx.run_ended:
+		await _phase_end()
+		return
+
 	# Bypass: runner ability set this flag during encounter_ice — skip subroutines entirely
 	if ctx.run_modifiers.get("bypass_current_ice", false):
 		ctx.run_modifiers.erase("bypass_current_ice")
@@ -185,9 +282,27 @@ func _phase_encounter_ice(ice_card: InstalledCard) -> void:
 
 	# Tracks whether all subroutines on this ice were broken (for Sipa pass_ice condition).
 	# Default true — blank ice has zero subs, so vacuously all are "broken".
-	var _all_subs_broken_for_pass: bool = true
+	var _all_subs_broken_for_pass: bool  = true
+	# Tracks whether any subroutine was broken by a decoder (for VSA on_runner_passes).
+	# Captured from EncounterState.broken_with_decoder after the encounter window.
+	var _pass_broken_with_decoder: bool  = false
 
 	var subroutines: Array = ability_registry.get_subroutines_for_card(ice_card.card_id, ice_card)
+
+	# Starlit Knight (TAI): at Threat N, append X dynamic subs where X = count_source.
+	var _dyn_ab: Dictionary = ability_registry._abilities.get(ice_card.card_id, {}) as Dictionary
+	if _dyn_ab.has("threat_dynamic_subs") and ice_card.is_rezzed:
+		var _dyn_def: Dictionary   = _dyn_ab["threat_dynamic_subs"] as Dictionary
+		var _dyn_threshold: int    = _dyn_def.get("threat", 999)
+		if ctx.threat_level() >= _dyn_threshold:
+			var _dyn_count_source: String = _dyn_def.get("count_source", "")
+			var _dyn_n: int = 0
+			match _dyn_count_source:
+				"runner_tags": _dyn_n = ctx.runner_tags
+			var _dyn_sub: Dictionary = _dyn_def.get("sub", {"label": "End the run.", "effects": [{"type": "end_run"}]})
+			for _dyn_i in range(_dyn_n):
+				subroutines.append(_dyn_sub.duplicate(true))
+
 	if subroutines.is_empty():
 		ctx.send_log("[Encounter] %s has no implemented subroutines — treating as blank." % ice_card.display_name())
 		# Still open a PAW even for blank ice
@@ -201,16 +316,107 @@ func _phase_encounter_ice(ice_card: InstalledCard) -> void:
 			return
 	else:
 		var encounter := EncounterState.make(ice_card, subroutines, ctx.all_programs_for_encounter(ice_card), ctx)
+		ctx.set_meta("_current_encounter", encounter)
 		# Apply global ICE strength bonus for this run (VP39 ezaM sub 2)
 		if ctx.global_ice_strength_bonus_this_run != 0:
 			encounter.ice_strength += ctx.global_ice_strength_bonus_this_run
+		# Passive tagged-runner strength bonus (e.g. Capacitor: +2 str while Runner is tagged)
+		var _enc_ab_def: Dictionary = ability_registry._abilities.get(ice_card.card_id, {}) as Dictionary
+		var _enc_tagged_bonus: int = _enc_ab_def.get("strength_bonus_while_runner_tagged", 0)
+		if _enc_tagged_bonus > 0 and ctx.runner_is_tagged():
+			encounter.ice_strength += _enc_tagged_bonus
+			ctx.send_log("[Encounter] %s: +%d str (Runner is tagged)." % [ice_card.display_name(), _enc_tagged_bonus])
+		# Brasilia Government Grid: +3 str for ice marked as boosted this run.
+		var _enc_brasilia_boosted: Array = ctx.run_modifiers.get("brasilia_boosted_ice_iids", []) as Array
+		if ice_card.runtime_instance_id in _enc_brasilia_boosted:
+			encounter.ice_strength += 3
+			ctx.send_log("[Encounter] %s: +3 str (Brasilia Government Grid)." % ice_card.display_name())
+
+		# Logjam (and similar): ice strength = base + advancement counters on this ice.
+		if ability_registry.get_flag(ice_card.card_id, "str_from_advance_tokens"):
+			var _adv_str_bonus: int = ice_card.get_counter("advancement")
+			if _adv_str_bonus > 0:
+				encounter.ice_strength += _adv_str_bonus
+				ctx.send_log("[Encounter] %s: +%d str from %d advancement token(s)." % [
+					ice_card.display_name(), _adv_str_bonus, _adv_str_bonus])
+		# Boto (and similar): +N str at threat level >= threshold.
+		var _enc_threat_str_def: Dictionary = (_enc_ab_def.get("strength_bonus_threat", {}) as Dictionary)
+		if not _enc_threat_str_def.is_empty():
+			var _enc_ts_bonus: int     = _enc_threat_str_def.get("amount", 2)
+			var _enc_ts_threshold: int = _enc_threat_str_def.get("threat_gte", 4)
+			if ctx.threat_level() >= _enc_ts_threshold:
+				encounter.ice_strength += _enc_ts_bonus
+				ctx.send_log("[Encounter] %s: +%d str (threat %d ≥ %d)." % [
+					ice_card.display_name(), _enc_ts_bonus, ctx.threat_level(), _enc_ts_threshold])
 		# Semak-samun style: restrict subroutine breaking to fracters only (AI excluded)
 		if ability_registry.get_flag(ice_card.card_id, "fracter_only_break"):
 			encounter.fracter_only_break = true
+		# Isaac Liberdade (and similar trojans): if the encountered ice has advancement
+		# counters, grant a strength bonus from "ice_strength_bonus_if_advanced".
+		for _isl_rig in ctx.runner_rig:
+			var _isl_ic: InstalledCard = _isl_rig as InstalledCard
+			if _isl_ic == null or _isl_ic.hosted_on_id != ice_card.runtime_instance_id:
+				continue
+			var _isl_ab: Dictionary = ability_registry._abilities.get(_isl_ic.card_id, {}) as Dictionary
+			var _isl_bonus: int = _isl_ab.get("ice_strength_bonus_if_advanced", 0)
+			if _isl_bonus > 0 and ice_card.get_counter("advancement") > 0:
+				encounter.ice_strength += _isl_bonus
+				ctx.send_log("[Encounter] %s: +%d str from %s (host ice has advancement token)." % [
+					ice_card.display_name(), _isl_bonus, _isl_ic.display_name()])
+		# Monkeywrench (and any future trojan with trojan_host_strength_mod /
+		# trojan_server_strength_mod): apply strength penalties from trojans hosted on this ice.
+		for _mw_hc in ice_card.hosted_cards:
+			var _mw_ic: InstalledCard = _mw_hc as InstalledCard
+			if _mw_ic == null or _mw_ic.card_record == null:
+				continue
+			var _mw_ab: Dictionary = ability_registry._abilities.get(_mw_ic.card_id, {}) as Dictionary
+			# Host penalty: applied directly to this encounter's ice_strength.
+			var _mw_host_mod: int = _mw_ab.get("trojan_host_strength_mod", 0)
+			if _mw_host_mod != 0:
+				encounter.ice_strength += _mw_host_mod
+				ctx.send_log("[Encounter] %s: %+d str from %s (trojan)." % [
+					ice_card.display_name(), _mw_host_mod, _mw_ic.display_name()])
+			# Server-wide penalty: stored in run_modifiers so subsequent ice encounters pick it up.
+			var _mw_server_mod: int = _mw_ab.get("trojan_server_strength_mod", 0)
+			if _mw_server_mod != 0:
+				var _mw_existing: int = ctx.run_modifiers.get("server_ice_strength_mod", 0)
+				ctx.run_modifiers["server_ice_strength_mod"] = _mw_existing + _mw_server_mod
+				ctx.send_log("[Encounter] %s grants server-wide str %+d (all other ice this run)." % [
+					_mw_ic.display_name(), _mw_server_mod])
+		# Apply any accumulated server-wide ice strength penalty from trojans passed earlier this run.
+		# (Applies to every ice encounter; the host ice's own trojan was handled above.)
+		var _mw_srv_penalty: int = ctx.run_modifiers.get("server_ice_strength_mod", 0)
+		if _mw_srv_penalty != 0:
+			# Check if this ice is NOT the one hosting the trojan(s) that set the penalty.
+			# We detect this by checking whether this ice has any hosted trojans with the key —
+			# if so, the penalty was already applied via trojan_host_strength_mod above,
+			# and the server penalty should only hit *other* ice.
+			var _mw_this_ice_hosts_trojan := false
+			for _mw_chk in ice_card.hosted_cards:
+				var _mw_chk_ic: InstalledCard = _mw_chk as InstalledCard
+				if _mw_chk_ic != null:
+					var _mw_chk_ab: Dictionary = ability_registry._abilities.get(_mw_chk_ic.card_id, {}) as Dictionary
+					if _mw_chk_ab.get("trojan_server_strength_mod", 0) != 0:
+						_mw_this_ice_hosts_trojan = true
+						break
+			if not _mw_this_ice_hosts_trojan:
+				encounter.ice_strength += _mw_srv_penalty
+				ctx.send_log("[Encounter] %s: %+d str (server-wide trojan penalty)." % [
+					ice_card.display_name(), _mw_srv_penalty])
+
+		# Populate corp ice trash abilities (e.g. M.I.C.: [trash]: Runner spends [click] or run ends).
+		ctx.corp_ice_trash_abilities_available = []
+		var _enc_ice_pab: Variant = ability_registry._abilities.get(ice_card.card_id, {}).get("ice_paid_ability", null)
+		if _enc_ice_pab != null:
+			ctx.corp_ice_trash_abilities_available = [{"card": ice_card, "ability": _enc_ice_pab as Dictionary}]
+
 		emit_signal("encounter_started", encounter)
 
 		# NSG 6.5.3.b: symmetric PAW — both players use paid abilities; runner may also break subs
 		await _execute_encounter_window(encounter)
+		ctx.corp_ice_trash_abilities_available = []  # clear after encounter window closes
+		if ctx.has_meta("_current_encounter"):
+			ctx.remove_meta("_current_encounter")
 
 		# ezaM paw_action: Corp swapped this ice mid-encounter — update position snapshot
 		if ctx.has_meta("enc_swap_ice"):
@@ -231,11 +437,18 @@ func _phase_encounter_ice(ice_card: InstalledCard) -> void:
 				await _phase_approach_ice()
 			return
 
+		# Attini (TAI): if this ice has runner_cannot_pay_subs_at_threat and threat is met,
+		# block credit spending during subroutine resolution.
+		var _att_threshold: int = ability_registry._abilities.get(ice_card.card_id, {}).get("runner_cannot_pay_subs_at_threat", -1)
+		if _att_threshold >= 0 and ice_card.is_rezzed and ctx.threat_level() >= _att_threshold:
+			ctx.runner_cannot_spend_credits_during_sub_resolution = true
+
 		# Resolve unbroken subroutines
 		for i in range(subroutines.size()):
 			if encounter.is_broken(i):
 				ctx.send_log("[Encounter] Subroutine %d broken." % i)
 				emit_signal("subroutine_broken", ice_card, i)
+				ctx.run_runner_broke_any_subroutine = true  # Mercury: track sub-break this run
 				continue
 
 			emit_signal("subroutine_resolving", ice_card, i, subroutines[i] as Dictionary)
@@ -257,10 +470,13 @@ func _phase_encounter_ice(ice_card: InstalledCard) -> void:
 					# else: Corp paid the cost — ETR stands
 				# ── End Shred check ──────────────────────────────────────────────────
 				ctx.send_log("[Encounter] Run ended by subroutine.")
+				ctx.runner_cannot_spend_credits_during_sub_resolution = false
 				# Fire encounter_ended so post-encounter triggers can react (e.g. Knowledge Seeker)
 				await ctx.notify_event("encounter_ended", {"ice": ice_card}, interpreter)
 				await _phase_end()
 				return
+
+		ctx.runner_cannot_spend_credits_during_sub_resolution = false
 
 		# Determine if all subroutines were broken (for VP23 Sipa pass_ice condition)
 		_all_subs_broken_for_pass = true
@@ -268,9 +484,12 @@ func _phase_encounter_ice(ice_card: InstalledCard) -> void:
 			if not encounter.is_broken(i):
 				_all_subs_broken_for_pass = false
 				break
+		# Capture decoder-break flag for VSA on_runner_passes condition.
+		_pass_broken_with_decoder = encounter.broken_with_decoder
 
-	# Store all-subs-broken state for pass_ice event data
-	ctx.run_modifiers["last_ice_all_subs_broken"] = _all_subs_broken_for_pass
+	# Store pass_ice event data flags
+	ctx.run_modifiers["last_ice_all_subs_broken"]    = _all_subs_broken_for_pass
+	ctx.run_modifiers["last_ice_broken_with_decoder"] = _pass_broken_with_decoder
 
 	# Fire encounter_ended: post-encounter trigger (VP40 Knowledge Seeker).
 	# Does NOT fire for bypassed ice (bypass returns early above).
@@ -287,15 +506,31 @@ func _phase_movement() -> void:
 	# Notify passing milestone effects; track that runner has cleared at least one ice
 	if _ice_index < _ice_positions.size():
 		_has_passed_ice = true
-		# Enrich pass_ice event: outermost flag and all-subs-broken flag (VP23 Sipa, VP31 Vertigo)
-		var pass_is_outermost: bool      = (_ice_index == 0)
-		var pass_all_subs_broken: bool   = ctx.run_modifiers.get("last_ice_all_subs_broken", false)
+		var pass_is_outermost: bool        = (_ice_index == 0)
+		var pass_all_subs_broken: bool     = ctx.run_modifiers.get("last_ice_all_subs_broken", false)
+		var pass_broken_with_decoder: bool = ctx.run_modifiers.get("last_ice_broken_with_decoder", false)
 		ctx.run_modifiers.erase("last_ice_all_subs_broken")
+		ctx.run_modifiers.erase("last_ice_broken_with_decoder")
 		await ctx.notify_event("pass_ice", {
 			"ice":             _ice_positions[_ice_index],
 			"is_outermost":    pass_is_outermost,
 			"all_subs_broken": pass_all_subs_broken
 		}, interpreter)
+
+		# Fire ice-specific and trojan on-pass triggers (Phoneutria, Tatu-Bola, VSA, Pichação).
+		# These run AFTER the general pass_ice event and BEFORE the Sisyphus re-encounter check.
+		await _fire_on_pass_triggers(_ice_positions[_ice_index], pass_broken_with_decoder)
+		if ctx.run_ended:
+			await _phase_end()
+			return
+
+	# Sisyphus Protocol (and similar scored-agenda effects): Corp may force re-encounter
+	# of the just-passed ice. Checked before the PAW so the runner cannot jack out first.
+	if ctx.run_modifiers.get("re_encounter_current_ice", false):
+		ctx.run_modifiers.erase("re_encounter_current_ice")
+		if _ice_index < _ice_positions.size():
+			await _phase_encounter_ice(_ice_positions[_ice_index])
+			return
 
 	await _execute_paid_ability_and_rez_window(false)
 	if ctx.run_ended:
@@ -423,9 +658,10 @@ func _phase_success() -> void:
 
 		# Transfer of Wealth: take 1 tag, Corp loses up to 3cr, Runner gains 2× the amount lost.
 		if ctx.run_modifiers.get("transfer_of_wealth_on_success", 0) > 0:
+			var _tow_was_zero: bool = (ctx.runner_tags == 0)
 			ctx.runner_tags += 1
 			ctx.send_log("Transfer of Wealth: %s takes 1 tag (%d total)." % [ctx.runner_name(), ctx.runner_tags])
-			await ctx.notify_event("runner_takes_tags", {"amount": 1}, interpreter)
+			await ctx.notify_event("runner_takes_tags", {"amount": 1, "from_zero": _tow_was_zero}, interpreter)
 			if not ctx.game_over:
 				var tow_lost: int   = min(3, ctx.corp_credits)
 				ctx.corp_credits   -= tow_lost
@@ -461,7 +697,46 @@ func _phase_success() -> void:
 						ctx.runner_discard.append(self_card.card_record)
 					ctx.send_log("Red Team: all credits spent — trashed.")
 
-	await _breach_server()
+	# ── Breach redirect (Beatriz Friere Gonzalez, Eru Ayase-Pessoa) ─────────────
+	# If a redirect is set, swap _target_server for the breach phase only.
+	# Extra accesses are merged into run_modifiers["bonus_access"] for _breach_server.
+	var _redirect_original_server: Server = null
+	if ctx.run_breach_redirect != "":
+		var _redir_server: Server = ctx.get_server(ctx.run_breach_redirect)
+		if _redir_server != null:
+			ctx.send_log("[Breach Redirect] Breach redirected from %s to %s." % [
+				_target_server.display_name(), _redir_server.display_name()])
+			_redirect_original_server = _target_server
+			_target_server = _redir_server
+		ctx.run_breach_redirect = ""   # consumed
+	if ctx.run_breach_extra_accesses > 0:
+		ctx.run_modifiers["bonus_access"] = \
+			ctx.run_modifiers.get("bonus_access", 0) + ctx.run_breach_extra_accesses
+		ctx.run_breach_extra_accesses = 0  # consumed
+
+	# ── Privileged Access: alternative breach for Archives ───────────────────────
+	if ctx.run_modifiers.get("privileged_access_active", false) \
+			and _target_server != null and _target_server.server_id == "archives":
+		ctx.run_modifiers.erase("privileged_access_active")
+		var pa_use_alt := false
+		var pa_threat3: bool = ctx.threat_level() >= 3
+		var pa_prompt: String = "Privileged Access: take 1 tag to install a card from heap " + \
+			("(or a program, Threat 3)" if pa_threat3 else "") + " for 2cr less instead of breaching?"
+		if ctx.runner_decision_maker != null and ctx.runner_decision_maker.has_method("choose_optional_ability"):
+			pa_use_alt = await ctx.runner_decision_maker.choose_optional_ability(pa_prompt, ctx)
+		else:
+			pa_use_alt = true  # AI default: always take the install
+		if pa_use_alt:
+			await interpreter._execute_effect({"type": "privileged_access_install", "params": {"threat3": pa_threat3}}, ctx, null)
+		else:
+			await _breach_server()
+	else:
+		await _breach_server()
+
+	# Restore original target server if a redirect was applied.
+	if _redirect_original_server != null:
+		_target_server = _redirect_original_server
+
 	await _phase_end()
 
 
@@ -477,6 +752,32 @@ func _phase_end() -> void:
 		ctx.send_log("[End] Run ended unsuccessfully.")
 		emit_signal("run_ended_unsuccessfully",
 			"subroutine" if ctx.run_ended else "jack_out")
+
+	# Window of Opportunity: Corp may rez the derezed ice for free after the run.
+	if ctx.run_modifiers.has("woo_derez_iid"):
+		var woo_end_iid: String = ctx.run_modifiers["woo_derez_iid"]
+		ctx.run_modifiers.erase("woo_derez_iid")
+		var woo_end_ice: InstalledCard = ctx.get_ice_by_instance_id(woo_end_iid)
+		if woo_end_ice != null and not woo_end_ice.is_rezzed:
+			var woo_corp_dm: Object = ctx.corp_decision_maker
+			var woo_do_rez := false
+			if woo_corp_dm != null and woo_corp_dm.has_method("choose_optional_ability"):
+				woo_do_rez = await woo_corp_dm.choose_optional_ability(
+					"Window of Opportunity: rez %s for free?" % woo_end_ice.display_name(), ctx)
+			else:
+				woo_do_rez = true  # AI: always rez for free
+			if woo_do_rez:
+				woo_end_ice.is_rezzed = true
+				if woo_end_ice.runtime_instance_id != "":
+					ctx.ice_rezzed_this_turn_instance_ids.append(woo_end_ice.runtime_instance_id)
+				ctx.send_log("Window of Opportunity: Corp rezzes %s for free." % woo_end_ice.display_name())
+				# Fire on_rez trigger
+				var woo_ab_reg: AbilityRegistry = ability_registry
+				var woo_on_rez = woo_ab_reg.get_on_rez(woo_end_ice.card_id)
+				if woo_on_rez != null:
+					ctx.current_event_data = {"card": woo_end_ice, "card_instance_id": woo_end_ice.runtime_instance_id}
+					await interpreter.execute_trigger(woo_on_rez as Dictionary, ctx)
+					ctx.current_event_data = {}
 
 	# Final cleanup triggers
 	await ctx.notify_event("run_end", {"server_id": _target_server.server_id, "successful": ctx.run_successful}, interpreter)
@@ -558,6 +859,26 @@ func _breach_server() -> void:
 						access_list.append(ctx.corp_deck[i + 1])
 		ctx.send_log("[Breach] Bonus access: %d extra card(s)." % bonus_access)
 
+	# Mercury (TAI): +1 access on HQ or R&D breach if the runner broke no subroutines this run.
+	if ctx.runner_identity != null and ctx.runner_identity.id == "mercury" \
+			and not ctx.run_runner_broke_any_subroutine \
+			and _target_server.server_id in ["hq", "rd"]:
+		match _target_server.server_id:
+			"hq":
+				var merc_available: Array = []
+				for mi in range(ctx.corp_hand.size()):
+					if mi not in _hq_accessed_indices:
+						merc_available.append(mi)
+				merc_available.shuffle()
+				if not merc_available.is_empty():
+					access_list.append(ctx.corp_hand[merc_available[0]])
+					_hq_accessed_indices.append(merc_available[0])
+			"rd":
+				var merc_next: int = access_list.size()   # next card index in R&D
+				if merc_next < ctx.corp_deck.size():
+					access_list.append(ctx.corp_deck[merc_next])
+		ctx.send_log("[Mercury] No subroutines broken this run — +1 bonus access.")
+
 	if access_list.is_empty():
 		ctx.send_log("[Breach] Nothing to access.")
 		return
@@ -574,6 +895,34 @@ func _breach_server() -> void:
 			break
 		var target: Variant = await _runner_choose_access_target(access_list)
 		access_list.erase(target)
+
+		# ── Heliamphora interrupt: fire before_access, then check for redirect ──
+		# Extract card_record from whatever target type we have.
+		var ba_card_record: CardRecord = null
+		if target is CardRecord:
+			ba_card_record = target as CardRecord
+		elif target is InstalledCard:
+			ba_card_record = (target as InstalledCard).card_record
+		elif target is Dictionary:
+			ba_card_record = (target as Dictionary).get("card_record", null) as CardRecord
+		ctx.run_modifiers.erase("access_redirected_to_heliamphora")
+		await ctx.notify_event("before_access", {
+			"card": ba_card_record,
+			"server_id": _target_server.server_id
+		}, interpreter)
+		if ctx.run_modifiers.has("access_redirected_to_heliamphora"):
+			# Runner chose to host this card on Heliamphora — skip normal access.
+			var ba_helio_iid: String = ctx.run_modifiers.get("access_redirected_to_heliamphora", "") as String
+			ctx.run_modifiers.erase("access_redirected_to_heliamphora")
+			var ba_helio: InstalledCard = ctx.get_installed_card_by_instance_id(ba_helio_iid)
+			if ba_helio != null and ba_card_record != null:
+				# Move the card from corp_discard (Archives) to Heliamphora's hosted zone.
+				ctx.corp_discard.erase(ba_card_record)
+				ba_helio.faceup_hosted_cards.append(ba_card_record)
+				ctx.send_log("[Heliamphora] %s hosted — not accessed this breach." % ba_card_record.title)
+			access_count += 1
+			continue
+
 		await _access_card(target)
 		access_count += 1
 
@@ -613,6 +962,26 @@ func _access_card(card: Variant) -> void:
 		card_record = card as CardRecord
 		card_id     = card_record.id
 
+	# Adrian Seis (TAI) — psi mismatch (Corp wins): runner can only access Adrian Seis
+	# itself.  Since Adrian Seis is an upgrade in a server root, its IID is stored; every
+	# other card's IID won't match, so the entire breach is silently blocked.
+	if ctx.runner_cannot_access_except_self_card_id != "":
+		var aeis_allowed: String = ctx.runner_cannot_access_except_self_card_id
+		var aeis_this: String    = instance_id if instance_id != "" else card_id
+		if aeis_this != aeis_allowed:
+			ctx.send_log("[Adrian Seis] Access to %s blocked — runner may only access Adrian Seis this run." % \
+				(card_record.title if card_record else card_id))
+			return
+
+	# Adrian Seis (TAI) — psi match (runner wins): runner cannot access Adrian Seis itself
+	# (or any other card explicitly added to this blocklist).
+	if not ctx.runner_access_blocked_card_iids.is_empty():
+		var aeis2_this: String = instance_id if instance_id != "" else card_id
+		if aeis2_this in ctx.runner_access_blocked_card_iids:
+			ctx.send_log("[Adrian Seis] Access to %s blocked this run." % \
+				(card_record.title if card_record else card_id))
+			return
+
 	ctx.accessed_card_id = instance_id if instance_id != "" else card_id
 	# Track Archives breach card IDs for Charm Offensive
 	if _target_server != null and _target_server.server_id == "archives" and card_id != "":
@@ -647,9 +1016,10 @@ func _access_card(card: Variant) -> void:
 		await interpreter._deal_damage("meat", 2, ctx)
 		if ctx.game_over:
 			return
+		var _bangun_was_zero: bool = (ctx.runner_tags == 0)
 		ctx.runner_tags += 1
 		ctx.send_log("BANGUN: Runner gains 1 tag (%d total)." % ctx.runner_tags)
-		await ctx.notify_event("runner_takes_tags", {"amount": 1}, interpreter)
+		await ctx.notify_event("runner_takes_tags", {"amount": 1, "from_zero": _bangun_was_zero}, interpreter)
 		if ctx.game_over:
 			return
 
@@ -805,6 +1175,88 @@ func _access_card(card: Variant) -> void:
 				return
 	# ── End Lampades ──────────────────────────────────────────────────────────────
 
+	# ── Eye for an Eye: runner may trash 1 grip card to trash the accessed card ──
+	# Active when run_modifiers["efa_active"] is set. Does not apply to agendas.
+	if ctx.run_modifiers.get("efa_active", false) and card_record != null \
+			and not card_record.is_agenda() and not ctx.runner_hand.is_empty():
+		var efa_use := false
+		if ctx.runner_decision_maker != null and ctx.runner_decision_maker.has_method("choose_optional_ability"):
+			efa_use = await ctx.runner_decision_maker.choose_optional_ability(
+				"Eye for an Eye: trash 1 card from grip to trash %s?" % card_record.title, ctx)
+		else:
+			efa_use = true  # AI default: always use it
+		if efa_use:
+			# Runner picks a card from grip to discard
+			var efa_cost_card: Variant = ctx.runner_hand[0]
+			if ctx.runner_decision_maker != null and ctx.runner_decision_maker.has_method("choose_card_from_hand"):
+				efa_cost_card = await ctx.runner_decision_maker.choose_card_from_hand(ctx.runner_hand.duplicate(), ctx)
+			if efa_cost_card != null and ctx.runner_hand.has(efa_cost_card):
+				ctx.runner_hand.erase(efa_cost_card)
+				var efa_cost_cr: CardRecord = (efa_cost_card as Dictionary).get("card_record", null) as CardRecord
+				ctx.runner_discard.append(efa_cost_cr if efa_cost_cr != null else efa_cost_card)
+				ctx.send_log("Eye for an Eye: %s discards %s." % [
+					ctx.runner_name(), efa_cost_cr.title if efa_cost_cr != null else "a card"])
+			# Trash the accessed corp card
+			if card is InstalledCard:
+				var efa_inst: InstalledCard = card as InstalledCard
+				var efa_srv: Server = ctx.get_server(efa_inst.server_id)
+				if efa_srv != null:
+					efa_srv.remove_from_root(efa_inst)
+					ctx.remove_empty_remote_servers()
+				ctx.unregister_all_card_effects(efa_inst.runtime_instance_id)
+				if not efa_inst.is_rezzed:
+					ctx.corp_discard_facedown[card_record.title] = true
+			ctx.corp_discard.append(card_record)
+			ctx.send_log("Eye for an Eye: trashes %s." % card_record.title)
+			await ctx.notify_event("runner_trashes_during_breach", {"card_id": card_id}, interpreter)
+			var _efa_outcome := "accessed"
+			emit_signal("card_accessed", card_record, _efa_outcome)
+			if ctx.has_meta("on_card_display_done"):
+				var efa_cb: Callable = ctx.get_meta("on_card_display_done") as Callable
+				await efa_cb.call(card_record, _efa_outcome)
+			return
+
+	# ── Cupellation: runner may spend 1cr to host the accessed card instead of accessing normally ──
+	# Active when run_modifiers["cupellation_active"] is set (set by before_breach trigger).
+	# Not available for agendas (those still steal normally) or cards in Archives.
+	if ctx.run_modifiers.get("cupellation_active", false) and card_record != null \
+			and not card_record.is_agenda() and is_installed:
+		var cup_use := false
+		if ctx.runner_decision_maker != null and ctx.runner_decision_maker.has_method("choose_optional_ability"):
+			cup_use = await ctx.runner_decision_maker.choose_optional_ability(
+				"Cupellation: spend 1cr to host %s instead of accessing it?" % card_record.title, ctx)
+		else:
+			cup_use = (ctx.runner_credits >= 1)
+		if cup_use and ctx.runner_credits >= 1:
+			ctx.runner_credits -= 1
+			# Find Cupellation in the rig
+			var cup_ic: InstalledCard = null
+			for cup_rig in ctx.runner_rig:
+				var cup_c: InstalledCard = cup_rig as InstalledCard
+				if cup_c != null and cup_c.card_id == "cupellation":
+					cup_ic = cup_c
+					break
+			if cup_ic != null:
+				cup_ic.hosted_corp_cards.append(card_record)
+				# Remove from server without giving runner access benefits
+				if card is InstalledCard:
+					var cup_inst: InstalledCard = card as InstalledCard
+					var cup_srv: Server = ctx.get_server(cup_inst.server_id)
+					if cup_srv != null:
+						cup_srv.remove_from_root(cup_inst)
+						ctx.remove_empty_remote_servers()
+					ctx.unregister_all_card_effects(cup_inst.runtime_instance_id)
+				ctx.send_log("Cupellation: captures %s (hosted on Cupellation, not accessed normally)." % card_record.title)
+				var _cup_outcome := "cupellation_captured"
+				emit_signal("card_accessed", card_record, _cup_outcome)
+				if ctx.has_meta("on_card_display_done"):
+					var cup_cb: Callable = ctx.get_meta("on_card_display_done") as Callable
+					await cup_cb.call(card_record, _cup_outcome)
+				return
+			else:
+				ctx.runner_credits += 1  # refund — Cupellation not found
+				ctx.send_log("Cupellation: card not found in rig.")
+
 	if card_record.is_agenda():
 		await _steal_agenda(card_record)
 	elif card_record.is_asset() or card_record.card_type == "upgrade":
@@ -815,6 +1267,17 @@ func _access_card(card: Variant) -> void:
 	# Stop if game ended during steal or trash resolution
 	if ctx.game_over:
 		return
+
+	# Amelia Earhart: count each access on HQ and R&D
+	if _target_server != null and _target_server.server_id in ["hq", "rd"]:
+		ctx.amelia_hq_rd_access_count += 1
+
+	# Notify listeners about this card access (for Amelia Earhart tracking, etc.)
+	await ctx.notify_event("card_accessed_event", {
+		"card_id": card_id,
+		"server_id": _target_server.server_id if _target_server != null else "",
+		"card_record": card_record
+	}, interpreter)
 
 	# Determine outcome for display
 	var _outcome := "accessed"
@@ -857,6 +1320,17 @@ func _steal_agenda(card_record: CardRecord) -> void:
 		ctx.runner_credits -= sc_credits
 		ctx.send_log("[Access] Runner pays %d cr to steal %s." % [sc_credits, card_record.title])
 
+	# Daniela Jorge Inácio (TAI): additional steal cost (e.g. discard 2 grip cards to stack).
+	if not ctx.active_server_additional_steal_cost.is_empty():
+		var dji_sc: Dictionary = ctx.active_server_additional_steal_cost
+		var dji_amount: int    = dji_sc.get("params", {}).get("amount", 2)
+		if ctx.runner_hand.size() < dji_amount:
+			ctx.send_log("[Access] Runner cannot steal %s — needs %d grip cards for Daniela cost (has %d)." % [
+				card_record.title, dji_amount, ctx.runner_hand.size()])
+			return
+		await interpreter.execute_trigger({"effects": [dji_sc]}, ctx)
+		ctx.send_log("[Daniela] Runner discards %d card(s) from grip to steal %s." % [dji_amount, card_record.title])
+
 	ctx.send_log("[Access] Runner steals %s! (%d agenda points)" % [
 		card_record.title, card_record.agenda_points
 	])
@@ -892,6 +1366,10 @@ func _steal_agenda(card_record: CardRecord) -> void:
 		await interpreter.execute_trigger(on_steal_def as Dictionary, ctx)
 		ctx.current_event_data = {}
 
+	# Register ongoing listeners for agendas with persistent effects in runner score area
+	# (e.g. The Basalt Spire: before_breach bonus access to HQ).
+	_register_stolen_agenda_listeners(stolen_inst)
+
 	# Notify listeners (e.g. Lamplighter: self-trash when agenda stolen from its server)
 	await ctx.notify_event("runner_steals_agenda", {
 		"agenda_id":  card_record.id,
@@ -903,6 +1381,23 @@ func _steal_agenda(card_record: CardRecord) -> void:
 		ctx.send_log("Runner wins by stealing agendas!")
 		ctx.game_over = true
 		ctx.winner    = "runner"
+
+
+func _register_stolen_agenda_listeners(card: InstalledCard) -> void:
+	# Register ongoing event listeners for agendas with persistent effects after being stolen
+	# (e.g. The Basalt Spire: before_breach gives +1 access to HQ per breach of HQ).
+	var instance_id: String  = card.runtime_instance_id if card.runtime_instance_id != "" else card.card_id
+	var card_def: Dictionary = ability_registry._abilities.get(card.card_id, {}) as Dictionary
+	if card_def.is_empty():
+		return
+	for event_type in [
+			"corp_turn_start", "runner_turn_start", "corp_turn_end", "runner_turn_end",
+			"run_start", "successful_run", "breach_complete", "runner_steals_agenda",
+			"runner_takes_tags", "corp_scores_agenda", "runner_trashes_during_breach",
+			"before_breach", "card_accessed_event", "runner_rig_action"]:
+		var trigger_def = card_def.get(event_type, null)
+		if trigger_def != null:
+			ctx.register_listener(event_type, instance_id, trigger_def as Dictionary)
 
 
 func _offer_trash(card: Variant, card_record: CardRecord) -> void:
@@ -932,8 +1427,8 @@ func _offer_trash(card: Variant, card_record: CardRecord) -> void:
 		accessed_server = ctx.get_server((card as InstalledCard).server_id)
 	var effective_trash_cost: int = _compute_effective_trash_cost(card_record, accessed_server)
 
-	# Total available credits includes Azimat recurring trash credits
-	var available: int = ctx.runner_trash_credits_available()
+	# Total available credits includes Azimat recurring trash credits + Bahia Bands event credits
+	var available: int = ctx.runner_trash_credits_available() + ctx.run_event_trash_credits
 
 	ctx.send_log("[Access] Runner may trash %s for %d credits (Runner has %d total)." % [
 		card_record.title, effective_trash_cost, available
@@ -942,12 +1437,36 @@ func _offer_trash(card: Variant, card_record: CardRecord) -> void:
 		ctx.send_log("[Access] Runner cannot afford to trash.")
 		return
 
+	# Daniela Jorge Inácio (TAI): additional trash cost check — runner must be able to pay
+	# before they are even offered the trash option.
+	var dji_trash_blocked := false
+	if not ctx.active_server_additional_trash_cost.is_empty():
+		var dji_tc: Dictionary = ctx.active_server_additional_trash_cost
+		var dji_tc_amount: int = dji_tc.get("params", {}).get("amount", 2)
+		if ctx.runner_hand.size() < dji_tc_amount:
+			ctx.send_log("[Access] Runner cannot afford Daniela trash cost — needs %d grip cards (has %d)." % [
+				dji_tc_amount, ctx.runner_hand.size()])
+			dji_trash_blocked = true
+
 	var should_trash := false
-	if ctx.runner_decision_maker != null:
+	if not dji_trash_blocked and ctx.runner_decision_maker != null:
 		should_trash = await ctx.runner_decision_maker.choose_trash(card_record, ctx)
 
 	if should_trash:
-		ctx.runner_spend_for_trash(effective_trash_cost)
+		# Apply Daniela additional trash cost before spending credits.
+		if not ctx.active_server_additional_trash_cost.is_empty():
+			var dji_tc2: Dictionary = ctx.active_server_additional_trash_cost
+			await interpreter.execute_trigger({"effects": [dji_tc2]}, ctx)
+		# Drain Bahia Bands run-event hosted credits before the runner's pool.
+		var bb_remaining: int = effective_trash_cost
+		if ctx.run_event_trash_credits > 0 and bb_remaining > 0:
+			var bb_draw: int = mini(ctx.run_event_trash_credits, bb_remaining)
+			ctx.run_event_trash_credits -= bb_draw
+			bb_remaining -= bb_draw
+			if bb_draw > 0:
+				ctx.send_log("[Bahia Bands] %d hosted credit(s) spent on trash (%d remaining on event)." % [
+					bb_draw, ctx.run_event_trash_credits])
+		ctx.runner_spend_for_trash(bb_remaining)
 		# VP65 Shackleton Grid: check if outside-pool credits were used for this trash cost
 		await ctx.check_outside_credits_trigger(interpreter)
 		ctx.send_log("[Access] Runner trashes %s." % card_record.title)
@@ -1035,11 +1554,36 @@ func _rez_card(card: InstalledCard) -> void:
 			rez_cost = max(0, rez_cost - fd_amount)
 			await interpreter._forfeit_agenda(fd_chosen, ctx)
 
-	# ── Mandatory additional rez cost (e.g. Plutus: forfeit agenda OR reveal+trash 3 HQ) ──
+	# ── Mandatory additional rez cost (e.g. Plutus: forfeit agenda OR reveal+trash 3 HQ; Piranhas: bad pub or remove tag) ──
 	var add_rez_cost_def: Variant = card_def_check.get("additional_rez_cost", null)
 	if add_rez_cost_def != null:
 		var arc_type: String = (add_rez_cost_def as Dictionary).get("type", "")
-		if arc_type == "forfeit_or_reveal_trash_hq":
+		if arc_type == "bad_pub_or_remove_tag":
+			# Corp must take 1 bad publicity OR remove 1 tag to rez this ice (Piranhas).
+			var arc_can_remove_tag: bool = ctx.runner_tags > 0
+			# Corp always has the option to take bad pub; removing tag requires the runner to have one.
+			# Corp chooses which cost to pay.
+			var arc_pay_bad_pub: bool = true  # default: take bad pub
+			if arc_can_remove_tag and ctx.corp_decision_maker != null and \
+					ctx.corp_decision_maker.has_method("choose_modes"):
+				var arc_modes: Array = [
+					{"label": "Take 1 bad publicity"},
+					{"label": "Remove 1 tag from the Runner"}
+				]
+				var arc_chosen: Array = await ctx.corp_decision_maker.choose_modes(arc_modes, 1, ctx)
+				arc_pay_bad_pub = (arc_chosen.is_empty() or arc_chosen[0] == 0)
+			elif arc_can_remove_tag:
+				# AI default: removing a tag is strictly better for the corp
+				arc_pay_bad_pub = false
+			if arc_pay_bad_pub:
+				ctx.corp_bad_pub += 1
+				ctx.send_log("[Rez] %s: Corp takes 1 bad publicity as additional rez cost (%d total)." % [
+					record.title, ctx.corp_bad_pub])
+			else:
+				ctx.runner_tags -= 1
+				ctx.send_log("[Rez] %s: Corp removes 1 Runner tag as additional rez cost (%d remaining)." % [
+					record.title, ctx.runner_tags])
+		elif arc_type == "forfeit_or_reveal_trash_hq":
 			var arc_reveal_count: int = (add_rez_cost_def as Dictionary).get("reveal_trash_count", 3)
 			var arc_can_forfeit: bool = not ctx.corp_score_area_cards.is_empty()
 			var arc_can_reveal: bool  = ctx.corp_hand.size() >= arc_reveal_count
@@ -1084,6 +1628,9 @@ func _rez_card(card: InstalledCard) -> void:
 	card.is_rezzed    = true
 	if record.is_ice():
 		ctx.ice_rezzed_this_turn = true
+	# Track all ice (and root cards) rezzed this turn by IID (Cloud Eater, Lightning Lab).
+	if card.runtime_instance_id != "":
+		ctx.ice_rezzed_this_turn_instance_ids.append(card.runtime_instance_id)
 	ctx.send_log("[Rez] Corp rezzes %s for %d credits." % [record.title, rez_cost])
 	emit_signal("ice_rezzed", card)
 
@@ -1112,10 +1659,11 @@ func _register_rezzed_listeners(card: InstalledCard) -> void:
 						"approach_ice", "encounter_ice", "encounter_ended", "pass_ice", "successful_run",
 						"approach_server", "run_end", "on_derez",
 						"corp_scores_agenda", "runner_steals_agenda", "runner_trashes_during_breach",
-						"before_breach", "runner_installs_virus",
+						"before_breach", "before_access", "runner_installs_virus",
 						"on_advance", "breach_complete", "run_start", "runner_takes_tags",
 						"archives_cards_turned_faceup",
-						"hardware_trashed", "runner_spends_outside_credits", "corp_gains_bad_pub"]:
+						"hardware_trashed", "runner_spends_outside_credits", "corp_gains_bad_pub",
+						"corp_purges_virus_counters", "corp_rezzes_ice"]:
 		var trigger_def = card_def.get(event_type, null)
 		if trigger_def != null:
 			ctx.register_listener(event_type, instance_id, trigger_def as Dictionary)
@@ -1187,6 +1735,94 @@ func _apply_run_position_reset() -> bool:
 	_ice_index            = 0
 	_has_passed_ice       = false
 	return true
+
+
+# ── On-pass trigger firing ───────────────────────────────────────────────────
+#
+# Fires after the runner successfully passes a piece of ice.  Two trigger types:
+#   on_runner_passes      — defined on the ice itself (Phoneutria, Tatu-Bola, VSA)
+#   on_runner_passes_host — defined on a trojan hosted on the ice (Pichação)
+#
+# `broken_with_decoder` is true when a decoder icebreaker broke at least one
+# subroutine during the encounter — used by VSA's "ice_not_broken_with_decoder" condition.
+func _fire_on_pass_triggers(ice_card: InstalledCard, broken_with_decoder: bool) -> void:
+	# Build the shared event data for this pass event.
+	var pass_event_data: Dictionary = {
+		"ice":                 ice_card,
+		"card_instance_id":    ice_card.runtime_instance_id,
+		"broken_with_decoder": broken_with_decoder
+	}
+
+	# 1. Ice's own on_runner_passes ability.
+	var ice_pass_def: Variant = ability_registry.get_on_runner_passes(ice_card.card_id)
+	if ice_pass_def != null:
+		ctx.current_event_data = pass_event_data
+		await interpreter.execute_trigger(ice_pass_def as Dictionary, ctx)
+		ctx.current_event_data = {}
+		if ctx.run_ended:
+			return
+
+	# 2. Each trojan hosted on this ice: on_runner_passes_host.
+	# Iterate a snapshot — the trojan itself may modify hosted_cards (Pichação returns to grip).
+	for hc in ice_card.hosted_cards.duplicate():
+		var hosted: InstalledCard = hc as InstalledCard
+		if hosted == null:
+			continue
+		var trojan_pass_def: Variant = ability_registry.get_on_runner_passes_host(hosted.card_id)
+		if trojan_pass_def == null:
+			continue
+		# Override card_instance_id so _get_self_card() finds the trojan, not the ice.
+		var trojan_event_data: Dictionary = pass_event_data.duplicate()
+		trojan_event_data["card_instance_id"] = hosted.runtime_instance_id
+		ctx.current_event_data = trojan_event_data
+		await interpreter.execute_trigger(trojan_pass_def as Dictionary, ctx)
+		ctx.current_event_data = {}
+		if ctx.run_ended:
+			return
+
+
+# ── AirbladeX: ice "when encountered" ability firing with interrupt hook ──────
+#
+# Fires each on_encounter_self ability defined for the encountered ice in order.
+# Before each ability, if the runner has an AirbladeX counter, they are offered
+# the interrupt: spend 1 counter to prevent that specific ability.
+# Respects threat conditions defined on each ability dict ("threat": int).
+func _fire_ice_when_encountered(ice_card: InstalledCard) -> void:
+	var abilities: Array = ability_registry.get_on_encounter_self(ice_card.card_id)
+	if abilities.is_empty():
+		return
+
+	for we_def_raw in abilities:
+		var we_def: Dictionary = we_def_raw as Dictionary
+
+		# Respect threat gating: "threat": N means only active at threat N or above.
+		var we_threat: int = we_def.get("threat", 0)
+		if we_threat > 0 and ctx.threat_level() < we_threat:
+			continue
+
+		# AirbladeX interrupt window — offered before this ability fires.
+		if ctx.runner_has_airbladex_counter():
+			var use_airbladex: bool = false
+			if ctx.runner_decision_maker != null and \
+					ctx.runner_decision_maker.has_method("use_airbladex_prevent_when_encountered"):
+				use_airbladex = await ctx.runner_decision_maker.use_airbladex_prevent_when_encountered(
+					ice_card, we_def, ctx)
+			if use_airbladex:
+				ctx.spend_airbladex_counter()
+				ctx.send_log("[AirbladeX] %s's 'when encountered' ability prevented." % \
+					ice_card.display_name())
+				continue  # this ability is suppressed; check next one
+
+		# Execute the ability.
+		ctx.current_event_data = {
+			"card":               ice_card,
+			"card_instance_id":   ice_card.runtime_instance_id
+		}
+		await interpreter.execute_trigger(we_def, ctx)
+		ctx.current_event_data = {}
+
+		if ctx.run_ended:
+			return  # caller will handle _phase_end
 
 
 # ── Shred: ETR prevention helper ─────────────────────────────────────────────
@@ -1330,6 +1966,37 @@ func _execute_encounter_window(encounter: EncounterState) -> void:
 
 func _process_window_action(action: GameAction, actor: String, can_rez_ice: bool) -> void:
 	match action.type:
+		"use_ice_trash_ability":
+			# Corp activates an ice's trash-self paid ability (e.g. M.I.C.).
+			# 1. Remove the ice from its server.
+			# 2. Execute the ability's effects (e.g. runner_click_or_etr).
+			if actor != "corp":
+				return
+			var ita_iid: String = action.params.get("card_instance_id", "")
+			var ita_card: InstalledCard = ctx.get_installed_card_by_instance_id(ita_iid) if ita_iid != "" else null
+			if ita_card == null:
+				ctx.send_log("[ice_paid_ability] Ice not found — ignoring.")
+				return
+			var ita_card_id: String = ita_card.card_id
+			var ita_ability: Dictionary = ability_registry._abilities.get(ita_card_id, {}) \
+				.get("ice_paid_ability", {}) as Dictionary
+			if ita_ability.is_empty():
+				ctx.send_log("[ice_paid_ability] No ability defined on %s." % ita_card.display_name())
+				return
+			# Remove from server and move to Archives.
+			var ita_server: Server = ctx.get_server(ita_card.server_id)
+			if ita_server != null:
+				ita_server.ice.erase(ita_card)
+				ctx.remove_empty_remote_servers()
+			ctx.unregister_all_card_effects(ita_card.runtime_instance_id)
+			if ita_card.card_record != null:
+				ctx.corp_discard.append(ita_card.card_record)
+			ctx.corp_ice_trash_abilities_available = []  # consumed; no double-use
+			ctx.send_log("Corp trashes %s — activating ice paid ability." % ita_card.display_name())
+			# Execute the ability effects.
+			ctx.current_event_data = {"card": ita_card, "card_instance_id": ita_card.runtime_instance_id}
+			await interpreter.execute_trigger(ita_ability, ctx)
+			ctx.current_event_data = {}
 		"rez_card":
 			if actor != "corp":
 				return
@@ -1412,6 +2079,16 @@ func _process_window_action(action: GameAction, actor: String, can_rez_ice: bool
 				ctx.send_log("PAW: %s spends %d click(s) to use %s." % [
 					ctx.corp_name(), paw_cost_clicks, paw_card_id])
 
+			# ── Credit cost (e.g. Brasilia Government Grid: 1cr) ─────────────────
+			var paw_cost_credits: int = (paw_def as Dictionary).get("cost_credits", 0)
+			if paw_cost_credits > 0:
+				if ctx.corp_credits < paw_cost_credits:
+					ctx.send_log("PAW: '%s' — Corp needs %d¢ but has %d." % [
+						paw_card_id, paw_cost_credits, ctx.corp_credits])
+					return
+				ctx.corp_credits -= paw_cost_credits
+				ctx.send_log("PAW: %s spends %d¢ for %s." % [ctx.corp_name(), paw_cost_credits, paw_card_id])
+
 			# ── Counter cost (e.g. VP35 Perfect Recall: spend 1 power counter) ─────
 			var paw_cost_counters_def: Dictionary = (paw_def as Dictionary).get("cost_counters", {}) as Dictionary
 			if not paw_cost_counters_def.is_empty() and paw_card != null:
@@ -1428,6 +2105,45 @@ func _process_window_action(action: GameAction, actor: String, can_rez_ice: bool
 			ctx.current_event_data = {"card": paw_card, "card_instance_id": paw_effective_iid}
 			await interpreter.execute_trigger(paw_def as Dictionary, ctx)
 			ctx.current_event_data = {}
+
+		"activate_from_hq":
+			# Descent-style: Corp activates a card from HQ during a PAW window.
+			# Fires the card's "hq_activate" trigger, then moves the card to Archives.
+			var afhq_card_id: String = action.params.get("card_id", "")
+			if afhq_card_id.is_empty():
+				ctx.send_log("PAW activate_from_hq: no card_id specified.")
+				return
+			# Find the card in corp_hand
+			var afhq_entry: Dictionary = {}
+			var afhq_cr: CardRecord = null
+			for afhq_e in ctx.corp_hand:
+				var afhq_d: Dictionary = afhq_e as Dictionary
+				var afhq_r: CardRecord = afhq_d.get("card_record", null) as CardRecord
+				if afhq_r != null and afhq_r.id == afhq_card_id:
+					afhq_entry = afhq_d
+					afhq_cr    = afhq_r
+					break
+			if afhq_cr == null:
+				ctx.send_log("PAW activate_from_hq: '%s' not found in HQ." % afhq_card_id)
+				return
+			var afhq_def: Dictionary = ability_registry._abilities.get(afhq_card_id, {}) as Dictionary
+			var afhq_trigger: Variant = afhq_def.get("hq_activate", null)
+			if afhq_trigger == null:
+				ctx.send_log("PAW activate_from_hq: '%s' has no hq_activate trigger." % afhq_card_id)
+				return
+			# Remove from HQ first so the card can't be accessed during its own effect
+			ctx.corp_hand.erase(afhq_entry)
+			ctx.send_log("%s activates %s from HQ." % [ctx.corp_name(), afhq_cr.title])
+			ctx.current_event_data = {"card_id": afhq_card_id}
+			await interpreter.execute_trigger(afhq_trigger as Dictionary, ctx)
+			ctx.current_event_data = {}
+			# Move to Archives after activation (unless return_to_hq flag is set)
+			if not afhq_def.get("return_to_hq_after_activate", false):
+				ctx.corp_discard.append(afhq_cr)
+				ctx.send_log("%s moves to Archives." % afhq_cr.title)
+			else:
+				ctx.corp_hand.append({"card_record": afhq_cr, "known": false})
+				ctx.send_log("%s returns to HQ." % afhq_cr.title)
 
 		_:
 			ctx.send_log("Invalid structural window action executed: %s" % action.type)

@@ -1,0 +1,133 @@
+"","text_code","name","text"
+"1","above_the_law","Above the Law","When you score this agenda, you may trash 1 installed resource.
+Limit 1 per deck."
+"2","amaze_amusements","AMAZE Amusements","Persistent → Whenever a run on this server ends, if the Runner stole any agendas during that run, give the Runner 2 tags. <em>(If the Runner trashes this card while accessing it, this ability still applies for the remainder of this run.)</em>"
+"3","anoetic_void","Anoetic Void","Whenever the Runner approaches this server, you may pay 2[credit] and trash 2 cards from HQ. If you do, end the run."
+"4","ansel_1_0","Ansel 1.0","<strong>Lose [click]:</strong> Break 1 subroutine on this ice. Only the Runner can use this ability.
+[subroutine] Trash 1 installed Runner card.
+[subroutine] You may install 1 card from HQ or Archives.
+[subroutine] The Runner cannot steal or trash Corp cards for the remainder of this run."
+"5","ballista","Ballista","[subroutine] Trash 1 installed program or end the run."
+"6","botulus","Botulus","Install only on a piece of ice. <em>(If the host ice is uninstalled, this program is trashed.)</em>
+When you install this program and when your turn begins, place 1 virus counter on this program.
+<strong>Hosted virus counter:</strong> Break 1 subroutine on host ice."
+"7","bran_1_0","Brân 1.0","<strong>Lose [click]:</strong> Break 1 subroutine on this ice. Only the Runner can use this ability.
+[subroutine] You may install 1 piece of ice from HQ or Archives directly inward from this ice, ignoring all costs.
+[subroutine] End the run.
+[subroutine] End the run."
+"8","buzzsaw","Buzzsaw","Interface → <strong>1[credit]:</strong> Break up to 2 <strong>code gate</strong> subroutines.
+<strong>3[credit]:</strong> +1 strength."
+"9","carmen","Carmen","If you made a successful run this turn, this program costs 2[credit] less to install.
+Interface → <strong>1[credit]:</strong> Break 1 <strong>sentry</strong> subroutine.
+<strong>2[credit]:</strong> +3 strength."
+"10","carnivore","Carnivore","+1[mu]
+Access, once per turn → <strong>Trash 2 cards from your grip:</strong> Trash the card you are accessing.
+Limit 1 <strong>console</strong> per player."
+"11","clearinghouse","Clearinghouse","You can advance this asset.
+When your turn begins, you may trash this asset to do 1 meat damage for each hosted advancement counter."
+"12","cleaver","Cleaver","Interface → <strong>1[credit]:</strong> Break up to 2 <strong>barrier</strong> subroutines.
+<strong>2[credit]:</strong> +1 strength."
+"13","conduit","Conduit","Whenever a successful run on R&D ends, you may place 1 virus counter on this program.
+[click]<strong>:</strong> Run R&D. If successful, access X additional cards when you breach R&D. X is equal to the number of hosted virus counters."
+"14","cookbook","Cookbook","Whenever you install a <strong>virus</strong> program, you may place 1 virus counter on it."
+"15","creative_commission","Creative Commission","Gain 5[credit]. If you have any [click] remaining, lose [click]."
+"16","diviner","Diviner","[subroutine] Do 1 net damage. If you trash a card this way with a printed play or install cost that is an odd number, end the run. <em>(0 is not odd.)</em>"
+"17","docklands_pass","Docklands Pass","The first time each turn you breach HQ, access 1 additional card."
+"18","dzmz_optimizer","DZMZ Optimizer","+1[mu]
+The first program you install each turn costs 1[credit] less to install."
+"19","echelon","Echelon","This program gets +1 strength for each installed <strong>icebreaker</strong> <em>(including this one)</em>.
+Interface → <strong>1[credit]:</strong> Break 1 <strong>sentry</strong> subroutine.
+<strong>3[credit]:</strong> +2 strength."
+"20","fermenter","Fermenter","When you install this program and when your turn begins, place 1 virus counter on this program.
+[click], [trash]<strong>:</strong> Gain 2[credit] for each hosted virus counter."
+"21","funhouse","Funhouse","When the Runner encounters this ice, end the run unless the Runner takes 1 tag.
+[subroutine] Give the Runner 1 tag unless they pay 4[credit]."
+"22","government_subsidy","Government Subsidy","Gain 15[credit]."
+"23","haas_bioroid_precision_design","Haas-Bioroid: Precision Design","You get +1 maximum hand size.
+Whenever you score an agenda, you may add 1 card from Archives to HQ."
+"24","hansei_review","Hansei Review","Gain 10[credit]. If there are any cards in HQ, trash 1 of them."
+"25","hedge_fund","Hedge Fund","Gain 9[credit]."
+"26","jailbreak","Jailbreak","Run HQ or R&D. If successful, draw 1 card and when you breach the attacked server, access 1 additional card."
+"27","jinteki_restoring_humanity","Jinteki: Restoring Humanity","When your discard phase ends, if there is a facedown card in Archives, gain 1[credit]."
+"28","karuna","Karunā","[subroutine] Do 2 net damage. The Runner may jack out.
+[subroutine] Do 2 net damage."
+"29","leech","Leech","Whenever you make a successful run on a central server, place 1 virus counter on this program.
+<strong>Hosted virus counter:</strong> The ice you are encountering gets -1 strength for the remainder of this encounter."
+"30","longevity_serum","Longevity Serum","When you score this agenda, trash any number of cards from HQ. Shuffle up to 3 cards from Archives into R&D.
+Limit 1 per deck."
+"31","luminal_transubstantiation","Luminal Transubstantiation","When you score this agenda, gain [click][click][click]. You cannot score agendas for the remainder of the turn.
+Limit 1 per deck."
+"32","malapert_data_vault","Malapert Data Vault","Whenever you score an agenda from the root of this server, you may search R&D for 1 non-agenda card and reveal it. <em>(Shuffle R&D after searching it.)</em> Add that card to HQ."
+"33","manegarm_skunkworks","Manegarm Skunkworks","Whenever the Runner approaches this server, end the run unless they either spend [click][click] or pay 5[credit]."
+"34","marjanah","Marjanah","Interface → <strong>2[credit]:</strong> Break 1 <strong>barrier</strong> subroutine. If you made a successful run this turn, this ability costs 1[credit] less to use.
+<strong>1[credit]:</strong> +1 strength."
+"35","mayfly","Mayfly","Interface → <strong>1[credit]:</strong> Break 1 subroutine. When this run ends, trash this program.
+<strong>1[credit]:</strong> +1 strength."
+"36","mutual_favor","Mutual Favor","Search your stack for 1 <strong>icebreaker</strong> and reveal it. <em>(Shuffle your stack after searching it.)</em> If you made a successful run this turn, you may install that program. If you do not, add it to your grip."
+"37","nbn_reality_plus","NBN: Reality Plus","The first time each turn the Runner takes a tag, gain 2[credit] or draw 2 cards."
+"38","neurospike","Neurospike","Do X net damage, where X is equal to the sum of the printed agenda points on agendas you scored this turn."
+"39","nico_campaign","Nico Campaign","When you rez this asset, load 9[credit] onto it. When it is empty, trash it and draw 1 card.
+When your turn begins, take 3[credit] from this asset."
+"40","offworld_office","Offworld Office","When you score this agenda, gain 7[credit]."
+"41","orbital_superiority","Orbital Superiority","When you score this agenda, if the Runner is tagged, do 4 meat damage; otherwise, give the Runner 1 tag."
+"42","overclock","Overclock","Place 5[credit] on this event, then run any server. You can spend hosted credits during that run."
+"43","palisade","Palisade","While this ice is protecting a remote server, it gets +2 strength.
+[subroutine] End the run."
+"44","pantograph","Pantograph","+1[mu]
+Whenever an agenda is scored or stolen, gain 1[credit]. Then, you may install 1 card from your grip.
+Limit 1 <strong>console</strong> per player."
+"45","pennyshaver","Pennyshaver","+1[mu]
+Whenever you make a successful run, place 1[credit] on this hardware.
+[click]<strong>:</strong> Place 1[credit] on this hardware, then take all credits from it.
+Limit 1 <strong>console</strong> per player."
+"46","pharos","Pharos","You can advance this ice. It gets +5 strength while there are 3 or more hosted advancement counters.
+[subroutine] Give the Runner 1 tag.
+[subroutine] End the run.
+[subroutine] End the run."
+"47","ping","Ping","When you rez this ice during a run against this server, give the Runner 1 tag.
+[subroutine] End the run."
+"48","predictive_planogram","Predictive Planogram","Resolve 1 of the following. If the Runner is tagged, you may resolve both instead.<ul><li>Gain 3[credit].</li><li>Draw 3 cards.</li></ul>"
+"49","public_trail","Public Trail","Play only if the Runner made a successful run during their last turn.
+Give the Runner 1 tag unless they pay 8[credit]."
+"50","red_team","Red Team","When you install this resource, load 12[credit] onto it. When it is empty, trash it.
+[click]<strong>:</strong> Run a central server you have not run this turn. If successful, take 3[credit] from this resource."
+"51","regolith_mining_license","Regolith Mining License","When you rez this asset, load 15[credit] onto it. When it is empty, trash it.
+[click]<strong>:</strong> Take 3[credit] from this asset."
+"52","rene_loup_arcemont_party_animal","René “Loup” Arcemont: Party Animal","The first time each turn you trash a card you are accessing, gain 1[credit] and draw 1 card."
+"53","retribution","Retribution","Play only if the Runner is tagged.
+Trash 1 installed program or piece of hardware."
+"54","seamless_launch","Seamless Launch","Place 2 advancement counters on 1 installed card that you did not install this turn."
+"55","send_a_message","Send a Message","When this agenda is scored or stolen, you may rez 1 installed piece of ice, ignoring all costs."
+"56","smartware_distributor","Smartware Distributor","[click]<strong>:</strong> Place 3[credit] on this resource.
+When your turn begins, take 1[credit] from this resource."
+"57","spin_doctor","Spin Doctor","When you rez this asset, draw 2 cards.
+<strong>Remove this asset from the game:</strong> Shuffle up to 2 cards from Archives into R&D."
+"58","sprint","Sprint","Draw 3 cards. Shuffle 2 cards from HQ into R&D."
+"59","superconducting_hub","Superconducting Hub","When you score this agenda, you may draw 2 cards.
+You get +2 maximum hand size."
+"60","sure_gamble","Sure Gamble","Gain 9[credit]."
+"61","t400_memory_diamond","T400 Memory Diamond","+1[mu]
+You get +1 maximum hand size."
+"62","tao_salonga_telepresence_magician","Tāo Salonga: Telepresence Magician","Whenever an agenda is scored or stolen, you may swap 2 installed pieces of ice."
+"63","telework_contract","Telework Contract","When you install this resource, load 9[credit] onto it. When it is empty, trash it.
+Once per turn → [click]<strong>:</strong> Take 3[credit] from this resource."
+"64","the_catalyst_convention_breaker","The Catalyst: Convention Breaker","Starter game only."
+"65","the_syndicate_profit_over_principle","The Syndicate: Profit over Principle","Starter game only."
+"66","tithe","Tithe","[subroutine] Do 1 net damage.
+[subroutine] Gain 1[credit]."
+"67","tomorrows_headline","Tomorrowʼs Headline","When this agenda is scored or stolen, give the Runner 1 tag.
+Limit 1 per deck."
+"68","tranquilizer","Tranquilizer","Install only on a piece of ice. <em>(If the host ice is uninstalled, this program is trashed.)</em>
+When you install this program and when your turn begins, place 1 virus counter on this program. Then, if there are 3 or more hosted virus counters, derez host ice."
+"69","tread_lightly","Tread Lightly","Run any server. During that run, the rez cost of each piece of ice is increased by 3[credit]."
+"70","unity","Unity","Interface → <strong>1[credit]:</strong> Break 1 <strong>code gate</strong> subroutine.
+<strong>1[credit]:</strong> +X strength. X is equal to the number of installed <strong>icebreakers</strong> <em>(including this one)</em>."
+"71","urtica_cipher","Urtica Cipher","You can advance this asset.
+When the Runner accesses this asset while it is installed, do 2 net damage plus 1 net damage for each hosted advancement counter."
+"72","verbal_plasticity","Verbal Plasticity","The first time each turn you take the basic action to draw 1 card, instead draw 2 cards."
+"73","vrcation","VRcation","Draw 4 cards. If you have any [click] remaining, lose [click]."
+"74","weyland_consortium_built_to_last","Weyland Consortium: Built to Last","Whenever you advance a card, gain 2[credit] if it had no advancement counters."
+"75","whitespace","Whitespace","[subroutine] The Runner loses 3[credit].
+[subroutine] If the Runner has 6[credit] or less, end the run."
+"76","wildcat_strike","Wildcat Strike","Resolve 1 of the following of the Corpʼs choice:<ul><li>Gain 6[credit].</li><li>Draw 4 cards.</li></ul>"
+"77","zahya_sadeghi_versatile_smuggler","Zahya Sadeghi: Versatile Smuggler","Once per turn → When a run on HQ or R&D ends, you may gain 1[credit] for each time you accessed a card during that run."

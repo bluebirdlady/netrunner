@@ -1,0 +1,18 @@
+"","text_code","name","text"
+"1","anemone","Anemone","When you rez this ice during a run against this server, you may trash 1 card from HQ to do 2 net damage.
+[subroutine] Do 1 net damage."
+"2","azef_protocol","Azef Protocol","As an additional cost to score this agenda, trash 1 of your other installed cards.
+When you score this agenda, do 2 meat damage."
+"3","deep_dive","Deep Dive","Play only if you made a successful run on HQ, R&D, and Archives this turn.
+The Corp must set aside the top 8 cards of R&D faceup. Access 1 of those cards. You may spend [click] to access another 1 of those cards. Then, the Corp shuffles the set-aside cards into R&D."
+"4","hakarl_1_0","Hákarl 1.0","When you rez this ice during a run against this server, you may derez another installed card. If you do, the Runner cannot use paid abilities printed on <strong>bioroid</strong> ice for the remainder of this turn.
+<strong>Lose [click]:</strong> Break 1 subroutine on this ice. Only the Runner can use this ability.
+[subroutine] Do 1 core damage.
+[subroutine] End the run."
+"5","light_the_fire","Light the Fire!","[click], [trash], <strong>suffer 1 core damage:</strong> Run a remote server. During that run, cards in the root of the attacked server lose all abilities. When that run is successful, trash all cards in the root of the attacked server."
+"6","revolver","Revolver","When you install this program, place 6 power counters on it.
+Interface → [trash] or <strong>hosted power counter:</strong> Break 1 <strong>sentry</strong> subroutine.
+<strong>2[credit]:</strong> +3 strength."
+"7","vladisibirsk_city_grid","Vladisibirsk City Grid","You can advance this upgrade.
+Once per turn → <strong>2 hosted advancement counters:</strong> Place 2 advancement counters on another card you can advance in the root of this server.
+Limit 1 <strong>region</strong> per server."

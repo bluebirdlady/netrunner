@@ -1,0 +1,35 @@
+PUBLISHED
+
+Méliès University's Central Campus sits in the Heinlein surface rock above Lunacent, connected to the sub-levels by a series of mag-lifts that require institutional credentials to access. Their research division publishes nine hundred and forty papers per year — a figure cited prominently in every annual report and accreditation filing. It appears on a plaque in their lobby.
+
+They publish nine hundred and forty papers per year, and their research division does not publish.
+
+---
+
+There is a difference between a paper and a publication. A paper exists in a repository. A publication enters the world. Méliès U's research division produces papers — rigorously formatted, internally peer-reviewed, archived in systems accessible only to credentialed researchers within a closed network of institutional relationships — and most of them never appear in any index the Editorial Division hasn't already cleared.
+
+Some papers are produced specifically to be cited by other papers, to give a chain of apparent legitimacy to a conclusion that was decided before the research began.
+
+Project Pale Horse has forty-seven associated papers.
+
+---
+
+You found the citation trail in the PRH-II files. Every time the research required an external validity claim — for the host range data, for the expression vector substrate, for the durability protocol specifications — a Méliès U paper was waiting to provide it. Cleanly formatted. Appropriately technical. Written by people whose names appear in the University's published faculty directory.
+
+None of the forty-seven papers appear in any public index.
+
+A runner named Betwixt, who did contract work for a Heinlein-based collective last year, mentioned Méliès U in passing once: that their research division's network had internal security that looked like a standard Jinteki configuration, and that someone she knew had nearly not made it out. She didn't say more than that. You filed it away.
+
+You're thinking about it now.
+
+---
+
+What you need is the unpublished versions — the internal drafts, the research notes, the correspondence between the Méliès U team and their contacts at PT Untaian and H-982. The versions that say what the work actually was before the language was cleaned for archival.
+
+The final papers describe the science. The drafts describe the purpose.
+
+—
+
+TARGET: Méliès University
+FACILITY: Research Division Archive, Heinlein Central Campus
+OBJECTIVE: Pull the unpublished Pale Horse research files. Drafts, notes, correspondence.

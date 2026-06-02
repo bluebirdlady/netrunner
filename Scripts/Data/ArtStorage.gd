@@ -16,7 +16,7 @@ extends Node
 #           art_rect.texture = texture
 
 const CACHE_DIR     := "user://art_storage/"
-const IMAGE_URL     := "https://card-images.netrunnerdb.com/v1/large/%s.jpg"
+const IMAGE_URL := "https://card-images.netrunnerdb.com/v2/large/%s.jpg"
 const PLACEHOLDER_COLOR := Color(0.15, 0.15, 0.2, 1.0)
 
 signal texture_ready(printing_id: String, texture: Texture2D)
@@ -91,21 +91,26 @@ func _fetch(printing_id: String) -> void:
 	var url := IMAGE_URL % printing_id
 	var http := HTTPRequest.new()
 	add_child(http)
-
-	var err := http.request(url)
+	
+	# Add headers to avoid 403
+	var headers: PackedStringArray = [
+		"User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+	]
+	
+	var err := http.request(url, headers)
 	if err != OK:
 		push_error("ArtStorage: HTTP request failed for %s" % printing_id)
 		http.queue_free()
 		_pending.erase(printing_id)
 		return
-
+	
 	var response = await http.request_completed
 	http.queue_free()
 	_pending.erase(printing_id)
-
+	
 	var http_code: int        = response[1]
 	var body: PackedByteArray = response[3]
-
+	
 	if http_code != 200:
 		push_warning("ArtStorage: got HTTP %d for %s" % [http_code, printing_id])
 		return
@@ -128,25 +133,37 @@ func _fetch(printing_id: String) -> void:
 func _fetch_from_url(url: String, cache_key: String) -> void:
 	var http := HTTPRequest.new()
 	add_child(http)
-	var err := http.request(url)
+	
+	# Add headers to avoid 403 (User-Agent + optional Referer)
+	var headers: PackedStringArray = [
+		"User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+	]
+	
+	var err := http.request(url, headers)
 	if err != OK:
 		push_error("ArtStorage: request failed for %s" % url)
 		http.queue_free()
 		_pending.erase(cache_key)
 		return
+	
 	var response = await http.request_completed
 	http.queue_free()
 	_pending.erase(cache_key)
+	
 	var http_code: int        = response[1]
 	var body: PackedByteArray = response[3]
+	
 	if http_code != 200:
 		push_warning("ArtStorage: got HTTP %d for %s" % [http_code, url])
 		return
+	
 	_write_to_disk(cache_key, body)
+	
 	var image := Image.new()
 	if image.load_jpg_from_buffer(body) != OK:
 		push_warning("ArtStorage: could not decode image for %s" % cache_key)
 		return
+	
 	var texture := ImageTexture.create_from_image(image)
 	_memory_cache[cache_key] = texture
 	emit_signal("texture_ready", cache_key, texture)

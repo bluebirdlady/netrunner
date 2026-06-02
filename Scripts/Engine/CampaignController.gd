@@ -18,6 +18,9 @@ var _state:   CampaignState
 var _menu:    CampaignMenu
 var _current_mission_id: String = ""
 
+var _tournament_state: TournamentState
+var _tournament_menu:  TournamentMenu
+
 
 func _ready() -> void:
 	_state = CampaignState.new()
@@ -43,6 +46,8 @@ func _show_menu() -> void:
 
 	_menu.setup(_state)
 	_menu.starter_match_requested.connect(launch_starter_match)
+	if not _menu.tournament_requested.is_connected(_show_tournament):
+		_menu.tournament_requested.connect(_show_tournament)
 	_menu.visible = true
 
 
@@ -123,4 +128,62 @@ func _on_starter_match_finished() -> void:
 	if _main != null:
 		_main.queue_free()
 		_main = null
+	_show_menu()
+
+
+# ── Tournament flow ───────────────────────────────────────────────────────────
+
+func _show_tournament() -> void:
+	if _menu != null:
+		_menu.visible = false
+
+	if _tournament_state == null:
+		_tournament_state = TournamentState.new()
+		_tournament_state.load_or_new()
+
+	if _tournament_menu == null or not is_instance_valid(_tournament_menu):
+		_tournament_menu = TournamentMenu.new()
+		add_child(_tournament_menu)
+		_tournament_menu.match_requested.connect(_on_tournament_match_requested)
+		_tournament_menu.closed.connect(_on_tournament_closed)
+
+	_tournament_menu.setup(_tournament_state)
+	_tournament_menu.visible = true
+
+
+func _on_tournament_match_requested(opponent: Dictionary, ai_level: int) -> void:
+	if _tournament_menu != null:
+		_tournament_menu.visible = false
+
+	_main = MainScene.instantiate()
+	add_child(_main)
+
+	_main.campaign_mode           = true
+	_main.campaign_runner_deck    = _state.get_runner_deck()
+	_main.campaign_runner_id      = _state.get_runner_identity_id()
+	_main.campaign_corp_deck      = opponent.get("deck", []) as Array
+	_main.campaign_corp_id        = opponent.get("identity", "")
+	_main.campaign_ai_level       = ai_level
+	_main.campaign_available_pool = _state.get_full_card_pool()
+	_main.game_over_callback      = Callable(self, "_on_tournament_game_over")
+
+	await get_tree().process_frame
+	_main.start_campaign_game()
+
+
+func _on_tournament_game_over(runner_wins: bool) -> void:
+	if _main != null:
+		_main.queue_free()
+		_main = null
+
+	if _tournament_menu != null and is_instance_valid(_tournament_menu):
+		_tournament_menu.record_result(runner_wins)
+		_tournament_menu.visible = true
+	else:
+		_show_tournament()
+
+
+func _on_tournament_closed() -> void:
+	if _tournament_menu != null:
+		_tournament_menu.visible = false
 	_show_menu()

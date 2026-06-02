@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://bry32817c35lh"
+
+[deps]
+
+files=["res://Sets/parhelion.text.translation", "res://Sets/parhelion.name.translation", "res://Sets/parhelion.text.translation"]
+
+source_file="res://Sets/parhelion.csv"
+dest_files=["res://Sets/parhelion.text.translation", "res://Sets/parhelion.name.translation", "res://Sets/parhelion.text.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

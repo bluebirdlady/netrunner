@@ -133,6 +133,20 @@ func _wire_proxies_to_game_ui() -> void:
 		return await game_ui.show_pay_to_avoid_damage_prompt(cost, damage, damage_type)
 	runner_brain.choose_optional_ability_proxy = func(prompt_text: String) -> bool:
 		return await game_ui.show_optional_ability_prompt(prompt_text)
+	runner_brain.spend_click_to_continue_proxy = func() -> bool:
+		return await game_ui.show_optional_ability_prompt("Spend 1[click] to continue the run?")
+	runner_brain.psi_bid_proxy = func(max_bid: int) -> int:
+		return await game_ui.show_psi_bid_prompt(max_bid)
+	runner_brain.choose_discard_to_hand_limit_proxy = func(hand: Array, excess: int) -> Array:
+		return await game_ui.show_discard_to_hand_limit_prompt(hand, excess)
+	runner_brain.choose_subs_to_break_proxy = func(candidates: Array, max_count: int, encounter: EncounterState) -> Array:
+		return await game_ui.show_choose_subs_to_break_prompt(candidates, max_count, encounter)
+	runner_brain.host_ice_proxy = func(candidates: Array, _ctx: GameContext, prompt: String = "") -> InstalledCard:
+		return await game_ui.show_host_ice_prompt(candidates, prompt if prompt != "" else "Choose a piece of ice to host this card on:")
+	runner_brain.choose_card_order_proxy = func(cards: Array) -> Array:
+		return await game_ui.show_card_order_prompt(cards)
+	runner_brain.choose_top_or_bottom_proxy = func(card: CardRecord, label: String) -> String:
+		return await game_ui.show_top_or_bottom_prompt(card, label)
 
 
 func _wire_proxies_to_run_scene(run_scene: RunScene) -> void:
@@ -152,6 +166,20 @@ func _wire_proxies_to_run_scene(run_scene: RunScene) -> void:
 		return await run_scene.show_server_choice_prompt(allowed)
 	runner_brain.choose_card_from_hand_proxy = func(hand: Array) -> Variant:
 		return await game_ui.show_choose_from_hand_prompt(hand, "Choose a card to install")
+	runner_brain.choose_discard_to_hand_limit_proxy = func(hand: Array, excess: int) -> Array:
+		return await run_scene.show_discard_to_hand_limit_prompt(hand, excess)
+	runner_brain.choose_subs_to_break_proxy = func(candidates: Array, max_count: int, encounter: EncounterState) -> Array:
+		return await run_scene.show_choose_subs_to_break_prompt(candidates, max_count, encounter)
+	runner_brain.host_ice_proxy = func(candidates: Array, _ctx: GameContext, prompt: String = "") -> InstalledCard:
+		return await game_ui.show_host_ice_prompt(candidates, prompt if prompt != "" else "Choose a piece of ice to host this card on:")
+	runner_brain.choose_optional_ability_proxy = func(prompt_text: String) -> bool:
+		return await game_ui.show_optional_ability_prompt(prompt_text)
+	runner_brain.spend_click_to_continue_proxy = func() -> bool:
+		return await game_ui.show_optional_ability_prompt("Spend 1[click] to continue the run?")
+	runner_brain.choose_card_order_proxy = func(cards: Array) -> Array:
+		return await game_ui.show_card_order_prompt(cards)
+	runner_brain.choose_top_or_bottom_proxy = func(card: CardRecord, label: String) -> String:
+		return await game_ui.show_top_or_bottom_prompt(card, label)
 
 
 # ── Run scene lifecycle ───────────────────────────────────────────────────────

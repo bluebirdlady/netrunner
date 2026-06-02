@@ -640,6 +640,7 @@
 		]
 	},
 	"mutual_favor": {
+		"_note": "SG Runner event. Search stack for an icebreaker (fracter/decoder/killer), add to grip, shuffle. If successful run this turn, may install it.",
 		"on_play": {
 			"effects": [
 				{
@@ -651,7 +652,8 @@
 							"decoder",
 							"killer"
 						],
-						"reveal": true
+						"reveal": true,
+						"install_if_successful_run": true
 					}
 				}
 			]
@@ -679,22 +681,16 @@
 		}
 	},
 	"leech": {
-		"encounter_spend_credits": true,
-		"on_rez": {
+		"encounter_weaken_ice": true,
+		"successful_run": {
 			"effects": [
 				{
-					"type": "add_self_counters",
-					"counter": "credits",
-					"amount": 1
-				}
-			]
-		},
-		"encounter_ice": {
-			"effects": [
-				{
-					"type": "add_self_counters",
-					"counter": "credits",
-					"amount": 1
+					"type": "add_self_counter_if_server",
+					"counter": "virus",
+					"amount": 1,
+					"params": {
+						"server": "central"
+					}
 				}
 			]
 		}
@@ -1840,6 +1836,172 @@
 			]
 		}
 	},
+	"mic": {
+		"_note": "TAI Corp ice (Weyland). AI Barrier. Str 3. Subs: Runner loses [click] x2. Ice paid ability [trash]: Runner spends [click] or run ends.",
+		"ice_paid_ability": {
+			"trash_self": true,
+			"effects": [
+				{"type": "runner_click_or_etr"}
+			]
+		},
+		"subroutines": [
+			{"label": "The Runner loses [click].", "effects": [{"type": "runner_loses_click", "params": {"amount": 1}}]},
+			{"label": "The Runner loses [click].", "effects": [{"type": "runner_loses_click", "params": {"amount": 1}}]}
+		]
+	},
+
+	"hermes": {
+		"_note": "TAI Runner hardware (Console). +1 MU. Whenever an agenda is scored or stolen, Runner must add 1 unrezzed installed Corp card to HQ (mandatory). Runner always chooses the card.",
+		"corp_scores_agenda": {
+			"effects": [{"type": "add_unrezzed_corp_card_to_hq"}]
+		},
+		"runner_steals_agenda": {
+			"effects": [{"type": "add_unrezzed_corp_card_to_hq"}]
+		}
+	},
+
+	"tucana": {
+		"_note": "TAI Corp upgrade (HB). Rezzed. When an agenda is scored or stolen FROM THIS SERVER: search R&D for 1 ice, install it in any server (cost −3, min 0), rez it for free.",
+		"corp_scores_agenda": {
+			"condition": {"type": "and", "conditions": [
+				{"type": "agenda_on_my_server"},
+				{"type": "self_is_rezzed"}
+			]},
+			"effects": [{"type": "search_rd_install_rez_ice_discount_3"}]
+		},
+		"runner_steals_agenda": {
+			"condition": {"type": "and", "conditions": [
+				{"type": "agenda_on_my_server"},
+				{"type": "self_is_rezzed"}
+			]},
+			"effects": [{"type": "search_rd_install_rez_ice_discount_3"}]
+		}
+	},
+
+	"cybersand_harvester": {
+		"_note": "TAI Corp asset (NBN). Whenever the Corp rezzes ice, place 2cr on this asset. Corp can spend hosted credits to pay ice install (positional) costs. [trash]: Corp gains all hosted credits (click action in digital implementation).",
+		"corp_install_credits_any": true,
+		"corp_rezzes_ice": {
+			"effects": [{"type": "add_self_counters", "counter": "credits", "amount": 2}]
+		},
+		"click_action": {
+			"_owner": "corp",
+			"effects": [{"type": "cybersand_trash_for_credits"}]
+		}
+	},
+
+	"urban_art_vernissage": {
+		"_note": "TAI Runner resource (Shaper). When runner's turn begins, may return 1 installed non-virus trojan to grip; if so, place 2cr on this resource. Hosted credits can be spent on any runner install cost.",
+		"install_credits_any": true,
+		"runner_turn_start": {
+			"effects": [{"type": "urban_art_vernissage_bounce_trojan"}]
+		}
+	},
+
+	"daniela_jorge_inacio": {
+		"_note": "TAI Corp upgrade. Rezzed. Adds an additional cost to steal agendas and trash cards in this server: the runner must discard 2 random grip cards to the bottom of the stack. Checked in RunStateMachine._steal_agenda and _offer_trash via ctx.active_server_additional_steal/trash_cost, populated at run start.",
+		"additional_steal_cost": {
+			"type": "discard_grip_to_stack_random",
+			"params": {"amount": 2}
+		},
+		"additional_trash_cost": {
+			"type": "discard_grip_to_stack_random",
+			"params": {"amount": 2}
+		}
+	},
+
+	"beatriz_friere_gonzalez": {
+		"_note": "TAI Runner event. Make a run on any server. If successful, redirect the breach to R&D and access 1 additional card. The redirect is registered as a one-shot successful_run listener before the run starts, using the 'run_with_breach_redirect' effect type.",
+		"on_play": {
+			"effects": [
+				{
+					"type": "run_with_breach_redirect",
+					"params": {
+						"servers": ["hq", "rd", "archives", "remote"],
+						"redirect_to": "rd",
+						"extra_accesses": 1
+					}
+				}
+			]
+		}
+	},
+
+	"eru_ayase_pessoa": {
+		"_note": "TAI Runner resource. [click]: Make a run on any server. If successful, redirect the breach to Archives and access 1 additional card.",
+		"click_action": {
+			"effects": [
+				{
+					"type": "run_with_breach_redirect",
+					"params": {
+						"servers": ["hq", "rd", "archives", "remote"],
+						"redirect_to": "archives",
+						"extra_accesses": 1
+					}
+				}
+			]
+		}
+	},
+
+	"front_company": {
+		"_note": "TAI Corp upgrade. While rezzed in a non-Archives server: Runner cannot run remotes unless they have already made a run this turn. When Runner runs Archives and Front Company's server has no ice: deal 2 net damage. Both effects are hardcoded in TurnManager (_validate_action) and RunStateMachine (_phase_initiation) respectively."
+	},
+
+	"mercury": {
+		"_note": "TAI Runner identity. When breaching HQ or R&D: if the runner broke no subroutines this run, access 1 additional card. Hardcoded in RunStateMachine._breach_server via ctx.runner_identity.id == 'mercury' + ctx.run_runner_broke_any_subroutine."
+	},
+
+	"wage_workers": {
+		"_note": "TAI Runner resource. When the runner has taken the same click-action type exactly 3 times this turn, gain 1 click.",
+		"wage_workers_threshold": {
+			"effects": [{"type": "gain_clicks", "params": {"subject": "runner", "amount": 1}}]
+		}
+	},
+
+	"jaguarundi": {
+		"_note": "TAI Corp ice (NBN). Sentry. Str 2. When encountered at Threat 4: Runner must spend 1[click] or take 1 tag. Sub: End the run.",
+		"on_encounter_self": {
+			"threat": 4,
+			"effects": [
+				{"type": "tag_or_spend_click"}
+			]
+		},
+		"subroutines": [
+			{"label": "End the run.", "effects": [{"type": "end_run"}]}
+		]
+	},
+
+	"stegodon_mk_iv": {
+		"_note": "TAI Corp upgrade (HB). Once per turn, when a run begins, Corp may derez 1 rezzed ice not protecting the attacked server → gain 1cr. While that ice is derezzed, encountered icebreakers have −2 str this run.",
+		"run_start": {
+			"once_per_turn_key": "stegodon_derez",
+			"effects": [
+				{"type": "stegodon_derez_non_attacked_ice"}
+			]
+		}
+	},
+
+	"starlit_knight": {
+		"_note": "TAI Corp ice (HB). Sentry. Str 3. Base sub: End the run. At Threat 4, append X additional 'End the run.' subs where X = Runner's tag count.",
+		"threat_dynamic_subs": {
+			"threat": 4,
+			"count_source": "runner_tags",
+			"sub": {"label": "End the run.", "effects": [{"type": "end_run"}]}
+		},
+		"subroutines": [
+			{"label": "End the run.", "effects": [{"type": "end_run"}]}
+		]
+	},
+
+	"attini": {
+		"_note": "TAI Corp ice (NBN). Sentry. Str 4. At Threat 3, the Runner cannot spend [credit] during subroutine resolution. Subs: Pay 1[credit] or take 1 net damage (x3).",
+		"runner_cannot_pay_subs_at_threat": 3,
+		"subroutines": [
+			{"label": "Pay 1[credit] or suffer 1 net damage.", "effects": [{"type": "net_damage_pay_credits_optional", "params": {"cost": 1, "amount": 1}}]},
+			{"label": "Pay 1[credit] or suffer 1 net damage.", "effects": [{"type": "net_damage_pay_credits_optional", "params": {"cost": 1, "amount": 1}}]},
+			{"label": "Pay 1[credit] or suffer 1 net damage.", "effects": [{"type": "net_damage_pay_credits_optional", "params": {"cost": 1, "amount": 1}}]}
+		]
+	},
+
 	"mitra_aman": {
 		"_note": "Jinteki upgrade. Whenever Runner approaches ice on this server, Corp may trash this upgrade to gain 3cr and optionally swap that ice with one from Archives or HQ. The optional activate + all sub-effects are bundled into mitra_aman_approach.",
 		"approach_ice": {
@@ -2740,6 +2902,27 @@
 			]
 		}
 	},
+
+	"phoneutria": {
+		"_note": "TAI Corp ice (Jinteki). AI Sentry. Str 3. on_runner_passes: if Runner grip >= 4 cards, give 1 tag. Two net damage subs.",
+		"on_runner_passes": {
+			"condition": {"type": "grip_size_gte", "value": 4},
+			"effects": [{"type": "give_tags", "params": {"amount": 1}}]
+		},
+		"subroutines": [
+			{"label": "Do 1 net damage.", "effects": [{"type": "deal_damage", "params": {"damage_type": "net", "amount": 1}}]},
+			{"label": "Do 1 net damage.", "effects": [{"type": "deal_damage", "params": {"damage_type": "net", "amount": 1}}]}
+		]
+	},
+
+	"pichacao": {
+		"_note": "TAI Runner program (Criminal). AI trojan. install_on_ice: true. on_runner_passes_host: gain [click]; if 2nd click gained this run, add self to grip.",
+		"install_on_ice": true,
+		"on_runner_passes_host": {
+			"effects": [{"type": "pichacao_pass_host"}]
+		}
+	},
+
 	"ping": {
 		"on_rez": {
 			"effects": [
@@ -3267,6 +3450,14 @@
 			]
 		}
 	},
+
+	"monkeywrench": {
+		"_note": "TAI Runner program (Anarch). AI trojan. install_on_ice: true. While hosted: host ice gets -2 str; all other ice on the same server gets -1 str (per encounter, applied when EncounterState is built).",
+		"install_on_ice": true,
+		"trojan_host_strength_mod": -2,
+		"trojan_server_strength_mod": -1
+	},
+
 	"muslihat_multifarious_marketeer": {
 		"_note": "Runner identity. When your turn begins, look at the top card of your stack. If that card is an icebreaker or a run event, you may reveal it and add it to your grip.",
 		"runner_turn_start": {
@@ -3460,6 +3651,14 @@
 	},
 	"bangun_when_disaster_strikes": {
 		"_note": "Corp identity (Weyland). (1) Corp may install agendas faceup — handled in TurnManager._do_install via choose_install_faceup decision method. Faceup agendas are 'neither rezzed nor unrezzed'; their abilities are NOT active. (2) Whenever Runner accesses a faceup installed agenda: 2 meat damage + 1 tag — hardcoded in RunStateMachine._access_card before the steal/trash flow. RunnerThreatModel treats faceup agendas as deterrents scaled by grip size."
+	},
+
+	"banner": {
+		"_note": "TAI Runner program (Criminal). Encounter action — 2cr: suppress all 'end the run' subroutines on the encountered barrier for the rest of this encounter.",
+		"suppress_etr_action": {
+			"cost": 2,
+			"subtypes_required": ["barrier"]
+		}
 	},
 	"petty_cash": {
 		"_note": "Corp operation (neutral, 0 cost). Condition: first action this turn (requires_first_action_this_turn). Gain 5cr. If played from Archives (not HQ), gain 1 click. [click]: Play from Archives then RFG. Archives recur handled via GameAction.play_from_archives dispatched by CorpTurnAI._find_petty_cash_in_archives. Pre-condition and RFG cleanup handled in TurnManager._do_play_from_archives.",
@@ -3669,6 +3868,17 @@
 			}
 		]
 	},
+
+	"slap_vandal": {
+		"_note": "TAI Runner program (Criminal). AI trojan. install_on_ice: true. Interface → 1cr: Break 1 sub on host ice. Once per encounter.",
+		"install_on_ice": true,
+		"interface_break": {
+			"cost_per_sub": 1,
+			"subs_per_use": 1,
+			"once_per_encounter": true
+		}
+	},
+
 	"sleipnir": {
 		"_note": "HB Code Gate VP30. 3 subs: optional draw, optional shuffle HQ/Archives card to R&D, ETR.",
 		"subroutines": [
@@ -4223,6 +4433,17 @@
 			"chooser": "runner"
 		}
 	},
+
+	"umbrella": {
+		"_note": "TAI Runner program (Shaper). Interface → 2cr: Break up to 3 code gate subs. Can only interface with ice that has a hosted trojan.",
+		"umbrella_break": {
+			"cost_per_sub": 2,
+			"subs_per_use": 3,
+			"subtypes": ["code_gate"],
+			"requires_hosted_trojan": true
+		}
+	},
+
 	"underdome_irregulars": {
 		"_note": "Corp asset VP16. At Corp discard phase end (while rezzed): if ice was rezzed this turn, Corp draws 2 or removes 1 runner tag; else self-trashes.",
 		"corp_discard_phase_ends": {
@@ -4874,6 +5095,18 @@
 			]
 		}
 	},
+
+	"virtual_service_agent": {
+		"_note": "TAI Corp ice (NBN). AI Code Gate. Str 2. on_runner_passes: if no decoder broke a printed sub this encounter, give 1 tag. Sub: Runner loses 1cr.",
+		"on_runner_passes": {
+			"condition": {"type": "ice_not_broken_with_decoder"},
+			"effects": [{"type": "give_tags", "params": {"amount": 1}}]
+		},
+		"subroutines": [
+			{"label": "The Runner loses 1[credit].", "effects": [{"type": "lose_credits", "params": {"subject": "runner", "amount": 1}}]}
+		]
+	},
+
 	"hiram_0mission_svensson": {
 		"runner_installs_card": {
 			"condition": {"type": "installed_card_is_hardware"},
@@ -4941,6 +5174,735 @@
 		}
 	},
 
+	"hackerspace": {
+		"_note": "Shaper resource VP6. Location. Full ability: host unique companion and connection resources here (each costs 1cr less to install); while hosting both types, +2 max hand size. Simplified: passive +2 runner hand size (hosting/cost reduction requires engine support for resource-on-resource hosting).",
+		"passive_modifiers": [
+			{
+				"type": "runner_hand_size_bonus",
+				"value": 2
+			}
+		]
+	},
+	"stick_and_poke": {
+		"_note": "Criminal companion/virtual resource VP8. Cost 0. First time each turn you encounter ice, that ice gains a subroutine '[sub] Do 1 net damage. The Runner draws 1 card.' placed before its other subroutines for that encounter.",
+		"first_ice_encounter_per_turn": {
+			"effects": [
+				{
+					"type": "add_subroutine_to_current_ice",
+					"params": {
+						"position": "before",
+						"label": "Do 1 net damage. The Runner draws 1 card.",
+						"effects": [
+							{
+								"type": "deal_damage",
+								"params": {
+									"damage_type": "net",
+									"amount": 1
+								}
+							},
+							{
+								"type": "draw_cards",
+								"params": {
+									"subject": "runner",
+									"amount": 1
+								}
+							}
+						]
+					}
+				}
+			]
+		}
+	},
+	"lethe": {
+		"_note": "Corp ice VP51. Sentry-Observer str 6. Whenever runner bypasses or fully breaks: give runner 1 tag. Sub1: corp may move 1 Archives card to top or bottom of R&D. Sub2: add 1 installed runner card to grip.",
+		"on_bypass_or_fully_broken": {
+			"effects": [
+				{
+					"type": "give_tags",
+					"params": {
+						"amount": 1
+					}
+				}
+			]
+		},
+		"subroutines": [
+			{
+				"label": "You may add 1 card from Archives to the top or bottom of R&D.",
+				"effects": [
+					{
+						"type": "corp_move_archives_card_to_rd",
+						"params": {}
+					}
+				]
+			},
+			{
+				"label": "Add 1 installed Runner card to the grip.",
+				"effects": [
+					{
+						"type": "return_runner_installed_to_grip",
+						"params": {}
+					}
+				]
+			}
+		]
+	},
+	"tocsin": {
+		"_note": "Corp ice VP60. Code Gate-Expendable str 5. HQ action: [click], 1cr, reveal and trash self from HQ: search R&D for up to 1 barrier + 1 sentry, reveal, add to HQ. Subs: runner loses 2cr; ETR; ETR.",
+		"hq_reveal_action": {
+			"cost_clicks": 1,
+			"cost_credits": 1,
+			"label": "[click], 1[credit], reveal and trash: Search R&D for up to 1 barrier and 1 sentry. Add to HQ.",
+			"effects": [
+				{
+					"type": "search_rd_by_subtypes_add_to_hq",
+					"params": {
+						"subtypes": ["barrier"],
+						"max_count": 1
+					}
+				},
+				{
+					"type": "search_rd_by_subtypes_add_to_hq",
+					"params": {
+						"subtypes": ["sentry"],
+						"max_count": 1
+					}
+				},
+				{
+					"type": "self_trash"
+				}
+			]
+		},
+		"subroutines": [
+			{
+				"label": "The Runner loses 2[credit].",
+				"effects": [
+					{
+						"type": "lose_credits",
+						"params": {
+							"subject": "runner",
+							"amount": 2
+						}
+					}
+				]
+			},
+			{
+				"label": "End the run.",
+				"effects": [{"type": "end_run"}]
+			},
+			{
+				"label": "End the run.",
+				"effects": [{"type": "end_run"}]
+			}
+		]
+	},
+	"let_them_dream": {
+		"_note": "Corp agenda VP66. 4/2. On score: search HQ, R&D, or Archives for 1 agenda, reveal, add to HQ or bottom of R&D. While in runner's score area: worth 1 less agenda point (stolen: effectively 4/1).",
+		"on_score": {
+			"effects": [
+				{
+					"type": "search_any_zone_for_agenda_add_to_hq_or_rd_bottom",
+					"params": {}
+				}
+			]
+		},
+		"on_steal": {
+			"effects": [
+				{
+					"type": "reduce_stolen_agenda_points",
+					"params": {
+						"amount": 1
+					}
+				}
+			]
+		}
+	},
+	"_rwr_marker": "___ Rebellion Without Rehearsal ___",
+
+	"active_policing": {
+		"_note": "RWR Corp operation (Weyland). Terminal. Play only if Runner stole or trashed last runner turn. Install 1 HQ card. Runner gets −1 allotted click next turn. Threat 3: may pay 2cr for another −1 click.",
+		"terminal": true,
+		"pre_play_condition": "runner_stole_or_trashed_last_runner_turn",
+		"on_play": {
+			"effects": [
+				{
+					"type": "install_any_from_hq",
+					"params": {"max_installs": 1, "optional": true}
+				},
+				{
+					"type": "pending_click_penalty",
+					"params": {"subject": "runner", "amount": 1}
+				},
+				{
+					"type": "may_pay_for_effect",
+					"params": {
+						"cost": 2,
+						"condition": {"type": "threat_gte", "value": 3},
+						"label": "Threat 3 — pay 2[credit]: Runner gets −1 more allotted click next turn",
+						"effects": [{
+							"type": "pending_click_penalty",
+							"params": {"subject": "runner", "amount": 1}
+						}]
+					}
+				}
+			]
+		}
+	},
+
+	"bring_them_home": {
+		"_note": "RWR Corp operation (Weyland). Terminal. Play only if Runner stole or trashed last runner turn. Reveal and move 2 random grip cards to top of stack. Threat 3: may pay 2cr to reveal 1 grip card, runner shuffles it into stack.",
+		"terminal": true,
+		"pre_play_condition": "runner_stole_or_trashed_last_runner_turn",
+		"on_play": {
+			"effects": [
+				{
+					"type": "reveal_random_grip_cards_to_stack_top",
+					"params": {"amount": 2}
+				},
+				{
+					"type": "may_pay_for_effect",
+					"params": {
+						"cost": 2,
+						"condition": {"type": "threat_gte", "value": 3},
+						"label": "Threat 3 — pay 2[credit]: reveal 1 grip card; runner shuffles it into stack",
+						"effects": [{
+							"type": "reveal_random_grip_card_shuffle_to_stack",
+							"params": {}
+						}]
+					}
+				}
+			]
+		}
+	},
+
+	"see_how_they_run": {
+		"_note": "RWR Corp operation (NBN). Psi game — if bids differ (Corp wins): deal 2 net damage. If bids match (Runner wins): no effect. Verify exact card text.",
+		"on_play": {
+			"effects": [{
+				"type": "psi_game",
+				"params": {
+					"on_mismatch": [
+						{"type": "deal_damage", "params": {"damage_type": "net", "amount": 2}}
+					],
+					"on_match": []
+				}
+			}]
+		}
+	},
+
+	"sudden_commandment": {
+		"_note": "RWR Corp operation (NBN, Mandate). Draw 2 cards. You may play 1 non-terminal operation from HQ. Threat 3: if first mandate played this turn, may pay 3cr to gain [click].",
+		"on_play": {
+			"effects": [
+				{"type": "draw_cards", "params": {"subject": "corp", "amount": 2}},
+				{"type": "play_operation_from_hq", "params": {"optional": true, "exclude_terminal": true}},
+				{
+					"type": "may_pay_for_effect",
+					"params": {
+						"cost": 3,
+						"condition": {
+							"type": "and",
+							"conditions": [
+								{"type": "threat_gte", "value": 3},
+								{"type": "first_mandate_this_turn"}
+							]
+						},
+						"label": "Threat 3 (first mandate) — pay 3[credit]: gain [click]",
+						"effects": [{"type": "gain_clicks", "params": {"subject": "corp", "amount": 1}}]
+					}
+				}
+			]
+		}
+	},
+
+	"jeitinho": {
+		"_note": "RWR Runner hardware (Criminal, Weapon). Turn end: if made successful runs on HQ, R&D, and Archives this turn, may add self to score area as an assassination agenda (0 pts). 3 assassination agendas = runner wins. Threat 3 bypass-install from heap requires run-phase engine support (later phase).",
+		"runner_turn_end": {
+			"condition": {"type": "runner_ran_all_three_centrals_this_turn"},
+			"effects": [{
+				"type": "add_self_to_runner_score_as_assassination_agenda",
+				"params": {"optional": true}
+			}]
+		}
+	},
+
+	"solidarity_badge": {
+		"_note": "RWR Runner hardware (Criminal). First time each turn you trash a Corp card: place 1 power counter. Turn start: may remove 1 power counter to draw 1 card or remove 1 tag.",
+		"on_runner_trashes_corp_card": {
+			"condition": {"type": "first_time_this_turn"},
+			"effects": [{"type": "add_self_counters", "counter": "power", "amount": 1}]
+		},
+		"runner_turn_start": {
+			"effects": [{
+				"type": "may_spend_counter_for_choice",
+				"counter": "power",
+				"choices": [
+					{"label": "Draw 1 card", "effects": [{"type": "draw_cards", "params": {"subject": "runner", "amount": 1}}]},
+					{"label": "Remove 1 tag", "effects": [{"type": "remove_tags", "params": {"amount": 1}}]}
+				]
+			}]
+		}
+	},
+
+	"cerberus_lady_h1": {
+		"_note": "RWR Runner program (Shaper). Barrier icebreaker. Install: place 4 power counters. Hosted power counter: break up to 2 barrier subroutines. 1cr: +1 strength.",
+		"on_rez": {
+			"effects": [{"type": "add_self_counters", "counter": "power", "amount": 4}]
+		},
+		"break": {
+			"subtype_restriction": "barrier",
+			"cost_power_counter": 1,
+			"subs_per_use": 2
+		},
+		"boost": {
+			"cost": 1,
+			"strength_gained": 1
+		}
+	},
+
+	"prepaid_voicepad": {
+		"_note": "RWR Runner hardware (Neutral). 1 recurring credit, usable to play events.",
+		"on_rez": {
+			"effects": [{"type": "add_self_counters", "counter": "recurring_credits", "amount": 1}]
+		},
+		"runner_turn_start": {
+			"effects": [{"type": "refill_recurring_credits", "counter": "recurring_credits", "max": 1}]
+		},
+		"passive_modifiers": [{"type": "runner_event_recurring_credits", "value": 0}]
+	},
+
+	"propeller": {
+		"_note": "RWR Runner program (Anarch). Barrier icebreaker. Install: place 4 power counters. 1cr: break 1 barrier subroutine. Hosted power counter: +2 strength.",
+		"on_rez": {
+			"effects": [{"type": "add_self_counters", "counter": "power", "amount": 4}]
+		},
+		"break": {
+			"subtype_restriction": "barrier",
+			"cost_per_sub": 1,
+			"subs_per_use": 1
+		},
+		"boost": {
+			"cost_power_counter": 1,
+			"strength_gained": 2
+		}
+	},
+
+	"lobisomem": {
+		"_note": "RWR Runner program (Criminal). Dual icebreaker: decoder + fracter. Install: 1 power counter. +1 strength per power counter. 1cr: break 1 code gate sub. Barrier: spend 1 power counter overhead + 1cr: break 1 barrier sub. 1cr: +2 strength.",
+		"on_rez": {
+			"effects": [{"type": "add_self_counters", "counter": "power", "amount": 1}]
+		},
+		"strength_per_counter": 1,
+		"break": {
+			"subtype_restriction": "code_gate",
+			"cost_per_sub": 1,
+			"subs_per_use": 1
+		},
+		"on_fully_break_code_gate": {
+			"effects": [{"type": "add_self_counters", "counter": "power", "amount": 1}]
+		},
+		"break_barrier": {
+			"subtype_restriction": "barrier",
+			"cost_per_sub": 1,
+			"subs_per_use": 1,
+			"cost_power_counter_overhead": 1
+		},
+		"boost": {
+			"cost": 1,
+			"strength_gained": 2
+		}
+	},
+
+	"heliamphora": {
+		"_note": "RWR Runner program (Anarch, Virus). 1 MU, cost 1. Interrupt: once per Archives breach, runner may redirect 1 Archives access to faceup hosted on this program instead (card not accessed). Corp purges virus counters: Corp trashes 2 HQ at random, trash this program.",
+		"before_access": {
+			"effects": [{"type": "heliamphora_redirect_access"}]
+		},
+		"corp_purges_virus_counters": {
+			"effects": [{"type": "heliamphora_purge_response"}]
+		}
+	},
+
+	"muse": {
+		"_note": "RWR Runner program (Shaper, Daemon). 1 MU, cost 2. On install: search stack, heap, or grip for 1 non-daemon program (shuffle stack after). If trojan, install it on a piece of ice. Otherwise install it hosted on Muse (daemon hosting — uses Muse's MU slot).",
+		"on_rez": {
+			"effects": [
+				{
+					"type": "search_zones_install_program",
+					"params": {
+						"zones": ["stack", "heap", "grip"],
+						"filter": "non_daemon",
+						"shuffle_stack": true
+					}
+				}
+			]
+		}
+	},
+
+	"hyperbaric": {
+		"_note": "RWR Runner program (Shaper). Code gate icebreaker. Install: place 1 power counter. +1 strength per hosted counter. 1cr: break 1 code gate subroutine. 2cr: place 1 power counter.",
+		"on_rez": {
+			"effects": [{"type": "add_self_counters", "counter": "power", "amount": 1}]
+		},
+		"strength_per_counter": 1,
+		"break": {
+			"subtype_restriction": "code_gate",
+			"cost_per_sub": 1,
+			"subs_per_use": 1
+		},
+		"add_counter_ability": {
+			"cost": 2,
+			"counter": "power",
+			"amount": 1
+		}
+	},
+
+	"trickster_taka": {
+		"_note": "RWR Runner resource (Criminal, Companion). Turn start + steal agenda: place 1 hosted credit. Spend hosted credits on programs during runs. Turn end: if 3+ hosted credits, must take 1 tag or trash self.",
+		"runner_turn_start": {
+			"effects": [{"type": "add_self_counters", "counter": "credits", "amount": 1}]
+		},
+		"on_steal_agenda": {
+			"effects": [{"type": "add_self_counters", "counter": "credits", "amount": 1}]
+		},
+		"passive_modifiers": [{"type": "runner_program_run_recurring_credits", "value": 0}],
+		"runner_turn_end": {
+			"condition": {"type": "self_has_counter_gte", "counter": "credits", "amount": 3},
+			"effects": [{"type": "choice_take_tag_or_trash_self", "params": {}}]
+		}
+	},
+
+	"wake_implant_v2a_jrj": {
+		"_note": "RWR Runner hardware (Shaper). Install: suffer 1 meat damage. Successful HQ run: place 1 power counter. Breach R&D: may remove up to 3 hosted counters to access that many additional cards.",
+		"on_rez": {
+			"effects": [{"type": "deal_damage", "params": {"damage_type": "meat", "amount": 1}}]
+		},
+		"on_successful_run": {
+			"condition": {"type": "run_target_is", "server": "hq"},
+			"effects": [{"type": "add_self_counters", "counter": "power", "amount": 1}]
+		},
+		"on_breach": {
+			"condition": {"type": "breach_target_is", "server": "rd"},
+			"effects": [{
+				"type": "may_remove_counters_for_additional_access",
+				"counter": "power",
+				"max_counters": 3
+			}]
+		}
+	},
+
+	"keiko": {
+		"_note": "RWR Runner resource (Shaper, Console). +2 MU. First time each turn you install a companion card or spend credits from a companion card: gain 1cr. Limit 1 console per player.",
+		"passive_modifiers": [{"type": "runner_mu_bonus", "value": 2}],
+		"on_companion_install_or_spend": {
+			"condition": {"type": "first_time_this_turn"},
+			"effects": [{"type": "gain_credits", "params": {"subject": "runner", "amount": 1}}]
+		},
+		"console": true
+	},
+
+	"the_wizards_chest": {
+		"_note": "RWR Runner hardware (Shaper). Use only if made successful runs on HQ, R&D, and Archives this turn. Trash: choose type (hardware/program/resource), reveal top of stack until 2 of that type found, install 1 ignoring costs, shuffle rest back.",
+		"trash_ability": {
+			"condition": {"type": "runner_ran_all_three_centrals_this_turn"},
+			"effects": [{
+				"type": "search_top_of_stack_install_by_type",
+				"params": {"find_count": 2, "install_count": 1, "ignore_costs": true}
+			}]
+		}
+	},
+
+	"eru_ayase_pessoa": {
+		"_note": "RWR Runner resource (Shaper). Once per turn — click + take 1 tag: run Archives; if successful, breach R&D instead. Threat 3: whenever you breach R&D during an Archives run, access 1 additional card. Full redirect requires engine support; threat bonus is passive.",
+		"passive_modifiers": [{
+			"type": "rd_additional_access_during_archives_run",
+			"value": 1,
+			"condition": {"type": "threat_active", "threshold": 3}
+		}],
+		"click_action": {
+			"cost_tags": 1,
+			"once_per_turn": true,
+			"effects": [{"type": "run_archives_breach_rd_instead", "params": {}}]
+		}
+	},
+
+	"pinhole_threading": {
+		"_note": "RWR Runner event (Anarch). Run any server. If successful, instead of breaching the attacked server, access 1 card in the root of another server. Agendas accessed this way cannot be stolen or trashed.",
+		"on_play": {
+			"effects": [{
+				"type": "run_server_access_other_root",
+				"params": {"can_steal_agendas": false, "can_trash": false}
+			}]
+		}
+	},
+
+	"sisyphus_protocol": {
+		"_note": "RWR Corp agenda 3/2 (Jinteki, Security). Ongoing while scored: the first time each turn the Runner passes a rezzed code gate or sentry, Corp may pay 1cr or trash 1 HQ card to force the Runner to encounter that ice again. Listener registered at install; self_in_corp_score_area guards pre-scoring; once_per_turn_key limits to first pass each turn.",
+		"pass_ice": {
+			"once_per_turn_key": "sisyphus_protocol_pass",
+			"condition": {
+				"type": "and",
+				"conditions": [
+					{"type": "self_in_corp_score_area"},
+					{"type": "pass_ice_is_code_gate_or_sentry"}
+				]
+			},
+			"effects": [
+				{"type": "sisyphus_protocol_re_encounter_choice"}
+			]
+		}
+	},
+
+	"azef_protocol": {
+		"_note": "RWR Corp agenda 3/2 (HB). Additional cost to score: trash 1 of your other installed cards (engine support needed). On score: do 2 meat damage.",
+		"on_score": {
+			"effects": [{"type": "deal_damage", "params": {"damage_type": "meat", "amount": 2}}]
+		}
+	},
+
+	"remastered_edition": {
+		"_note": "RWR Corp agenda 4/2 (HB). On score: place 1 agenda counter on this card. Click + hosted agenda counter: place 1 advancement counter on an installed card.",
+		"on_score": {
+			"effects": [{"type": "add_self_counters", "counter": "agenda", "amount": 1}]
+		},
+		"click_action": {
+			"cost_agenda_counter": 1,
+			"effects": [{
+				"type": "place_advancement_counter_on_installed",
+				"params": {"chooser": "corp"}
+			}]
+		}
+	},
+
+	"sds_drone_deployment": {
+		"_note": "RWR Corp agenda 3/2 (Weyland). Additional cost to steal: trash 1 installed program. On score: trash 1 installed program.",
+		"steal_costs_trash_program": true,
+		"on_score": {
+			"effects": [{"type": "trash_runner_installed_program", "params": {"chooser": "corp"}}]
+		}
+	},
+
+	"cohort_guidance_program": {
+		"_note": "RWR Corp asset 2-trash (HB). Corp turn start: may choose — (A) trash 1 HQ card to gain 2cr and draw 1; or (B) flip 1 facedown Archives card faceup to place 1 advancement counter on an installed card.",
+		"corp_turn_start": {
+			"effects": [{
+				"type": "optional_choice",
+				"chooser": "corp",
+				"modes": [
+					{
+						"label": "Trash 1 card from HQ: gain 2[credit] and draw 1 card",
+						"effects": [
+							{"type": "discard_from_corp_hand", "params": {"amount": 1, "chooser": "corp"}},
+							{"type": "gain_credits", "params": {"subject": "corp", "amount": 2}},
+							{"type": "draw_cards", "params": {"subject": "corp", "amount": 1}}
+						]
+					},
+					{
+						"label": "Flip 1 facedown Archives card faceup: place 1 advancement counter on an installed card",
+						"effects": [
+							{"type": "flip_archives_card_faceup", "params": {}},
+							{"type": "place_advancement_counter_on_installed", "params": {"chooser": "corp"}}
+						]
+					}
+				]
+			}]
+		}
+	},
+
+	"drago_ivanov": {
+		"_note": "RWR Corp asset (NBN). Advanceable. 2 hosted advancement counters (Corp turn only): give the Runner 1 tag.",
+		"advanceable": true,
+		"click_action": {
+			"corp_turn_only": true,
+			"cost_advancement_counters": 2,
+			"effects": [{"type": "give_tags", "params": {"amount": 1}}]
+		}
+	},
+
+	"tatu_bola": {
+		"_note": "TAI Corp ice (Jinteki). AI Sentry. Str 4. on_runner_passes: Corp may swap with ice from HQ, gain 4cr. Sub: end the run.",
+		"on_runner_passes": {
+			"effects": [{"type": "corp_swap_self_ice_with_hq_gain_credits", "params": {"credits": 4}}]
+		},
+		"subroutines": [
+			{"label": "End the run.", "effects": [{"type": "end_run"}]}
+		]
+	},
+
+	"tributary": {
+		"_note": "RWR Corp ice (Weyland). Barrier. Str 4. Run start (first time per turn, on this server): Corp may move this ice to the outermost position. Sub 1: draw 1 (optional); install 1 ice from HQ on another server (optional, free). Sub 2: each ice +2 strength for this run.",
+		"run_start": {
+			"once_per_turn_key": "tributary_move",
+			"condition": {"type": "run_target_is_self_server"},
+			"effects": [
+				{"type": "move_self_to_outermost_position", "params": {"optional": true}}
+			]
+		},
+		"subroutines": [
+			{
+				"label": "You may draw 1 card. You may install 1 piece of ice from HQ protecting another server, ignoring all costs.",
+				"effects": [
+					{"type": "draw_cards", "params": {"subject": "corp", "amount": 1, "up_to": true}},
+					{"type": "install_ice_from_hq_any_server", "params": {"optional": true, "exclude_run_server": true}}
+				]
+			},
+			{
+				"label": "Each piece of ice gets +2 strength for the remainder of this run.",
+				"effects": [{"type": "set_global_ice_strength_bonus", "params": {"amount": 2}}]
+			}
+		]
+	},
+
+	"lycian_multi_munition": {
+		"_note": "RWR Corp ice (Weyland). Barrier/Code Gate/Sentry (chosen on rez). Str 3. On rez: Corp chooses 1+ subtypes among barrier, code gate, sentry; ice gains those subtypes. At end of any turn: derez. Sub 1 (code gate): Runner loses [click] and 1cr. Sub 2 (sentry): trash 1 installed program. Sub 3 (barrier): Corp gains 1cr; end the run.",
+		"on_rez": {
+			"effects": [
+				{
+					"type": "choose_and_grant_subtypes_to_self",
+					"params": {
+						"options": ["barrier", "code_gate", "sentry"],
+						"min_choices": 1
+					}
+				}
+			]
+		},
+		"corp_turn_end": {
+			"effects": [{"type": "derez_self"}]
+		},
+		"runner_turn_end": {
+			"effects": [{"type": "derez_self"}]
+		},
+		"subroutines": [
+			{
+				"label": "If this ice is a code gate, the Runner loses [click] and 1[credit].",
+				"condition": {"type": "self_has_subtype", "subtype": "code_gate"},
+				"effects": [
+					{"type": "lose_clicks", "params": {"subject": "runner", "amount": 1}},
+					{"type": "lose_credits", "params": {"subject": "runner", "amount": 1}}
+				]
+			},
+			{
+				"label": "If this ice is a sentry, trash 1 installed program.",
+				"condition": {"type": "self_has_subtype", "subtype": "sentry"},
+				"effects": [
+					{"type": "trash_runner_program"}
+				]
+			},
+			{
+				"label": "If this ice is a barrier, gain 1[credit] and end the run.",
+				"condition": {"type": "self_has_subtype", "subtype": "barrier"},
+				"effects": [
+					{"type": "gain_credits", "params": {"subject": "corp", "amount": 1}},
+					{"type": "end_the_run"}
+				]
+			}
+		]
+	},
+
+	"drafter": {
+		"_note": "RWR Corp ice (HB). Code gate. Str 2. Sub: add 1 card from Archives to HQ. Sub: install 1 card from Archives or HQ, ignoring all costs.",
+		"subroutines": [
+			{
+				"label": "You may add 1 card from Archives to HQ.",
+				"effects": [{"type": "move_archives_card_to_hq", "params": {"optional": true}}]
+			},
+			{
+				"label": "You may install 1 card from Archives or HQ, ignoring all costs.",
+				"effects": [{"type": "install_from_archives_or_hq_free", "params": {"optional": true}}]
+			}
+		]
+	},
+
+	"tucana": {
+		"_note": "RWR Corp upgrade (Weyland). Remote server only. Persistent: whenever an agenda is scored or stolen from the root of this server, may search R&D for 1 ice, install and rez it paying 3cr less.",
+		"on_agenda_scored_or_stolen_in_root_server": {
+			"effects": [{
+				"type": "search_rd_install_ice_with_discount",
+				"params": {"optional": true, "discount": 3, "rez_included": true}
+			}]
+		}
+	},
+
+	"the_holo_man": {
+		"_note": "RWR Corp upgrade (HB). Corp turn start: may move self to root of another server. Once per turn — click + 4cr: place 2 advancement counters on 1 card in root of or protecting this server (3 counters if no HQ installs this turn).",
+		"corp_turn_start": {
+			"effects": [{"type": "may_move_self_to_server_root", "params": {"optional": true}}]
+		},
+		"click_action": {
+			"cost_credits": 4,
+			"once_per_turn": true,
+			"effects": [{
+				"type": "place_advancement_counters_conditional",
+				"params": {
+					"base_amount": 2,
+					"bonus_amount": 1,
+					"bonus_condition": "no_hq_installs_this_turn",
+					"target": "card_in_root_or_ice_protecting_this_server"
+				}
+			}]
+		}
+	},
+
+	"kingmaking": {
+		"_note": "RWR Corp agenda 3/2 (NBN). On score: draw up to 3 cards. May add 1 agenda worth 1 or fewer points from HQ to your score area without advancing it.",
+		"on_score": {
+			"effects": [
+				{"type": "draw_cards", "params": {"subject": "corp", "amount": 3, "up_to": true}},
+				{"type": "score_agenda_from_hq_direct", "params": {"optional": true, "max_points": 1}}
+			]
+		}
+	},
+
+	"eminent_domain": {
+		"_note": "RWR Corp agenda 3/1 (Weyland). Expendable from HQ: click + 1cr + trash → install and rez 1 HQ card paying 5cr less (expendable mechanic requires engine support). On score: search R&D for 1 card, install and rez it ignoring all costs.",
+		"on_score": {
+			"effects": [{
+				"type": "search_rd_install_rez_free",
+				"params": {"optional": true}
+			}]
+		},
+		"expendable_action": {
+			"cost_clicks": 1,
+			"cost_credits": 1,
+			"label": "[click], 1[credit], reveal and trash from HQ: Install and rez 1 card from HQ, paying 5[credit] less.",
+			"effects": [{
+				"type": "install_rez_from_hq_with_discount",
+				"params": {"discount": 5}
+			}]
+		}
+	},
+
+	"nuvem_sa_law_of_the_land": {
+		"_note": "RWR Corp identity (Weyland). Whenever Corp finishes resolving an operation or an action on an expendable card: look at the top card of R&D, may trash it. First time Corp trashes a card from R&D each turn: gain 2cr.",
+		"on_operation_resolved": {
+			"effects": [{"type": "look_at_rd_top_may_trash", "params": {}}]
+		},
+		"on_expendable_action_resolved": {
+			"effects": [{"type": "look_at_rd_top_may_trash", "params": {}}]
+		},
+		"on_corp_trashes_from_rd": {
+			"condition": {"type": "first_time_this_turn"},
+			"effects": [{"type": "gain_credits", "params": {"subject": "corp", "amount": 2}}]
+		}
+	},
+
+	"thunderbolt_armaments_peace_through_power": {
+		"_note": "RWR Corp identity (HB). Whenever you rez a piece of AP or destroyer ice during a run: that ice gets +1 strength and gains '[sub] End the run unless the Runner trashes 1 installed card.' after its other subroutines for the remainder of that run.",
+		"on_rez_ice_during_run": {
+			"condition": {"type": "ice_has_subtype_any", "subtypes": ["ap", "destroyer"]},
+			"effects": [
+				{"type": "grant_ice_strength_bonus_this_run", "params": {"amount": 1}},
+				{
+					"type": "add_subroutine_to_ice_this_run",
+					"params": {
+						"position": "after",
+						"label": "End the run unless the Runner trashes 1 of their installed cards.",
+						"effects": [{"type": "end_run_unless_runner_trashes_installed", "params": {}}]
+					}
+				}
+			]
+		}
+	},
+
 	"melies_u_only_the_brightest": {
 		"_note": "VP36 Méliès U: Only the Brightest. Corp identity (Division). 3-sided flip. Card ID matches NRDB slug.",
 
@@ -4966,6 +5928,809 @@
 
 		"corp_discard_phase_ends": {
 			"effects": [{"type": "corp_secretly_select_melies_side", "params": {}}]
+		}
+	},
+
+	"ashen_epilogue": {
+		"_note": "RWR Neutral Runner event. Shuffle grip and heap into stack, RFG top 5, draw 5, RFG self.",
+		"on_play": {
+			"remove_from_game": true,
+			"effects": [
+				{"type": "shuffle_grip_and_heap_into_stack"},
+				{"type": "rfg_top_n_stack", "params": {"amount": 5}},
+				{"type": "draw_cards", "params": {"subject": "runner", "amount": 5}}
+			]
+		}
+	},
+
+	"capacitor": {
+		"_note": "RWR NBN ice (Barrier). Str 2. While Runner is tagged, +2 strength. Sub 1: Corp gains 1cr per Runner tag. Sub 2: End the run.",
+		"strength_bonus_while_runner_tagged": 2,
+		"subroutines": [
+			{
+				"label": "Gain 1[credit] for each tag the Runner has.",
+				"effects": [{"type": "gain_credits_per_runner_tag", "params": {"subject": "corp", "per_tag": 1}}]
+			},
+			{
+				"label": "End the run.",
+				"effects": [{"type": "end_run"}]
+			}
+		]
+	},
+
+	"coalescence": {
+		"_note": "RWR Shaper program. 1 MU, cost 2. On install: 2 power counters. [click], hosted power counter: gain 2cr (own turn only — modelled as runner_turn_start optional spend).",
+		"on_rez": {
+			"effects": [{"type": "add_self_counters", "counter": "power", "amount": 2}]
+		},
+		"runner_turn_start": {
+			"effects": [{
+				"type": "may_spend_counter_for_choice",
+				"counter": "power",
+				"click_cost": true,
+				"choices": [
+					{"label": "Gain 2[credit]", "effects": [{"type": "gain_credits", "params": {"subject": "runner", "amount": 2}}]}
+				]
+			}]
+		}
+	},
+
+	"corporate_hospitality": {
+		"_note": "RWR HB operation (Double, Transaction). Additional cost: [click]. Gain 6cr, draw 2, add 1 Archives card to HQ.",
+		"is_double": true,
+		"additional_cost_clicks": 1,
+		"on_play": {
+			"effects": [
+				{"type": "gain_credits", "params": {"subject": "corp", "amount": 6}},
+				{"type": "draw_cards", "params": {"subject": "corp", "amount": 2}},
+				{"type": "fetch_from_archives_to_hq"}
+			]
+		}
+	},
+
+	"friend_of_a_friend": {
+		"_note": "RWR Anarch resource (Connection). Two click+trash paid abilities: (A) gain 5cr + remove 1 tag; (B) gain 9cr + take 1 tag (only if untagged). Modelled as runner_turn_start optional click+trash.",
+		"runner_turn_start": {
+			"effects": [{
+				"type": "click_trash_for_runner_choice",
+				"choices": [
+					{
+						"label": "[click], trash: Gain 5[credit] and remove 1 tag",
+						"effects": [
+							{"type": "gain_credits", "params": {"subject": "runner", "amount": 5}},
+							{"type": "remove_tags", "params": {"amount": 1}}
+						]
+					},
+					{
+						"label": "[click], trash: Gain 9[credit] and take 1 tag (only if not tagged)",
+						"condition": {"type": "runner_not_tagged"},
+						"effects": [
+							{"type": "gain_credits", "params": {"subject": "runner", "amount": 9}},
+							{"type": "give_tags", "params": {"amount": 1}}
+						]
+					}
+				]
+			}]
+		}
+	},
+
+	"pretty_mary_da_silva": {
+		"_note": "RWR Shaper resource (Connection, Seedy). Whenever you breach R&D, if allowed to access 2+ cards, access 1 additional card.",
+		"before_breach": {
+			"effects": [{"type": "pretty_mary_rd_bonus_access"}]
+		}
+	},
+
+	"sorocaban_blade": {
+		"_note": "RWR HB ice (Destroyer, Sentry). Cannot trash more than 1 installed Runner card per encounter. Sub 1: trash 1 resource. Sub 2: trash 1 hardware. Sub 3: trash 1 program.",
+		"subroutines": [
+			{
+				"label": "Trash 1 installed resource.",
+				"effects": [{"type": "trash_runner_card_type", "params": {"card_type": "resource", "per_encounter_max": 1, "cap_key": "self"}}]
+			},
+			{
+				"label": "Trash 1 installed piece of hardware.",
+				"effects": [{"type": "trash_runner_card_type", "params": {"card_type": "hardware", "per_encounter_max": 1, "cap_key": "self"}}]
+			},
+			{
+				"label": "Trash 1 installed program.",
+				"effects": [{"type": "trash_runner_card_type", "params": {"card_type": "program", "per_encounter_max": 1, "cap_key": "self"}}]
+			}
+		]
+	},
+
+	"stoke_the_embers": {
+		"_note": "RWR NBN agenda 3/2 (Initiative). On score: gain 3cr + place 1 advancement on installed card. Install-from-non-HQ trigger not implemented (requires install-source tracking).",
+		"on_score": {
+			"effects": [
+				{"type": "gain_credits", "params": {"subject": "corp", "amount": 3}},
+				{"type": "place_advancement_on_installed", "params": {"amount": 1}}
+			]
+		}
+	},
+
+	"valentina_ferreira_carvalho": {
+		"_note": "RWR Neutral Runner resource (Connection). Whenever you remove 1+ tags, gain 1cr. Threat 3 install bonus: remove 1 tag or gain 2cr.",
+		"tag_removed": {
+			"effects": [{"type": "gain_credits", "params": {"subject": "runner", "amount": 1}}]
+		},
+		"on_rez": {
+			"condition": {"type": "threat_gte", "value": 3},
+			"effects": [{
+				"type": "optional_choice",
+				"chooser": "runner",
+				"optional": true,
+				"modes": [
+					{
+						"label": "Remove 1 tag",
+						"condition": {"type": "runner_is_tagged"},
+						"effects": [{"type": "remove_tags", "params": {"amount": 1}}]
+					},
+					{
+						"label": "Gain 2[credit]",
+						"effects": [{"type": "gain_credits", "params": {"subject": "runner", "amount": 2}}]
+					}
+				]
+			}]
+		}
+	},
+
+	"charlotte_cacador": {
+		"_note": "RWR HB asset. Advanceable (card text says 'can be advanced'). Corp turn start: if 1+ advancement counter on this, may remove 1 → gain 4cr, draw 1.",
+		"corp_turn_start": {
+			"condition": {"type": "self_counter_gte", "counter": "advancement", "threshold": 1},
+			"effects": [{"type": "remove_self_advancement_for_effect"}]
+		}
+	},
+
+	"warm_reception": {
+		"_note": "RWR Corp asset. Corp turn start: install 1 card from HQ (optional). If no ice is protecting this asset's server, also derez self and 1 other rezzed card.",
+		"corp_turn_start": {
+			"effects": [
+				{"type": "install_any_from_hq", "params": {"max_installs": 1, "optional": true}},
+				{"type": "derez_self_and_another"}
+			]
+		}
+	},
+
+	"janaina_jk_dumont_kindelan": {
+		"_note": "RWR Corp asset. Turn start: place 3cr on this card. [click]: take all hosted credits + may install 1 card from HQ.",
+		"corp_turn_start": {
+			"effects": [{"type": "add_self_counters", "counter": "credits", "amount": 3}]
+		},
+		"click_action": {
+			"effects": [{"type": "take_credits_from_card_and_install"}]
+		}
+	},
+
+	"the_powers_that_be": {
+		"_note": "RWR NBN agenda 4/2. On score: Corp may install 1 card from HQ or Archives, ignoring all costs.",
+		"on_score": {
+			"effects": [
+				{"type": "install_any_from_hq", "params": {"max_installs": 1, "optional": true, "also_archives": true}}
+			]
+		}
+	},
+
+	"hearts_and_minds": {
+		"_note": "RWR Weyland upgrade. Corp turn start: move 1 advancement token from one installed card to another. If the destination has no ice protecting its server, also place 1 new advancement counter on it.",
+		"corp_turn_start": {
+			"effects": [{"type": "move_advancement_to_installed"}]
+		}
+	},
+
+	"working_prototype": {
+		"_note": "RWR Neutral Runner resource. Whenever Corp rezzes any card: add 1 power counter. [click], 1 counter: gain 3cr. [click], 5 counters: gain 6cr + move 1 resource from heap to top of stack.",
+		"corp_rezzes_card": {
+			"effects": [{"type": "add_self_counters", "counter": "power", "amount": 1}]
+		},
+		"click_action": {
+			"modes": [
+				{
+					"label": "[click], 1 power counter: Gain 3[credit]",
+					"condition": {"type": "self_counter_gte", "counter": "power", "threshold": 1},
+					"effects": [
+						{"type": "remove_self_counter", "counter": "power", "amount": 1},
+						{"type": "gain_credits", "params": {"subject": "runner", "amount": 3}}
+					]
+				},
+				{
+					"label": "[click], 5 power counters: Gain 6[credit] and add 1 resource from heap to top of stack",
+					"condition": {"type": "self_counter_gte", "counter": "power", "threshold": 5},
+					"effects": [
+						{"type": "remove_self_counter", "counter": "power", "amount": 5},
+						{"type": "gain_credits", "params": {"subject": "runner", "amount": 6}},
+						{"type": "move_resource_from_heap_to_stack_top"}
+					]
+				}
+			]
+		}
+	},
+
+	"meeting_of_minds": {
+		"_note": "RWR Shaper event. Search stack for 1 connection or virtual card; reveal it; gain 1cr for each copy of that card's subtypes already in grip. Shuffle stack.",
+		"on_play": {
+			"effects": [{"type": "search_and_gain_per_grip_match"}]
+		}
+	},
+
+	"pressure_spike": {
+		"_note": "RWR Anarch fracter program. Threat 4 paid ability: spend 2cr to gain +9 strength for the remainder of this run (once per run).",
+		"encounter_ability": {
+			"modes": [
+				{
+					"label": "Threat 4 — 2[credit]: +9 strength for this run",
+					"condition": {
+						"type": "and",
+						"conditions": [
+							{"type": "threat_gte", "value": 4},
+							{"type": "run_modifier_false", "key": "pressure_spike_str_used"}
+						]
+					},
+					"cost_credits": 2,
+					"effects": [{"type": "pressure_spike_str_boost"}]
+				}
+			]
+		}
+	},
+
+	"malandragem": {
+		"_note": "RWR Anarch program. Encounter ability (once/turn): spend 1 power counter → bypass ice if str ≤ 3. Threat 4: remove from game → bypass any ice.",
+		"encounter_ability": {
+			"modes": [
+				{
+					"label": "1 power counter: Bypass this ice if its strength is 3 or less (once per turn)",
+					"condition": {
+						"type": "and",
+						"conditions": [
+							{"type": "self_counter_gte", "counter": "power", "threshold": 1},
+							{"type": "not_triggered_this_turn_for_card", "key": "malandragem_bypass"}
+						]
+					},
+					"cost_counter": {"type": "power", "amount": 1},
+					"once_per_turn_key": "malandragem_bypass",
+					"effects": [{"type": "bypass_if_ice_strength_lte", "params": {"threshold": 3}}]
+				},
+				{
+					"label": "Threat 4: Remove from game — bypass any ice",
+					"condition": {"type": "threat_gte", "value": 4},
+					"rfg_self": true,
+					"effects": [{"type": "bypass_rfg_self_any_ice"}]
+				}
+			]
+		}
+	},
+
+	"physarum_entangler": {
+		"_note": "RWR Anarch trojan. install_on_ice: true. Encounter ability: pay 1cr per unbroken sub → bypass host ice (non-barrier only). trashed_on_purge: true.",
+		"install_on_ice": true,
+		"trashed_on_purge": true,
+		"encounter_ability": {
+			"modes": [
+				{
+					"label": "Pay 1[credit] per unbroken subroutine: Bypass this ice (non-barrier only)",
+					"condition": {"type": "host_is_non_barrier"},
+					"effects": [{"type": "physarum_bypass_host_ice"}]
+				}
+			]
+		}
+	},
+
+	"arruaceiras_crew": {
+		"_note": "RWR Anarch resource. Encounter ability (once/turn): take 1 tag → ice gets -2 str. [click]+2cr+trash: trash encountered ice if its strength is 0 or less.",
+		"encounter_ability": {
+			"modes": [
+				{
+					"label": "Take 1 tag: Encountered ice gets -2 strength (once per turn)",
+					"condition": {"type": "not_triggered_this_turn_for_card", "key": "arruaceiras_weaken"},
+					"cost_tag": 1,
+					"once_per_turn_key": "arruaceiras_weaken",
+					"effects": [{"type": "weaken_encountered_ice", "amount": -2}]
+				},
+				{
+					"label": "[click], 2[credit], trash self: Trash the encountered ice (only if strength ≤ 0)",
+					"condition": {"type": "encountered_ice_str_lte", "threshold": 0},
+					"cost_clicks": 1,
+					"cost_credits": 2,
+					"trash_self": true,
+					"effects": [{"type": "trash_encountered_ice"}]
+				}
+			]
+		}
+	},
+
+	"isaac_liberdade": {
+		"_note": "RWR Shaper trojan program. install_on_ice: true. Passive: if host ice has advancement tokens, +2 str to host ice during encounter. On host ice rez: +1 power counter. Runner turn end: may spend [click] to move to a different installed ice.",
+		"install_on_ice": true,
+		"ice_strength_bonus_if_advanced": 2,
+		"corp_rezzes_ice": {
+			"condition": {"type": "rezzed_card_is_host"},
+			"effects": [{"type": "add_self_counters", "counter": "power", "amount": 1}]
+		},
+		"runner_turn_end": {
+			"effects": [{"type": "isaac_move_to_ice"}]
+		}
+	},
+
+	"airbladex_jsrf_ed": {
+		"_note": "AI hardware. 3 power counters on install; trashed when empty. Two [interrupt] abilities paid with power counters: (1) prevent 1 net damage during a run; (2) prevent a 'when encountered' ice ability. Both are handled in GameContext.spend_airbladex_counter() and the call sites in AbilityInterpreter._deal_damage() and RunStateMachine._fire_ice_when_encountered(). The on_rez trigger places the 3 initial counters.",
+		"on_rez": {
+			"effects": [
+				{"type": "add_self_counters", "counter": "power", "amount": 3}
+			]
+		}
+	},
+
+	"amanuensis": {
+		"_note": "RWR Shaper console. is_console: true. Runner turn end while tagged: +1 power counter. tag_removed: per tag removed, spend 1 power counter → draw 2 cards.",
+		"is_console": true,
+		"runner_turn_end": {
+			"condition": {"type": "runner_is_tagged"},
+			"effects": [{"type": "add_self_counters", "counter": "power", "amount": 1}]
+		},
+		"tag_removed": {
+			"effects": [{"type": "amanuensis_spend_counter_draw_on_untag"}]
+		}
+	},
+
+	"alarm_clock": {
+		"_note": "RWR Criminal event. Each runner turn start: optional run on HQ. During approach of first ice, may spend 2 [click] to bypass it.",
+		"runner_turn_start": {
+			"effects": [{"type": "alarm_clock_optional_hq_run"}]
+		}
+	},
+
+	"cataloguer": {
+		"_note": "RWR Shaper program. On rez: 2 power counters. Successful run on R&D: spend 1 counter to reorder top 4 cards. Click ability: spend 1 counter to breach R&D skipping ice.",
+		"on_rez": {
+			"effects": [{"type": "add_self_counters", "counter": "power", "amount": 2}]
+		},
+		"on_successful_run": {
+			"condition": {"type": "run_target_is", "server": "rd"},
+			"effects": [{"type": "cataloguer_reorder_top_rd"}]
+		},
+		"click_action": {
+			"label": "Cataloguer: breach R&D",
+			"effects": [{"type": "cataloguer_breach_rd"}]
+		}
+	},
+
+	"juli_moreira_lee": {
+		"_note": "RWR Criminal resource. 4 power counters. First time each turn a rig card ability is used: spend 1 counter → gain 1 [click].",
+		"on_rez": {
+			"effects": [{"type": "add_self_counters", "counter": "power", "amount": 4}]
+		},
+		"runner_rig_action": {
+			"effects": [{"type": "jml_gain_click"}]
+		}
+	},
+
+	"trick_shot": {
+		"_note": "RWR Criminal event. Gain 4 run credits. Run R&D. If successful: gain 2cr + 1 bonus access. After run: may immediately run a remote.",
+		"on_play": {
+			"effects": [{"type": "trick_shot_run"}]
+		}
+	},
+
+	"burner": {
+		"_note": "RWR Criminal event. Run HQ. If successful: reveal 3 random HQ cards; runner places 2 on top or bottom of R&D.",
+		"on_play": {
+			"effects": [{"type": "burner_run"}]
+		}
+	},
+
+	"window_of_opportunity": {
+		"_note": "RWR Criminal event. Optional: install 1 program or hardware from grip. Derez 1 ice at start of run. Corp may rez that ice for free at run end. Make a run.",
+		"on_play": {
+			"effects": [{"type": "window_of_opportunity_run"}]
+		}
+	},
+
+	"spree": {
+		"_note": "RWR Criminal event. 3 counters. Make a run. During encounter windows, spend 1 counter to move an installed trojan to ice on the run server.",
+		"on_play": {
+			"effects": [{"type": "spree_run"}]
+		}
+	},
+
+	"eye_for_an_eye": {
+		"_note": "RWR Criminal event. Condition: runner is untagged. Run HQ. On success: take 1 tag + 1 bonus access. During access: may trash 1 grip card to trash the accessed corp card.",
+		"on_play": {
+			"condition": {"type": "runner_is_untagged"},
+			"effects": [{"type": "eye_for_an_eye_run"}]
+		}
+	},
+
+	"privileged_access": {
+		"_note": "RWR Criminal event. Condition: runner is untagged. Run Archives. May take 1 tag to install from heap for 2cr less instead of breaching. Threat 3: may also install 1 program.",
+		"on_play": {
+			"condition": {"type": "runner_is_untagged"},
+			"effects": [{"type": "privileged_access_run"}]
+		}
+	},
+
+	"manuel_lattes_de_moura": {
+		"_note": "RWR Criminal resource. (a) While tagged: +1 access per breach of HQ/R&D. (b) Threat 3 trash interrupt: Corp must trash 1 HQ card first or the trash fails.",
+		"before_breach": {
+			"condition": {"type": "and", "conditions": [
+				{"type": "runner_is_tagged"},
+				{"type": "event_server_is_hq_or_rd"}
+			]},
+			"effects": [{"type": "increment_run_modifier", "params": {"key": "bonus_access", "amount": 1}}]
+		},
+		"trash_interrupt": {
+			"condition": {"type": "threat_gte", "value": 3},
+			"effects": [{"type": "manuel_trash_interrupt"}]
+		}
+	},
+
+	"amelia_earhart": {
+		"_note": "RWR Criminal resource. Tracks HQ/R&D accesses via ctx.amelia_hq_rd_access_count (incremented in RunStateMachine). Turn start: if 3+ tracked, spend 3 clicks + trash self → Corp loses 10cr.",
+		"runner_turn_start": {
+			"condition": {"type": "amelia_count_gte", "count": 3},
+			"effects": [{"type": "amelia_earhart_activate"}]
+		}
+	},
+
+	"cupellation": {
+		"_note": "RWR Runner Program. Access → 1cr: host the accessed non-agenda Corp card faceup on this program. Whenever you breach HQ, if this program has a hosted Corp card, you may pay 1cr and trash this program to access 2 additional cards.",
+		"before_breach": {
+			"effects": [
+				{"type": "cupellation_activate"},
+				{"type": "cupellation_breach_bonus"}
+			]
+		}
+	},
+
+	"brasilia_government_grid": {
+		"_note": "RWR Corp Upgrade (Grid/Region). Once per turn: when Corp rezzes a piece of ice during a run against this server, may derez another installed ice; if so, the newly rezzed ice gets +3 strength for the remainder of that run.",
+		"corp_rezzes_ice": {
+			"once_per_turn_key": "brasilia_boost",
+			"effects": [{"type": "brasilia_derez_and_boost"}]
+		}
+	},
+
+	"sebastiao_souza_pessoa_activist_organizer": {
+		"_note": "RWR Runner Resource Connection. When runner takes 1+ tags from 0: may install 1 connection from grip paying 2cr less. As additional cost for Corp to basic-trash any connection: Corp must trash 1 card from HQ.",
+		"runner_takes_tags": {
+			"condition": {"type": "runner_gained_first_tag"},
+			"effects": [{"type": "sebastiao_install_connection"}]
+		},
+		"trash_interrupt": {
+			"effects": [{"type": "sebastiao_trash_interrupt"}]
+		}
+	},
+
+	"lightning_laboratory": {
+		"_note": "RWR Corp Agenda 5/3. On score: place 1 agenda counter. Whenever a run begins, may spend 1 agenda counter to rez up to 2 ice protecting the attacked server ignoring all costs. At runner_turn_end, derez 2 ice protecting that server.",
+		"on_score": {
+			"effects": [{"type": "add_self_counters", "counter": "agenda", "amount": 1}]
+		},
+		"run_start": {
+			"effects": [{"type": "lightning_lab_rez_free_ice"}]
+		},
+		"runner_turn_end": {
+			"effects": [{"type": "lightning_lab_derez_at_end"}]
+		}
+	},
+
+	"logjam": {
+		"_note": "RWR Corp ICE. You can advance this ice. +1 str per hosted advancement counter. On rez: place 1 + distinct card types (faceup Archives) counters. Subs: Gain 2cr+ETR / ETR / ETR.",
+		"str_from_advance_tokens": true,
+		"on_rez": {
+			"effects": [{"type": "logjam_init_from_archives"}]
+		},
+		"subroutines": [
+			{
+				"label": "Gain 2[credit]. End the run.",
+				"effects": [
+					{"type": "gain_credits", "params": {"subject": "corp", "amount": 2}},
+					{"type": "end_run"}
+				]
+			},
+			{
+				"label": "End the run.",
+				"effects": [{"type": "end_run"}]
+			},
+			{
+				"label": "End the run.",
+				"effects": [{"type": "end_run"}]
+			}
+		]
+	},
+
+	"hammer": {
+		"_note": "RWR Corp ICE Sentry. Break limit: runner may break only 1 printed sub per encounter except using killers. Subs: Give 1 tag / Trash 1 resource or hardware / Trash 1 program that is not decoder/fracter/killer.",
+		"break_limit_per_encounter": 1,
+		"break_limit_except_subtype": ["killer"],
+		"subroutines": [
+			{
+				"label": "Give the Runner 1 tag.",
+				"effects": [{"type": "give_tags", "params": {"amount": 1}}]
+			},
+			{
+				"label": "Trash 1 installed resource or piece of hardware.",
+				"effects": [
+					{
+						"type": "trash_runner_installed",
+						"params": {
+							"card_types": ["resource", "hardware"]
+						}
+					}
+				]
+			},
+			{
+				"label": "Trash 1 installed program that is not a decoder, fracter, or killer.",
+				"effects": [
+					{
+						"type": "trash_runner_installed",
+						"params": {
+							"card_types": ["program"],
+							"exclude_subtypes": ["decoder", "fracter", "killer"]
+						}
+					}
+				]
+			}
+		]
+	},
+
+	"boto": {
+		"_note": "RWR Corp ICE. Threat 4: +2 str. Subs: Do 2 net damage / may trash 1 HQ card→ETR / may trash 1 HQ card→ETR.",
+		"strength_bonus_threat": {"amount": 2, "threat_gte": 4},
+		"subroutines": [
+			{
+				"label": "Do 2 net damage.",
+				"effects": [{"type": "deal_damage", "params": {"damage_type": "net", "amount": 2}}]
+			},
+			{
+				"label": "You may trash 1 card from HQ to end the run.",
+				"effects": [{"type": "may_trash_hq_card_etr"}]
+			},
+			{
+				"label": "You may trash 1 card from HQ to end the run.",
+				"effects": [{"type": "may_trash_hq_card_etr"}]
+			}
+		]
+	},
+
+	"business_as_usual": {
+		"_note": "RWR Corp Operation. Resolve 1 of: advance up to 2 installed advanceable cards / remove all virus counters from 1 card. Threat 3: also resolve the other mode.",
+		"on_play": {
+			"modes": [
+				{
+					"label": "Place 1 advancement counter on each of up to 2 installed cards you can advance.",
+					"effects": [{"type": "advance_two_installed"}]
+				},
+				{
+					"label": "Remove all virus counters from 1 installed card.",
+					"effects": [{"type": "remove_all_virus_counters"}]
+				}
+			],
+			"max_choices": 1,
+			"bonus_condition": {"type": "threat_gte", "value": 3}
+		}
+	},
+
+	"seraph": {
+		"_note": "RWR Corp ICE Sentry. On encounter: Runner loses 3cr unless they suffer 2 net damage or take 1 tag. Subs: Lose 3cr / Do 2 net damage / Give 1 tag.",
+		"encounter_ice": {
+			"condition": {"type": "encounter_is_self"},
+			"effects": [{"type": "seraph_encounter_toll", "params": {"credits": 3, "net": 2, "tag": 1}}]
+		},
+		"subroutines": [
+			{
+				"label": "The Runner loses 3[credit].",
+				"effects": [{"type": "lose_credits", "params": {"subject": "runner", "amount": 3}}]
+			},
+			{
+				"label": "Do 2 net damage.",
+				"effects": [{"type": "deal_damage", "params": {"damage_type": "net", "amount": 2}}]
+			},
+			{
+				"label": "Give the Runner 1 tag.",
+				"effects": [{"type": "give_tags", "params": {"amount": 1}}]
+			}
+		]
+	},
+
+	"cloud_eater": {
+		"_note": "RWR Corp ICE Sentry. Whenever encounter ends, if rezzed this turn: trash 1 installed Runner card unless Runner takes 2 tags or suffers 3 net damage. Subs: Trash 1 installed Runner card / Give Runner 2 tags / Do 3 net damage.",
+		"encounter_ended": {
+			"condition": {"type": "and", "conditions": [
+				{"type": "encounter_ended_is_self"},
+				{"type": "rezzed_this_turn"}
+			]},
+			"effects": [{"type": "cloud_eater_end_toll"}]
+		},
+		"subroutines": [
+			{
+				"label": "Trash 1 installed Runner card.",
+				"effects": [{"type": "trash_runner_installed", "params": {"card_types": []}}]
+			},
+			{
+				"label": "Give the Runner 2 tags.",
+				"effects": [{"type": "give_tags", "params": {"amount": 2}}]
+			},
+			{
+				"label": "Do 3 net damage.",
+				"effects": [{"type": "deal_damage", "params": {"damage_type": "net", "amount": 3}}]
+			}
+		]
+	},
+
+	"descent": {
+		"_note": "RWR Corp ICE. Activate from HQ: [click]+1cr+reveal+trash from HQ: draw 1 card, reveal up to 2 agendas from HQ/Archives and shuffle into R&D. Corp turn start: may add this ice to HQ. Sub: End the run.",
+		"hq_activate": {
+			"effects": [{"type": "descent_hq_activate"}]
+		},
+		"corp_turn_start": {
+			"effects": [{"type": "descent_move_to_hq"}]
+		},
+		"subroutines": [
+			{
+				"label": "End the run.",
+				"effects": [{"type": "end_run"}]
+			}
+		]
+	},
+
+	"boi_tata": {
+		"_note": "RWR Runner Program Icebreaker Sentry 4/2. If you trashed any of your installed cards this turn, paid abilities on this program cost 1cr less. Interface → 2cr: Break up to 2 sentry subroutines. 3cr: +3 strength.",
+		"break": {
+			"cost_per_sub": 2,
+			"subtypes": ["sentry"],
+			"subs_per_use": 2,
+			"discount_if_runner_trashed_own": 1
+		},
+		"boost": {
+			"cost": 3,
+			"strength_gained": 3,
+			"discount_if_runner_trashed_own": 1
+		}
+	},
+
+	"piranhas": {
+		"_note": "RWR Corp ICE 4/2. Additional rez cost: take 1 bad pub OR remove 1 tag. Subs: Corp may draw 1 / Do 1 net damage / ETR if HQ cards > runner grip cards.",
+		"additional_rez_cost": {"type": "bad_pub_or_remove_tag"},
+		"subroutines": [
+			{
+				"label": "You may draw 1 card.",
+				"effects": [{"type": "draw_cards_optional", "params": {"subject": "corp", "amount": 1}}]
+			},
+			{
+				"label": "Do 1 net damage.",
+				"effects": [{"type": "deal_damage", "params": {"damage_type": "net", "amount": 1}}]
+			},
+			{
+				"label": "End the run if there are more cards in HQ than in the grip.",
+				"effects": [{"type": "end_run_if_hq_gt_grip"}]
+			}
+		]
+	},
+
+	"the_basalt_spire": {
+		"_note": "RWR Corp Agenda 5/3. On steal: Corp may add 1 card from Archives to HQ. On score: place 2 agenda counters. Once per turn click action: spend 1 agenda counter + trash top R&D → add 1 card from Archives to HQ.",
+		"on_steal": {
+			"effects": [{"type": "basalt_spire_add_one_from_archives"}]
+		},
+		"on_score": {
+			"effects": [{"type": "add_self_counters", "counter": "agenda", "amount": 2}]
+		},
+		"click_action": {
+			"once_per_turn_key": "basalt_spire_activate",
+			"effects": [{"type": "basalt_spire_counter_ability"}]
+		}
+	},
+
+	"oracle_thinktank": {
+		"_note": "TAI Corp agenda 2/1 (NBN). When stolen: give Runner 1 tag. Corp click action while in Runner's score area: [click] + remove 1 Runner tag → shuffle back into R&D.",
+		"on_steal": {
+			"effects": [{"type": "give_tags", "params": {"amount": 1}}]
+		},
+		"click_action": {
+			"_owner": "corp",
+			"tag_cost": 1,
+			"effects": [{"type": "shuffle_self_to_rd_from_runner_score_area"}]
+		}
+	},
+
+	"epiphany_analytica_nations_undivided": {
+		"_note": "TAI Corp identity (NBN). The first time each turn the Runner steals or trashes a Corp card, place 1 power counter on this identity. [click], hosted power counter: look at top 3 R&D; may install 1.",
+		"runner_steals_agenda": {
+			"once_per_turn_key": "epiphany_counter",
+			"effects": [{"type": "add_self_counters", "counter": "power", "amount": 1}]
+		},
+		"runner_trashes_during_breach": {
+			"once_per_turn_key": "epiphany_counter",
+			"effects": [{"type": "add_self_counters", "counter": "power", "amount": 1}]
+		},
+		"identity_click_action": {
+			"effects": [{"type": "epiphany_analytica_install_from_rd"}]
+		}
+	},
+
+	"a_teia_ip_recovery": {
+		"_note": "TAI Corp identity (Jinteki). Limit 2 remote servers. The first time each turn the Corp installs in the root of or protecting a remote server, may install 1 card from HQ in another remote for free (cannot score that card this turn). Enforced in TurnManager: can_create_new_remote_server(), _a_teia_free_install(), _score_agenda()."
+	},
+
+	"adrian_seis": {
+		"_note": "TAI Corp upgrade (Jinteki, Psi - Clone - Sysop, trash 2). Whenever the Runner makes a successful run on this server, play a psi game. Bids differ (Corp wins): runner cannot access cards other than Adrian Seis this run. Bids match (runner wins): runner cannot access Adrian Seis this run. Corp turn end: may move this upgrade to another server root.",
+		"successful_run": {
+			"condition": {"type": "run_target_is_self_server"},
+			"effects": [
+				{
+					"type": "psi_game",
+					"params": {
+						"on_mismatch": [
+							{"type": "runner_cannot_access_except_self"}
+						],
+						"on_match": [
+							{"type": "runner_cannot_access_self"}
+						]
+					}
+				}
+			]
+		},
+		"corp_turn_end": {
+			"effects": [
+				{"type": "move_self_to_another_server_root_optional"}
+			]
+		}
+	},
+
+	"chrysopoeian_skimming": {
+		"_note": "TAI Corp asset (Weyland). Paid ability: 1cr, trash — Corp gains [click]. Implemented as a click_action in digital edition (one activation per turn).",
+		"click_action": {
+			"_owner": "corp",
+			"effects": [{"type": "corp_gain_click", "params": {"amount": 1}}]
+		}
+	},
+
+	"slash_and_burn_agriculture": {
+		"_note": "TAI Corp operation (Weyland). Reveal and trash 1 card from HQ as a cost; place 2 advancement counters on 1 installed card.",
+		"on_play": {
+			"effects": [
+				{"type": "reveal_trash_from_hq_as_cost", "params": {"amount": 1}},
+				{"type": "add_advancement_counters_on_installed", "params": {"amount": 2}}
+			]
+		}
+	},
+
+	"tree_line": {
+		"_note": "TAI Corp operation (Weyland). Reveal and trash 1 card from HQ as a cost; place 3 advancement counters on 1 installed card.",
+		"on_play": {
+			"effects": [
+				{"type": "reveal_trash_from_hq_as_cost", "params": {"amount": 1}},
+				{"type": "add_advancement_counters_on_installed", "params": {"amount": 3}}
+			]
+		}
+	},
+
+	"greasing_the_palm": {
+		"_note": "TAI Corp operation (Weyland). Place 1 advancement counter on each of up to 3 different installed cards.",
+		"on_play": {
+			"effects": [
+				{"type": "add_advancement_counters_on_installed_multi", "params": {"amount": 1, "max_targets": 3}}
+			]
+		}
+	},
+
+	"bahia_bands": {
+		"_note": "TAI Runner event (Criminal, 2cr). Run any server. If successful, resolve 2 of the following in any order: draw 2 cards; install 1 card from grip at 1cr discount; remove 1 tag; place 4cr on this event for trash costs.",
+		"on_play": {
+			"effects": [
+				{
+					"type": "run_with_choose_n_effects",
+					"server": "any",
+					"choose": 2,
+					"options": [
+						{"label": "Draw 2 cards", "effect": {"type": "draw_cards", "params": {"subject": "runner", "amount": 2}}},
+						{"label": "Install 1 card (1cr less)", "effect": {"type": "install_from_grip_discount", "params": {"discount": 1}}},
+						{"label": "Remove 1 tag", "effect": {"type": "remove_tags", "params": {"amount": 1}}},
+						{"label": "Place 4cr on event (spend for trash costs)", "effect": {"type": "place_credits_on_self_for_trash_costs", "params": {"amount": 4}}}
+					]
+				}
+			]
 		}
 	}
 }

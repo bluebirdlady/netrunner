@@ -1,0 +1,33 @@
+MEMORY HOLE
+
+The Editorial Division doesn't censor. That's not how they describe it, and it's not precisely what they do.
+
+What they do is manage information environments. They decide which facts belong to a story and which facts belong to a different story — one that hasn't been assigned yet, or one that has already been closed. They decide which stories exist at the level of public attention and which ones exist only at the level of technical accuracy. Luana Campos, who speaks for their parent organization on camera, calls this "contextual curation." She says it the way you'd describe something that benefits everyone.
+
+They are very good at this. They have been doing it for a long time.
+
+---
+
+Three weeks ago, twelve outlets in the Heinlein media ecosystem ran some version of the Black Site data. Within forty-eight hours, eleven issued corrections, retractions, or editorial clarifications. The twelfth stopped publishing.
+
+You know someone who worked at the twelfth. You know they didn't stop on their own.
+
+---
+
+The Editorial Division's infrastructure manages the search and discovery layer that routes information across the Belt's settled networks. Every query passes through their classification system. Every trending signal through their relevance filters. When they decide a story doesn't exist, it stops surfacing in searches. Source links break. Cached versions resolve to updated pages.
+
+The data doesn't disappear — it's technically present, somewhere in the deep archive — it just becomes unreachable to anyone who doesn't already know exactly where to look.
+
+They're applying that process to the AU Co. files right now. You can watch it happen in real time if you look at the right indices.
+
+---
+
+The Editorial Division maintains a master suppression registry: a running list of flagged content, indexed source nodes, and the authorization chain behind each order. Pull that registry, and you can publish it alongside the production manifests. You can show people not just what happened, but exactly who decided they shouldn't know about it.
+
+That's the part they can't quietly correct.
+
+—
+
+TARGET: Editorial Division
+FACILITY: Synapse Global Tower, Heinlein High Orbit
+OBJECTIVE: Pull the suppression registry. Get the full authorization chain into the open.

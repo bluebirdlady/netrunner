@@ -1,0 +1,37 @@
+SIGNAL
+
+The suppression registry was one hundred and twelve pages.
+
+Not all of it was Pale Horse. The Editorial Division manages a large information environment and they suppress a large number of things. You skim through labor action coverage from three Belt settlements, a product liability story involving a Haas-Bioroid medical device, and something about water reclamation contracts that you make a note to come back to. Luana Campos's name appears eleven times across the first forty pages as the authorization signatory on media coordination orders. Her title changes twice during that span, always upward.
+
+The Pale Horse entries begin on page forty-seven.
+
+---
+
+The authorization chain is complete. Each suppression order carries a timestamp, a source classification, and a signatory. The first orders came from a Jinteki communications liaison and a Zwicky Group media relations account, issued two days after the initial data leak.
+
+The later orders carry a different signatory.
+
+Not a Jinteki name. Not a Weyland name. A name attached to a Chairman's office you don't immediately recognize, which means it belongs to someone who has spent a great deal of effort not being recognized.
+
+You sit with that for a moment.
+
+---
+
+You route the registry through the mirror network alongside everything you've already sent. This time you don't fragment it. You send the full document, intact, with a cover note listing the page numbers and telling people exactly where to look.
+
+Within an hour, the Editorial Division's index filters flag the mirror addresses. Within two hours, three mirrors are unreachable.
+
+Within three hours, fourteen other mirrors have copied the file and posted it somewhere new.
+
+---
+
+BONES sent one more message. Four words: publishing now. it's out.
+
+You don't know if they made it out. You go dark the way they asked, and you stay dark.
+
+The suppression registry is out. The authorization chain has a name at the top.
+
+There is one more thread. The academic layer — the peer-reviewed papers that gave Project Pale Horse the appearance of legitimate science. The papers that put institutional distance between the Chairman's office and everything downstream.
+
+Those files are at Méliès University.

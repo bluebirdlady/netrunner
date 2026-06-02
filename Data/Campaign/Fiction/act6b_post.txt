@@ -1,0 +1,19 @@
+PAYLOAD
+
+Fourteen shipments. Six months. Delivery to a coordinate that resolves to a Weyland build site — ISAAC STATION KILO, according to the engineering stamps buried in the firmware specification.
+
+The modifications on the AP arrays are not cosmetic. Someone has been burning new subroutine behaviour into hardware designed to have fixed, auditable behaviour. The result: ice that grows stronger every time it is rezzed, that fires additional subroutines it was never certified to carry, that executes patterns no standard corp audit would flag.
+
+This is what is installed at the Isaac stations.
+
+You also pulled the secondary contract.
+
+Consignee: HB Annex Seven, Precision Components Division. Fourteen shipments. The division head's name on the authorising signature is listed as retired. The components are bioroid-pattern compliance architecture — designed to be embedded, not installed. You don't embed hardware. You embed it into something biological.
+
+The Thunderbolt line protected the Isaac stations.
+
+The Isaac stations are protecting something else.
+
+HB built the lock. You need to find the door.
+
+Both threads point the same direction. Now you follow them together.

@@ -1,0 +1,23 @@
+RESTORATION PROTOCOL
+
+The subdirectory had 847 files.
+
+You pulled all of them.
+
+The Restoration Protocol is described, in its specification document, as "a distributed biological compliance architecture enabling standardised behavioural integration at the cellular level across Jinteki-pattern substrate."
+
+In plain language: it is a loyalty system. It runs on clones.
+
+The Pale Horse research gave Jinteki the tools. HB supplied the architecture. Annex Seven has been running the compliance embedding package against a set of test substrates for fourteen months. The spec uses the word "specimens." The test results are in the file.
+
+Compliance rate after three generations of the embedding cycle: 97.4%.
+
+The remaining 2.6% is listed as "resolved." You don't look up what that means. You already know.
+
+The production target is AU Co.'s orbital facility. The schedule is annotated in red: MANUFACTURING TO BEGIN — ELEVEN DAYS.
+
+Seven-Seven-Alpha left the buffer open. A bioroid that maintains an architecture it has learned to read found something wrong in it, and did the one thing it could think of.
+
+You have eleven days.
+
+The Jinteki nodes. Find the production line before it ships.

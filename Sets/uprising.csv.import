@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://dlvnboan10nfh"
+
+[deps]
+
+files=["res://Sets/uprising.text.translation", "res://Sets/uprising.name.translation", "res://Sets/uprising.text.translation"]
+
+source_file="res://Sets/uprising.csv"
+dest_files=["res://Sets/uprising.text.translation", "res://Sets/uprising.name.translation", "res://Sets/uprising.text.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

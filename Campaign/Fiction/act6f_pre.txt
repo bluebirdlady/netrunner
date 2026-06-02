@@ -1,0 +1,32 @@
+COUNTER CULTURE
+by Patrick Sklar
+
+They had given Thirty-Nine a designation and a task and a facility, and in the way of clone lines, Thirty-Nine had not questioned any of these things. The designation was administrative. The task was inventory control. The facility was AU Co.'s orbital production unit, two hundred and twelve kilometres above the Belt's equatorial plane, which was not a place most clones ever saw.
+
+Thirty-Nine counted things.
+
+This was, in the language of her task parameters, "inventory reconciliation and quality assurance reporting." In practice it meant walking the production floor with a scanner and counting units at various stages of the pipeline. She was good at counting. The floor was orderly. The numbers usually matched.
+
+Lately, they had not been matching.
+
+Not by much. Not in ways that triggered the automated flags. But Thirty-Nine had been counting this floor for eight months, and she knew its rhythms — which stations ran warm, which ran slow, where the variance clustered at end-of-shift. She knew what the numbers were supposed to be.
+
+She had started keeping a separate count. Off-system. A pencil and a small notebook she'd found in a maintenance locker. Old muscle memory from somewhere, maybe — some prior iteration of her line, some habit that had survived the clone process because it was too small and too simple to be designed out.
+
+The separate count said: in the last six weeks, 312 units had passed through staging that did not appear in the official inventory.
+
+The units carried a routing code she did not recognise.
+
+She wrote the routing code in the notebook. She wrote the count beside it. She looked at what she had written for a long time.
+
+Then she found the maintenance panel the engineering team always left open on Thursday afternoons, and she put the notebook page in the accessible buffer, where the external feed would pick it up before the panel was closed again.
+
+She went back to the floor. She kept counting.
+
+It was the only thing she knew how to do that was entirely her own.
+
+—
+
+TARGET: AU Co.: The Gold Standard in Clones
+FACILITY: AU Co. Orbital Production Unit 1, Heinlein L2 Lagrange Point
+OBJECTIVE: The routing code. The 312 units. What they are. Where they are going. Everything Thirty-Nine counted.

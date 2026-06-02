@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://b40w4yxgtonoh"
+
+[deps]
+
+files=["res://Sets/vantage_point.text.translation", "res://Sets/vantage_point.name.translation", "res://Sets/vantage_point.text.translation"]
+
+source_file="res://Sets/vantage_point.csv"
+dest_files=["res://Sets/vantage_point.text.translation", "res://Sets/vantage_point.name.translation", "res://Sets/vantage_point.text.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

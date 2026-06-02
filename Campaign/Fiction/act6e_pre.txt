@@ -1,0 +1,28 @@
+RESTORATION
+by Morgan "Anzekay" White
+
+Yetunde had never seen the whole picture. That was by design, and she understood it, in a general sense — distributed operations existed because central points of failure existed, and the previous year had demonstrated what happened when Jinteki built central points of failure. So now the work was distributed. Hundreds of small facilities, each processing a piece of the whole. Yetunde's piece was incoming asset reports from eleven nodes in the Heinlein agricultural belt. Her job was to aggregate them, flag discrepancies, and forward the consolidated reports to a routing address she had never been given context for.
+
+She was good at her job. The reports came in. She aggregated. She flagged. She forwarded. Clean work.
+
+What the reports were for was not her piece of the picture.
+
+She told herself this was normal. Distributed work was always like this: you did your piece, the system assembled the whole, and the whole was not your responsibility. She had told herself this in her previous job, and the one before that. This was the way the world worked.
+
+It was only recently that she had started to wonder what you were supposed to do when you began to suspect that the whole was wrong.
+
+Not because of anything she could name precisely. Just a texture. The way the asset reports had begun, in the last month, to include a new data field she'd never been asked to populate. The way the routing address had changed three times in six weeks. The way certain numbers, when she was aggregating late in a shift with her attention running thin, did not look like the kind of numbers agricultural asset reports produced.
+
+The kind of numbers that came from something alive.
+
+She forwarded the latest batch. The routing address resolved without error. The system took her piece and did whatever it did with it.
+
+She closed her terminal and went home.
+
+Two hours later, the coordinating node for all eleven feeds went fully active.
+
+—
+
+TARGET: Jinteki: Restoring Humanity
+FACILITY: Coordinating Node Null-Eleven, Heinlein Agricultural Belt
+OBJECTIVE: Map the feeds to the node. Pull eleven months of aggregated production data. Find what Jinteki is growing out here.

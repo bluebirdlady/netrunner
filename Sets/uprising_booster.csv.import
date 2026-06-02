@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://o5phts4rgx8d"
+
+[deps]
+
+files=["res://Sets/uprising_booster.text.translation", "res://Sets/uprising_booster.name.translation", "res://Sets/uprising_booster.text.translation"]
+
+source_file="res://Sets/uprising_booster.csv"
+dest_files=["res://Sets/uprising_booster.text.translation", "res://Sets/uprising_booster.name.translation", "res://Sets/uprising_booster.text.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

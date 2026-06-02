@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://bhp3y8nrxx7fj"
+
+[deps]
+
+files=["res://Sets/system_gateway.text.translation", "res://Sets/system_gateway.name.translation", "res://Sets/system_gateway.text.translation"]
+
+source_file="res://Sets/system_gateway.csv"
+dest_files=["res://Sets/system_gateway.text.translation", "res://Sets/system_gateway.name.translation", "res://Sets/system_gateway.text.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

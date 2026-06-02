@@ -86,7 +86,7 @@ func _ice_is_worth_rezzing(card: InstalledCard) -> bool:
 		return true
 
 	# Strength-0 ice is worth rezzing only if it has implemented subroutines.
-	var subroutines: Array = ability_registry.get_subroutines(card.card_id)
+	var subroutines: Array = ability_registry.get_subroutines(card.card_record.id)
 	if not subroutines.is_empty():
 		return true
 
@@ -147,37 +147,164 @@ func _log(message: String) -> void:
 	if not silent:
 		print("[CorpRunAI] " + message)
 
-# Return true if the Corp should rez this ice during a run.
-# Uses a heuristic to avoid wasting credits on ice the runner can easily break.
-func should_rez_ice(ice: InstalledCard, ctx: GameContext) -> bool:
-	var rez_cost = ctx.query_rez_cost(ice)
 
-	# Always rez if cost is 0
+# ── Lifetime-value ice rezzing ────────────────────────────────────────────────
+#
+# Ice that is rezzed persists. Every future run through this server will have
+# to deal with it. The correct comparison is therefore:
+#
+#   rez if  lifetime_value(ice) >= rez_cost
+#
+# where lifetime_value = per_encounter_runner_tax × expected_encounter_count.
+#
+# This replaces the old flat-threshold heuristic that was too conservative
+# because it only considered the immediate encounter.
+
+func should_rez_ice(ice: InstalledCard, ctx: GameContext) -> bool:
+	var rez_cost: int = ctx.query_rez_cost(ice) + ctx.run_modifiers.get("extra_rez_cost", 0)
+
+	# Free to rez — always worth it.
 	if rez_cost <= 0:
+		_log("AI: rezzing %s for free." % ice.card_record.title)
 		return true
 
-	# Never rez if the Corp cannot afford it
+	# Hard gate: cannot afford it.
 	if ctx.corp_credits < rez_cost:
 		return false
 
-	# Heuristic: if the runner has very few credits (≤ rez_cost), they probably cannot break it.
-	# This encourages rezzing when the runner is poor.
+	# Hard gate: must stay above dynamic credit floor.
+	if ctx.corp_credits - rez_cost < _dynamic_credit_floor(ctx):
+		_log("AI: rezzing %s would breach credit floor — holding." % ice.card_record.title)
+		return false
+
+	# Quality gate: strength-0 ice with no subroutines is never worth it.
+	if not _ice_is_worth_rezzing(ice):
+		return false
+
+	# Lifetime-value calculation.
+	var tax: float = _estimate_runner_tax_per_encounter(ice, ctx)
+	var encounters: float = _estimate_remaining_encounter_count(ice, ctx)
+	var lifetime_value: float = tax * encounters
+
+	_log("AI: %s — rez_cost=%d  tax/enc=%.1f  enc=%.1f  LTV=%.1f" % [
+		ice.card_record.title, rez_cost, tax, encounters, lifetime_value])
+
+	# Rez if the ice will pay for itself over its expected lifetime.
+	# We add a small urgency bonus when the runner is poor (they may not be
+	# able to break it at all this run, making the immediate encounter free).
+	var urgency_bonus: float = 0.0
 	if ctx.runner_credits <= rez_cost:
-		return true
+		urgency_bonus = float(rez_cost) * 0.5   # runner likely can't break right now
+	if ctx.runner_credits == 0:
+		urgency_bonus = float(rez_cost)          # runner is broke — definitely rez
 
-	# If this ice is the only piece protecting a server that contains an agenda,
-	# be more willing to rez (defend the agenda).
-	var server = ctx.get_server(ice.server_id)
+	return (lifetime_value + urgency_bonus) >= float(rez_cost)
+
+
+# Estimate how many credits the runner will spend (or be forced to spend) each
+# time they encounter this ice, assuming they use their best available breaker.
+func _estimate_runner_tax_per_encounter(ice: InstalledCard, ctx: GameContext) -> float:
+	var record: CardRecord = ice.card_record
+	var strength: int = record.strength
+	var sub_count: int = ability_registry.get_subroutines(ice.card_id).size()
+
+	# Find the runner's best breaker for this ice type.
+	var breaker := _find_best_breaker(ice, ctx)
+	if breaker == null:
+		# No breaker installed: runner must jack out or face full subroutine consequences.
+		# Model as: strength + 2 per subroutine + 2 for the threat itself.
+		return float(strength + sub_count * 2 + 2)
+
+	# Breaker installed: estimate the credit cost to boost + break.
+	var b_record: CardRecord = breaker.card_record
+	var b_abilities: Dictionary = ability_registry._abilities.get(b_record.card_id, {})
+
+	var boost_cost: float = 0.0
+	var break_cost: float = 0.0
+
+	var boost_info: Dictionary = b_abilities.get("boost", {})
+	if not boost_info.is_empty():
+		var cost_per_boost: float = float(boost_info.get("cost", 1))
+		var str_per_boost: float = float(boost_info.get("strength_gained", 1))
+		if str_per_boost > 0.0:
+			var breaker_str: int = b_record.strength
+			var str_needed: int = max(0, strength - breaker_str)
+			var boosts_needed: float = ceil(float(str_needed) / str_per_boost)
+			boost_cost = boosts_needed * cost_per_boost
+
+	var break_info: Dictionary = b_abilities.get("break", {})
+	if not break_info.is_empty():
+		var cost_per_sub: float = float(break_info.get("cost_per_sub", 1))
+		break_cost = float(sub_count) * cost_per_sub
+	elif sub_count > 0:
+		break_cost = float(sub_count)   # fallback: 1 credit per sub
+
+	var total: float = boost_cost + break_cost
+	# Floor at 1 so even cheap-to-break ice is never valued at zero.
+	return max(1.0, total)
+
+
+# Find the runner's installed breaker best suited to handle this ice.
+# Returns null if no matching breaker is installed.
+func _find_best_breaker(ice: InstalledCard, ctx: GameContext) -> InstalledCard:
+	var record: CardRecord = ice.card_record
+	var subtype_map := {
+		"barrier":   "fracter",
+		"sentry":    "killer",
+		"code_gate": "decoder",
+	}
+
+	var needed_type := ""
+	for subtype in record.subtypes:
+		if subtype_map.has(subtype):
+			needed_type = subtype_map[subtype]
+			break
+
+	var best: InstalledCard = null
+	var best_tax: float = INF
+
+	for rig_entry in ctx.runner_rig:
+		var rc: InstalledCard = rig_entry as InstalledCard
+		if rc == null or rc.card_record == null:
+			continue
+		var is_match := false
+		if rc.card_record.has_subtype("ai"):
+			is_match = true
+		elif needed_type != "" and rc.card_record.has_subtype(needed_type):
+			is_match = true
+		if not is_match:
+			continue
+		# Pick the breaker with the lowest estimated break cost (best for runner).
+		var b_abilities: Dictionary = ability_registry._abilities.get(rc.card_record.id, {})
+		var cost_per_sub: float = float(b_abilities.get("break", {}).get("cost_per_sub", 1.0))
+		if cost_per_sub < best_tax:
+			best_tax = cost_per_sub
+			best = rc
+
+	return best
+
+
+# Estimate how many times a runner will encounter this ice over the game.
+# Centrals are run more often; empty remotes are rarely revisited.
+func _estimate_remaining_encounter_count(ice: InstalledCard, ctx: GameContext) -> float:
+	var server_id: String = ice.server_id
+	if server_id in ["hq", "rd", "archives"]:
+		return 3.0   # centrals are targeted repeatedly throughout the game
+
+	var server: Server = ctx.get_server(server_id)
 	if server != null and server.get_agenda_or_asset() != null:
-		# Agenda present – rez even if moderately expensive
-		if rez_cost <= ctx.corp_credits * 0.3:   # up to 30% of corp credits
-			return true
+		return 2.5   # active remote with something worth stealing — contested
+	return 1.5       # empty or low-value remote — may only be run once
 
-	# Default: only rez if the cost is relatively low (≤ 4) or if the Corp has a huge surplus
-	if rez_cost <= 4:
-		return true
-	if ctx.corp_credits > 20 and rez_cost <= 10:
-		return true
 
-	# Otherwise, hold back – don't waste credits on ice that likely won't stop the runner
-	return false
+# Credit floor scales up when the Corp has multiple unrezzed ice,
+# so we don't blow our budget on the first piece and have nothing left.
+func _dynamic_credit_floor(ctx: GameContext) -> int:
+	var unrezzed := 0
+	for server in ctx.servers.values():
+		var s: Server = server as Server
+		for ice_entry in s.ice:
+			var c: InstalledCard = ice_entry as InstalledCard
+			if not c.is_rezzed:
+				unrezzed += 1
+	return CREDIT_FLOOR + (unrezzed / 3)

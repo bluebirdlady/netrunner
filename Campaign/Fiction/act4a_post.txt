@@ -1,0 +1,33 @@
+LEDGER
+
+The transaction archive was ninety-three gigabytes. You took all of it.
+
+Most of it is noise — the ordinary financial entropy of a holding company that exists specifically to generate noise. But the Pale Horse entries are there, and they are clear: eighteen months of transfers, each tagged with an internal Zwicky reference code cross-indexing to a project designation they never bothered to encrypt. Either they didn't think anyone would ever look, or they didn't think anyone who looked would survive long enough to matter.
+
+---
+
+On the other end of the transfers: three accounts.
+
+One belongs to a logistics company with no public registry. One belongs to a medical supply subsidiary of PT Untaian Pharmaceutical — a Jinteki company operating out of Heinlein's equatorial ring, officially licensed for agricultural gene therapy and what their literature calls "mycele-adjacent substrate research." The third belongs to a private security contractor whose personnel circulated twenty-two new runner profiles last week.
+
+The security contractor received their last payment four days ago.
+
+You were not on the list four days ago.
+
+---
+
+You send the account structure to every mirror you still have access to. Two addresses bounce. The third confirms receipt in under a minute — whoever is on the other end is watching.
+
+The Zwicky Group's automated security flagged your egress. You were already out.
+
+---
+
+The PT Untaian transfers are the part that keeps you reading.
+
+Not the amounts — the timing. Every transfer from Zwicky to PT Untaian's medical supply subsidiary preceded a shipment record from H-982 by an average of eleven days. Regular. Predictable. The kind of schedule that means the research was ongoing, not winding down.
+
+The Black Site data you pulled was forty-three months old at the point of breach.
+
+The last PT Untaian transfer was six days ago.
+
+Project Pale Horse is not over. It moved.

@@ -1,0 +1,33 @@
+DEMOLITION
+
+BANGUN's clearance contract is straightforward on paper. Emergency decommissioning of a research facility designated H-982, located in Heinlein's deep core sub-levels adjacent to the former Black Site. Hazardous materials abatement. Infrastructure removal. Site remediation to base rock. Estimated completion: fifteen days from contract commencement.
+
+They started eight days ago.
+
+---
+
+Everyone in the Belt knows BANGUN's work, in the way that people know things they've chosen not to examine directly. They arrive after disasters. They remove the parts of disasters that are embarrassing to describe. Their clearance teams carry full network isolation equipment — when BANGUN seals a site, it goes dark. Physically and digitally. Nothing in, nothing out, until the work is done and the only record of the site is what BANGUN files with the relevant regulatory body.
+
+The regulatory body that issued H-982's clearance contract is the same one that approved H-982's original construction permit. This is standard practice.
+
+You have seven days before H-982 is base rock.
+
+---
+
+H-982 ran independent of the PT Untaian and Méliès U systems — its own air-gapped network, its own maintenance records, its own personnel logs. The kind of isolation that makes perfect sense for a research facility no one is supposed to know exists. BANGUN's isolation equipment will destroy that network when they hit the infrastructure removal phase.
+
+But the facility's primary archive is still running. You've been watching its signal for two days — the faint maintenance handshake it sends on a standard frequency, the way a system does when it's waiting for an authorized connection that isn't coming.
+
+It's waiting.
+
+---
+
+A runner named BONES connected you with a former BANGUN foreman who left the company eighteen months ago and agreed to talk because they also can't sleep. The foreman gave you one thing: the isolation equipment has a gap. A four-minute window during shift changeover when the network perimeter isn't fully closed.
+
+Four minutes to reach a system that has been waiting for someone to come back for it.
+
+—
+
+TARGET: BANGUN Clearance Operations
+FACILITY: H-982 Remediation Zone, Heinlein Deep Core
+OBJECTIVE: Access H-982's isolated archive before demolition. Pull the facility logs. Prove the site existed.

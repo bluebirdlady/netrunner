@@ -13,6 +13,7 @@ signal server_choice_resolved(server_id: String)
 signal search_choice_resolved(card: CardRecord)
 signal payment_option_resolved(option: Variant)
 signal game_over_acknowledged
+signal host_ice_choice_resolved(ice: InstalledCard)
 
 # ── NSG Game Symbol paths ─────────────────────────────────────────────────────
 const SYM_BASE   := "res://Assets/Art/Game Symbols/Exported/"
@@ -1198,6 +1199,128 @@ func show_encounter_prompt(encounter: EncounterState) -> Dictionary:
 					)
 					prompt_box.add_child(sb_btn)
 
+	# Banner: suppress ETR subs on barriers.
+	if _ability_registry != null and encounter.ice_card != null and \
+			encounter.ice_card.card_record != null and \
+			encounter.ice_card.card_record.has_subtype("barrier") and \
+			not encounter.barrier_etr_suppressed:
+		for _ban_rig in _ctx.runner_rig:
+			var _ban_ic: InstalledCard = _ban_rig as InstalledCard
+			if _ban_ic == null or _ban_ic.card_record == null:
+				continue
+			var _ban_def: Dictionary = (_ability_registry._abilities.get(_ban_ic.card_id, {}) as Dictionary) \
+				.get("suppress_etr_action", {}) as Dictionary
+			if _ban_def.is_empty():
+				continue
+			var _ban_cost: int = _ban_def.get("cost", 2)
+			var _ban_hdr := Label.new()
+			_ban_hdr.text = "BANNER:"
+			_ban_hdr.add_theme_font_size_override("font_size", 10)
+			_ban_hdr.add_theme_color_override("font_color", Color(0.9, 0.75, 0.3))
+			prompt_box.add_child(_ban_hdr)
+			var _ban_captured: InstalledCard = _ban_ic
+			var _ban_btn := Button.new()
+			_ban_btn.text = "%s — %dcr: Suppress all ETR subs this encounter" % [
+				_ban_captured.display_name(), _ban_cost]
+			_ban_btn.add_theme_font_size_override("font_size", 10)
+			_ban_btn.disabled = _ctx.runner_available_credits() < _ban_cost
+			_ban_btn.pressed.connect(func():
+				encounter_action_resolved.emit({
+					"type": "suppress_etr_subs",
+					"card_id": _ban_captured.card_id
+				}))
+			prompt_box.add_child(_ban_btn)
+
+	# Trojan interface break abilities (e.g. Slap Vandal).
+	if _ability_registry != null and encounter.ice_card != null and \
+			not encounter.ice_card.hosted_cards.is_empty():
+		var _ib_header_added := false
+		for _ib_hc in encounter.ice_card.hosted_cards:
+			var _ib_ic: InstalledCard = _ib_hc as InstalledCard
+			if _ib_ic == null or _ib_ic.card_record == null:
+				continue
+			var _ib_def: Dictionary = (_ability_registry._abilities.get(_ib_ic.card_id, {}) as Dictionary) \
+				.get("interface_break", {}) as Dictionary
+			if _ib_def.is_empty():
+				continue
+			var _ib_cost: int  = _ib_def.get("cost_per_sub", 1)
+			var _ib_once: bool = _ib_def.get("once_per_encounter", false)
+			if _ib_once and encounter.trojan_used_this_encounter.get(_ib_ic.card_id, false):
+				continue
+			if not _ib_header_added:
+				var _ib_hdr := Label.new()
+				_ib_hdr.text = "TROJAN INTERFACE:"
+				_ib_hdr.add_theme_font_size_override("font_size", 10)
+				_ib_hdr.add_theme_color_override("font_color", Color(0.7, 0.9, 0.5))
+				prompt_box.add_child(_ib_hdr)
+				_ib_header_added = true
+			var _ib_card_captured: InstalledCard = _ib_ic
+			for _ib_i in range(encounter.subroutines.size()):
+				if encounter.is_broken(_ib_i):
+					continue
+				var _ib_sub: Dictionary = encounter.subroutines[_ib_i] as Dictionary
+				var _ib_captured_i: int = _ib_i
+				var _ib_btn := Button.new()
+				_ib_btn.text = "%s — %dcr: Break \"%s\"" % [_ib_card_captured.display_name(),
+					_ib_cost, _ib_sub.get("label", "sub %d" % _ib_i)]
+				_ib_btn.add_theme_font_size_override("font_size", 10)
+				_ib_btn.disabled = _ctx.runner_available_credits() < _ib_cost
+				_ib_btn.pressed.connect(func():
+					encounter_action_resolved.emit({
+						"type": "trojan_break_sub",
+						"card_id": _ib_card_captured.card_id,
+						"sub_index": _ib_captured_i
+					}))
+				prompt_box.add_child(_ib_btn)
+
+	# Umbrella interface break (gated on hosted trojan + code gate).
+	if _ability_registry != null and encounter.ice_card != null:
+		for _umb_rig in _ctx.runner_rig:
+			var _umb_ic: InstalledCard = _umb_rig as InstalledCard
+			if _umb_ic == null or _umb_ic.card_record == null:
+				continue
+			var _umb_def: Dictionary = (_ability_registry._abilities.get(_umb_ic.card_id, {}) as Dictionary) \
+				.get("umbrella_break", {}) as Dictionary
+			if _umb_def.is_empty():
+				continue
+			var _umb_has_trojan := false
+			for _umb_hc in encounter.ice_card.hosted_cards:
+				if (_umb_hc as InstalledCard) != null:
+					_umb_has_trojan = true
+					break
+			if not _umb_has_trojan:
+				continue
+			var _umb_required: Array = _umb_def.get("subtypes", ["code_gate"]) as Array
+			var _umb_type_ok := false
+			if encounter.ice_card.card_record != null:
+				var _umb_stypes: Array = encounter.ice_card.card_record.subtypes + encounter.ice_card.extra_subtypes
+				for _umb_rst in _umb_required:
+					if _umb_stypes.has(_umb_rst):
+						_umb_type_ok = true
+						break
+			if not _umb_type_ok:
+				continue
+			var _umb_cost: int    = _umb_def.get("cost_per_sub", 2)
+			var _umb_cap: int     = _umb_def.get("subs_per_use", 3)
+			var _umb_unbroken: int = encounter.unbroken_indices().size()
+			var _umb_hdr := Label.new()
+			_umb_hdr.text = "UMBRELLA:"
+			_umb_hdr.add_theme_font_size_override("font_size", 10)
+			_umb_hdr.add_theme_color_override("font_color", Color(0.5, 0.75, 1.0))
+			prompt_box.add_child(_umb_hdr)
+			var _umb_captured: InstalledCard = _umb_ic
+			var _umb_btn := Button.new()
+			_umb_btn.text = "%s — %dcr each: Break up to %d code gate sub(s)" % [
+				_umb_captured.display_name(), _umb_cost, _umb_cap]
+			_umb_btn.add_theme_font_size_override("font_size", 10)
+			_umb_btn.disabled = _ctx.runner_available_credits() < _umb_cost or _umb_unbroken == 0
+			_umb_btn.pressed.connect(func():
+				encounter_action_resolved.emit({
+					"type": "umbrella_break",
+					"card_id": _umb_captured.card_id
+				}))
+			prompt_box.add_child(_umb_btn)
+
 	# Pass button
 	var pass_btn := Button.new()
 	pass_btn.text = "Pass (let subs fire)"
@@ -1598,7 +1721,7 @@ func _show_score_popup(title: String, cards: Array) -> void:
 
 func show_choose_from_hand_prompt(hand: Array, prompt_text: String) -> Variant:
 	var resolved: Variant = null
-	var done := false
+	var done := [false]
 
 	var backdrop := ColorRect.new()
 	backdrop.color = Color(0, 0, 0, 0.5)
@@ -1650,7 +1773,7 @@ func show_choose_from_hand_prompt(hand: Array, prompt_text: String) -> Variant:
 		var captured: Variant = entry
 		btn.pressed.connect(func():
 			resolved = captured
-			done = true
+			done[0] = true
 		)
 		col.add_child(btn)
 
@@ -1659,11 +1782,11 @@ func show_choose_from_hand_prompt(hand: Array, prompt_text: String) -> Variant:
 	decline_btn.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
 	decline_btn.pressed.connect(func():
 		resolved = null
-		done = true
+		done[0] = true
 	)
 	vbox.add_child(decline_btn)
 
-	while not done:
+	while not done[0]:
 		await get_tree().process_frame
 
 	backdrop.queue_free()
@@ -1675,7 +1798,7 @@ func show_choose_from_hand_prompt(hand: Array, prompt_text: String) -> Variant:
 
 func show_ice_swap_prompt(eligible_servers: Array) -> Variant:
 	var result: Variant = null
-	var done := false
+	var done := [false]
 
 	var backdrop := ColorRect.new()
 	backdrop.color = Color(0, 0, 0, 0.5)
@@ -1773,7 +1896,7 @@ func show_ice_swap_prompt(eligible_servers: Array) -> Variant:
 	decline_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	decline_btn.pressed.connect(func():
 		result = null
-		done = true
+		done[0] = true
 	)
 	btn_row.add_child(decline_btn)
 
@@ -1789,11 +1912,11 @@ func show_ice_swap_prompt(eligible_servers: Array) -> Variant:
 				"pos_a": selected_positions[0],
 				"pos_b": selected_positions[1]
 			}
-		done = true
+		done[0] = true
 	)
 	btn_row.add_child(confirm_btn)
 
-	while not done:
+	while not done[0]:
 		await get_tree().process_frame
 
 	backdrop.queue_free()
@@ -1929,6 +2052,68 @@ func show_optional_ability_prompt(prompt_text: String) -> bool:
 	return result
 
 
+# ── Psi game bid prompt ───────────────────────────────────────────────────────
+
+func show_psi_bid_prompt(max_bid: int) -> int:
+	var result := 0
+	var done   := false
+
+	var backdrop := ColorRect.new()
+	backdrop.color = Color(0, 0, 0, 0.6)
+	backdrop.set_anchors_preset(Control.PRESET_FULL_RECT)
+	backdrop.mouse_filter = Control.MOUSE_FILTER_STOP
+	add_child(backdrop)
+
+	var panel := PanelContainer.new()
+	panel.set_anchors_preset(Control.PRESET_CENTER)
+	panel.custom_minimum_size = Vector2(320, 0)
+	backdrop.add_child(panel)
+
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 10)
+	panel.add_child(vbox)
+
+	var title_lbl := Label.new()
+	title_lbl.text = "PSI GAME"
+	title_lbl.add_theme_font_size_override("font_size", 16)
+	title_lbl.add_theme_color_override("font_color", Color(0.9, 0.75, 0.2))
+	title_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	vbox.add_child(title_lbl)
+
+	var info_lbl := Label.new()
+	info_lbl.text = "Secretly bid 0, 1, or 2 credits.\nBids are revealed simultaneously.\nYou pay your bid regardless of outcome."
+	info_lbl.add_theme_font_size_override("font_size", 12)
+	info_lbl.add_theme_color_override("font_color", Color(0.8, 0.85, 0.95))
+	info_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	vbox.add_child(info_lbl)
+
+	var btn_row := HBoxContainer.new()
+	btn_row.add_theme_constant_override("separation", 8)
+	btn_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	vbox.add_child(btn_row)
+
+	for bid_amount in [0, 1, 2]:
+		var btn := Button.new()
+		btn.text = "%d cr" % bid_amount
+		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		btn.disabled = bid_amount > max_bid
+		if bid_amount > max_bid:
+			btn.add_theme_color_override("font_color", Color(0.4, 0.4, 0.4))
+		else:
+			btn.add_theme_color_override("font_color", Color(0.4, 0.9, 0.5))
+		btn.pressed.connect(func():
+			result = bid_amount
+			done = true
+		)
+		btn_row.add_child(btn)
+
+	while not done:
+		await get_tree().process_frame
+
+	backdrop.queue_free()
+	return result
+
+
 # ── Carnivore prompt ──────────────────────────────────────────────────────────
 
 func show_carnivore_prompt(card_record: CardRecord) -> bool:
@@ -1991,3 +2176,333 @@ func show_carnivore_prompt(card_record: CardRecord) -> bool:
 
 	backdrop.queue_free()
 	return result
+
+
+# ── Discard to hand limit ─────────────────────────────────────────────────────
+
+func show_discard_to_hand_limit_prompt(hand: Array, excess: int) -> Array:
+	var backdrop := ColorRect.new()
+	backdrop.color = Color(0, 0, 0, 0.5)
+	backdrop.set_anchors_preset(Control.PRESET_FULL_RECT)
+	backdrop.mouse_filter = Control.MOUSE_FILTER_STOP
+	add_child(backdrop)
+
+	var panel := PanelContainer.new()
+	panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	panel.custom_minimum_size = Vector2(520, 420)
+	backdrop.add_child(panel)
+
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 8)
+	panel.add_child(vbox)
+
+	var title := Label.new()
+	title.text = "Discard %d card(s) to reach hand limit." % excess
+	title.add_theme_font_size_override("font_size", 16)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	vbox.add_child(title)
+
+	var counter_lbl := Label.new()
+	counter_lbl.text = "Selected: 0 / %d" % excess
+	counter_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	vbox.add_child(counter_lbl)
+
+	var scroll := ScrollContainer.new()
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.custom_minimum_size = Vector2(0, 280)
+	vbox.add_child(scroll)
+
+	var card_row := HBoxContainer.new()
+	card_row.add_theme_constant_override("separation", 6)
+	scroll.add_child(card_row)
+
+	var selected: Array = []
+	var confirm_btn: Button
+
+	for entry in hand:
+		var ed: Dictionary = entry as Dictionary
+		var cr: CardRecord = ed.get("card_record", null) as CardRecord
+		if cr == null:
+			continue
+		var col := VBoxContainer.new()
+		col.add_theme_constant_override("separation", 4)
+		card_row.add_child(col)
+
+		var card_lbl := Label.new()
+		card_lbl.text = cr.title
+		card_lbl.add_theme_font_size_override("font_size", 11)
+		card_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		card_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD
+		card_lbl.custom_minimum_size = Vector2(90, 0)
+		col.add_child(card_lbl)
+
+		var tog := Button.new()
+		tog.text = "[ ] Discard"
+		tog.custom_minimum_size = Vector2(90, 32)
+		var captured_entry: Dictionary = entry as Dictionary
+		tog.pressed.connect(func():
+			if captured_entry in selected:
+				selected.erase(captured_entry)
+				tog.text = "[ ] Discard"
+			else:
+				if selected.size() < excess:
+					selected.append(captured_entry)
+					tog.text = "[✓] Discard"
+			counter_lbl.text = "Selected: %d / %d" % [selected.size(), excess]
+			confirm_btn.disabled = selected.size() != excess
+		)
+		col.add_child(tog)
+
+	confirm_btn = Button.new()
+	confirm_btn.text = "Confirm"
+	confirm_btn.disabled = true
+	vbox.add_child(confirm_btn)
+
+	var done := [false]
+	confirm_btn.pressed.connect(func(): done[0] = true)
+
+	while not done[0]:
+		await get_tree().process_frame
+
+	backdrop.queue_free()
+	return selected
+
+
+# ── Choose subroutines to break ───────────────────────────────────────────────
+
+func show_choose_subs_to_break_prompt(candidates: Array, max_count: int, encounter: EncounterState) -> Array:
+	var backdrop := ColorRect.new()
+	backdrop.color = Color(0, 0, 0, 0.5)
+	backdrop.set_anchors_preset(Control.PRESET_FULL_RECT)
+	backdrop.mouse_filter = Control.MOUSE_FILTER_STOP
+	add_child(backdrop)
+
+	var panel := PanelContainer.new()
+	panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	panel.custom_minimum_size = Vector2(480, 360)
+	backdrop.add_child(panel)
+
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 8)
+	panel.add_child(vbox)
+
+	var title := Label.new()
+	title.text = "Choose %d subroutine(s) to break:" % max_count
+	title.add_theme_font_size_override("font_size", 16)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	vbox.add_child(title)
+
+	var counter_lbl := Label.new()
+	counter_lbl.text = "Selected: 0 / %d" % max_count
+	counter_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	vbox.add_child(counter_lbl)
+
+
+	var selected: Array = []
+	var confirm_btn: Button
+
+	for idx in candidates:
+		var sub_dict: Dictionary = encounter.subroutines[idx] as Dictionary
+		var sub_label: String = sub_dict.get("label", "Subroutine %d" % idx)
+
+		var tog := Button.new()
+		tog.text = "[ ]  %s" % sub_label
+		tog.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		tog.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		var captured_idx: int = idx as int
+		tog.pressed.connect(func():
+			if captured_idx in selected:
+				selected.erase(captured_idx)
+				tog.text = "[ ]  %s" % sub_label
+			else:
+				if selected.size() < max_count:
+					selected.append(captured_idx)
+					tog.text = "[✓]  %s" % sub_label
+			counter_lbl.text = "Selected: %d / %d" % [selected.size(), max_count]
+			confirm_btn.disabled = selected.size() != max_count
+		)
+		vbox.add_child(tog)
+
+	confirm_btn = Button.new()
+	confirm_btn.text = "Confirm"
+	confirm_btn.disabled = true
+	vbox.add_child(confirm_btn)
+
+	var done := [false]
+	confirm_btn.pressed.connect(func(): done[0] = true)
+
+	while not done[0]:
+		await get_tree().process_frame
+
+	backdrop.queue_free()
+	return selected
+
+
+# ── Choose host ice (trojans / Boomerang-style target selection) ──────────────
+
+func show_host_ice_prompt(candidates: Array, prompt_text: String = "Choose a piece of ice to host this card on:") -> InstalledCard:
+	var backdrop := ColorRect.new()
+	backdrop.color = Color(0, 0, 0, 0.5)
+	backdrop.set_anchors_preset(Control.PRESET_FULL_RECT)
+	backdrop.mouse_filter = Control.MOUSE_FILTER_STOP
+	add_child(backdrop)
+
+	var panel := PanelContainer.new()
+	panel.set_anchors_preset(Control.PRESET_CENTER)
+	panel.custom_minimum_size = Vector2(440, 80 + candidates.size() * 46)
+	backdrop.add_child(panel)
+
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 6)
+	panel.add_child(vbox)
+
+	var title := Label.new()
+	title.text = prompt_text
+	title.add_theme_font_size_override("font_size", 15)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD
+	vbox.add_child(title)
+
+	for ice in candidates:
+		var ic: InstalledCard = ice as InstalledCard
+		if ic == null:
+			continue
+		var server_display: String = {"hq": "HQ", "rd": "R&D", "archives": "Archives"}.get(
+			ic.server_id, ic.server_id.replace("_", " ").capitalize())
+		var rezzed_str: String = " (rezzed)" if ic.is_rezzed else " (unrezzed)"
+		var btn := Button.new()
+		btn.text = "%s  —  %s%s" % [ic.display_name(), server_display, rezzed_str]
+		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		btn.add_theme_font_size_override("font_size", 13)
+		var captured := ic
+		# Use the class signal rather than a polled local bool — avoids GDScript
+		# closure-capture issues with bool primitives in deeply-nested await chains.
+		btn.pressed.connect(func():
+			host_ice_choice_resolved.emit(captured)
+		, CONNECT_ONE_SHOT)
+		vbox.add_child(btn)
+
+	var chosen: InstalledCard = await host_ice_choice_resolved
+	backdrop.queue_free()
+	return chosen
+
+
+# ── Card ordering prompt ──────────────────────────────────────────────────────
+# Shows a list of cards; runner clicks them in desired order (first click = first in result).
+# Returns the reordered array of CardRecord objects.
+func show_card_order_prompt(cards: Array, prompt_text: String = "Click cards to set their order (top to bottom):") -> Array:
+	var backdrop := ColorRect.new()
+	backdrop.color = Color(0, 0, 0, 0.5)
+	backdrop.set_anchors_preset(Control.PRESET_FULL_RECT)
+	backdrop.mouse_filter = Control.MOUSE_FILTER_STOP
+	add_child(backdrop)
+
+	var panel := PanelContainer.new()
+	panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	panel.custom_minimum_size = Vector2(460, 100 + cards.size() * 48)
+	backdrop.add_child(panel)
+
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 6)
+	panel.add_child(vbox)
+
+	var title := Label.new()
+	title.text = prompt_text
+	title.add_theme_font_size_override("font_size", 15)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD
+	vbox.add_child(title)
+
+	var order_label := Label.new()
+	order_label.text = "Order: (none selected yet)"
+	order_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	vbox.add_child(order_label)
+
+	var ordered: Array = []
+	var remaining: Array = cards.duplicate()
+	var btns: Array = []
+	var btn_box := VBoxContainer.new()
+	vbox.add_child(btn_box)
+
+	var done := [false]
+
+	var _update_order_label := func():
+		var names: Array = []
+		for cr in ordered:
+			var c: CardRecord = cr as CardRecord
+			names.append(c.title if c != null else "?")
+		order_label.text = "Order: " + (", ".join(names) if not names.is_empty() else "(none)")
+
+	# Build buttons
+	for card in cards:
+		var cr: CardRecord = card as CardRecord
+		var btn := Button.new()
+		btn.text = cr.title if cr != null else "Unknown"
+		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var captured_card := cr
+		var captured_btn := btn
+		btn.pressed.connect(func():
+			if captured_card in remaining:
+				remaining.erase(captured_card)
+				ordered.append(captured_card)
+				captured_btn.disabled = true
+				_update_order_label.call()
+				if remaining.is_empty():
+					done[0] = true
+		)
+		btn_box.add_child(btn)
+		btns.append(btn)
+
+	while not done[0]:
+		await get_tree().process_frame
+
+	backdrop.queue_free()
+	return ordered
+
+
+# ── Top or bottom prompt ──────────────────────────────────────────────────────
+# Asks the runner whether to place a card on top or bottom of R&D.
+func show_top_or_bottom_prompt(card: CardRecord, context_label: String) -> String:
+	var backdrop := ColorRect.new()
+	backdrop.color = Color(0, 0, 0, 0.5)
+	backdrop.set_anchors_preset(Control.PRESET_FULL_RECT)
+	backdrop.mouse_filter = Control.MOUSE_FILTER_STOP
+	add_child(backdrop)
+
+	var panel := PanelContainer.new()
+	panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	panel.custom_minimum_size = Vector2(400, 160)
+	backdrop.add_child(panel)
+
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 10)
+	panel.add_child(vbox)
+
+	var title := Label.new()
+	var card_name: String = card.title if card != null else "card"
+	title.text = "%s\nPlace %s on top or bottom of R&D?" % [context_label, card_name]
+	title.add_theme_font_size_override("font_size", 15)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD
+	vbox.add_child(title)
+
+	var choice := ""
+
+	var btn_top := Button.new()
+	btn_top.text = "Top"
+	btn_top.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	btn_top.pressed.connect(func(): choice = "top")
+	vbox.add_child(btn_top)
+
+	var btn_bot := Button.new()
+	btn_bot.text = "Bottom"
+	btn_bot.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	btn_bot.pressed.connect(func(): choice = "bottom")
+	vbox.add_child(btn_bot)
+
+	while choice == "":
+		await get_tree().process_frame
+
+	backdrop.queue_free()
+	return choice

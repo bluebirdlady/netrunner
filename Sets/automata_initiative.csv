@@ -1,0 +1,135 @@
+"","text_code","name","text"
+"1","a_teia_ip_recovery","A Teia: IP Recovery","Limit 2 remote servers.
+The first time each turn you install a card in the root of or protecting a remote server, you may install 1 card from HQ in the root of or protecting another remote server, ignoring all costs. You cannot score the second card this turn."
+"2","ablative_barrier","Ablative Barrier","Threat 3 → When you rez this ice during a run against this server, you may install 1 non-agenda card from HQ or Archives in the root of or protecting another server. <em>(This ability is active if any player has 3 or more agenda points.)</em>
+[subroutine] End the run."
+"3","adrian_seis","Adrian Seis","Whenever the Runner makes a successful run on this server, play a Psi Game. <em>(Players secretly bid 0–2[credit]. Then each player reveals and spends their bid.)</em> If the bids differ, the Runner cannot access cards other than this upgrade for the remainder of that run. If the bids match, the Runner cannot access this upgrade for the remainder of that run.
+When your turn ends, you may move this upgrade to the root of another server."
+"4","airbladex_jsrf_ed","AirbladeX (JSRF Ed.)","When you install this hardware, load 3 power counters onto it. When it is empty, trash it.
+[interrupt] → <strong>Hosted power counter:</strong> Prevent 1 net damage. Use this ability only during a run.
+[interrupt] → <strong>Hosted power counter:</strong> Prevent a ""when encountered"" ability on a piece of ice."
+"5","angelique_garza_correa","Angelique Garza Correa","Threat 3 → [click], <strong>1</strong>[credit], <strong>reveal and trash this upgrade from HQ:</strong> Do 1 meat damage. <em>(This ability is active if any player has 3 or more agenda points.)</em>
+When the Runner accesses this upgrade while it is rezzed, you may pay 2[credit] to do 2 meat damage."
+"6","arissana_rocha_nahu_street_artist","Arissana Rocha Nahu: Street Artist","Once per turn → <strong>0[credit]:</strong> Install 1 program from your grip <em>(paying its install cost)</em>. Use this ability only during a run. When that run ends, trash that program if it is not a <strong>trojan</strong>."
+"7","armed_asset_protection","Armed Asset Protection","Gain 3[credit]. Gain 1[credit] for each card type among faceup cards in Archives. If any of those cards are agendas, gain another 2[credit]."
+"8","attini","Attini","Threat 3 → The Runner cannot spend credits while subroutines on this ice are resolving. <em>(This ability is active if any player has 3 or more agenda points.)</em>
+[subroutine] Do 1 net damage unless the Runner pays 2[credit].
+[subroutine] Do 1 net damage unless the Runner pays 2[credit].
+[subroutine] Do 1 net damage unless the Runner pays 2[credit]."
+"9","audrey_v2","Audrey v2","Whenever you trash a card you are accessing, place 1 virus counter on this program.
+Interface → <strong>Hosted virus counter:</strong> Break up to 2 subroutines.
+<strong>Trash 1 card from your grip:</strong> +3 strength."
+"10","b_1001","B-1001","<strong>Remove 1 tag:</strong> End the run. Use this ability only during a run against another server."
+"11","bahia_bands","Bahia Bands","Run any server. If successful, resolve 2 of the following in any order:<ul><li>Draw 2 cards.</li><li>Install 1 card from your grip, paying 1[credit] less.</li><li>Remove 1 tag.</li><li>Place 4[credit] on this event. You can spend hosted credits to pay trash costs for the remainder of this run.</li></ul>"
+"12","balanced_coverage","Balanced Coverage","When your turn begins, you may choose a card type to look at the top card of R&D. If that card has the chosen type, you may reveal it and gain 2[credit]."
+"13","banner","Banner","Interface → <strong>2[credit]:</strong> Subroutines on the <strong>barrier</strong> you are encountering cannot end the run for the remainder of this encounter."
+"14","beatriz_friere_gonzalez","Beatriz Friere Gonzalez","[click][click]<strong>:</strong> Run HQ. If successful, instead of breaching HQ, breach R&D. When you do, access 1 additional card."
+"15","behold","Behold!","While the Runner is accessing this asset in R&D, they must reveal it.
+When the Runner accesses this asset anywhere except in Archives, you may pay 4[credit] to give them 2 tags."
+"16","capybara","Capybara","Whenever you bypass a piece of ice, you may remove this hardware from the game to derez that ice."
+"17","chrysopoeian_skimming","Chrysopoeian Skimming","The Corp may reveal an agenda from HQ. If they do, gain [click] and draw 1 card. Otherwise, look at the top 3 cards of R&D."
+"18","curupira","Curupira","Whenever you encounter a <strong>barrier</strong>, you may spend 3 hosted power counters to bypass it.
+Whenever this program fully breaks a piece of ice, place 1 power counter on this program.
+Interface → <strong>1[credit]:</strong> Break 1 <strong>barrier</strong> subroutine.
+<strong>1[credit]:</strong> +1 strength."
+"19","cybersand_harvester","Cybersand Harvester","Whenever you rez a piece of ice, place 2[credit] on this asset.
+You can spend hosted credits to pay install costs.
+[trash]<strong>:</strong> Take all credits from this asset."
+"20","daniela_jorge_inacio","Daniela Jorge Inácio","As an additional cost to trash this upgrade, the Runner must add 2 cards from the grip at random to the bottom of the stack.
+Persistent → As an additional cost to steal an agenda from this server or its root, the Runner must add 2 cards from the grip at random to the bottom of the stack."
+"21","debbie_downtown_moreira","Debbie ""Downtown"" Moreira","Threat 4 → When you install this resource, place 2[credit] on it. <em>(This ability is active if any player has 4 or more agenda points.)</em>
+Whenever you play a <strong>run</strong> event, place 1[credit] on this resource.
+[click]<strong>:</strong> Run any server. You can spend hosted credits during that run."
+"22","epiphany_analytica_nations_undivided","Epiphany Analytica: Nations Undivided","The first time each turn the Runner steals or trashes a Corp card, place 1 power counter on this identity.
+[click], <strong>hosted power counter:</strong> Look at the top 3 cards of R&D. You may install 1 of those cards."
+"23","eru_ayase_pessoa","Eru Ayase-Pessoa","Once per turn → [click], <strong>take 1 tag:</strong> Run Archives. If successful, instead of breaching Archives, breach R&D.
+Threat 3 → Whenever you breach R&D during a run on Archives, access 1 additional card. <em>(This ability is active if any player has 3 or more agenda points.)</em>"
+"24","federal_fundraising","Federal Fundraising","When your turn begins, you may look at the top 3 cards of R&D and arrange them in any order. Then, if this server is not protected by ice, you may draw 1 card."
+"25","front_company","Front Company","Rez only during your turn.
+The first run each turn cannot be made against a remote server.
+The first time each turn a run on Archives begins, if this server is not protected by ice, do 2 net damage."
+"26","fujii_asset_retrieval","Fujii Asset Retrieval","When this agenda is scored or stolen, do 2 net damage."
+"27","greasing_the_palm","Greasing the Palm","Gain 5[credit]. You may install 1 card from HQ. You may remove 1 tag to place 1 advancement counter on that card."
+"28","hannah_wheels_pilintra","Hannah ""Wheels"" Pilintra","Once per turn → [click]<strong>:</strong> Gain [click]. Run a remote server. When that run ends, if it was unsuccessful, take 1 tag.
+[click], [trash]<strong>:</strong> Gain [click][click]. Remove 1 tag."
+"29","hermes","Hermes","+1[mu]
+Whenever an agenda is scored or stolen, add 1 unrezzed card to HQ.
+Limit 1 <strong>console</strong> per player."
+"30","jaguarundi","Jaguarundi","Threat 4 → When the Runner encounters this ice, give them 1 tag unless they spend [click]. <em>(This ability is active if any player has 4 or more agenda points.)</em>
+[subroutine] Give the Runner 1 tag.
+[subroutine] If the Runner is tagged, do 1 core damage."
+"31","joy_ride","Joy Ride","Run R&D. If successful, draw 5 cards."
+"32","lago_paranoa_shelter","Lago Paranoá Shelter","The first time each turn the Corp installs a card in the root of a server, you may trash the top card of your stack to draw 1 card."
+"33","laser_pointer","Laser Pointer","Whenever you encounter a piece of <strong>AP</strong>, <strong>destroyer</strong>, or <strong>observer</strong> ice, you may trash this program to bypass that ice."
+"34","lilypad","LilyPAD","+2[mu]
+The first time each turn you install a program, you may draw 1 card.
+Limit 1 <strong>console</strong> per player."
+"35","living_mural","Living Mural","Install only on a piece of ice.
+Threat 4 → When you install this program, it gets +3 strength for the remainder of the turn. <em>(This ability is active if any player has 4 or more agenda points.)</em>
+Interface → <strong>1[credit]:</strong> Break 1 subroutine on a <strong>sentry</strong> protecting this server.
+<strong>1[credit]:</strong> +2 strength."
+"36","m_i_c","M.I.C.","[trash]<strong>:</strong> End the run unless the Runner spends [click]. Use this ability only during a run on this server.
+[subroutine] The Runner loses [click].
+[subroutine] The Runner loses [click].
+[subroutine] End the run."
+"37","mercury_chrome_libertador","Mercury: Chrome Libertador","Once per turn → When you breach HQ or R&D during a run, if you did not break any subroutines during that run, you may access 1 additional card."
+"38","mindscaping","Mindscaping","Resolve 1 of the following:<ul><li>Gain 4[credit] and draw 2 cards. Add 1 card from HQ to the top of R&D.</li><li>Do X net damage. X is equal to the number of tags the Runner has, up to 3.</li></ul>"
+"39","monkeywrench","Monkeywrench","Install only on a piece of ice.
+Host ice gets −2 strength. Each other piece of ice protecting this server gets −1 strength."
+"40","oppo_research","Oppo Research","Play only if the Runner stole or trashed a Corp card during their last turn.
+After you resolve this operation, your action phase ends.
+Give the Runner 2 tags.
+Threat 3 → You may pay 5[credit] to give the Runner 2 tags. <em>(This ability is active if any player has 3 or more agenda points.)</em>"
+"41","oracle_thinktank","Oracle Thinktank","When the Runner steals this agenda, give them 1 tag.
+[click], <strong>remove 1 tag:</strong> Shuffle this agenda into R&D. The Corp can use this ability only if this agenda is in the Runner's score area."
+"42","phoneutria","Phoneutria","When the Runner passes this ice, if there are 4 or more cards in the grip, give them 1 tag.
+[subroutine] Do 1 net damage.
+[subroutine] Do 1 net damage."
+"43","pichacao","Pichação","Install only on a piece of ice.
+Whenever you pass host ice, you may gain [click]. If this is not the first time you gained [click] during a run this turn, add this program to your grip."
+"44","pivot","Pivot","As an additional cost to play this operation, spend [click].
+Search R&D for 1 operation or agenda and reveal it. <em>(Shuffle R&D after searching it.)</em> Add that card to HQ.
+Threat 3 → You may play or install 1 card from HQ. <em>(This ability is active if any player has 3 or more agenda points.)</em>"
+"45","s_dobrado","S-Dobrado","Run a central server. The first time you encounter a piece of ice during that run, bypass it.
+Threat 4 → The second time you encounter a piece of ice during that run, you may spend [click] to bypass it. <em>(This ability is active if any player has 4 or more agenda points.)</em>"
+"46","saci","Saci","Install only on a piece of ice.
+Whenever host ice is rezzed or derezzed, gain 3[credit]."
+"47","salvo_testing","Salvo Testing","Whenever you score an agenda <em>(including this one)</em>, you may do 1 core damage."
+"48","shibboleth","Shibboleth","Threat 4 → This program gets −2 strength. <em>(This ability is active if any player has 4 or more agenda points.)</em>
+Interface → <strong>1[credit]:</strong> Break 1 <strong>code gate</strong> subroutine.
+<strong>2[credit]:</strong> +2 strength."
+"49","slap_vandal","Slap Vandal","Install only on a piece of ice.
+Interface → <strong>1[credit]:</strong> Break 1 subroutine on host ice. Use this ability only once per encounter."
+"50","slash_and_burn_agriculture","Slash and Burn Agriculture","[click], <strong>1</strong>[credit], <strong>reveal and trash this agenda from HQ:</strong> Place 2 advancement counters on 1 installed card that you can advance."
+"51","solidarity_badge","Solidarity Badge","The first time each turn you trash a Corp card, place 1 power counter on this hardware.
+When your turn begins, you may remove 1 hosted power counter to draw 1 card or remove 1 tag."
+"52","starlit_knight","Starlit Knight","Threat 4 → When the Runner encounters this ice, it gains X ""[subroutine] End the run."" subroutines for the remainder of this run, after its other subroutines. X is equal to the number of tags the Runner has.
+[subroutine] Give the Runner 1 tag.
+[subroutine] Give the Runner 1 tag."
+"53","stegodon_mk_iv","Stegodon MK IV","Each run, as long as a piece of ice has been derezzed during that run, each installed <strong>icebreaker</strong> gets –2 strength.
+Once per turn → When a run begins, you may derez 1 piece of ice not protecting the attacked server to gain 1[credit]."
+"54","strike_fund","Strike Fund","Gain 4[credit].
+When this event is trashed from your grip or stack, you may gain 2[credit]."
+"55","tatu_bola","Tatu-Bola","When the Runner passes this ice, you may swap it with a piece of ice from HQ. If you do, gain 4[credit]. <em>(The new ice is installed unrezzed. You do not pay an install cost.)</em>
+[subroutine] End the run."
+"56","the_price","The Price","Trash the top 4 cards of your stack. You may install 1 of those cards, paying 3[credit] less."
+"57","tree_line","Tree Line","[click], <strong>1</strong>[credit], <strong>reveal and trash this ice from HQ:</strong> Place 3 advancement counters on 1 installed piece of ice.
+You can advance this ice. It gets +1 strength for each hosted advancement counter.
+[subroutine] Gain 1[credit]. End the run."
+"58","tucana","Tucana","Remote server only.
+Persistent → Whenever an agenda is scored or stolen from the root of this server, you may search R&D for 1 piece of ice. <em>(Shuffle R&D after searching it.)</em> Install and rez that ice, paying a total of 3[credit] less."
+"59","umbrella","Umbrella","This program can only interface with ice hosting a <strong>trojan</strong> program.
+Interface → <strong>2[credit]:</strong> Break up to 3 <strong>code gate</strong> subroutines. If at least 1 subroutine was broken this way, each player may draw 1 card."
+"60","urban_art_vernissage","Urban Art Vernissage","When your turn begins, you may add 1 installed non-<strong>virus</strong> <strong>trojan</strong> program to your grip. If you do, place 2[credit] on this resource.
+You can spend hosted credits to install cards."
+"61","valentao","Valentão","As an additional cost to rez this ice, take 1 bad publicity or remove 1 tag.
+[subroutine] Gain 2[credit].
+[subroutine] The Runner loses 2[credit].
+[subroutine] End the run if you have more credits than the Runner."
+"62","virtual_service_agent","Virtual Service Agent","Whenever the Runner passes this ice after encountering it, if they did not break its printed subroutine with a <strong>decoder</strong> during that encounter, give them 1 tag.
+[subroutine] The Runner loses 1[credit]."
+"63","vovo_ozetti","Vovô Ozetti","The rez cost of each piece of ice protecting this server is lowered by 2[credit].
+Threat 4 → The rez cost of each card in the root of this server is lowered by 2[credit]. <em>(This ability is active if any player has 4 or more agenda points.)</em>
+When your turn ends, you may move this upgrade to the root of another server."
+"64","wage_workers","Wage Workers","Whenever you finish taking an action, if you have taken that action exactly 3 times this turn, gain [click]."
+"65","your_digital_life","Your Digital Life","Gain 1[credit] for each card in HQ."

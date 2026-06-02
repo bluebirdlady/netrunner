@@ -560,7 +560,7 @@ func show_encounter_prompt(encounter: EncounterState) -> Dictionary:
 	_rebuild_rig_row()
 
 	var ice_name := encounter.ice_card.display_name() if encounter.ice_card else "ice"
-	_add_section("%s  str %d" % [ice_name, encounter.ice_strength])
+	_add_section("%s  str %d" % [ice_name, encounter.effective_ice_strength()])
 
 	# Subroutine status
 	for i in range(encounter.subroutines.size()):
@@ -611,8 +611,7 @@ func show_encounter_prompt(encounter: EncounterState) -> Dictionary:
 				func(): encounter_action_resolved.emit({"type": "boost_strength", "card_id": b.card_id, "times": 1}),
 				Color(0.5, 0.7, 0.9))
 
-	# Encounter-spendable hosted credits (e.g. Leech).
-	# Only cards with "encounter_spend_credits": true in abilities.json are eligible.
+	# Encounter-spendable hosted credits (e.g. cards with "encounter_spend_credits" flag).
 	# Cards like Telework Contract, Pennyshaver, and Smartware Distributor hold their
 	# credits for click actions or automatic payouts — they must NOT appear here.
 	for rig_card in ctx.runner_rig:
@@ -628,6 +627,22 @@ func show_encounter_prompt(encounter: EncounterState) -> Dictionary:
 			_add_btn("Spend 1¢ from %s  (%d remaining)" % [rc.display_name(), hosted],
 				func(): encounter_action_resolved.emit({"type": "spend_hosted_credits", "card_id": cid, "amount": 1}),
 				Color(0.9, 0.7, 0.3))
+
+	# Leech-style: spend a virus counter to give the encountered ice -1 strength.
+	# Only cards with "encounter_weaken_ice": true in abilities.json are eligible.
+	for rig_card in ctx.runner_rig:
+		var rc: InstalledCard = rig_card as InstalledCard
+		if rc == null or rc.card_record == null:
+			continue
+		var card_def: Dictionary = ability_registry._abilities.get(rc.card_id, {}) as Dictionary
+		if not card_def.get("encounter_weaken_ice", false):
+			continue
+		var counters: int = rc.get_counter("virus")
+		if counters > 0:
+			var cid := rc.card_id
+			_add_btn("Use %s: ice gets -1 str  (%d virus left)" % [rc.display_name(), counters],
+				func(): encounter_action_resolved.emit({"type": "weaken_ice", "card_id": cid}),
+				Color(0.6, 0.9, 0.5))
 
 	# Self-break ability (e.g. N-Pot: 3cr to break 1 sub, runner-only)
 	if encounter.ice_card != null and ability_registry != null:
@@ -657,6 +672,178 @@ func show_encounter_prompt(encounter: EncounterState) -> Dictionary:
 						Color(0.4, 0.85, 1.0)
 					)
 					sb_btn.disabled = ctx.runner_credits < sb_cost
+
+	# Banner (and future suppress_etr_action programs): 2cr to suppress ETR subs on a barrier.
+	for _ban_rig in ctx.runner_rig:
+		var _ban_ic: InstalledCard = _ban_rig as InstalledCard
+		if _ban_ic == null or _ban_ic.card_record == null:
+			continue
+		var _ban_def: Dictionary = ability_registry._abilities.get(_ban_ic.card_id, {}) \
+			.get("suppress_etr_action", {}) as Dictionary
+		if _ban_def.is_empty():
+			continue
+		# Gate: encountered ice must be a barrier and suppression not already active.
+		var _ban_is_barrier := encounter.ice_card != null and \
+			encounter.ice_card.card_record != null and \
+			encounter.ice_card.card_record.has_subtype("barrier")
+		if not _ban_is_barrier or encounter.barrier_etr_suppressed:
+			continue
+		var _ban_cost: int = _ban_def.get("cost", 2)
+		var _ban_captured: InstalledCard = _ban_ic
+		_add_section("BANNER:")
+		var _ban_btn := _add_btn(
+			"%s — %dcr: Suppress all ETR subs this encounter" % [_ban_captured.display_name(), _ban_cost],
+			func(): encounter_action_resolved.emit({
+				"type": "suppress_etr_subs",
+				"card_id": _ban_captured.card_id
+			}),
+			Color(0.9, 0.75, 0.3))
+		_ban_btn.disabled = ctx.runner_available_credits() < _ban_cost
+
+	# Trojan interface break abilities (e.g. Slap Vandal: 1cr to break 1 sub, once per encounter).
+	# Show buttons for each trojan hosted on the encountered ice that has an "interface_break" key.
+	if encounter.ice_card != null and not encounter.ice_card.hosted_cards.is_empty():
+		var _ib_section_shown := false
+		for _ib_hc in encounter.ice_card.hosted_cards:
+			var _ib_ic: InstalledCard = _ib_hc as InstalledCard
+			if _ib_ic == null or _ib_ic.card_record == null:
+				continue
+			var _ib_def: Dictionary = ability_registry._abilities.get(_ib_ic.card_id, {}) \
+				.get("interface_break", {}) as Dictionary
+			if _ib_def.is_empty():
+				continue
+			var _ib_cost: int          = _ib_def.get("cost_per_sub", 1)
+			var _ib_once: bool         = _ib_def.get("once_per_encounter", false)
+			var _ib_already_used: bool = encounter.trojan_used_this_encounter.get(_ib_ic.card_id, false)
+			if _ib_once and _ib_already_used:
+				continue  # already fired this encounter — skip entirely
+			if not _ib_section_shown:
+				_add_section("TROJAN INTERFACE:")
+				_ib_section_shown = true
+			var _ib_card_captured: InstalledCard = _ib_ic
+			var _ib_can_afford: bool = ctx.runner_available_credits() >= _ib_cost
+			for _ib_i in range(encounter.subroutines.size()):
+				if encounter.is_broken(_ib_i):
+					continue
+				var _ib_sub: Dictionary = encounter.subroutines[_ib_i] as Dictionary
+				var _ib_captured_i: int = _ib_i
+				var _ib_btn := _add_btn(
+					"%s — %dcr: Break \"%s\"" % [_ib_card_captured.display_name(), _ib_cost,
+						_ib_sub.get("label", "sub %d" % _ib_i)],
+					func(): encounter_action_resolved.emit({
+						"type": "trojan_break_sub",
+						"card_id": _ib_card_captured.card_id,
+						"sub_index": _ib_captured_i
+					}),
+					Color(0.7, 0.9, 0.5))
+				_ib_btn.disabled = not _ib_can_afford
+
+	# Umbrella (and future umbrella_break programs): show if installed, ice has hosted trojan, and ice is code gate.
+	for _umb_rig in ctx.runner_rig:
+		var _umb_ic: InstalledCard = _umb_rig as InstalledCard
+		if _umb_ic == null or _umb_ic.card_record == null:
+			continue
+		var _umb_def: Dictionary = ability_registry._abilities.get(_umb_ic.card_id, {}) \
+			.get("umbrella_break", {}) as Dictionary
+		if _umb_def.is_empty():
+			continue
+		# Gate: ice must have at least one hosted trojan.
+		var _umb_has_trojan := false
+		if encounter.ice_card != null:
+			for _umb_hc in encounter.ice_card.hosted_cards:
+				if (_umb_hc as InstalledCard) != null:
+					_umb_has_trojan = true
+					break
+		if not _umb_has_trojan:
+			continue
+		# Gate: ice must match required subtypes (default: code_gate).
+		var _umb_required: Array = _umb_def.get("subtypes", ["code_gate"]) as Array
+		var _umb_type_ok := false
+		if encounter.ice_card != null and encounter.ice_card.card_record != null:
+			var _umb_ice_stypes: Array = encounter.ice_card.card_record.subtypes + encounter.ice_card.extra_subtypes
+			for _umb_rst in _umb_required:
+				if _umb_ice_stypes.has(_umb_rst):
+					_umb_type_ok = true
+					break
+		if not _umb_type_ok:
+			continue
+		var _umb_cost: int      = _umb_def.get("cost_per_sub", 2)
+		var _umb_cap: int       = _umb_def.get("subs_per_use", 3)
+		var _umb_unbroken: int  = encounter.unbroken_indices().size()
+		var _umb_to_break: int  = mini(_umb_unbroken, _umb_cap)
+		var _umb_total: int     = _umb_cost * _umb_to_break
+		var _umb_can_afford: bool = ctx.runner_available_credits() >= _umb_cost  # at least 1
+		var _umb_captured: InstalledCard = _umb_ic
+		_add_section("UMBRELLA:")
+		var _umb_btn := _add_btn(
+			"%s — %dcr each: Break up to %d code gate sub(s)" % [
+				_umb_captured.display_name(), _umb_cost, _umb_cap],
+			func(): encounter_action_resolved.emit({
+				"type": "umbrella_break",
+				"card_id": _umb_captured.card_id
+			}),
+			Color(0.5, 0.75, 1.0))
+		_umb_btn.disabled = not _umb_can_afford or _umb_unbroken == 0
+
+	# Encounter paid abilities (e.g. Malandragem bypass, Physarum Entangler, Arruaceiras Crew).
+	# Any runner-rig card (or trojan hosted on the current ice) with "encounter_ability" in abilities.json.
+	var _enc_ab_cards: Array = ctx.runner_rig.duplicate()
+	for _enc_srv in ctx.servers.values():
+		for _enc_ice in (_enc_srv as Server).ice:
+			for _enc_hosted in (_enc_ice as InstalledCard).hosted_cards:
+				_enc_ab_cards.append(_enc_hosted)
+	var _enc_ab_section_shown := false
+	for _enc_rig_card in _enc_ab_cards:
+		var _enc_rc: InstalledCard = _enc_rig_card as InstalledCard
+		if _enc_rc == null or _enc_rc.card_record == null:
+			continue
+		var _enc_cdef: Dictionary = ability_registry._abilities.get(_enc_rc.card_id, {}) as Dictionary
+		var _enc_adef: Dictionary = _enc_cdef.get("encounter_ability", {}) as Dictionary
+		if _enc_adef.is_empty():
+			continue
+		var _enc_modes: Array = _enc_adef.get("modes", []) as Array
+		for _enc_mi in range(_enc_modes.size()):
+			var _enc_mode: Dictionary = _enc_modes[_enc_mi] as Dictionary
+			# Check per-mode condition
+			if not _eval_encounter_mode_condition(_enc_mode, encounter, ctx, _enc_rc):
+				continue
+			if not _enc_ab_section_shown:
+				_add_section("ENCOUNTER ABILITIES:")
+				_enc_ab_section_shown = true
+			var _enc_card_captured: InstalledCard = _enc_rc
+			var _enc_mode_idx_captured: int = _enc_mi
+			var _enc_mode_lbl: String = _enc_mode.get("label", "%s ability %d" % [_enc_rc.display_name(), _enc_mi])
+			var _enc_can_afford: bool = _can_afford_encounter_mode(_enc_mode, ctx, _enc_rc)
+			var _enc_btn := _add_btn(
+				_enc_mode_lbl,
+				func(): encounter_action_resolved.emit({
+					"type": "use_encounter_ability",
+					"card_id": _enc_card_captured.card_id,
+					"mode_index": _enc_mode_idx_captured
+				}),
+				Color(0.6, 0.8, 1.0)
+			)
+			_enc_btn.disabled = not _enc_can_afford
+
+	# Spree: event set run_modifiers["spree_counters"]; offer trojan-move during encounter.
+	var _spree_count: int = ctx.run_modifiers.get("spree_counters", 0)
+	if _spree_count > 0:
+		var _spree_trojans: Array = []
+		for _sp_rig in ctx.runner_rig:
+			var _sp_ic: InstalledCard = _sp_rig as InstalledCard
+			if _sp_ic != null and _sp_ic.hosted_on_id != "":
+				_spree_trojans.append(_sp_ic)
+		# Also scan hosted_cards on server ice
+		for _sp_srv in ctx.servers.values():
+			for _sp_ice in (_sp_srv as Server).ice:
+				for _sp_hosted in (_sp_ice as InstalledCard).hosted_cards:
+					if not _spree_trojans.has(_sp_hosted):
+						_spree_trojans.append(_sp_hosted)
+		if not _spree_trojans.is_empty():
+			_add_section("SPREE (%d counter(s)):" % _spree_count)
+			_add_btn("1 counter: Move a trojan to ice protecting this server",
+				func(): encounter_action_resolved.emit({"type": "spree_move_trojan"}),
+				Color(0.9, 0.6, 0.3))
 
 	_add_section("─────────────────")
 	_add_btn("Pass — let subroutines fire",
@@ -785,3 +972,191 @@ func show_search_prompt(candidates: Array) -> CardRecord:
 	var result: CardRecord = await search_resolved
 	_clear_actions()
 	return result
+
+
+# ── Discard to hand limit (run-time variant) ──────────────────────────────────
+
+func show_discard_to_hand_limit_prompt(hand: Array, excess: int) -> Array:
+	_clear_actions()
+	_add_section("Discard %d card(s) to reach hand limit." % excess)
+
+	var selected: Array = []
+	var counter_lbl := Label.new()
+	counter_lbl.text = "Selected: 0 / %d" % excess
+	_action_area.add_child(counter_lbl)
+
+	var confirm_btn := Button.new()
+	confirm_btn.text = "Confirm"
+	confirm_btn.disabled = true
+	# will add after toggle buttons
+
+	var toggle_buttons: Array = []
+
+	for entry in hand:
+		var ed: Dictionary = entry as Dictionary
+		var cr: CardRecord = ed.get("card_record", null) as CardRecord
+		if cr == null:
+			continue
+		var card_name: String = cr.display_name()
+		var tog := Button.new()
+		tog.text = "[ ]  %s" % card_name
+		tog.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		tog.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		var captured_entry: Dictionary = entry as Dictionary
+		tog.pressed.connect(func():
+			if captured_entry in selected:
+				selected.erase(captured_entry)
+				tog.text = "[ ]  %s" % card_name
+			else:
+				if selected.size() < excess:
+					selected.append(captured_entry)
+					tog.text = "[✓]  %s" % card_name
+			counter_lbl.text = "Selected: %d / %d" % [selected.size(), excess]
+			confirm_btn.disabled = selected.size() != excess
+		)
+		_action_area.add_child(tog)
+		toggle_buttons.append(tog)
+
+	_action_area.add_child(confirm_btn)
+
+	var done := [false]
+	confirm_btn.pressed.connect(func(): done[0] = true)
+
+	while not done[0]:
+		await get_tree().process_frame
+
+	_clear_actions()
+	return selected
+
+
+# ── Choose subroutines to break (run-time variant) ───────────────────────────
+
+func show_choose_subs_to_break_prompt(candidates: Array, max_count: int, encounter: EncounterState) -> Array:
+	_clear_actions()
+	_add_section("Choose %d subroutine(s) to break:" % max_count)
+
+	var selected: Array = []
+	var counter_lbl := Label.new()
+	counter_lbl.text = "Selected: 0 / %d" % max_count
+	_action_area.add_child(counter_lbl)
+
+	var confirm_btn := Button.new()
+	confirm_btn.text = "Confirm"
+	confirm_btn.disabled = true
+
+	for idx in candidates:
+		var sub_dict: Dictionary = encounter.subroutines[idx] as Dictionary
+		var sub_label: String = sub_dict.get("label", "Subroutine %d" % idx)
+		var tog := Button.new()
+		tog.text = "[ ]  %s" % sub_label
+		tog.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		tog.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		var captured_idx: int = idx as int
+		tog.pressed.connect(func():
+			if captured_idx in selected:
+				selected.erase(captured_idx)
+				tog.text = "[ ]  %s" % sub_label
+			else:
+				if selected.size() < max_count:
+					selected.append(captured_idx)
+					tog.text = "[✓]  %s" % sub_label
+			counter_lbl.text = "Selected: %d / %d" % [selected.size(), max_count]
+			confirm_btn.disabled = selected.size() != max_count
+		)
+		_action_area.add_child(tog)
+
+	_action_area.add_child(confirm_btn)
+
+	var done := [false]
+	confirm_btn.pressed.connect(func(): done[0] = true)
+
+	while not done[0]:
+		await get_tree().process_frame
+
+	_clear_actions()
+	return selected
+
+
+# ── Encounter ability condition helpers ──────────────────────────────────────
+
+## Returns true when the encounter_ability mode's condition is satisfied.
+## Supports a subset of condition types sufficient for Step-2 cards.
+func _eval_encounter_mode_condition(mode: Dictionary, encounter: EncounterState,
+		game_ctx: GameContext, card: InstalledCard) -> bool:
+	var cond: Dictionary = mode.get("condition", {}) as Dictionary
+	if cond.is_empty():
+		return true
+
+	var ctype: String = cond.get("type", "")
+	match ctype:
+		"self_counter_gte":
+			var counter: String = cond.get("counter", "power")
+			var threshold: int  = cond.get("threshold", 1)
+			return card.get_counter(counter) >= threshold
+
+		"threat_gte":
+			var value: int = cond.get("value", 4)
+			return game_ctx.threat_level() >= value
+
+		"not_triggered_this_turn_for_card":
+			var key: String = cond.get("key", "")
+			var full_key: String = card.runtime_instance_id + ":" + key
+			return not game_ctx.once_per_turn_triggered.get(full_key, false)
+
+		"encountered_ice_str_lte":
+			var threshold: int = cond.get("threshold", 0)
+			return encounter.effective_ice_strength() <= threshold
+
+		"host_is_non_barrier":
+			# True when the encountered ice has no "barrier" subtype.
+			if encounter.ice_card == null or encounter.ice_card.card_record == null:
+				return false
+			var hsub: Array = encounter.ice_card.card_record.subtypes.duplicate()
+			for hes in encounter.ice_card.extra_subtypes:
+				if not hsub.has(hes):
+					hsub.append(hes)
+			return not hsub.has("barrier")
+
+		"runner_has_clicks":
+			var needed: int = cond.get("amount", 1)
+			return game_ctx.runner_clicks >= needed
+
+		"run_modifier_false":
+			# True when a run_modifiers key is absent or false (i.e. the ability hasn't been used this run).
+			var key: String = cond.get("key", "")
+			return not game_ctx.run_modifiers.get(key, false)
+
+		"and":
+			var conditions: Array = cond.get("conditions", []) as Array
+			for c in conditions:
+				if not _eval_encounter_mode_condition({"condition": c as Dictionary}, encounter, game_ctx, card):
+					return false
+			return true
+
+	# Unknown condition type — assume true (fail safe)
+	return true
+
+
+## Returns true when the runner can currently afford the cost of an encounter mode.
+func _can_afford_encounter_mode(mode: Dictionary, game_ctx: GameContext, card: InstalledCard) -> bool:
+	var credit_cost: int = mode.get("cost_credits", 0)
+	var click_cost:  int = mode.get("cost_clicks", 0)
+	var counter_type: String = (mode.get("cost_counter", {}) as Dictionary).get("type", "")
+	var counter_amt:  int    = (mode.get("cost_counter", {}) as Dictionary).get("amount", 0)
+
+	# physarum_entangler: cost = 1cr per unbroken sub — compute dynamically
+	for _cam_eff in (mode.get("effects", []) as Array):
+		if (_cam_eff as Dictionary).get("type", "") == "physarum_bypass_host_ice":
+			var penc: EncounterState = game_ctx.get_meta("_current_encounter") as EncounterState \
+				if game_ctx.has_meta("_current_encounter") else null
+			if penc != null:
+				credit_cost += penc.unbroken_indices().size()
+
+	if credit_cost > 0 and game_ctx.runner_available_credits() < credit_cost:
+		return false
+	if click_cost > 0 and game_ctx.runner_clicks < click_cost:
+		return false
+	if counter_type != "" and counter_amt > 0 and card.get_counter(counter_type) < counter_amt:
+		return false
+
+	return true

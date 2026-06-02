@@ -107,6 +107,30 @@ func get_break(card_id: String) -> Variant:
 		return null
 	return card_def["break"]
 
+# Returns the appropriate break definition for the given ice, accounting for
+# dual-type breakers (e.g. Lobisomem) that have separate blocks per ice type.
+# ice_subtypes should be CardRecord.subtypes(ice_card.card_id).
+func get_break_for_ice(card_id: String, ice_subtypes: Array) -> Variant:
+	if not _abilities.has(card_id):
+		return null
+	var card_def: Dictionary = _abilities[card_id] as Dictionary
+	# Prefer a type-specific break block when the ice matches.
+	if card_def.has("break_barrier") and "barrier" in ice_subtypes:
+		return card_def["break_barrier"]
+	if not card_def.has("break"):
+		return null
+	return card_def["break"]
+
+# Returns the on_fully_break_code_gate trigger for an icebreaker, or null if none.
+# Fires when the breaker is used to break the last unbroken subroutine on a code gate.
+func get_on_fully_break_code_gate(card_id: String) -> Variant:
+	if not _abilities.has(card_id):
+		return null
+	var card_def: Dictionary = _abilities[card_id] as Dictionary
+	if not card_def.has("on_fully_break_code_gate"):
+		return null
+	return card_def["on_fully_break_code_gate"]
+
 # Returns the boost definition for an icebreaker, or null if none.
 func get_boost(card_id: String) -> Variant:
 	if not _abilities.has(card_id):
@@ -118,7 +142,11 @@ func get_boost(card_id: String) -> Variant:
 
 # Returns true if this card has icebreaker abilities.
 func is_icebreaker(card_id: String) -> bool:
-	return get_break(card_id) != null
+	if get_break(card_id) != null:
+		return true
+	if not _abilities.has(card_id):
+		return false
+	return (_abilities[card_id] as Dictionary).has("break_barrier")
 
 # Returns a top-level boolean flag from the ability definition (e.g. "fracter_only_break").
 func get_flag(card_id: String, flag_name: String) -> bool:
@@ -126,6 +154,48 @@ func get_flag(card_id: String, flag_name: String) -> bool:
 		return false
 	var card_def: Dictionary = _abilities[card_id] as Dictionary
 	return card_def.get(flag_name, false) as bool
+
+
+# Returns the interface_break definition dict for a trojan, or null if none.
+# Used by Slap Vandal and similar "Interface →" abilities on hosted trojans.
+func get_interface_break(card_id: String) -> Variant:
+	return _get_trigger(card_id, "interface_break")
+
+
+# Returns the umbrella_break definition dict, or null if none.
+# Used by Umbrella (and future rig programs that break via hosted-trojan condition).
+func get_umbrella_break(card_id: String) -> Variant:
+	return _get_trigger(card_id, "umbrella_break")
+
+
+# Returns the on_runner_passes trigger dict for an ice card, or null if none.
+# Fires after the runner passes that specific ice (Phoneutria, Tatu-Bola, VSA).
+func get_on_runner_passes(card_id: String) -> Variant:
+	return _get_trigger(card_id, "on_runner_passes")
+
+
+# Returns the on_runner_passes_host trigger dict for a trojan, or null if none.
+# Fires after the runner passes the ice the trojan is hosted on (Pichação).
+func get_on_runner_passes_host(card_id: String) -> Variant:
+	return _get_trigger(card_id, "on_runner_passes_host")
+
+
+# Returns an Array of "when encountered" ability dicts for an ice card.
+# These are the ice's own abilities that fire at encounter time (e.g. Jaguarundi's
+# tag-or-click). They are distinct from the global encounter_ice event and are
+# interruptible by AirbladeX (JSRF Ed.).
+# Each element is a trigger dict suitable for AbilityInterpreter.execute_trigger().
+# A single dict value is wrapped in an Array for uniform iteration.
+func get_on_encounter_self(card_id: String) -> Array:
+	if not _abilities.has(card_id):
+		return []
+	var card_def: Dictionary = _abilities[card_id] as Dictionary
+	var result: Variant = card_def.get("on_encounter_self", null)
+	if result == null:
+		return []
+	if result is Array:
+		return result as Array
+	return [result]
 
 
 # ── Internal ──────────────────────────────────────────────────────────────────

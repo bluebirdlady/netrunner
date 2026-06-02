@@ -62,6 +62,11 @@ func choose_break_subroutines(_ice: InstalledCard, _subs: Array, _ctx: GameConte
 	return []
 
 
+func choose_spend_click_to_continue(ctx: GameContext) -> bool:
+	# Spend the click to continue if available — almost always correct in simulation.
+	return ctx.runner_clicks > 0
+
+
 func choose_trigger_order(_triggers: Array, _ctx: GameContext) -> int:
 	return 0
 
@@ -128,6 +133,31 @@ func choose_optional_ability(_prompt: String, _ctx: GameContext) -> bool:
 	return false
 
 
+func choose_psi_bid(max_bid: int, _ctx: GameContext) -> int:
+	# Weighted toward 0: saves credits and is the most common human bid.
+	var roll := randi() % 6   # 0-5
+	if roll < 3:
+		return 0
+	elif roll < 5:
+		return min(1, max_bid)
+	else:
+		return min(2, max_bid)
+
+
+# ── AirbladeX (JSRF Ed.) interrupt decisions ─────────────────────────────────
+
+# Sim default: don't spend counters on damage prevention (preserve for when-encountered).
+func use_airbladex_prevent_net_damage(_damage_type: String, _amount_remaining: int,
+		_ctx: GameContext) -> bool:
+	return false
+
+
+# Sim default: always prevent when-encountered abilities when counters are available.
+func use_airbladex_prevent_when_encountered(_ice_card: InstalledCard,
+		_ability_def: Dictionary, _ctx: GameContext) -> bool:
+	return true
+
+
 func choose_tags_to_remove(_max_count: int, _ctx: GameContext) -> int:
 	return 0
 
@@ -152,6 +182,10 @@ func choose_window_action(_ctx: GameContext, _actor: String, _can_rez_ice: bool)
 
 func choose_host_ice(_ctx: GameContext) -> InstalledCard:
 	return null
+
+
+func choose_target_ice(candidates: Array, _card_name: String, _ctx: GameContext) -> InstalledCard:
+	return candidates[0] if not candidates.is_empty() else null
 
 
 func choose_ice_swap(_eligible_servers: Array, _ctx: GameContext) -> Variant:
@@ -182,12 +216,47 @@ func choose_derez_target(candidates: Array, _ctx: GameContext) -> InstalledCard:
 	return candidates[0] if not candidates.is_empty() else null
 
 
+func choose_discard_to_hand_limit(hand: Array, excess: int, _ctx: GameContext) -> Array:
+	# Discard cards of lowest strategic value first.
+	# Priority order (discard cheapest/lowest-type first):
+	#   resources (score 0) < events (100) < hardware (200) < programs (300)
+	#   within a type, lower cost = discard first.
+	var scored: Array = []
+	for e in hand:
+		var ed: Dictionary = e as Dictionary
+		var cr: CardRecord = ed.get("card_record", null) as CardRecord
+		if cr == null:
+			continue
+		var type_score: int
+		match cr.card_type:
+			"resource": type_score = 0
+			"event":    type_score = 100
+			"hardware": type_score = 200
+			"program":  type_score = 300
+			_:          type_score = 0
+		var card_score: int = type_score + (cr.cost if cr.cost >= 0 else 0)
+		scored.append({"entry": ed, "score": card_score})
+	scored.sort_custom(func(a, b): return a.score < b.score)
+	var result: Array = []
+	for i in range(mini(excess, scored.size())):
+		result.append(scored[i].entry)
+	return result
+
+
 func choose_from_runner_score(candidates: Array, _ctx: GameContext) -> CardRecord:
 	return candidates[0] if not candidates.is_empty() else null
 
 
 func choose_suffer_damage_or_etr(_amount: int, _damage_type: String, _ctx: GameContext) -> bool:
 	return true  # take the ETR
+
+
+func choose_card_order(cards: Array, _ctx: GameContext) -> Array:
+	return cards.duplicate()  # AI: keep current order
+
+
+func choose_top_or_bottom(_card: CardRecord, _context_label: String, _ctx: GameContext) -> String:
+	return "bottom"  # AI: always hide it at the bottom
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────

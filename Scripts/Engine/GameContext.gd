@@ -40,6 +40,12 @@ var runner_rfg: Array = []   # Array[CardRecord]
 var corp_discard_facedown: Dictionary = {}
 # Instance IDs of cards the Corp installed this turn (for Seamless Launch restriction)
 var corp_installed_this_turn: Array = []
+# A Teia: IP Recovery — tracks whether the first remote install this turn has fired.
+# Cleared at the start of each Corp turn.
+var corp_first_remote_install_triggered_this_turn: bool = false
+# A Teia: IP Recovery — runtime_instance_ids of cards freely installed this turn that
+# cannot be scored by the Corp this turn.  Cleared at start of each Corp turn.
+var a_teia_free_installed_instance_ids: Array = []
 
 # ── Score areas ───────────────────────────────────────────────────────────────
 var corp_score_area: Array[CardRecord] = []
@@ -71,6 +77,9 @@ var run_ended:          bool   = false
 var run_successful:     bool   = false
 var run_target_server:  String = ""
 var accessed_card_id:   String = ""
+# Credits placed on a run event (e.g. Bahia Bands) that can be spent on trash costs
+# during the remainder of that run.  Cleared at the start of each run.
+var run_event_trash_credits: int = 0
 # Tracks whether the runner has made a successful run this turn.
 # Used by conditional install costs (e.g. Carmen: costs 3 instead of 5).
 # Cleared at the start of each runner turn.
@@ -78,6 +87,10 @@ var runner_made_successful_run_this_turn: bool = false
 # Tracks whether the runner made a successful run during their previous turn.
 # Saved at the start of each Corp turn, used by Public Trail's play condition.
 var runner_made_successful_run_last_turn: bool = false
+# True if the runner stole an agenda OR trashed a Corp card during their most recent turn.
+# Captured at the start of the Corp's turn; used by Active Policing / Bring Them Home
+# pre-play condition.
+var runner_stole_or_trashed_last_runner_turn: bool = false
 # Tracks whether the runner stole an agenda during the current run.
 # Set in RunStateMachine._steal_agenda; cleared at the start of each run.
 # Used by AMAZE Amusements run_end trigger.
@@ -95,6 +108,8 @@ var runner_click_draws_this_turn: int = 0
 var runner_hq_breached_this_turn: bool = false
 # Tracks whether runner has already trashed during a breach this turn (Loup trigger guard)
 var runner_trashed_during_breach_this_turn: bool = false
+# Tracks whether the runner trashed any of their own installed cards this turn (Boi Tata discount)
+var runner_trashed_own_installed_this_turn: bool = false
 # Tracks whether DZMZ Optimizer discount has been used this turn
 var runner_program_install_discounted_this_turn: bool = false
 # Tracks whether Carnivore has been used this turn (once per turn)
@@ -118,6 +133,17 @@ var corp_discarded_to_hand_limit_last_turn: bool = false
 var corp_last_scored_agenda_points: int = 0
 # Counts agendas scored this Corp turn. Used to gate "first agenda" triggers.
 var corp_agendas_scored_this_turn: int = 0
+# Attini (TAI): while set, the runner cannot spend credits during subroutine resolution.
+# Set by RunStateMachine before the subroutine loop when the encountered ice has
+# "runner_cannot_pay_subs_at_threat" and threat level is met; cleared after the loop.
+var runner_cannot_spend_credits_during_sub_resolution: bool = false
+
+# Ice trash abilities available to the Corp during the current encounter window.
+# Populated by RunStateMachine when an ice with "ice_paid_ability" (trash_self) is encountered.
+# Each element: { "card": InstalledCard, "ability": Dictionary }
+# Cleared at encounter end.
+var corp_ice_trash_abilities_available: Array = []
+
 # Run modifiers: set by run-initiating events, cleared when the run ends.
 # Supported keys:
 #   "extra_rez_cost"    : int — Corp pays extra to rez ice (Tread Lightly)
@@ -131,6 +157,10 @@ var corp_identity_face_title:   String = ""
 # Tracks whether the Corp played at least one operation this turn (for Nebula Making Stars).
 # Cleared at the start of each Corp turn.
 var corp_played_operation_this_turn: bool = false
+# Counts how many Mandate-subtype operations the Corp has played this turn.
+# Used by Sudden Commandment's Threat 3 clause ("if first mandate this turn").
+# Cleared at the start of each Corp turn.
+var corp_mandates_played_this_turn: int = 0
 # Tracks card IDs accessed during an Archives breach this run (for Charm Offensive).
 # Cleared at the start of each run by RunStateMachine.execute().
 var run_accessed_archives_card_ids: Array = []
@@ -153,9 +183,57 @@ var run_had_subroutine_resolve: bool = false
 # Prevents the runner from stealing or trashing cards during this run (VP31 Vertigo).
 # Set by Vertigo's pass_ice trigger; cleared at the start of each run.
 var runner_cannot_steal_or_trash_this_run: bool = false
+# Adrian Seis (TAI): when Corp wins the psi game, the runner may only access the card
+# whose runtime_instance_id matches this string (Adrian Seis itself — ice, so never in
+# the breach access list → effectively blocks the entire breach).
+# Set by the runner_cannot_access_except_self effect; cleared at the start of each run.
+var runner_cannot_access_except_self_card_id: String = ""
 # Global ICE strength bonus applied to all ice encountered this run (VP39 ezaM sub 2).
 # Cleared at the start of each run.
 var global_ice_strength_bonus_this_run: int = 0
+# Stegodon MK IV (TAI): true when the Corp derezzed a non-attacked-server ice at run start.
+# While true, all encountered icebreakers suffer −2 effective strength this encounter.
+# Cleared at the start of each run.
+var run_ice_derezzed_this_run: bool = false
+
+# Wage Workers (TAI): counts how many times the runner has taken each click-action type
+# this turn. When any count first reaches 3, Wage Workers fires +1 click.
+# Keys: "click_to_draw", "click_to_gain_credit", "click_to_install", "click_to_run",
+#       "click_to_play_event"
+# Cleared at the start of each runner turn.
+var runner_action_type_counts_this_turn: Dictionary = {}
+
+# Front Company (TAI): true after the runner has made their first run this turn.
+# While false, the runner cannot initiate runs on remote servers if Front Company
+# is rezzed in a non-Archives server.
+# Cleared at the start of each runner turn.
+var runner_first_run_this_turn_made: bool = false
+
+# Mercury (TAI): true if the runner broke any subroutine during the current run.
+# Mercury's identity ability grants +1 bonus access on HQ/R&D breach only when false.
+# Cleared at the start of each run.
+var run_runner_broke_any_subroutine: bool = false
+
+# Hosted install credits (Cybersand Harvester, Urban Art Vernissage, TAI):
+# InstalledCard references whose hosted credits may supplement runner_credits when
+# paying install costs this action. Populated at the start of _do_install by scanning
+# the rig for cards with "install_credits_any" ability key; cleared after payment.
+var install_credit_sources: Array = []   # Array[InstalledCard]
+
+# Daniela Jorge Inácio (TAI): additional costs the runner must pay to steal or trash
+# a card in the server where Daniela is rezzed.
+# Populated at run start by scanning the target server root; cleared at run start.
+# Format: { "effect": String, "params": Dictionary } — e.g. discard_grip_to_stack_random
+var active_server_additional_steal_cost: Dictionary = {}
+var active_server_additional_trash_cost: Dictionary = {}
+
+# Breach redirection (Beatriz Friere Gonzalez, Eru Ayase-Pessoa):
+# When non-empty, the breach phase targets this server instead of the run's actual target.
+# Cleared immediately after the breach resolves.
+var run_breach_redirect: String = ""
+# Additional accesses granted on top of the normal breach count (stacks with bonus_access).
+# Set alongside run_breach_redirect; cleared after breach.
+var run_breach_extra_accesses: int = 0
 # Instance ID of the program installed by Beta Build (VP19) this run.
 # RSM reads this at run end to return the card to the top of the runner's deck.
 # Cleared at the start of each run.
@@ -163,6 +241,10 @@ var beta_build_installed_card_id: String = ""
 # Card IDs the Runner cannot steal or trash during this run (VP35 Perfect Recall).
 # Populated by Perfect Recall paw_action; cleared at the start of each run.
 var runner_steal_trash_blocked_card_ids: Array = []
+# Adrian Seis (TAI): runtime_instance_ids of specific cards the runner cannot access
+# this run (psi-match / runner wins: runner cannot access Adrian Seis itself).
+# Cleared at the start of each run.
+var runner_access_blocked_card_iids: Array = []
 # VP64 Flagship: when set, _phase_success() runs the breach but skips run_successful
 # and the successful_run event.  Cleared at the start of each run.
 var run_success_suppressed: bool = false
@@ -170,6 +252,10 @@ var run_success_suppressed: bool = false
 # Overclock, recurring) in the current action.  Set by spend helpers; checked and
 # reset by async callers to fire runner_spends_outside_credits event.
 var runner_outside_credits_spent_pending: int = 0
+# Tracks how many clicks the runner has gained mid-run this run (Pichação).
+# Incremented by the pichacao_pass_host effect; cleared at the start of each run.
+# Used to determine whether Pichação returns itself to grip on the 2nd click gained.
+var run_clicks_gained_this_run: int = 0
 # VP36 Méliès U: which central server the Corp secretly predicted ("hq", "rd", "archives").
 # Set by corp_secretly_select_melies_side at corp_discard_phase_ends; read by flip_melies_u.
 # Empty string means no prediction has been made yet (before Corp's first discard phase).
@@ -186,6 +272,25 @@ var doubles_played_this_turn: int = 0
 # Tracks whether the Runner stole an agenda this turn (VP55 Hype Machine rez discount).
 # Cleared at the start of each player's turn.
 var runner_stole_agenda_this_turn: bool = false
+# Count of "assassination" agendas in the runner's score area.
+# Jeitinho adds itself here; reaching 3 triggers a runner win.
+var runner_assassination_agendas: int = 0
+# Amelia Earhart: counts accesses made on HQ and R&D (persistent across turns, never cleared).
+# Checked by amelia_count_gte condition; reset to 0 when Amelia activates (self-trash).
+var amelia_hq_rd_access_count: int = 0
+# ── Step 5 per-turn tracking ──────────────────────────────────────────────────
+# IIDs of every ice (or root card) that was rezzed during the current Corp turn.
+# Populated by: TurnManager._do_rez_card (PAW root rez) and
+#              RunStateMachine PAW rez path.
+# Cleared at the start of each Corp turn.
+var ice_rezzed_this_turn_instance_ids: Array = []
+# IIDs of ice rezzed for free by a Lightning Laboratory counter during the
+# current Corp turn.  Those specific ice are derezzed at Corp turn end.
+# Cleared (after derezzing) at Corp turn end.
+var lightning_lab_rezzed_ice_iids: Array = []
+# Instance ID of a corp card currently being activated from HQ (Descent).
+# Empty string when no such activation is in progress.
+var corp_hq_used_card_iid: String = ""
 # True when the Corp scored an agenda this turn that was NOT installed this turn.
 # Checked by VP61 Myōshu play condition.  Cleared at the start of each Corp turn.
 var corp_scored_agenda_not_installed_this_turn: bool = false
@@ -433,6 +538,13 @@ func create_remote_server() -> Server:
 	servers[id] = server
 	return server
 
+# Returns false when the Corp identity limits remote servers and the cap is already reached.
+# Currently only A Teia: IP Recovery enforces a hard cap of 2 remote servers.
+func can_create_new_remote_server() -> bool:
+	if corp_identity != null and corp_identity.id == "a_teia_ip_recovery":
+		return get_remote_servers().size() < 2
+	return true
+
 func get_remote_servers() -> Array:
 	var result: Array = []
 	for key in servers:
@@ -493,9 +605,24 @@ func get_installed_card_by_instance_id(instance_id: String) -> InstalledCard:
 				var hc: InstalledCard = hosted as InstalledCard
 				if hc != null and hc.runtime_instance_id == instance_id:
 					return hc
+	# Also check programs hosted on daemon rig programs (Muse) — stored in the daemon's
+	# hosted_cards array; not added to runner_rig so they consume zero extra MU.
+	for rig_card in runner_rig:
+		var rc: InstalledCard = rig_card as InstalledCard
+		if rc == null:
+			continue
+		for hosted in rc.hosted_cards:
+			var hc: InstalledCard = hosted as InstalledCard
+			if hc != null and hc.runtime_instance_id == instance_id:
+				return hc
 	# Also check scored agendas — needed for Dividends counter effects that fire
 	# during on_score (the card has already been removed from its server by then).
 	for card in corp_score_area_cards:
+		var c: InstalledCard = card as InstalledCard
+		if c != null and c.runtime_instance_id == instance_id:
+			return c
+	# Also check runner score area (stolen agendas with ongoing effects, e.g. The Basalt Spire).
+	for card in runner_score_area_cards:
 		var c: InstalledCard = card as InstalledCard
 		if c != null and c.runtime_instance_id == instance_id:
 			return c
@@ -680,7 +807,12 @@ func get_card_owner_by_instance_id(instance_id: String) -> String:
 		var c: InstalledCard = card as InstalledCard
 		if c != null and c.runtime_instance_id == instance_id:
 			return "corp"
-	# 4. Identity fallbacks
+	# 4. Runner score area (stolen agendas with ongoing effects, e.g. The Basalt Spire)
+	for card in runner_score_area_cards:
+		var c: InstalledCard = card as InstalledCard
+		if c != null and c.runtime_instance_id == instance_id:
+			return "runner"
+	# 5. Identity fallbacks
 	if instance_id == "identity_runner" or instance_id.begins_with("runner_identity"):
 		return "runner"
 	if instance_id == "identity_corp":
@@ -1000,6 +1132,35 @@ func get_counters_on_accessed_card(counter_type: String) -> int:
 	return card.get_counter(counter_type)
 
 
+# ── AirbladeX (JSRF Ed.) interrupt helpers ───────────────────────────────────
+
+# Returns true when the runner has at least one power counter on an installed
+# AirbladeX, meaning either interrupt ability is available.
+func runner_has_airbladex_counter() -> bool:
+	for rig_card in runner_rig:
+		var ic: InstalledCard = rig_card as InstalledCard
+		if ic != null and ic.card_id == "airbladex_jsrf_ed" and ic.get_counter("power") > 0:
+			return true
+	return false
+
+
+# Consume one power counter from AirbladeX.  Trashes the hardware when the
+# last counter is spent, placing it in the runner's discard pile.
+func spend_airbladex_counter() -> void:
+	for rig_card in runner_rig:
+		var ic: InstalledCard = rig_card as InstalledCard
+		if ic != null and ic.card_id == "airbladex_jsrf_ed" and ic.get_counter("power") > 0:
+			ic.remove_counter("power", 1)
+			var remaining: int = ic.get_counter("power")
+			send_log("AirbladeX: 1 power counter spent (%d remaining)." % remaining)
+			if remaining == 0:
+				runner_rig.erase(ic)
+				if ic.card_record != null:
+					runner_discard.append(ic.card_record)
+				send_log("AirbladeX (JSRF Ed.): no power counters remaining — trashed.")
+			return
+
+
 # ── Shackleton Grid helper ────────────────────────────────────────────────────
 
 # Called by async contexts (process_encounter_action, _offer_trash) after any
@@ -1076,7 +1237,9 @@ func clone_for_sim() -> GameContext:
 		c.runner_rig.append((ic as InstalledCard).clone())
 
 	# ── Per-turn install tracking ──────────────────────────────────────────────
-	c.corp_installed_this_turn = corp_installed_this_turn.duplicate()
+	c.corp_installed_this_turn                          = corp_installed_this_turn.duplicate()
+	c.corp_first_remote_install_triggered_this_turn     = corp_first_remote_install_triggered_this_turn
+	c.a_teia_free_installed_instance_ids                = a_teia_free_installed_instance_ids.duplicate()
 
 	# ── Deferred click modifiers ───────────────────────────────────────────────
 	c.pending_click_penalties = pending_click_penalties.duplicate()
@@ -1088,25 +1251,31 @@ func clone_for_sim() -> GameContext:
 	c.run_successful                              = run_successful
 	c.run_target_server                           = run_target_server
 	c.accessed_card_id                            = accessed_card_id
+	c.run_event_trash_credits                     = run_event_trash_credits
 	c.runner_made_successful_run_this_turn        = runner_made_successful_run_this_turn
 	c.runner_made_successful_run_last_turn        = runner_made_successful_run_last_turn
+	c.runner_stole_or_trashed_last_runner_turn    = runner_stole_or_trashed_last_runner_turn
 	c.runner_stole_agenda_this_run                = runner_stole_agenda_this_run
 	c.corp_used_reality_plus_this_turn            = corp_used_reality_plus_this_turn
 	c.runner_centrals_run_this_turn               = runner_centrals_run_this_turn.duplicate()
 	c.runner_click_draws_this_turn                = runner_click_draws_this_turn
 	c.runner_hq_breached_this_turn                = runner_hq_breached_this_turn
 	c.runner_trashed_during_breach_this_turn      = runner_trashed_during_breach_this_turn
+	c.runner_trashed_own_installed_this_turn      = runner_trashed_own_installed_this_turn
 	c.runner_program_install_discounted_this_turn = runner_program_install_discounted_this_turn
 	c.runner_carnivore_used_this_turn             = runner_carnivore_used_this_turn
 	c.runner_stole_agenda_this_turn               = runner_stole_agenda_this_turn
+	c.runner_assassination_agendas                = runner_assassination_agendas
 	c.runner_successful_run_on_rd_this_turn       = runner_successful_run_on_rd_this_turn
 	c.runner_successful_run_on_archives_this_turn = runner_successful_run_on_archives_this_turn
 	c.run_level_strength_boosts                   = run_level_strength_boosts.duplicate()
 	c.run_had_subroutine_resolve                  = run_had_subroutine_resolve
 	c.runner_cannot_steal_or_trash_this_run       = runner_cannot_steal_or_trash_this_run
+	c.runner_cannot_access_except_self_card_id    = runner_cannot_access_except_self_card_id
 	c.global_ice_strength_bonus_this_run          = global_ice_strength_bonus_this_run
 	c.beta_build_installed_card_id                = beta_build_installed_card_id
 	c.runner_steal_trash_blocked_card_ids         = runner_steal_trash_blocked_card_ids.duplicate()
+	c.runner_access_blocked_card_iids             = runner_access_blocked_card_iids.duplicate()
 	c.run_accessed_archives_card_ids              = run_accessed_archives_card_ids.duplicate()
 	c.run_modifiers                               = run_modifiers.duplicate()
 	c.runner_hq_successful_run_this_turn          = runner_hq_successful_run_this_turn
@@ -1116,6 +1285,7 @@ func clone_for_sim() -> GameContext:
 	c.doubles_played_this_turn                    = doubles_played_this_turn
 	c.corp_scored_agenda_not_installed_this_turn  = corp_scored_agenda_not_installed_this_turn
 	c.corp_played_operation_this_turn             = corp_played_operation_this_turn
+	c.corp_mandates_played_this_turn              = corp_mandates_played_this_turn
 	c.corp_finished_an_action_this_turn           = corp_finished_an_action_this_turn
 	c.corp_gained_advance_credits_this_turn       = corp_gained_advance_credits_this_turn
 	c.corp_last_scored_agenda_points              = corp_last_scored_agenda_points
@@ -1163,4 +1333,8 @@ func clone_for_sim() -> GameContext:
 		c._state_modifiers[mod_type] = cloned_mods
 
 	c.simulation_mode = true
+	c.amelia_hq_rd_access_count          = amelia_hq_rd_access_count
+	c.ice_rezzed_this_turn_instance_ids  = ice_rezzed_this_turn_instance_ids.duplicate()
+	c.lightning_lab_rezzed_ice_iids      = lightning_lab_rezzed_ice_iids.duplicate()
+	c.corp_hq_used_card_iid              = corp_hq_used_card_iid
 	return c

@@ -35,6 +35,10 @@ var hosted_grip_cards: Array = []
 # Unique companion/connection resources hosted on this Hackerspace card (VP6).
 # Array of InstalledCard objects.
 var hosted_runner_resources: Array = []
+# Corp cards (CardRecord objects) captured during breach and hosted on this runner program.
+# Used by Cupellation: spending 1cr during access stores the accessed corp card here instead
+# of accessing it normally. Cleared when this program is trashed.
+var hosted_corp_cards: Array = []   # Array[CardRecord]
 
 static func make_runtime_instance(record: CardRecord, srv_id: String, srv_zone: String, rezzed: bool = false) -> InstalledCard:
 	var c = InstalledCard.make(record, srv_id, srv_zone, rezzed)
@@ -59,6 +63,7 @@ static func make(record: CardRecord, srv_id: String, srv_zone: String, rezzed: b
 	c.granted_subtypes_to_host = []
 	c.hosted_grip_cards = []
 	c.hosted_runner_resources = []
+	c.hosted_corp_cards = []
 	return c
 
 
@@ -85,7 +90,10 @@ func is_in_root() -> bool:
 func can_be_advanced() -> bool:
 	if card_record == null:
 		return false
-	return card_record.is_agenda() or card_record.text.contains("can be advanced")
+	# NSG uses both phrasings: "can be advanced" (assets/upgrades) and "can advance this" (Logjam-style ice).
+	return card_record.is_agenda() \
+		or card_record.text.contains("can be advanced") \
+		or card_record.text.contains("can advance this")
 
 func meets_advancement_requirement() -> bool:
 	if card_record == null:
@@ -124,6 +132,7 @@ func clone() -> InstalledCard:
 	c.hosted_runner_resources = []
 	for r in hosted_runner_resources:
 		c.hosted_runner_resources.append((r as InstalledCard).clone())
+	c.hosted_corp_cards = hosted_corp_cards.duplicate()   # CardRecord refs shared (immutable)
 	return c
 
 

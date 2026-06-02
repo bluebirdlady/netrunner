@@ -1,700 +1,102 @@
-###
 
-In some test games, I have noticed a bug where some programs that don't have an MU cost end up getting charged to the Runner's MU total. Can you track down the source of this bug and fix it?
-
-###
-
-Some decks for the campaign:
-
-
-The Zwicky Group Invisible Hands
-15 influence spent (max 15, available 0)
-20 agenda points (between 20 and 21)
-49 cards (min 45)
-Cards up to Vantage Point
-Agenda (10)
-1x Above the Law
-3x Greenmail
-3x Sacrifice Zone Expansion
-3x Send a Message
-Asset (8)
-3x Anthill Excavation Contract
-2x Clearinghouse
-3x Spin Doctor ●●●
-Operation (14)
-2x Hansei Review ●●
-3x Hedge Fund
-2x Key Performance Indicators
-3x Measured Response
-2x Petty Cash
-2x Predictive Planogram ●●
-Upgrade (2)
-2x Mitra Aman ●●●●
-Barrier (4)
-2x Brân 1.0 ●●●●
-2x Pharos
-Code Gate (4)
-1x Flyswatter
-1x Syailendra
-2x Tocsin
-Sentry (7)
-2x Biawak
-3x Event Horizon
-2x Flywheel
-
-
-Méliès U Only the Brightest
-15 influence spent (max 15, available 0)
-21 agenda points (between 20 and 21)
-49 cards (min 45)
-Cards up to Vantage Point
-Agenda (9)
-1x Longevity Serum
-2x Proprionegation
-3x Send a Message
-3x Sericulture Expansion
-Asset (8)
-2x Humanoid Resources ●●●●
-3x Regolith Mining License
-3x Spin Doctor ●●●
-Operation (11)
-3x Hansei Review
-3x Hedge Fund
-1x Peer Review
-3x Petty Cash
-1x Predictive Planogram ●
-Upgrade (5)
-2x Anoetic Void
-1x Manegarm Skunkworks ●●●
-2x Mitra Aman
-Barrier (5)
-2x Brân 1.0 ●●●●
-3x Semak-samun
-Code Gate (8)
-2x Flyswatter
-3x Knowledge Seeker
-1x Mycoweb
-2x Whitespace
-Sentry (3)
-1x Empiricist
-2x Lionsmane
-
-
-
-PT Untaian Life's Building Blocks
-15 influence spent (max 15, available 0)
-20 agenda points (between 20 and 21)
-49 cards (min 45)
-Cards up to Elevation
-Agenda (9)
-1x Longevity Serum
-3x Proprionegation
-2x Send a Message
-3x Sericulture Expansion
-Asset (8)
-3x Clearinghouse ●●●●● ●●●●
-3x Spin Doctor ●●●
-2x Urtica Cipher
-Operation (11)
-3x Hansei Review
-2x Hedge Fund
-3x Peer Review
-3x Petty Cash
-Upgrade (5)
-2x Anoetic Void
-1x Manegarm Skunkworks ●●●
-2x Mitra Aman
-Barrier (5)
-2x Palisade
-3x Semak-samun
-Code Gate (6)
-1x Flyswatter
-2x Mycoweb
-3x Whitespace
-Sentry (5)
-2x Empiricist
-3x Karunā
-
-
-
-AU Co. The Gold Standard in Clones
-15 influence spent (max 15, available 0)
-20 agenda points (between 20 and 21)
-49 cards (min 45)
-Cards up to Vantage Point
-Agenda (10)
-1x Longevity Serum
-3x Orbital Superiority
-3x Proprionegation
-3x Sericulture Expansion
-Asset (9)
-3x Humanoid Resources ●●●●● ●
-3x Phật Gioan Baotixita
-3x Spin Doctor ●●●
-Operation (11)
-3x Hansei Review
-3x Hedge Fund
-3x Petty Cash
-2x Retirement Plan ●●●●● ●
-Upgrade (4)
-2x Mahkota Langit Grid
-2x Mitra Aman
-Barrier (3)
-3x Semak-samun
-Code Gate (3)
-3x Whitespace
-Sentry (9)
-3x Empiricist
-3x Lionsmane
-3x Tithe 
-
-
-
-Weyland Consortium Built to Last
-14 influence spent (max 15, available 1)
-18 agenda points (between 18 and 19)
-44 cards (min 40)
-Cards up to Vantage Point
-Agenda (10)
-1x Above the Law
-3x Greenmail
-2x Off the Books
-3x Sacrifice Zone Expansion
-1x Send a Message
-Asset (5)
-2x Anthill Excavation Contract
-3x Spin Doctor ●●●
-Operation (12)
-1x Government Subsidy
-3x Hedge Fund
-3x Measured Response
-1x Myōshu
-2x Petty Cash
-1x Predictive Planogram ●
-1x Reanimation Protocol
-Upgrade (3)
-3x Manegarm Skunkworks ●●●●● ●●●●
-Barrier (4)
-1x Kessleroid
-3x Pharos
-Code Gate (3)
-1x Flyswatter
-1x Syailendra
-1x Tocsin
-Sentry (7)
-2x Biawak
-1x Bumi 1.0 ●
-2x Event Horizon
-2x Flywheel
-
-
-
-
-Synapse Global Faster than Thought
-15 influence spent (max 15, available 0)
-20 agenda points (between 20 and 21)
-49 cards (min 45)
-Cards up to Elevation
-Too many copies of a limited card
-Agenda (9)
-3x Embedded Reporting
-2x Next Big Thing
-3x Orbital Superiority
-1x Tomorrowʼs Headline
-Asset (6)
-3x Regolith Mining License
-3x Spin Doctor
-Operation (13)
-1x Bigger Picture
-3x Hedge Fund
-1x IP Enforcement
-1x Neurospike ●●●
-3x Predictive Planogram
-1x Public Trail
-3x Touch-ups
-Upgrade (6)
-2x AMAZE Amusements
-2x Malapert Data Vault ●●●●● ●
-2x Manegarm Skunkworks ●●●●● ●
-Barrier (3)
-3x Ping
-Code Gate (5)
-2x Funhouse
-3x N-Pot
-Sentry (7)
-3x Doomscroll
-1x Lamplighter
-3x Tithe 
-
-
-
-Jinteki Restoring Humanity
-15 influence spent (max 15, available 0)
-18 agenda points (between 18 and 19)
-44 cards (min 40)
-Cards up to Elevation
-Agenda (8)
-3x Proprionegation
-2x Send a Message
-3x Sericulture Expansion
-Asset (6)
-3x Regolith Mining License
-3x Spin Doctor ●●●
-Operation (11)
-3x Hansei Review
-3x Hedge Fund
-2x Peer Review
-3x Petty Cash
-Upgrade (3)
-2x Anoetic Void
-1x Mitra Aman
-Barrier (5)
-3x Brân 1.0 ●●●●● ●
-2x Semak-samun
-Code Gate (5)
-3x Flyswatter
-2x Mycoweb
-Sentry (6)
-3x Doomscroll ●●●●● ●
-3x Empiricist
-
-
-
-Poétrï Luxury Brands All the Rage
-15 influence spent (max 15, available 0)
-20 agenda points (between 20 and 21)
-49 cards (min 45)
-Cards up to Vantage Point
-Agenda (9)
-2x Aggressive Trendsetting
-2x Méliès City Luxury Line
-3x Project Ingatan
-2x Send a Message
-Asset (13)
-2x Humanoid Resources
-3x Nico Campaign
-3x Otto Campaign
-3x Spin Doctor ●●●
-2x Synchrocyclotron
-Operation (11)
-2x Flood the Market ●●●●● ●
-3x Hedge Fund
-2x realloc()
-2x Reanimation Protocol ●●●●● ●
-2x Retirement Plan
-Barrier (4)
-2x Brân 1.0
-2x Palisade
-Code Gate (6)
-3x Scatter Field
-3x Sleipnir
-Sentry (6)
-2x Ansel 1.0
-2x Ansel 2.0
-2x Bumi 1.0
-
-
-
-BANGUN When Disaster Strikes
-15 influence spent (max 15, available 0)
-20 agenda points (between 20 and 21)
-49 cards (min 45)
-Cards up to Vantage Point
-Agenda (10)
-1x Above the Law
-3x Off the Books
-3x Orbital Superiority
-3x Sacrifice Zone Expansion
-Asset (3)
-3x Spin Doctor ●●●
-Operation (20)
-2x Cultivate ●●
-3x Hansei Review ●●●
-2x Hedge Fund
-3x Measured Response
-1x Myōshu
-3x Petty Cash
-3x Reanimation Protocol
-3x Vulture Fund
-Upgrade (2)
-1x Malapert Data Vault
-1x Mitra Aman ●●
-Barrier (4)
-1x Brân 1.0 ●●
-3x Kessleroid
-Code Gate (4)
-1x Flyswatter
-3x Tocsin
-Sentry (6)
-1x Bumi 1.0 ●
-2x Event Horizon
-2x Flywheel
-1x Lethe ●●
-
-
-
-Editorial Division Ad Nihilum
-15 influence spent (max 15, available 0)
-20 agenda points (between 20 and 21)
-49 cards (min 45)
-Cards up to Vantage Point
-Agenda (9)
-2x Next Big Thing
-3x Embedded Reporting
-1x Tomorrowʼs Headline
-3x Witch Hunt
-Asset (13)
-2x Luana Campos ●●●●
-3x Magistrate Revontulet
-2x Nico Campaign ●●●●
-3x Nihilo Agent
-3x Spin Doctor
-Operation (10)
-3x Flood the Market
-3x Retribution ●●●
-2x Scapegoat
-2x Vulture Fund ●●●●
-Upgrade (4)
-2x AMAZE Amusements
-2x Hype Machine
-Barrier (6)
-3x Grubber
-3x Ping
-Code Gate (4)
-1x Funhouse
-3x N-Pot
-Sentry (3)
-3x Doomscroll
-
-
-Nebula Talent Management Making Stars
-15 influence spent (max 15, available 0)
-20 agenda points (between 20 and 21)
-49 cards (min 45)
-Cards up to Vantage Point
-Too many copies of a limited card
-Agenda (9)
-3x Embedded Reporting
-2x Next Big Thing
-3x Witch Hunt
-1x Tomorrowʼs Headline
-Asset (13)
-2x Humanoid Resources ●●●●
-2x Magistrate Revontulet
-3x Public Access Plaza
-3x Regolith Mining License
-3x Spin Doctor
-Operation (13)
-3x Flood the Market
-3x Hedge Fund
-3x Petty Cash
-3x Predictive Planogram
-1x Retirement Plan ●●●
-Upgrade (2)
-1x Flagship ●●
-1x Hype Machine
-Barrier (8)
-3x Brân 1.0 ●●●●● ●
-3x Grubber
-2x Paywall
-Code Gate (2)
-2x N-Pot
-Sentry (2)
-2x Doomscroll
-
+Next we need to implement The Automata Initiative. Please check for the card list, text, and internal codes in the automata_initiative.csv file inside the Sets folder. Then provide a plan to implement all the necessary mechanisms, effects, and cards to include this set.
 
 ###
 
-Corp AI Evaluation: Reasonable but Suboptimal
-
-From the logs, the Corp AI makes generally acceptable choices, but several recurring suboptimal patterns suggest room for improvement. Below is a breakdown of observed decisions.
-✅ Reasonable Behaviors
-Situation	AI Action	Why It’s Reasonable
-Rezzing ice	Rezzes Tithe (cost 1), Whitespace (cost 2), Palisade (cost 3), Karunā (cost 4), Pharos (cost 7) when runner can break them	AI uses a heuristic: “runner can trivially break → consider bluff; if cheap enough, rez anyway.” This prevents free passes.
-Bluff recognition	“runner can trivially break X — considering bluff” – but still rezzes cheap ice.	For very cheap ice (≤3cr), rezzing is low risk; runner still pays break costs.
-Install order	Places ice on servers before assets (e.g., Palisade in front of R&D, Whitespace + Tithe in HQ)	Mimics basic defensive layering.
-Hedge Fund usage	Plays Hedge Fund early to build credits, sometimes twice in a row.	Standard Corp economy play.
-Agenda advancement	Advances Superconducting Hub to 3 counters before scoring.	Correct – no over‑advance waste.
-Retribution play	Plays Retribution when runner is not tagged (condition fails, no effect).	AI doesn’t check condition before playing? Actually it plays anyway – condition is evaluated inside the ability, so the card is still played but fizzles. This wastes a click and the card.
-❌ Suboptimal Patterns
-1. Rezzing ice that runner can easily break – even when expensive
-
-    Example (Game 1, turn 15): Karunā (cost 4) rezzed against runner with Carmen (strength 5, breaks for 1cr per sub). Runner breaks both subs for 2cr total. Corp wasted 4cr.
-
-    Example (Game 3, turn 4): Pharos (cost 7) rezzed; runner breaks both subs with Cleaver for ~2cr. Corp lost 7cr for nothing.
-
-    Better: AI should compare break cost (estimated from runner’s board) vs rez cost. If break cost < rez cost, maybe don’t rez unless it’s a critical server.
-
-2. Failing to protect centrals later in the game
-
-    Game 1, turn 24: R&D has only Palisade (position 0) and an unrezzed Diviner (position 1). Runner breaks Palisade, passes Diviner (unrezzed), accesses R&D and steals a 3‑point agenda to win.
-
-    Issue: Diviner was installed but left unrezzed when it could have ended the run or done damage. AI had 24+ credits at that point – could afford to rez.
-
-    Better: When runner is approaching a central with game‑point agendas, rez all ice if affordable.
-
-3. Wasting clicks on Hedge Fund when already rich
-
-    Game 3, turn 1: Reality Plus plays Hedge Fund twice, going from 5 → 14 → 23 credits. No ice installed on R&D or HQ until much later.
-
-    Issue: Over‑economy without defense. Runner steals a 2‑point agenda from unprotected R&D on turn 4.
-
-    Better: Prioritise installing at least one piece of ice on centrals before second Hedge Fund.
-
-4. Not recognising “must run a central first” restriction
-
-    As Corp, Replicating Perfection enforces the restriction correctly. But the Corp AI doesn’t exploit it – it never installs additional ice on centrals after seeing the runner repeatedly fail remote runs. The runner eventually runs Archives (central) and wins.
-
-    Better: When playing an ID with central‑only restriction, Corp AI should reinforce centrals (more ice, upgrades) because the runner has to run them eventually.
-
-5. Playing Retribution when condition will fail
-
-    Happens twice in Game 3 (turn 3 and turn 4? Actually turn 3 Retribution, turn 4? Wait – Game 3 turn 3: “Condition not met — ability has no effect.” Then Reality Plus plays Retribution anyway.)
-
-    Issue: AI doesn’t pre‑check the condition (runner_is_tagged). It wastes a click and the card.
-
-    Better: In choose_action(), evaluate playable operations against their conditions. If condition fails, don’t offer/play that operation.
-
-6. Not using upgrades or paid abilities
-
-    Game 1: Replicating Perfection never activates Spin Doctor (Archives shuffle), Malapert Data Vault (peek R&D), or Urtica Cipher (pay 2cr for net damage) – all were installed or in HQ.
-
-    Better: Corp AI should have a list of high‑value paid abilities and trigger them when beneficial.
-
-📊 Overall Assessment
-Aspect	Grade	Notes
-Basic economy	B+	Plays Hedge Fund, gains credits, but sometimes over‑accumulates.
-Ice rezzing	C+	Rezzes too aggressively against breakers, wastes credits.
-Defensive positioning	C-	Leaves centrals under‑protected; fails to rez ice when it matters.
-Ability usage	D+	Rarely uses card‑specific paid abilities or conditional triggers.
-Condition awareness	D	Plays Retribution when runner isn’t tagged; doesn’t pre‑check.
-Win condition prioritisation	C	Doesn’t defend game‑point agendas; allows runner to steal winning agendas too easily.
-
-Final verdict: The Corp AI is functional for casual play but predictable and suboptimal against a competent runner. It will lose most games where the runner builds a decent rig and runs centrals repeatedly. To be competitive, the AI needs:
-
-    A break‑cost estimator for rez decisions.
-
-    Condition pre‑checking before playing operations.
-
-    Central server reinforcement when playing Replicating Perfection or against a runner focusing centrals.
-
-    A priority system for paid abilities (e.g., always use Malapert Data Vault if available).
+Please design six Corp decks to highlight Automata Initiative cards. These decks can draw on cards from The Automata Initiative, Rebellion without Rehearsal, System Gateway, Elevation, and Vantage Point, following the Standard ban list. However, they should primarily emphasize cards from The Automata Initiative. They should be as strategically coherent and distinctive from each other as possible. There should certainly be decks built around the two new Corp identities in this set (A Teia: IP Recovery and Epiphany Analytica: Nations Undivided). There should be some decks that focus on trying to fast-advance agendas, there should be decks that spotlight operations and assets, and there should be decks that build ice to house assets. There should be a deck built to try to maximize win chances by giving the runner tags and then applying damage.
 
 ###
 
-Work Plan: Refactoring AbilityInterpreter.gd
+Take the six decks from the last response and weave them into the campaign to unlock the Automata Initiative Runner-side cards. Add relevant fiction consistent with the existing narratives, the deck identities, and the canon at https://nullsignal.games/blog/category/story/
 
-This plan breaks the monolithic script into maintainable, testable modules. Each step is backwards‑compatible – you can commit after each step without breaking existing cards.
-Phase 0: Preparation
+Please make sure that these six matches form a complete act in the campaign and that the campaign.json is fully updated with the new material.
 
-    Back up the current file (git branch refactor/ability-interpreter).
+###
 
-    Write integration tests for 5–10 representative cards (e.g., one damage, one counter, one run effect) using the existing GameContext mock.
+We should make sure that card unlocks register as a meaningful event for players. Let's add a UI experience that shows new unlocked cards one at a time, together with UI styling that fits the overall game.
 
-    Add randomize() to the game startup (outside the interpreter).
+###
 
-Phase 1: Extract Helpers & Reduce Duplication
+Next we need to implement Parhelion. Please check for the card list, text, and internal codes in the parhelion.csv file inside the Sets folder. Then provide a plan to implement all the necessary mechanisms, effects, and cards to include this set.
 
-Goal: Remove repetitive code inside _execute_effect without changing external behaviour.
-Step 1.1 – Self‑card getter
-gdscript
+###
 
-# At top of AbilityInterpreter (private helper)
-func _get_self_card(ctx: GameContext) -> InstalledCard:
-    var iid = ctx.current_event_data.get("card_instance_id", "")
-    if iid.is_empty():
-        return null
-    var card = ctx.get_installed_card_by_instance_id(iid)
-    if card == null:
-        card = ctx.get_installed_card_by_id(iid)
-    return card
+Please design six Corp decks to highlight Parhelion cards. These decks can draw on cards from Parhelion, The Automata Initiative, Rebellion without Rehearsal, System Gateway, Elevation, and Vantage Point, following the Standard ban list. However, they should primarily emphasize cards from Parhelion. They should be as strategically coherent and distinctive from each other as possible. There should certainly be decks built around the three new Corp identities in this set (Thule Subsea: Safety Below, Issuaq Adaptics: Sustaining Diversity and the generic Corp identity Ampère: Cybernetics For Anyone). There should be some decks that adopt what players call the "glacier" strategy of building one deep, highly protected remote server with strong ice and upgrades, and advancing agendas/deploying assets there. There should be an asset-spam deck, as well. I want a deck that tries to kill the Runner with direct damage. And there should be a deck built around trying to win with Superdeep Borehole.
 
-Replace all occurrences of the 5‑line lookup pattern with _get_self_card(ctx).
-Step 1.2 – Unify “optional ability” prompt
+###
 
-Create a helper:
-gdscript
+Take the six decks from the last response and weave them into the campaign to unlock the Parhelion Runner-side cards. Add relevant fiction consistent with the existing narratives, the deck identities, and the canon at https://nullsignal.games/blog/category/story/
 
-func _ask_optional(prompt: String, ctx: GameContext, player: String = "active") -> bool:
-    var dm = ctx.corp_decision_maker if player == "corp" else ctx.runner_decision_maker
-    if dm and dm.has_method("choose_optional_ability"):
-        return await dm.choose_optional_ability(prompt, ctx)
-    return true   # AI default
+Please make sure that these six matches form a complete act in the campaign and that the campaign.json is fully updated with the new material.
 
-Use it for idiosyncresis_activate, mitra_aman_approach, zwicky_optional_draw, etc.
-Step 1.3 – Consolidate install logic
+###
 
-Create _install_card(record: CardRecord, server: Server, zone: String, rezzed: bool, ctx: GameContext) -> InstalledCard.
-Then rewrite install_ice_from_hq, install_any_from_hq, install_from_archives_free, etc. to use it.
+Next we need to implement Midnight Sun, as well as the Midnight Sun booster pack. Please check for the card list, text, and internal codes in the midnight_sun.csv and midnight_sun_booster.csv files inside the Sets folder. Then provide a plan to implement all the necessary mechanisms, effects, and cards to include this set.
 
-Checkpoint: Run integration tests – all should pass.
-Phase 2: Split Effect Handlers into a Registry
+###
 
-Goal: Break _execute_effect (1800+ lines) into separate handler functions.
-Step 2.1 – Define handler interface
+Please design six Corp decks to highlight Midnight Sun cards. These decks can draw on cards from Midnight Sun, Parhelion, The Automata Initiative, Rebellion without Rehearsal, System Gateway, Elevation, and Vantage Point, following the Standard ban list. However, they should primarily emphasize cards from Midnight Sun. They should be as strategically coherent and distinctive from each other as possible. There should certainly be decks built around the new Corp identities in this set (Pravdivost Consulting: Political Solutions, Ob Superheavy Logistics: Extract. Export. Excel.). There should be some decks that adopt what players call the "glacier" strategy of building one deep, highly protected remote server with strong ice and upgrades, and advancing agendas/deploying assets there. There should be an asset-spam deck, as well. I want a deck that tries to kill the Runner with direct damage. And there should be a deck built around trying to win with Mutually Assured Destruction, as well as a deck trying to optimize Mitosis.
 
-Create a new file effect_handlers.gd (or a folder effects/). Each handler is a static function:
-gdscript
+###
 
-static func handle_gain_credits(effect: Dictionary, ctx: GameContext, target: Variant) -> void:
-    var params = effect.get("params", {})
-    var subject = params.get("subject", "corp")
-    var amount = params.get("amount", 0)
-    ctx.set_credits(subject, ctx.get_credits(subject) + amount)
-    ctx.send_log(...)
+Take the six decks from the last response and weave them into the campaign to unlock the Midnight Sun Runner-side cards. Add relevant fiction consistent with the existing narratives, the deck identities, and the canon at https://nullsignal.games/blog/category/story/
 
-Step 2.2 – Build a dictionary mapping type → handler
+Please make sure that these six matches form a complete act in the campaign and that the campaign.json is fully updated with the new material.
 
-In AbilityInterpreter:
-gdscript
+###
 
-const _handlers = {
-    "gain_credits": _handle_gain_credits,
-    "lose_credits": _handle_lose_credits,
-    # ... all 70+ types
-}
+Next we need to implement Uprising, as well as the Uprising booster pack. Please check for the card list, text, and internal codes in the uprising.csv and uprising_booster.csv files inside the Sets folder. Then provide a plan to implement all the necessary mechanisms, effects, and cards to include this set.
 
-Keep the handler functions inside the same class (as static or instance methods) for now.
-Step 2.3 – Rewrite _execute_effect
-gdscript
+###
 
-func _execute_effect(effect: Dictionary, ctx: GameContext, chosen_target: Variant) -> void:
-    if effect.has("condition") and not _evaluate_condition(effect["condition"], ctx):
-        return
-    var etype = effect.get("type", "")
-    var handler = _handlers.get(etype)
-    if handler:
-        await handler.call(effect, ctx, chosen_target)
-    else:
-        push_error("Unknown effect type: ", etype)
+Please design six Corp decks to highlight Uprising cards. These decks can draw on cards from Uprising, Midnight Sun, Parhelion, The Automata Initiative, Rebellion without Rehearsal, System Gateway, Elevation, and Vantage Point, following the Standard ban list. However, they should primarily emphasize cards from Uprising. They should be as strategically coherent and distinctive from each other as possible. There should certainly be decks built around the new Corp identities in this set (GameNET: Where Dreams are Real, Earth Station: SEA Headquarters). There should be some decks that adopt what players call the "glacier" strategy of building one deep, highly protected remote server with strong ice and upgrades, and advancing agendas/deploying assets there. There should be an asset-spam deck, as well. I want a deck that tries to kill the Runner with direct damage featuring traps and ambushes. And there should be a deck built around trying to win with a lockdown card.
 
-Step 2.4 – Extract one handler at a time
+###
 
-Start with 5 simple effects (e.g., gain_credits, draw_cards, give_tags). After each, run tests. This is safe and incremental.
+Take the six decks from the last response and weave them into the campaign to unlock the Uprising Runner-side cards. Add relevant fiction consistent with the existing narratives, the deck identities, and the canon at https://nullsignal.games/blog/category/story/
 
-Checkpoint: All effect types moved to individual functions; _execute_effect becomes ~20 lines.
-Phase 3: Extract Condition Evaluation
+Please make sure that these six matches form a complete act in the campaign and that the campaign.json is fully updated with the new material.
 
-Goal: Move condition logic to a separate class for reuse and testing.
+###
 
-    Create ConditionEvaluator.gd (extends RefCounted).
+Next we need to implement Downfall. Please check for the card list, text, and internal codes in the downfall.csv file inside the Sets folder. Then provide a plan to implement all the necessary mechanisms, effects, and cards to include this set.
 
-    Move _evaluate_condition and its helper _resolve_amount into it.
+###
 
-    Pass GameContext and current_event_data explicitly (or keep as part of ctx).
+Please design six Corp decks to highlight Downfall cards. These decks can draw on cards from Downfall, Uprising, Midnight Sun, Parhelion, The Automata Initiative, Rebellion without Rehearsal, System Gateway, Elevation, and Vantage Point, following the Standard ban list. However, they should primarily emphasize cards from Uprising. They should be as strategically coherent and distinctive from each other as possible. There should certainly be decks built around the new Corp identities in this set (MirrorMorph: Endless Iteration, Hyoubu Institute: Absolute Clarity). There should be some decks that adopt what players call the "glacier" strategy of building one deep, highly protected remote server with strong ice and upgrades, and advancing agendas/deploying assets there. There should be an asset-spam deck, as well. I want a deck that tries to kill the Runner with direct damage featuring traps and ambushes. And there should be a deck built around trying to win with damage from Complete Image.
 
-    Replace all internal calls with ConditionEvaluator.new().evaluate(...).
+###
 
-    (Optional) Inline the few places that still use _evaluate_condition in effect handlers – they now use the new evaluator.
+Take the six decks from the last response and weave them into the campaign to unlock the Downfall Runner-side cards. Add relevant fiction consistent with the existing narratives, the deck identities, and the canon at https://nullsignal.games/blog/category/story/
 
-Phase 4: Refactor Target Resolution
+Please make sure that these six matches form a complete act in the campaign and that the campaign.json is fully updated with the new material.
 
-    Extract TargetResolver.gd with a method resolve(target_spec, ctx).
+###
 
-    Move _resolve_target logic there.
+Build a final gauntlet of decks drawing from recent Corp champion decks at real-world events in the Standard format, and construct a narrative sequence of 10 matches to end the campaign. Add these, together with the relevant fiction, to the campaign.
 
-    For random selection, inject an RNG instance (to make tests deterministic).
+Please make sure that these 10 matches form a complete act in the campaign and that the campaign.json is fully updated with the new material.
 
-Phase 5: Isolate Encounter Actions
+###
 
-The process_encounter_action and its helpers (_do_boost, _do_break_sub, etc.) are tightly coupled to EncounterState.
+Let's take a beat to implement an interesting, engaging, fun, and truly instructive learn-to-play mode. I'd like to design a sequence of mini-games that players can work through which has narrative structure and flow and which teaches players both the world of Android: Netrunner and the basic/intermediate mechanics of play. This can start as a set of short scripted matches to learn basic interactions, but I'd like it to develop into a set of puzzle games strung in a narrative. I'd also like to think about cosmetic unlocks we could offer as rewards for completing this content.
 
-    Create EncounterProcessor.gd.
+Please put together a design, plan implementation phases, and specify deliverables for each stage.
 
-    Move all encounter‑related methods into it.
+###
 
-    Pass encounter, ctx, and ability_registry as arguments.
+My impression is that the various levels of AI still feel weak and incomplete. But I'd like to gather better data, both to confirm my impression and to diagnose issues, before proceeding. Can you suggest what we should do to address this?
 
-    Keep _find_breaker as a private static helper inside the new class.
+###
 
-Benefit: AbilityInterpreter no longer knows about icebreakers or subroutines.
-Phase 6: Introduce Typed GameContext
+We need to build a competent suite of Runner-side AIs, parallel to the Corp AI. Can you provide a set of steps, deliverables, and plans for tests for this project?
 
-Goal: Replace dynamic ctx property access with a real GDScript class.
-Step 6.1 – Create GameContext.gd (extends RefCounted)
+###
 
-Declare all fields:
-gdscript
+Let's build a Corp campaign that the Runner can optionally pursue, after having finished the Runner campaign. The in-game story choice is given: retire into the shadows, or turn corporate. If the Runner turns Corporate, they should have to work to unlock the Corp cards, following this sequence of sets:
 
-var runner_tags: int = 0
-var corp_credits: int = 5
-var runner_credits: int = 5
-var runner_hand: Array   # of Dictionary {card_id, card_record}
-var corp_hand: Array
-# ... (all existing dynamic fields)
+System Gateway > Elevation > Vantage Point > Downfall > Uprising > Midnight Sun > Parhelion > The Automata Initiative > Rebellion without Rehearsal
 
-Step 6.2 – Move helper methods
+###
 
-    get_credits(subject), set_credits(...)
-
-    runner_is_tagged(), threat_level()
-
-    get_installed_card_by_instance_id(iid)
-
-    notify_event(...) etc.
-
-Step 6.3 – Update the interpreter
-
-Change all ctx.runner_tags to ctx.runner_tags (still works because it’s a property now, not a dynamic key).
-Remove any ctx.set_meta / ctx.get_meta – replace with dedicated fields (e.g., ctx.current_event_data as a Dictionary, ctx.run_modifiers as Dictionary).
-
-Checkpoint: The interpreter now uses a strongly‑typed context – compile errors will catch typos.
-Phase 7: Remove Hard‑Coded Card IDs
-
-Goal: Move special‑case logic into JSON abilities where possible.
-
-    For au_co_the_gold_standard_in_clones: create a new effect type "au_co_place_power_counter" and move the logic there.
-
-    For beta_build_installed_card_id: add a field ctx.beta_build_installed instead of a magic string.
-
-    For "run_event_active": define a constant in GameContext (RUN_EVENT_ACTIVE).
-
-    For card‑specific identity checks (ctx.corp_identity.id == ...): either move the check into a condition in the JSON (e.g., "type": "identity_is", "params": {"id": "au_co"}) or keep as a one‑off but document it.
-
-Rule of thumb: If a card’s name appears in the interpreter, it’s a refactoring target.
-Phase 8: Performance & Error Handling
-
-    Replace linear searches with dictionaries:
-
-        ctx.runner_rig_by_instance_id (updated on install/trash).
-
-        encounter.available_breakers_by_id.
-
-    Add early returns after push_error where missing data should abort the effect.
-
-    Wrap all await calls in _execute_effect handlers with error catching (optional, but helps with debugging).
-
-Phase 9: Final Cleanup & Documentation
-
-    Remove dead code and unused variables.
-
-    Write a short README_ABILITY_INTERPRETER.md explaining how to add a new effect type:
-    md
-
-    1. Add a new entry in _handlers dictionary.
-    2. Create a handler function.
-    3. (Optional) Add a new condition if needed.
-
-    Run all integration tests; fix any regressions.
-
-Recommended Order for Minimal Risk:
-
-    Phase 0 (tests)
-
-    Phase 1 (helpers)
-
-    Phase 6 (typed GameContext) – big but pays off early
-
-    Phase 2 (effect registry) – now much easier with typed ctx
-
-    Phase 3 + 4 (conditions & targets)
-
-    Phase 5 (encounter)
-
-    Phase 7 (hard‑coded IDs)
-
-    Phase 8 (performance/errors)
-
-    Phase 9 (cleanup)
-
-Each phase produces a working, shippable interpreter. Roll back if a phase breaks more than 3 tests.
+Let's now start a fun diversion, implementing a time portal to the beginning of Android: Netrunner. The Runner enters to set right what once went wrong within the fictional universe, but in terms of gameplay and mechanics going back to play and unlock a format that reflects the past of the game's development. We will start by developing and unlocking the original core set from 2012. Runners will bring their modern Standard decks back with them with the idea that they will eventually wear out under the burden of time travel; after all the cards of the core set are unlocked, the modern Standard cards will be unavailable for this time-travel format and decks will have to be composed using the 2012-Core.

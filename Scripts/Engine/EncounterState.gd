@@ -7,23 +7,42 @@ extends RefCounted
 # Discarded after the encounter ends — boosts do not persist between encounters.
 
 # The ice being encountered
-var ice_card:       InstalledCard = null
-var ice_strength:   int           = 0
-var subroutines:    Array         = []   # Array[Dictionary] from AbilityRegistry
-var broken_indices: Array         = []   # Array[int] — broken subroutine indices
+var ice_card:          InstalledCard = null
+var ice_strength:      int           = 0
+## Applied by encounter paid abilities (e.g. Arruaceiras Crew tag-to-weaken).
+## Negative values reduce the ice's effective strength for this encounter.
+var strength_modifiers: int          = 0
+var subroutines:       Array         = []   # Array[Dictionary] from AbilityRegistry
+var broken_indices:    Array         = []   # Array[int] — broken subroutine indices
 
 # Per-icebreaker temporary strength boosts for this encounter.
 # Keys are runtime_instance_id (String) so two copies of the same breaker are tracked independently.
 var temp_strength_boosts: Dictionary = {}
 
+# Tracks which trojan card_ids have already used their interface_break this encounter.
+# Enforces "once per encounter" restrictions (e.g. Slap Vandal).
+var trojan_used_this_encounter: Dictionary = {}  # card_id (String) → true
+
+# Set by the Banner encounter action (2cr). When true, end_run effects on this
+# barrier ice are suppressed for the remainder of the encounter.
+var barrier_etr_suppressed: bool = false
+
 # Reference to installed icebreakers available this encounter
 var available_breakers: Array = []   # Array[InstalledCard]
+
+# Stegodon MK IV (TAI): penalty applied to all icebreaker strengths this encounter.
+# Set in make() when ctx.run_ice_derezzed_this_run is true.
+var breaker_strength_penalty: int = 0
 
 # Optional GameContext reference for querying board-wide modifiers (e.g. Turbine)
 var ctx: Object = null
 # When true, only fracters can break subroutines on this ice (Semak-samun restriction).
 # AI icebreakers are excluded from breaking when this is set.
 var fracter_only_break: bool = false
+# Set to true the moment any subroutine on this ice is broken by a decoder icebreaker.
+# Read by RunStateMachine after the encounter to populate last_ice_broken_with_decoder,
+# which on_runner_passes conditions (VSA: "ice_not_broken_with_decoder") then check.
+var broken_with_decoder: bool = false
 
 
 # ── Construction ──────────────────────────────────────────────────────────────
@@ -40,6 +59,10 @@ static func make(ice: InstalledCard, subs: Array, breakers: Array, game_ctx: Obj
 	if game_ctx != null and game_ctx.get("run_level_strength_boosts") != null:
 		for breaker_id in game_ctx.run_level_strength_boosts:
 			e.temp_strength_boosts[breaker_id] = game_ctx.run_level_strength_boosts[breaker_id]
+	# Stegodon MK IV (TAI): Corp derezzed non-attacked ice at run start → all breakers −2 str.
+	if game_ctx != null and game_ctx.get("run_ice_derezzed_this_run"):
+		e.breaker_strength_penalty = 2
+		game_ctx.send_log("[Stegodon MK IV] Breakers suffer −2 strength this encounter.")
 	# Scatter Field (and any future ice with strength_bonus_if_only_ice): +N strength
 	# while this is the only piece of ice protecting its server.
 	if game_ctx != null and game_ctx.has_meta("ability_registry"):
@@ -92,7 +115,7 @@ func get_breaker_strength(breaker: InstalledCard) -> int:
 	var gamedragon_bonus: int = 0
 	if ctx != null and ctx.has_method("gamedragon_breaker_bonus"):
 		gamedragon_bonus = ctx.gamedragon_breaker_bonus(breaker)
-	return base + permanent + boost + board_bonus + gamedragon_bonus
+	return base + permanent + boost + board_bonus + gamedragon_bonus - breaker_strength_penalty
 
 
 func _resolve_breaker_base_strength(breaker: InstalledCard) -> int:
@@ -105,9 +128,14 @@ func _resolve_breaker_base_strength(breaker: InstalledCard) -> int:
 	return breaker.card_record.strength if breaker.card_record != null else 0
 
 
+# Effective ice strength after all modifiers (arruaceiras_crew weaken, etc.)
+func effective_ice_strength() -> int:
+	return ice_strength + strength_modifiers
+
+
 # Whether a breaker meets or exceeds the ice strength
 func breaker_reaches(breaker: InstalledCard) -> bool:
-	return get_breaker_strength(breaker) >= ice_strength
+	return get_breaker_strength(breaker) >= effective_ice_strength()
 
 
 # Apply a temporary strength boost to a breaker
@@ -193,4 +221,7 @@ func describe() -> String:
 	var ice_name: String = ice_card.display_name() if ice_card else "?"
 	var broken_count := broken_indices.size()
 	var total_count  := subroutines.size()
-	return "%s (str %d) — %d/%d subs broken" % [ice_name, ice_strength, broken_count, total_count]
+	var eff_str: int = effective_ice_strength()
+	var str_str: String = str(eff_str) if strength_modifiers == 0 else \
+		"%d (base %d%+d)" % [eff_str, ice_strength, strength_modifiers]
+	return "%s (str %s) — %d/%d subs broken" % [ice_name, str_str, broken_count, total_count]

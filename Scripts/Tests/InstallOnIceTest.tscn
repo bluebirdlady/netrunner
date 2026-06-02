@@ -1,0 +1,35 @@
+[gd_scene format=3 uid="uid://install_on_ice_test"]
+
+[ext_resource type="Script" path="res://Scripts/Tests/InstallOnIceTest.gd" id="1_ioitest"]
+
+[node name="InstallOnIceTest" type="Control" unique_id=100000001]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_ioitest")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="." unique_id=100000002]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 16.0
+offset_top = 16.0
+offset_right = -16.0
+offset_bottom = -16.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 8
+
+[node name="RunButton" type="Button" parent="VBoxContainer" unique_id=100000003]
+layout_mode = 2
+text = "Run Install-on-Ice Tests"
+
+[node name="OutputLabel" type="RichTextLabel" parent="VBoxContainer" unique_id=100000004]
+layout_mode = 2
+size_flags_vertical = 3
+scroll_following = true
+bbcode_enabled = true

@@ -1,0 +1,42 @@
+LAW OF THE LAND
+by Circuito Saudade
+
+Beatriz processed the filing the same way she processed all filings: with cold coffee and the low background hum of Relay Station 7's ventilation.
+
+The document was 114 pages. She had skimmed 84 of them, which was about as much legal prose as a human brain could metabolize before the words began sliding off. Proposed Framework for Orbital Digital Infrastructure Sovereignty, Version 12. She highlighted three clauses for junior review, added two comments for her supervisor, and sent it upward.
+
+What the document said, in those 114 pages, was this: digital infrastructure deployed in Earth orbit is not Earth. It is not covered by the Heinlein Accords, the Lunar Treaty, or any national jurisdiction. It is covered, exclusively, by the terms of service of the entity that operates it.
+
+And Nuvem SA operated a great deal of it.
+
+She finished her coffee. Outside her window — a composite feed of deep space, because Relay Station 7 had no actual windows, an upgrade she had been promised for two years — the Belt completed its slow rotation.
+
+Her colleague Figueiredo appeared in the doorway. He was three years out of law school, diligent, and had developed a habit of asking questions at the wrong times.
+
+"You saw the amendment on Annex B?" he said.
+
+"I sent it to supervision."
+
+"The one that extends the sovereignty framework to include data originating from—"
+
+"Figueiredo."
+
+He stopped.
+
+"I sent it to supervision," she said again.
+
+He looked at her for a moment. Then he left.
+
+She looked at the filing again. Version 12. There had been eleven previous versions. She had processed three of them. She told herself she was doing her job. She told herself that legal frameworks required legal review, and that someone had to do it, and that the person who did it wasn't responsible for the decisions the document made possible.
+
+She closed the file. She opened the next one.
+
+Seven hours later, Relay Station 7's archive partition was accessed from an unregistered external point. The session lasted four minutes and seventeen seconds. No authentication errors. No trace artifacts. Clean.
+
+Beatriz wasn't there to see the alarm. She was already on the maglev home, watching the Belt scroll past on a composite screen, thinking about nothing in particular.
+
+—
+
+TARGET: Nuvem SA: Law of the Land
+FACILITY: Relay Station 7, Heinlein Communications Ring
+OBJECTIVE: Pull the operational manifests before Version 12 finalises. Find where the filing leads.

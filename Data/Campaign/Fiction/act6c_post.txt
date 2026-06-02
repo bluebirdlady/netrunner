@@ -1,0 +1,21 @@
+ARCHITECTURE
+
+The advancement logs go back twenty-two months.
+
+Every night, a single counter placed by an automated system with root-level access to the station's rez protocols. The ice at Isaac Station Kilo has been growing, quietly and continuously, since before BANGUN broke ground on H-982. Since before the Pale Horse data started moving. Since before any of this was visible from the outside.
+
+The Isaac Protocol is not a defensive system.
+
+It is a container.
+
+The optimisation logs show the target: not approaching ships, not a rival corp's signal, not the attack surface of a runner. The ice is hardening around a data envelope — a partition boundary — whose routing addresses resolve to a set of Jinteki origin nodes.
+
+Which is interesting. Because the Black Site officially no longer exists.
+
+You cross-reference the Thunderbolt firmware specs with the HB contract data pulled from Depot Seven-Delta. The bioroid compliance architecture is designed to run on Jinteki-pattern biological substrate. Not on machines. On something alive.
+
+Whatever Jinteki rebuilt after the Black Site exposure, it is running inside Weyland's curtain.
+
+HB made the lock.
+
+Now you find what it's locked around.

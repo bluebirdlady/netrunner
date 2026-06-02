@@ -9,6 +9,7 @@ extends CanvasLayer
 signal mission_selected(mission_id: String, ai_level: int)
 signal fiction_requested(fiction_id: String)
 signal starter_match_requested()
+signal tournament_requested()
 
 var _campaign_state: CampaignState
 var _fiction_viewer: FictionViewer
@@ -44,6 +45,27 @@ func _refresh() -> void:
 		child.queue_free()
 	_populate_missions(_mission_list_container)
 	_populate_fiction_archive()
+
+	# Show tournament button once act5c is beaten
+	if _campaign_state != null:
+		var t_btn := _find_tournament_btn()
+		if t_btn != null:
+			t_btn.visible = _campaign_state.is_mission_complete("act5c_bangun")
+
+
+func _find_tournament_btn() -> Button:
+	# Walk the tree to find the named button added in _build_header.
+	return _find_node_by_name(self, "TournamentBtn") as Button
+
+
+func _find_node_by_name(node: Node, target: String) -> Node:
+	if node.name == target:
+		return node
+	for child in node.get_children():
+		var result := _find_node_by_name(child, target)
+		if result != null:
+			return result
+	return null
 
 
 # ── UI Construction ───────────────────────────────────────────────────────────
@@ -104,10 +126,17 @@ func _build_ui() -> void:
 	sep.add_theme_color_override("separation_color", COLOR_BORDER)
 	mission_vbox.add_child(sep)
 
+	var mission_scroll := ScrollContainer.new()
+	mission_scroll.name = "MissionScroll"
+	mission_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	mission_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	mission_vbox.add_child(mission_scroll)
+
 	var mission_list := VBoxContainer.new()
 	mission_list.name = "MissionList"
+	mission_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	mission_list.add_theme_constant_override("separation", 8)
-	mission_vbox.add_child(mission_list)
+	mission_scroll.add_child(mission_list)
 	_mission_list_container = mission_list
 
 	# Right: fiction archive
@@ -130,10 +159,17 @@ func _build_ui() -> void:
 	sep2.add_theme_color_override("separation_color", COLOR_BORDER)
 	fiction_vbox.add_child(sep2)
 
+	var fiction_scroll := ScrollContainer.new()
+	fiction_scroll.name = "FictionScroll"
+	fiction_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	fiction_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	fiction_vbox.add_child(fiction_scroll)
+
 	var fiction_list := VBoxContainer.new()
 	fiction_list.name = "FictionList"
+	fiction_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	fiction_list.add_theme_constant_override("separation", 4)
-	fiction_vbox.add_child(fiction_list)
+	fiction_scroll.add_child(fiction_list)
 	_fiction_list_container = fiction_list
 
 
@@ -180,6 +216,15 @@ func _build_header() -> Control:
 	deck_btn.add_theme_color_override("font_color", Color(0.4, 0.8, 0.55))
 	deck_btn.pressed.connect(_open_deck_builder)
 	hbox.add_child(deck_btn)
+
+	# Open Circuit tournament button — visible only after act5c complete
+	var _tournament_btn := Button.new()
+	_tournament_btn.name = "TournamentBtn"
+	_tournament_btn.text = "// OPEN CIRCUIT"
+	_tournament_btn.add_theme_color_override("font_color", Color(0.85, 0.65, 0.15))
+	_tournament_btn.pressed.connect(func(): tournament_requested.emit())
+	_tournament_btn.visible = false   # shown in _refresh() when unlocked
+	hbox.add_child(_tournament_btn)
 
 	return panel
 

@@ -110,14 +110,22 @@ func _corp_turn() -> void:
 	if corp_bonus > 0:
 		ctx.send_log("%s gets +%d click(s) this turn (deferred bonus)." % [ctx.corp_name(), corp_bonus])
 	ctx.corp_installed_this_turn = []   # reset for Seamless Launch restriction
+	ctx.corp_first_remote_install_triggered_this_turn = false   # reset for A Teia: IP Recovery
+	ctx.a_teia_free_installed_instance_ids = []                 # reset for A Teia: IP Recovery
 	ctx.corp_gained_advance_credits_this_turn = false   # reset for Built to Last
 	ctx.corp_finished_an_action_this_turn     = false   # reset for Petty Cash condition
 	ctx.corp_played_operation_this_turn = false          # reset for Nebula Making Stars
+	ctx.corp_mandates_played_this_turn  = 0              # reset for Sudden Commandment Threat 3
 	ctx.corp_last_scored_agenda_points = 0              # reset for Neurospike
 	ctx.corp_agendas_scored_this_turn  = 0              # reset for first-agenda triggers
-	ctx.ice_rezzed_this_turn           = false          # reset for Underdome Irregulars
+	ctx.ice_rezzed_this_turn                 = false   # reset for Underdome Irregulars
+	ctx.ice_rezzed_this_turn_instance_ids.clear()      # reset for Cloud Eater / Lightning Lab
 	ctx.doubles_played_this_turn       = 0              # reset for Synchrocyclotron
 	ctx.corp_scored_agenda_not_installed_this_turn = false   # reset for Myōshu
+	# Capture whether the runner stole or trashed last runner turn before clearing the flag.
+	# Active Policing / Bring Them Home pre-play condition reads this.
+	ctx.runner_stole_or_trashed_last_runner_turn = \
+		ctx.runner_stole_agenda_this_turn or ctx.runner_trashed_during_breach_this_turn
 	ctx.runner_stole_agenda_this_turn  = false          # reset each turn (Hype Machine)
 	# Capture whether the runner ran successfully last turn before this turn's reset.
 	# Used by Public Trail ("Play only if the Runner made a successful run during their last turn").
@@ -204,16 +212,66 @@ func _corp_mandatory_draw() -> void:
 
 
 func _corp_discard_to_hand_limit() -> void:
+	var limit: int = ctx.corp_max_hand_size()
 	var did_discard := false
-	while ctx.corp_hand.size() > ctx.corp_max_hand_size() and not ctx.game_over:
-		# Discard the last card (AI discards from the end for simplicity)
-		var discarded: Dictionary = ctx.corp_hand.pop_back() as Dictionary
-		var record: CardRecord    = discarded.get("card_record", null) as CardRecord
-		ctx.corp_discard.append(record)
+	while ctx.corp_hand.size() > limit and not ctx.game_over:
+		var excess: int = ctx.corp_hand.size() - limit
+		var chosen_entry: Dictionary = {}
+
+		# Ask the Corp AI / human to choose which card(s) to discard.
+		if ctx.corp_decision_maker != null and \
+				ctx.corp_decision_maker.has_method("choose_discard_to_hand_limit"):
+			var chosen = await ctx.corp_decision_maker.choose_discard_to_hand_limit(
+				ctx.corp_hand.duplicate(), excess, ctx)
+			if chosen is Array and not (chosen as Array).is_empty():
+				# Caller may return multiple cards; process them all this iteration
+				for entry in (chosen as Array):
+					var e: Dictionary = entry as Dictionary
+					var cr: CardRecord = e.get("card_record", null) as CardRecord
+					ctx.corp_hand.erase(e)
+					if cr != null:
+						ctx.corp_discard.append(cr)
+						ctx.corp_discard_facedown[cr.title] = true
+					ctx.send_log("%s discards %s to hand limit." % [ctx.corp_name(), cr.title if cr else "?"])
+					did_discard = true
+				if not ctx.simulation_mode: emit_signal("hand_changed", "corp")
+				continue   # re-check limit after batch discard
+			elif chosen is Dictionary and not (chosen as Dictionary).is_empty():
+				chosen_entry = chosen as Dictionary
+			# else fall through to fallback
+
+		if chosen_entry.is_empty():
+			# Fallback: discard the card with the lowest install/play cost that isn't an agenda
+			var best_entry: Dictionary = {}
+			var best_score: int = 9999
+			for e in ctx.corp_hand:
+				var ed: Dictionary = e as Dictionary
+				var cr: CardRecord = ed.get("card_record", null) as CardRecord
+				if cr == null:
+					continue
+				# Heuristic: agendas have high discard cost (being in Archives is dangerous)
+				var score: int = cr.cost if cr.cost >= 0 else 0
+				if cr.card_type == "agenda":
+					score += 100   # strong preference to keep agendas
+				if score < best_score:
+					best_score = score
+					best_entry = ed
+			if best_entry.is_empty() and not ctx.corp_hand.is_empty():
+				best_entry = ctx.corp_hand[ctx.corp_hand.size() - 1] as Dictionary
+			chosen_entry = best_entry
+
+		if chosen_entry.is_empty():
+			break   # nothing to discard (safety exit)
+
+		var record: CardRecord = chosen_entry.get("card_record", null) as CardRecord
+		ctx.corp_hand.erase(chosen_entry)
 		if record != null:
+			ctx.corp_discard.append(record)
 			ctx.corp_discard_facedown[record.title] = true   # hand discards always facedown
 		ctx.send_log("%s discards %s to hand limit." % [ctx.corp_name(), record.title if record else "?"])
 		did_discard = true
+		if not ctx.simulation_mode: emit_signal("hand_changed", "corp")
+
 	ctx.corp_discarded_to_hand_limit_last_turn = did_discard
 	if not ctx.simulation_mode: emit_signal("hand_changed", "corp")
 
@@ -225,16 +283,68 @@ func _runner_discard_to_hand_limit() -> void:
 		return
 	var discarded_records: Array = []
 	while ctx.runner_hand.size() > limit and not ctx.game_over:
-		# Human runner picks which card to discard; AI discards from the end for simplicity
-		var discarded: Dictionary = ctx.runner_hand.pop_back() as Dictionary
-		var record: CardRecord    = discarded.get("card_record", null) as CardRecord
+		var excess: int = ctx.runner_hand.size() - limit
+		var chosen_entry: Dictionary = {}
+
+		# Ask runner (human or AI) to choose which card to discard.
+		if ctx.runner_decision_maker != null and \
+				ctx.runner_decision_maker.has_method("choose_discard_to_hand_limit"):
+			var chosen = await ctx.runner_decision_maker.choose_discard_to_hand_limit(
+				ctx.runner_hand.duplicate(), excess, ctx)
+			if chosen is Array and not (chosen as Array).is_empty():
+				# Batch discard
+				for entry in (chosen as Array):
+					var e: Dictionary = entry as Dictionary
+					var cr: CardRecord = e.get("card_record", null) as CardRecord
+					ctx.runner_hand.erase(e)
+					if cr != null:
+						ctx.runner_discard.append(cr)
+						discarded_records.append(cr)
+					ctx.send_log("%s discards %s to hand limit. (%d cards remaining)" % [
+						ctx.runner_name(), cr.title if cr else "?", limit])
+				if not ctx.simulation_mode: emit_signal("hand_changed", "runner")
+				continue
+			elif chosen is Dictionary and not (chosen as Dictionary).is_empty():
+				chosen_entry = chosen as Dictionary
+
+		if chosen_entry.is_empty():
+			# Fallback heuristic: discard the card of lowest strategic value.
+			# Priority: resources < events < hardware < programs; break ties by cost (lower = discard first).
+			var best_entry: Dictionary = {}
+			var best_score: int = 9999
+			for e in ctx.runner_hand:
+				var ed: Dictionary = e as Dictionary
+				var cr: CardRecord = ed.get("card_record", null) as CardRecord
+				if cr == null:
+					continue
+				# Lower score → discard first
+				var type_score: int
+				match cr.card_type:
+					"resource": type_score = 0
+					"event":    type_score = 1
+					"hardware": type_score = 2
+					"program":  type_score = 3
+					_:          type_score = 0
+				var card_score: int = type_score * 100 + (cr.cost if cr.cost >= 0 else 0)
+				if card_score < best_score:
+					best_score = card_score
+					best_entry = ed
+			if best_entry.is_empty() and not ctx.runner_hand.is_empty():
+				best_entry = ctx.runner_hand[ctx.runner_hand.size() - 1] as Dictionary
+			chosen_entry = best_entry
+
+		if chosen_entry.is_empty():
+			break
+
+		ctx.runner_hand.erase(chosen_entry)
+		var record: CardRecord = chosen_entry.get("card_record", null) as CardRecord
 		if record != null:
 			ctx.runner_discard.append(record)
 			discarded_records.append(record)
 		ctx.send_log("%s discards %s to hand limit (%d)." % [
 			ctx.runner_name(), record.title if record else "?", limit
 		])
-	if not ctx.simulation_mode: emit_signal("hand_changed", "runner")
+		if not ctx.simulation_mode: emit_signal("hand_changed", "runner")
 	# Magdalene Keino Chemutai: fire event so identity can install from discarded cards
 	if not discarded_records.is_empty():
 		await ctx.notify_event("runner_discards_to_hand_limit", {
@@ -254,10 +364,13 @@ func _runner_turn() -> void:
 	ctx.runner_click_draws_this_turn  = 0              # reset each turn
 	ctx.runner_hq_breached_this_turn        = false    # reset each turn
 	ctx.runner_hq_successful_run_this_turn  = false    # reset each turn (Détente)
-	ctx.runner_trashed_during_breach_this_turn = false  # reset each turn (Loup)
+	ctx.runner_trashed_during_breach_this_turn    = false  # reset each turn (Loup)
+	ctx.runner_trashed_own_installed_this_turn    = false  # reset each turn (Boi Tata)
 	ctx.runner_program_install_discounted_this_turn = false  # reset each turn (DZMZ)
 	ctx.runner_carnivore_used_this_turn = false              # reset each turn
 	ctx.runner_stole_agenda_this_turn  = false               # reset each turn (Hype Machine)
+	ctx.runner_action_type_counts_this_turn = {}             # reset each turn (Wage Workers)
+	ctx.runner_first_run_this_turn_made     = false          # reset each turn (Front Company)
 	ctx.runner_successful_run_on_rd_this_turn       = false  # reset each turn (VP1 Chain Reaction)
 	ctx.runner_successful_run_on_archives_this_turn = false  # reset each turn (VP1 Chain Reaction)
 	ctx.once_per_turn_triggered.clear()                      # reset per-turn trigger guards
@@ -327,6 +440,22 @@ func _execute_action(player: String, action: GameAction) -> Dictionary:
 	if player == "corp" and action.type not in ["rez_card", "pass", "end_turn"]:
 		ctx.corp_finished_an_action_this_turn = true
 
+	# Wage Workers (TAI): track runner click-action types; fire +1 click when any hits 3.
+	if player == "runner":
+		var ww_type: String = ""
+		match action.type:
+			"draw_card":       ww_type = "click_to_draw"
+			"gain_credits":    ww_type = "click_to_gain_credit"
+			"install":         ww_type = "click_to_install"
+			"run":             ww_type = "click_to_run"
+			"play_operation":  ww_type = "click_to_play_event"
+		if ww_type != "":
+			var ww_prev: int = ctx.runner_action_type_counts_this_turn.get(ww_type, 0)
+			ctx.runner_action_type_counts_this_turn[ww_type] = ww_prev + 1
+			# Fire Wage Workers trigger exactly when this type's count first reaches 3.
+			if ww_prev + 1 == 3:
+				await ctx.notify_event("wage_workers_threshold", {"action_type": ww_type}, interpreter)
+
 	if not ctx.simulation_mode: emit_signal("action_executed", player, action)
 	_check_win_conditions()
 	return {"ok": true, "reason": ""}
@@ -355,6 +484,11 @@ func _validate_action(player: String, action: GameAction) -> Dictionary:
 				var act_extra: int = act_click_def.get("additional_cost_clicks", 0)
 				if act_extra > 0 and clicks < 1 + act_extra:
 					return {"ok": false, "reason": "Not enough clicks for %s (need %d total)" % [act_card_id, 1 + act_extra]}
+				# Check tag_cost: Corp abilities on stolen agendas may require the Runner to have tags.
+				# e.g. Oracle Thinktank — Corp removes 1 runner tag to shuffle back into R&D.
+				var act_tag_cost: int = act_click_def.get("tag_cost", 0)
+				if act_tag_cost > 0 and ctx.runner_tags < act_tag_cost:
+					return {"ok": false, "reason": "Not enough Runner tags for %s (need %d)" % [act_card_id, act_tag_cost]}
 			return {"ok": true, "reason": ""}
 
 		"gain_credits", "draw_card":
@@ -370,6 +504,18 @@ func _validate_action(player: String, action: GameAction) -> Dictionary:
 			if not rp_mods.is_empty() and target.begins_with("remote_"):
 				if ctx.runner_centrals_run_this_turn.is_empty():
 					return {"ok": false, "reason": "Replicating Perfection: you must run a central server before running on a remote."}
+			# Front Company (TAI): if the runner has not yet made a run this turn,
+			# they cannot run on a remote server while Front Company is rezzed in any
+			# non-Archives server.
+			if not ctx.runner_first_run_this_turn_made and target.begins_with("remote_"):
+				for fc_srv in ctx.servers.values():
+					var fc_s: Server = fc_srv as Server
+					if fc_s.server_id == "archives":
+						continue
+					for fc_root in fc_s.root:
+						var fc_c: InstalledCard = fc_root as InstalledCard
+						if fc_c != null and fc_c.is_rezzed and fc_c.card_id == "front_company":
+							return {"ok": false, "reason": "Front Company: you must make another run before running on a remote."}
 			return {"ok": true, "reason": ""}
 
 		"install":
@@ -384,6 +530,16 @@ func _validate_action(player: String, action: GameAction) -> Dictionary:
 				var ice_cost: int  = server.ice_install_cost() if server else 0
 				if ctx.get_credits(player) < ice_cost:
 					return {"ok": false, "reason": "Cannot afford ice install cost"}
+			# A Teia: IP Recovery — enforce the 2-remote-server limit.
+			# If no target server is specified (new remote) or the target doesn't exist yet,
+			# check whether a new remote can be created.
+			if player == "corp":
+				var install_target_id: String = action.params.get("server_id", "")
+				var target_is_new_remote: bool = (install_target_id == "" or \
+						(install_target_id.begins_with("remote_") and \
+						 ctx.get_server(install_target_id) == null))
+				if target_is_new_remote and not ctx.can_create_new_remote_server():
+					return {"ok": false, "reason": "A Teia: IP Recovery limits you to 2 remote servers."}
 			return {"ok": true, "reason": ""}
 
 		"advance":
@@ -567,42 +723,58 @@ func _do_install(player: String, action: GameAction) -> void:
 				])
 				return
 
-		# ── Hosted install credits (e.g. Open Market: credits for connection/job installs) ──
-		# Find the first rig card whose install_credits_for_subtypes list contains
-		# any subtype of the card being installed. Its hosted credits supplement
-		# runner_credits for the affordability check and are drawn down first.
-		var om_source: InstalledCard = null
-		var om_available: int = 0
+		# ── Hosted install credits ────────────────────────────────────────────────
+		# Two sources of hosted credits can supplement runner_credits at install time:
+		#   1. install_credits_for_subtypes (Open Market style): subtype-restricted.
+		#   2. install_credits_any (Urban Art Vernissage): unrestricted Runner install credits.
+		# All matching sources are pooled; hosted credits are drawn first, then runner pool.
+		ctx.install_credit_sources = []
+		var ic_total_hosted: int = 0
+
 		for rig_c in ctx.runner_rig:
 			var rc: InstalledCard = rig_c as InstalledCard
 			if rc == null:
 				continue
 			var rc_def: Dictionary = ability_registry._abilities.get(rc.card_id, {}) as Dictionary
-			var allowed_sts: Array = rc_def.get("install_credits_for_subtypes", []) as Array
-			if allowed_sts.is_empty():
-				continue
-			for st in allowed_sts:
-				if record.has_subtype(st as String):
-					om_source    = rc
-					om_available = rc.get_counter("credits")
-					break
-			if om_source != null:
-				break
 
-		if ctx.runner_credits + om_available < pay_cost:
+			# Subtype-restricted source
+			var allowed_sts: Array = rc_def.get("install_credits_for_subtypes", []) as Array
+			if not allowed_sts.is_empty():
+				for st in allowed_sts:
+					if record.has_subtype(st as String):
+						ctx.install_credit_sources.append(rc)
+						ic_total_hosted += rc.get_counter("credits")
+						break
+				continue   # don't double-count as unrestricted
+
+			# Unrestricted hosted install credits (TAI: Urban Art Vernissage; others may be added)
+			if rc_def.get("install_credits_any", false):
+				var ic_avail: int = rc.get_counter("credits")
+				if ic_avail > 0:
+					ctx.install_credit_sources.append(rc)
+					ic_total_hosted += ic_avail
+
+		if ctx.runner_credits + ic_total_hosted < pay_cost:
 			ctx.send_log("%s cannot afford to install %s." % [ctx.runner_name(), record.title])
+			ctx.install_credit_sources = []
 			return
 
-		# Spend hosted credits first, then top up from runner's pool
-		var om_used: int = 0
-		if om_source != null and om_available > 0:
-			om_used = min(pay_cost, om_available)
-			om_source.remove_counter("credits", om_used)
-			ctx.send_log("%s: %d hosted cr from %s used for %s (%d remaining)." % [
-				ctx.runner_name(), om_used, om_source.display_name(),
-				record.title, om_source.get_counter("credits")
-			])
-		ctx.runner_credits -= (pay_cost - om_used)
+		# Spend hosted credits first (in order), then top up from runner pool.
+		var ic_remaining_cost: int = pay_cost
+		for ic_src in ctx.install_credit_sources:
+			if ic_remaining_cost <= 0:
+				break
+			var ic_src_card: InstalledCard = ic_src as InstalledCard
+			var ic_draw: int = min(ic_remaining_cost, ic_src_card.get_counter("credits"))
+			if ic_draw > 0:
+				ic_src_card.remove_counter("credits", ic_draw)
+				ic_remaining_cost -= ic_draw
+				ctx.send_log("%s: %d hosted cr from %s used for %s (%d remaining on source)." % [
+					ctx.runner_name(), ic_draw, ic_src_card.display_name(),
+					record.title, ic_src_card.get_counter("credits")
+				])
+		ctx.runner_credits -= ic_remaining_cost
+		ctx.install_credit_sources = []   # consumed — clear
 
 		# Check if this card must be hosted on a specific ice card
 		var must_host_on_ice: bool = card_def.get("install_on_ice", false)
@@ -648,7 +820,9 @@ func _do_install(player: String, action: GameAction) -> void:
 					target_candidates.append(ct_ice as InstalledCard)
 			if not target_candidates.is_empty():
 				var ct_chosen: InstalledCard = null
-				if ctx.runner_decision_maker != null and ctx.runner_decision_maker.has_method("choose_host_ice"):
+				if ctx.runner_decision_maker != null and ctx.runner_decision_maker.has_method("choose_target_ice"):
+					ct_chosen = await ctx.runner_decision_maker.choose_target_ice(target_candidates, record.title, ctx)
+				elif ctx.runner_decision_maker != null and ctx.runner_decision_maker.has_method("choose_host_ice"):
 					ct_chosen = await ctx.runner_decision_maker.choose_host_ice(ctx)
 				if ct_chosen == null:
 					ct_chosen = target_candidates[0]  # fallback: first ice
@@ -673,7 +847,7 @@ func _do_install(player: String, action: GameAction) -> void:
 			}, interpreter)
 		# Fire runner_installs_card for Bling and similar triggers
 		await ctx.notify_event("runner_installs_card", {
-			"credits_paid": pay_cost - om_used,
+			"credits_paid": ic_remaining_cost,
 			"card": installed,
 			"card_instance_id": installed.runtime_instance_id
 		}, interpreter)
@@ -685,13 +859,44 @@ func _do_install(player: String, action: GameAction) -> void:
 	# Get or create server for corp cards and runner ice (future)
 	var server: Server = ctx.get_server(server_id)
 	if server == null:
+		# A Teia: IP Recovery — double-check the remote cap here in case the call bypassed
+		# validation (e.g. triggered free installs, which skip normal action validation).
+		# The A Teia free-install helper passes an explicit server_id, so this only guards
+		# against unexpected new-remote creation that would exceed the cap.
+		if player == "corp" and not ctx.can_create_new_remote_server():
+			ctx.send_log("[A Teia] Cannot create a new remote server — limit of 2 reached.")
+			return
 		server = ctx.create_remote_server()
 		server_id = server.server_id
 
-	# Pay ice install cost
+	# Pay ice install cost (positional: 1cr per existing ice on target server).
+	# Corp assets with "corp_install_credits_any: true" (e.g. Cybersand Harvester) can
+	# contribute hosted credits before the Corp's own pool is drawn.
 	if record.is_ice():
 		var ice_cost: int = server.ice_install_cost()
-		ctx.set_credits(player, ctx.get_credits(player) - ice_cost)
+		var ice_cost_remaining: int = ice_cost
+		if ice_cost_remaining > 0:
+			for csh_srv in ctx.servers.values():
+				if ice_cost_remaining <= 0:
+					break
+				var csh_s: Server = csh_srv as Server
+				for csh_root_c in csh_s.root:
+					if ice_cost_remaining <= 0:
+						break
+					var csh_c: InstalledCard = csh_root_c as InstalledCard
+					if csh_c == null or not csh_c.is_rezzed:
+						continue
+					var csh_def: Dictionary = ability_registry._abilities.get(csh_c.card_id, {}) as Dictionary
+					if csh_def.get("corp_install_credits_any", false):
+						var csh_avail: int = csh_c.get_counter("credits")
+						var csh_draw: int  = mini(ice_cost_remaining, csh_avail)
+						if csh_draw > 0:
+							csh_c.remove_counter("credits", csh_draw)
+							ice_cost_remaining -= csh_draw
+							ctx.send_log("[Cybersand Harvester] %d hosted cr used for ice install (%d remaining on source)." % [
+								csh_draw, csh_c.get_counter("credits")
+							])
+		ctx.set_credits(player, ctx.get_credits(player) - ice_cost_remaining)
 		if ice_cost > 0:
 			ctx.send_log("%s pays %d credit(s) to install ice." % [ctx.player_name(player), ice_cost])
 
@@ -738,6 +943,113 @@ func _do_install(player: String, action: GameAction) -> void:
 	if player == "corp":
 		ctx.corp_installed_this_turn.append(record.id)
 
+	# A Teia: IP Recovery — the first time each turn the Corp installs a card in the root
+	# of, or protecting (ice), a remote server, offer a free install from HQ into another
+	# remote server's root or protecting another remote server.
+	if player == "corp" and not ctx.corp_first_remote_install_triggered_this_turn and \
+			server.is_remote() and \
+			ctx.corp_identity != null and ctx.corp_identity.id == "a_teia_ip_recovery":
+		ctx.corp_first_remote_install_triggered_this_turn = true
+		await _a_teia_free_install(server_id)
+
+
+# ── A Teia: IP Recovery — free install from HQ into another remote ───────────────
+# Called the first time each Corp turn that a Corp card is installed in a remote
+# server root or protecting (as ice) a remote server.
+# triggering_server_id: the server the Corp just installed into (excluded from targets).
+func _a_teia_free_install(triggering_server_id: String) -> void:
+	# Must have at least one card in HQ.
+	if ctx.corp_hand.is_empty():
+		ctx.send_log("[A Teia] No cards in HQ — free install skipped.")
+		return
+
+	# Offer the Corp the option to use the ability at all.
+	var at_use := false
+	if ctx.corp_decision_maker != null and \
+			ctx.corp_decision_maker.has_method("choose_optional_ability"):
+		at_use = await ctx.corp_decision_maker.choose_optional_ability(
+			"A Teia: IP Recovery — install 1 card from HQ in another remote for free?", ctx)
+	if not at_use:
+		ctx.send_log("[A Teia] Corp declines the free install.")
+		return
+
+	# Build list of candidate target servers:
+	# Any existing remote other than the triggering server, plus one "new remote" slot
+	# if the cap (2) is not yet reached.
+	var at_targets: Array = []
+	for at_srv_key in ctx.servers:
+		var at_s: Server = ctx.servers[at_srv_key] as Server
+		if at_s.is_remote() and at_s.server_id != triggering_server_id:
+			at_targets.append(at_s.server_id)
+	# Allow creating a new remote if below the 2-remote cap.
+	var at_can_new: bool = ctx.can_create_new_remote_server()
+	if at_can_new:
+		at_targets.append("new_remote")
+
+	if at_targets.is_empty():
+		ctx.send_log("[A Teia] No valid target server for free install — ability fizzles.")
+		return
+
+	# Corp chooses a card from HQ.
+	var at_chosen_entry: Variant = null
+	if ctx.corp_decision_maker != null and ctx.corp_decision_maker.has_method("choose_card_from_hand"):
+		at_chosen_entry = await ctx.corp_decision_maker.choose_card_from_hand(ctx.corp_hand, ctx)
+	else:
+		at_chosen_entry = ctx.corp_hand[0]
+	if at_chosen_entry == null:
+		ctx.send_log("[A Teia] Corp chooses no card — free install skipped.")
+		return
+	var at_record: CardRecord = (at_chosen_entry as Dictionary).get("card_record", null) as CardRecord
+	if at_record == null:
+		return
+
+	# Corp chooses a target server.
+	var at_target_id: String = at_targets[0]
+	if ctx.corp_decision_maker != null and ctx.corp_decision_maker.has_method("choose_server"):
+		at_target_id = await ctx.corp_decision_maker.choose_server(at_targets, ctx)
+
+	# Resolve "new_remote" into an actual server id.
+	var at_server: Server
+	if at_target_id == "new_remote":
+		at_server = ctx.create_remote_server()
+		at_target_id = at_server.server_id
+	else:
+		at_server = ctx.get_server(at_target_id)
+	if at_server == null:
+		ctx.send_log("[A Teia] Target server not found — free install aborted.")
+		return
+
+	# Corp chooses root or ice for the free-installed card.
+	var at_zone: String = "root"
+	if at_record.is_ice():
+		at_zone = "ice"
+	elif ctx.corp_decision_maker != null and ctx.corp_decision_maker.has_method("choose_install_zone"):
+		at_zone = await ctx.corp_decision_maker.choose_install_zone(at_record, at_server, ctx)
+
+	# Remove the card from HQ.
+	ctx.corp_hand.erase(at_chosen_entry)
+
+	# Install the card for free (no click, no credit cost).
+	var at_installed := InstalledCard.make_runtime_instance(at_record, at_target_id, at_zone, false)
+	if at_zone == "ice":
+		at_server.install_ice(at_installed)
+	else:
+		at_server.install_in_root(at_installed)
+
+	# Register ongoing listeners (face-down Corp cards are inactive until rezzed,
+	# but faceup installs like BANGUN need this — guard with is_face_up for safety).
+	if at_installed.is_face_up:
+		_register_card_listeners(at_installed)
+
+	# Track instance ID so _score_agenda can block scoring this turn.
+	ctx.a_teia_free_installed_instance_ids.append(at_installed.runtime_instance_id)
+
+	if not ctx.simulation_mode:
+		emit_signal("card_installed", at_record, at_target_id)
+		emit_signal("hand_changed", "corp")
+	ctx.send_log("[A Teia] %s freely installs %s in %s (cannot score this turn)." % [
+		ctx.corp_name(), at_record.title, at_server.display_name()])
+
 
 func _do_advance(player: String, action: GameAction) -> void:
 	_spend_click(player)
@@ -782,6 +1094,12 @@ func _do_play_operation(player: String, action: GameAction) -> void:
 	if op_card_def.get("pre_play_condition", "") == "corp_scored_non_installed_agenda_this_turn" and player == "corp":
 		if not ctx.corp_scored_agenda_not_installed_this_turn:
 			ctx.send_log("%s: cannot play — Corp has not scored a non-installed agenda this turn." % record.title)
+			return
+
+	# Active Policing / Bring Them Home: play only if runner stole or trashed last runner turn.
+	if op_card_def.get("pre_play_condition", "") == "runner_stole_or_trashed_last_runner_turn" and player == "corp":
+		if not ctx.runner_stole_or_trashed_last_runner_turn:
+			ctx.send_log("%s: cannot play — Runner did not steal or trash a Corp card last turn." % record.title)
 			return
 
 	_spend_click(player)
@@ -862,6 +1180,7 @@ func _do_play_operation(player: String, action: GameAction) -> void:
 		ctx.unregister_all_card_effects(op_tc_target.runtime_instance_id)
 		if op_tc_target.card_record != null:
 			ctx.runner_discard.append(op_tc_target.card_record)
+		ctx.runner_trashed_own_installed_this_turn = true
 		ctx.send_log("%s trashes %s as an additional cost." % [ctx.runner_name(), op_tc_target.display_name()])
 		# VP17 Hiram: fire hardware_trashed if the runner trashed a hardware as a cost
 		if op_tc_target.card_record != null and op_tc_target.card_record.card_type == "hardware":
@@ -887,6 +1206,11 @@ func _do_play_operation(player: String, action: GameAction) -> void:
 	ctx.remove_meta("current_op_card_record")
 	ctx.current_operation_play_source = ""
 
+	# Terminal operations: Corp's action phase ends immediately after resolving.
+	if op_card_def.get("terminal", false) and player == "corp":
+		ctx.corp_clicks = 0
+		ctx.send_log("%s is terminal — Corp's action phase ends." % record.title)
+
 	# Operations/events go to the correct discard pile after resolving.
 	# Exception: if the effect scored this card as an agenda (VP61 Myōshu), skip discard.
 	if player == "corp":
@@ -897,6 +1221,9 @@ func _do_play_operation(player: String, action: GameAction) -> void:
 			ctx.corp_discard.append(record)
 		# Track for Nebula Making Stars flip condition; fire once-per-turn click gain trigger
 		ctx.corp_played_operation_this_turn = true
+		# Track mandate subtype plays (Sudden Commandment Threat 3).
+		if "mandate" in record.subtypes:
+			ctx.corp_mandates_played_this_turn += 1
 		await ctx.notify_event("corp_plays_operation", {}, interpreter)
 	else:
 		var removes_self: bool = on_play_def != null and \
@@ -977,6 +1304,7 @@ func _do_run(action: GameAction) -> void:
 	else:
 		run = RunStateMachine.new(ctx, ability_registry)
 	await run.execute(server_id)
+	ctx.runner_first_run_this_turn_made = true   # Front Company: first run is now done
 	if ctx.run_successful:
 		ctx.runner_made_successful_run_this_turn = true
 		# Détente: fire once-per-turn event on first successful HQ run
@@ -1002,6 +1330,9 @@ func _do_use_installed_card(player: String, action: GameAction) -> void:
 	if player == "corp":
 		search_list.append_array(ctx.corp_score_area_cards)
 		# Runner's score area: Corp can use abilities on stolen agendas (e.g. Next Big Thing)
+		search_list.append_array(ctx.runner_score_area_cards)
+	if player == "runner":
+		# Runner's own score area: stolen agendas with click-based counter abilities (e.g. The Basalt Spire)
 		search_list.append_array(ctx.runner_score_area_cards)
 	for card in search_list:
 		var c: InstalledCard = card as InstalledCard
@@ -1073,6 +1404,15 @@ func _do_use_installed_card(player: String, action: GameAction) -> void:
 			return
 		ctx.once_per_turn_triggered[ca_opt_full] = true
 
+	# ── Tag cost: Corp abilities on stolen agendas (e.g. Oracle Thinktank) ──
+	# Deduct runner tags as a cost before executing the effect.
+	var ca_tag_cost: int = click_action_def.get("tag_cost", 0)
+	if ca_tag_cost > 0:
+		ctx.runner_tags -= ca_tag_cost
+		ctx.send_log("%s removes %d Runner tag(s) as a cost for %s." % [
+			ctx.player_name(player), ca_tag_cost, installed.display_name()
+		])
+
 	ctx.current_event_data = {"card": installed, "card_instance_id": installed.runtime_instance_id}
 	# Tag source card type for Zwicky Group credit-gain tracking.
 	if installed.card_record != null:
@@ -1080,6 +1420,12 @@ func _do_use_installed_card(player: String, action: GameAction) -> void:
 	await interpreter.execute_trigger(click_action_def, ctx)
 	ctx.current_event_data = {}
 	ctx.current_ability_source_card_type = ""
+	# Notify JML and similar: runner used an installed rig card's paid ability.
+	if player == "runner":
+		await ctx.notify_event("runner_rig_action", {
+			"card": installed,
+			"card_instance_id": installed.runtime_instance_id
+		}, interpreter)
 
 
 func _do_rez_card(player: String, action: GameAction) -> void:
@@ -1198,8 +1544,12 @@ func _do_rez_card(player: String, action: GameAction) -> void:
 		ctx.runner_credits -= rez_cost
 
 	installed.is_rezzed = true
-	if installed.card_record != null and installed.card_record.is_ice():
+	var _is_ice_rez: bool = installed.card_record != null and installed.card_record.is_ice()
+	if _is_ice_rez:
 		ctx.ice_rezzed_this_turn = true
+	# Track all cards rezzed this turn by IID (Cloud Eater, Lightning Lab).
+	if installed.runtime_instance_id != "":
+		ctx.ice_rezzed_this_turn_instance_ids.append(installed.runtime_instance_id)
 	_register_card_listeners(installed)
 
 	var on_rez_def = ability_registry.get_on_rez(installed.card_id)
@@ -1210,6 +1560,17 @@ func _do_rez_card(player: String, action: GameAction) -> void:
 
 	ctx.send_log("%s rezzes %s for %d cr." % [ctx.player_name(player), installed.display_name(), rez_cost])
 	if not ctx.simulation_mode: emit_signal("card_installed", installed.card_record, installed.server_id)
+	# Notify listeners that a corp card was rezzed.
+	await ctx.notify_event("corp_rezzes_card", {
+		"card": installed,
+		"card_instance_id": installed.runtime_instance_id
+	}, interpreter)
+	# Also fire corp_rezzes_ice so assets like Cybersand Harvester react to out-of-run rezzes.
+	if _is_ice_rez:
+		await ctx.notify_event("corp_rezzes_ice", {
+			"ice": installed,
+			"card_instance_id": installed.runtime_instance_id
+		}, interpreter)
 
 
 func _do_end_turn(player: String) -> void:
@@ -1240,6 +1601,11 @@ func _check_win_conditions() -> void:
 			if not ctx.simulation_mode: emit_signal("game_over", ctx.winner, reason)
 		return
 
+	# Assassination win — 3 assassination agendas in runner score area (Jeitinho)
+	if ctx.runner_assassination_agendas >= 3:
+		_end_game("runner", "%s assembled 3 assassination agendas" % ctx.runner_name())
+		return
+
 	# Agenda point victory
 	if ctx.corp_agenda_points() >= agenda_points_to_win:
 		_end_game("corp", "%s scored %d agenda points" % [ctx.corp_name(), ctx.corp_agenda_points()])
@@ -1265,8 +1631,34 @@ func _end_game(winner: String, reason: String) -> void:
 
 # ── Agenda scoring ────────────────────────────────────────────────────────────
 
+func _register_scored_agenda_listeners(card: InstalledCard) -> void:
+	# Register ongoing event triggers for a Corp-scored agenda that lives in the
+	# Corp's score area.  These cover abilities that fire each turn (e.g. Lightning
+	# Laboratory: run_start → free rez; corp_turn_end → derez those ice) or that
+	# need click_action support (e.g. Basalt Spire counter ability).
+	var instance_id: String  = card.runtime_instance_id if card.runtime_instance_id != "" else card.card_id
+	var card_def: Dictionary = ability_registry._abilities.get(card.card_id, {}) as Dictionary
+	if card_def.is_empty():
+		return
+	for event_type in [
+			"corp_turn_start", "runner_turn_start", "corp_turn_end", "runner_turn_end",
+			"run_start", "successful_run", "breach_complete", "runner_steals_agenda",
+			"runner_takes_tags", "corp_scores_agenda", "runner_trashes_during_breach",
+			"before_breach", "card_accessed_event"]:
+		var trigger_def = card_def.get(event_type, null)
+		if trigger_def != null:
+			ctx.register_listener(event_type, instance_id, trigger_def as Dictionary)
+
+
 func _score_agenda(card: InstalledCard) -> void:
 	var record: CardRecord = card.card_record
+
+	# A Teia: IP Recovery — cannot score a card that was freely installed this turn.
+	if card.runtime_instance_id in ctx.a_teia_free_installed_instance_ids:
+		ctx.send_log("[A Teia] %s cannot be scored this turn — it was freely installed by A Teia's ability." % \
+			record.title)
+		return
+
 	ctx.send_log("%s scores %s! (%d agenda points)" % [ctx.corp_name(), record.title, record.agenda_points])
 	ctx.corp_score_area.append(record)
 	# Also keep the InstalledCard so Dividends effects can access counters on the scored card
@@ -1301,6 +1693,10 @@ func _score_agenda(card: InstalledCard) -> void:
 		await interpreter.execute_trigger(on_score_def as Dictionary, ctx)
 		ctx.current_event_data = {}
 		ctx.current_ability_source_card_type = ""
+
+	# Register ongoing event listeners for the scored agenda's ongoing abilities
+	# (e.g. Lightning Lab run_start, corp_turn_end; Basalt Spire click_action).
+	_register_scored_agenda_listeners(card)
 
 	# Broadcast so runner cards (e.g. Pantograph) and corp ICE (e.g. Lamplighter) can respond.
 	# server_id is still valid on the InstalledCard even after removal from the server array.
@@ -1354,17 +1750,23 @@ func _register_identity_listeners(instance_id: String, card_id: String) -> void:
 					"run_end", "on_derez", "corp_scores_agenda", "runner_steals_agenda",
 					"before_breach", "runner_trashes_during_breach", "runner_installs_virus",
 					"on_advance", "breach_complete", "run_start", "runner_takes_tags",
-					"corp_plays_operation", "corp_rezzes_ice",
+					"corp_plays_operation", "corp_rezzes_ice", "corp_rezzes_card",
 					"runner_discards_to_hand_limit", "corp_discard_phase_ends",
 					"runner_discard_phase_ends",
 					"tag_removed", "corp_gains_credits_via_ability",
 					"archives_cards_turned_faceup", "runner_plays_event",
 					"hardware_trashed", "runner_installs_card",
 					"runner_spends_outside_credits", "corp_gains_bad_pub",
-					"runner_action_phase_ends", "melies_u_flipped"]:
+					"runner_action_phase_ends", "melies_u_flipped",
+					"runner_rig_action", "card_accessed_event"]:
 		var trigger_def = card_def.get(event_type, null)
 		if trigger_def != null:
 			ctx.register_listener(event_type, instance_id, trigger_def as Dictionary)
+	# Aliases: some older abilities.json entries use "on_" prefix keys.
+	for _id_alias in [["on_successful_run", "successful_run"], ["on_breach", "breach_complete"]]:
+		var _id_alias_def = card_def.get(_id_alias[0], null)
+		if _id_alias_def != null:
+			ctx.register_listener(_id_alias[1], instance_id, _id_alias_def as Dictionary)
 
 	var id_modifiers: Array = card_def.get("passive_modifiers", []) as Array
 	for mod in id_modifiers:
@@ -1394,16 +1796,24 @@ func _register_card_listeners(installed: InstalledCard) -> void:
 						"approach_ice", "encounter_ice", "encounter_ended", "pass_ice", "successful_run",
 						"approach_server", "run_end", "on_derez",
 						"corp_scores_agenda", "runner_steals_agenda", "runner_trashes_during_breach",
-						"before_breach", "runner_installs_virus", "runner_installs_card",
+						"before_breach", "before_access", "runner_installs_virus", "runner_installs_card",
 						"runner_successful_hq_run",
 						"on_advance", "breach_complete", "run_start",
 						"corp_discard_phase_ends", "runner_discard_phase_ends",
 						"archives_cards_turned_faceup", "runner_plays_event",
 						"hardware_trashed", "runner_spends_outside_credits", "corp_gains_bad_pub",
-						"runner_action_phase_ends", "melies_u_flipped"]:
+						"runner_action_phase_ends", "melies_u_flipped",
+						"tag_removed", "corp_purges_virus_counters", "corp_rezzes_card",
+						"corp_rezzes_ice", "runner_takes_tags", "runner_rig_action",
+						"card_accessed_event", "wage_workers_threshold"]:
 		var trigger_def = card_def.get(event_type, null)
 		if trigger_def != null:
 			ctx.register_listener(event_type, instance_id, trigger_def as Dictionary)
+	# Aliases: some abilities.json entries use "on_" prefix or alternative key names.
+	for _rc_alias in [["on_successful_run", "successful_run"], ["on_breach", "breach_complete"]]:
+		var _rc_alias_def = card_def.get(_rc_alias[0], null)
+		if _rc_alias_def != null:
+			ctx.register_listener(_rc_alias[1], instance_id, _rc_alias_def as Dictionary)
 
 	# Register passive modifiers (e.g. Turbine's breaker_strength boost, Echelon's dynamic strength)
 	var modifiers: Array = card_def.get("passive_modifiers", []) as Array

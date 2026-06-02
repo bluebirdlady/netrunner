@@ -1,0 +1,135 @@
+"","text_code","name","text"
+"1","anemone","Anemone","When you rez this ice during a run against this server, you may trash 1 card from HQ to do 2 net damage.
+[subroutine] Do 1 net damage."
+"2","artificial_cryptocrash","Artificial Cryptocrash","When you score this agenda, the Runner loses 7[credit]."
+"3","avgustina_ivanovskaya","Avgustina Ivanovskaya","The first time each turn you install a <strong>virus</strong> program, sabotage 1. <em>(The Corp trashes 1 card of their choice from HQ or the top of R&D.)</em>"
+"4","azef_protocol","Azef Protocol","As an additional cost to score this agenda, trash 1 of your other installed cards.
+When you score this agenda, do 2 meat damage."
+"5","backroom_machinations","Backroom Machinations","As an additional cost to play this operation, remove 1 tag.
+Add this operation to your score area as an agenda worth 1 agenda point."
+"6","backstitching","Backstitching","When your turn begins, identify your mark. <em>(If you don’t have a mark, a random central server becomes your mark for this turn.)</em>
+Whenever you encounter a piece of ice during a run on your mark, you may trash this resource to bypass that ice."
+"7","bathynomus","Bathynomus","While this ice is protecting Archives, it gets +3 strength.
+[subroutine] Do 3 net damage."
+"8","begemot","Begemot","When you install this program, suffer 1 core damage.
+This program gets +1 strength for each core damage you have taken this game.
+Interface → <strong>1[credit]:</strong> Break any number of <strong>barrier</strong> subroutines."
+"9","big_deal","Big Deal","After you resolve this operation, your action phase ends.
+Place 4 advancement counters on 1 installed card. You may score that card, if able.
+Remove this operation from the game."
+"10","bladderwort","Bladderwort","When your turn begins, gain 1[credit]. Then, if you have 4[credit] or less, do 1 net damage."
+"11","blood_in_the_water","Blood in the Water","X is equal to the number of cards in the Runner's grip."
+"12","captain_padma_isbister_intrepid_explorer","Captain Padma Isbister: Intrepid Explorer","The first time each turn a run on R&D begins, you may charge 1 of your installed cards. <em>(Add 1 power counter to a card that already has one.)</em>"
+"13","carpe_diem","Carpe Diem","Identify your mark. <em>(If you don’t have a mark, a random central server becomes your mark for this turn.)</em>
+Gain 4[credit]. You may run your mark."
+"14","cats_cradle","Cat's Cradle","The rez cost of each piece of <strong>code gate</strong> ice is increased by 1[credit].
+Interface → <strong>1[credit]:</strong> Break 1 <strong>code gate</strong> subroutine.
+<strong>1[credit]:</strong> +1 strength."
+"15","cezve","Cezve","2[recurring-credit] <em>(When you install this card and before your turn begins, refill to 2 hosted credits.)</em>
+You can spend hosted credits during runs on central servers."
+"16","chastushka","Chastushka","Run HQ. If successful, instead of breaching HQ, sabotage 4. <em>(The Corp trashes 4 cards of their choice from HQ and/or the top of R&D.)</em>"
+"17","chekist_scion","Chekist Scion","You can advance this asset.
+When the Runner accesses this asset while it is installed, give them 1 tag plus 1 tag for each hosted advancement counter."
+"18","daeg_first_net_cat","Daeg, First Net-Cat","Whenever an agenda is scored or stolen, you may charge 1 of your installed cards. <em>(Add 1 power counter to a card that already has one.)</em>"
+"19","deep_dive","Deep Dive","Play only if you made a successful run on HQ, R&D, and Archives this turn.
+The Corp must set aside the top 8 cards of R&D faceup. Access 1 of those cards. You may spend [click] to access another 1 of those cards. Then, the Corp shuffles the set-aside cards into R&D."
+"20","drago_ivanov","Drago Ivanov","You can advance this asset.
+<strong>2 hosted advancement counters:</strong> Give the Runner 1 tag. Use this ability only during your turn."
+"21","echo","Echo","Whenever you rez a piece of <strong>harmonic</strong> ice, place 1 power counter on this ice.
+This ice gains ""[subroutine] End the run."" for each hosted power counter."
+"22","elivagar_bifurcation","Élivágar Bifurcation","When you score this agenda, you may derez 1 installed card."
+"23","endurance","Endurance","+2[mu]
+When you install this hardware, place 3 power counters on it.
+The first time each turn you make a successful run, place 1 power counter on this hardware.
+<strong>2 hosted power counters:</strong> Break up to 2 subroutines.
+Limit 1 <strong>console</strong> per player."
+"24","envelopment","Envelopment","When you rez this ice, place 4 power counters on it.
+When your turn begins, remove 1 hosted power counter.
+This ice gains ""[subroutine] End the run."" before its other subroutines for each hosted power counter.
+[subroutine] Trash this ice."
+"25","environmental_testing","Environmental Testing","Whenever you install a program or piece of hardware, place 1 power counter on this resource.
+When there are 4 or more hosted power counters, trash this resource and gain 9[credit]."
+"26","esa_afontov_eco_insurrectionist","Esâ Afontov: Eco-Insurrectionist","The first time each turn you suffer core damage, you may draw 1 card and sabotage 2. <em>(The Corp trashes 2 cards of their choice from HQ and/or the top of R&D.)</em>"
+"27","extract","Extract","Gain 6[credit]. You may trash 1 of your installed cards to gain 3[credit]."
+"28","ghosttongue","Ghosttongue","When you install this hardware, suffer 1 core damage.
+The play cost of each event is lowered by 1[credit]."
+"29","hakarl_1_0","Hákarl 1.0","When you rez this ice during a run against this server, you may derez another installed card. If you do, the Runner cannot use paid abilities printed on <strong>bioroid</strong> ice for the remainder of this turn.
+<strong>Lose [click]:</strong> Break 1 subroutine on this ice. Only the Runner can use this ability.
+[subroutine] Do 1 core damage.
+[subroutine] End the run."
+"30","hyperbaric","Hyperbaric","When you install this program, place 1 power counter on it.
+This program gets +1 strength for each hosted power counter.
+Interface → <strong>1[credit]:</strong> Break 1 <strong>code gate</strong> subroutine.
+<strong>2[credit]:</strong> Place 1 power counter on this program."
+"31","into_the_depths","Into the Depths","Run any server. If successful, for each time you passed ice this run, resolve 1 of the following that you have not yet resolved this run:<ul><li>Gain 4[credit].</li><li>Search your stack for a program. Install it. <em>(Shuffle your stack after searching it.)</em></li><li>Charge 1 of your installed cards. <em>(Add 1 power counter to a card that already has one.)</em></li></ul>"
+"32","ivik","Ivik","The rez cost of this ice is lowered by 1[credit] for each rezzed piece of <strong>code gate</strong> ice.
+[subroutine] Do 2 net damage.
+[subroutine] End the run."
+"33","light_the_fire","Light the Fire!","[click], [trash], <strong>suffer 1 core damage:</strong> Run a remote server. During that run, cards in the root of the attacked server lose all abilities. When that run is successful, trash all cards in the root of the attacked server."
+"34","marrow","Marrow","+1[mu]
+You get +3 maximum hand size.
+When you install this hardware, suffer 1 core damage.
+Whenever the Corp scores an agenda, sabotage 1. <em>(The Corp trashes 1 card of their choice from HQ or the top of R&D.)</em>
+Limit 1 <strong>console</strong> per player."
+"35","maskirovka","Maskirovka","[subroutine] Gain 2[credit].
+[subroutine] End the run."
+"36","mavirus","Mavirus","While the Runner is accessing this upgrade in R&D, they must reveal it.
+When the Runner accesses this upgrade, you may purge virus counters. If this upgrade is rezzed, do 1 net damage.
+[trash]<strong>:</strong> Purge virus counters."
+"37","mestnichestvo","Mestnichestvo","You can advance this ice.
+When the Runner encounters this ice, you may remove 1 hosted advancement counter. If you do, the Runner loses 3[credit].
+[subroutine] The Runner loses 3[credit].
+[subroutine] End the run."
+"38","midnight_3_arcology","Midnight-3 Arcology","When you score this agenda, draw 3 cards. Skip your discard step this turn."
+"39","mitosis","Mitosis","As an additional cost to play this operation, spend [click].
+Install up to 2 cards from HQ, creating a new remote server each time. Place 2 advancement counters on each of those cards. You cannot score or rez either of those cards this turn."
+"40","moon_pool","Moon Pool","<strong>Remove this asset from the game:</strong> Trash up to 2 cards from HQ. Reveal up to 2 facedown cards in Archives and shuffle them into R&D. For each agenda revealed this way, you may place 1 advancement counter on an installed card."
+"41","mutually_assured_destruction","Mutually Assured Destruction","As an additional cost to play this operation, spend [click][click].
+Trash any number of your rezzed cards. Give the Runner 1 tag for each card trashed this way."
+"42","no_free_lunch","No Free Lunch","[trash]<strong>:</strong> Gain 3[credit].
+[trash]<strong>:</strong> Remove 1 tag."
+"43","nyusha_sable_sintashta_symphonic_prodigy","Nyusha ""Sable"" Sintashta: Symphonic Prodigy","When your turn begins, identify your mark. <em>(If you don’t have a mark, a random central server becomes your mark for this turn.)</em>
+The first time each turn you make a successful run on your mark, gain [click]."
+"44","ob_superheavy_logistics_extract_export_excel","Ob Superheavy Logistics: Extract. Export. Excel.","Once per turn → When you trash a rezzed card, except during installation, you may search R&D for 1 card with a printed rez cost exactly 1[credit] less than the trashed card's printed rez cost. Install and rez the card you found, ignoring credit costs."
+"45","pan_weave","PAN-Weave","When you install this hardware, suffer 1 meat damage.
+The first time each turn you make a successful run on HQ, the Corp loses 1[credit]. If they do, gain 1[credit]."
+"46","pinhole_threading","Pinhole Threading","Run any server. If successful, instead of breaching the attacked server, access 1 card in the root of another server. If that card is an agenda, you cannot steal or trash it during this access."
+"47","pravdivost_consulting_political_solutions","Pravdivost Consulting: Political Solutions","The first time each turn the Runner makes a successful run, you may place 1 advancement counter on an installed card you can advance."
+"48","propeller","Propeller","When you install this program, place 4 power counters on it.
+Interface → <strong>1[credit]:</strong> Break 1 <strong>barrier</strong> subroutine.
+<strong>Hosted power counter:</strong> +2 strength."
+"49","refuge_campaign","Refuge Campaign","When your turn begins, gain 2[credit]."
+"50","regenesis","Regenesis","When you score this agenda, if no Corp cards have been added to Archives this turn, you may reveal 1 facedown agenda in Archives and add it to your score area."
+"51","revolver","Revolver","When you install this program, place 6 power counters on it.
+Interface → [trash] or <strong>hosted power counter:</strong> Break 1 <strong>sentry</strong> subroutine.
+<strong>2[credit]:</strong> +3 strength."
+"52","rigging_up","Rigging Up","Install 1 program or piece of hardware from your grip, paying 3[credit] less. You may charge that card if able. <em>(If it has a power counter on it, add another.)</em>"
+"53","running_hot","Running Hot","As an additional cost to play this event, suffer 1 core damage.
+Gain [click][click][click]."
+"54","stavka","Stavka","When you rez this ice, you may trash 1 of your other installed cards. If you do, this ice gets +5 strength for the remainder of the run.
+[subroutine] Trash 1 installed program.
+[subroutine] Trash 1 installed program."
+"55","steelskin_scarring","Steelskin Scarring","Draw 3 cards.
+When this event is trashed from your grip or stack, you may draw 2 cards."
+"56","stoneship_chart_room","Stoneship Chart Room","[trash]<strong>:</strong> Draw 2 cards.
+[trash]<strong>:</strong> Charge 1 of your installed cards."
+"57","svyatogor_excavator","Svyatogor Excavator","When your turn begins, you may trash 1 of your other installed cards. If you do, gain 3[credit]."
+"58","the_twinning","The Twinning","The first time each turn you spend credits from an installed card, place 1 power counter on this resource.
+Whenever you breach HQ or R&D, you may remove up to 2 hosted power counters to access that many additional cards."
+"59","trieste_model_bioroids","Trieste Model Bioroids","When you rez this asset, choose 1 rezzed piece of <strong>bioroid</strong> ice.
+Runner card abilities cannot break subroutines on the chosen ice."
+"60","trust_operation","Trust Operation","Play only if the Runner is tagged.
+Trash 1 installed resource. Install and rez 1 card from Archives, ignoring all costs."
+"61","ubiquitous_vig","Ubiquitous Vig","You can advance this asset.
+When your turn begins, gain 1[credit] for each hosted advancement counter."
+"62","vasilisa","Vasilisa","When the Runner encounters this ice, you may pay 1[credit]. If you do, place 1 advancement counter on an installed card you can advance.
+[subroutine] Give the Runner 1 tag."
+"63","virtuoso","Virtuoso","+1[mu]
+When your turn begins, identify your mark. <em>(If you don’t have a mark, a random central server becomes your mark for this turn.)</em>
+The first time each turn you make a successful run on your mark, if that server is HQ, access 1 additional card when you breach HQ. Otherwise, breach HQ when the run ends.
+Limit 1 <strong>console</strong> per player."
+"64","vladisibirsk_city_grid","Vladisibirsk City Grid","You can advance this upgrade.
+Once per turn → <strong>2 hosted advancement counters:</strong> Place 2 advancement counters on another card you can advance in the root of this server.
+Limit 1 <strong>region</strong> per server."
+"65","wave","Wave","When you rez this ice during a run against this server, you may search R&D for a piece of ice and reveal it. <em>(Shuffle R&D after searching it.)</em> Add that ice to HQ.
+[subroutine] Gain 1[credit] for each rezzed piece of <strong>harmonic</strong> ice."

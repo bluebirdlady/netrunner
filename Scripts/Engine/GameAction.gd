@@ -51,6 +51,19 @@ static func rez_card(card_id: String, instance_id: String = "") -> GameAction:
 static func play_from_archives(card_id: String) -> GameAction:
 	return _make("play_from_archives", {"card_id": card_id})
 
+# Descent-style: Corp activates a card from HQ during a PAW window (no click cost).
+# The card fires its hq_activate trigger, then moves to Archives.
+static func activate_from_hq(card_id: String) -> GameAction:
+	return _make("activate_from_hq", {"card_id": card_id})
+
+# Corp activates an ice's trash ability during the encounter window (e.g. M.I.C.).
+# Trashes the ice, then resolves the ability's effects (e.g. Runner clicks or run ends).
+static func use_ice_trash_ability(instance_id: String, card_id: String) -> GameAction:
+	return _make("use_ice_trash_ability", {
+		"card_instance_id": instance_id,
+		"card_id":          card_id
+	})
+
 
 # ── Display ───────────────────────────────────────────────────────────────────
 
@@ -70,7 +83,8 @@ func describe() -> String:
 		"pass":               return "Pass priority"
 		"rez_card":          return "Rez %s" % params.get("card_id", "?")
 		"use_installed_card": return "Use %s" % params.get("card_id", "?")
-		"play_from_archives": return "Play %s from Archives" % params.get("card_id", "?")
+		"play_from_archives":  return "Play %s from Archives" % params.get("card_id", "?")
+		"activate_from_hq":    return "Activate %s from HQ" % params.get("card_id", "?")
 		_:
 			return type
 

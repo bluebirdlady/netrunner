@@ -30,6 +30,8 @@ var choose_from_search_proxy:          Callable # func(candidates) -> CardRecord
 var choose_payment_option_proxy:       Callable # func(options) -> Dictionary or null
 var choose_take_tag_or_end_run_proxy:  Callable # func(amount: int) -> bool (true = end run)
 var choose_pay_to_avoid_tag_proxy:     Callable # func(cost: int) -> bool (true = pay)
+var ice_trash_ability_proxy:           Callable # func(ice: InstalledCard, ability: Dictionary) -> bool
+var spend_click_to_continue_proxy:     Callable # func() -> bool (true = spend click, false = end run)
 
 
 func choose_action(_ctx: GameContext) -> GameAction:
@@ -152,6 +154,44 @@ func choose_optional_ability(prompt: String, _ctx: GameContext) -> bool:
 	return true   # Default: activate when available
 
 
+# ── AirbladeX (JSRF Ed.) interrupt windows ───────────────────────────────────
+
+# Interrupt 1: Prevent 1 net damage during a run.
+# Called before each point of net damage while a run is active and AirbladeX
+# has power counters.  Returns true if the runner spends a counter to prevent.
+var airbladex_prevent_damage_proxy: Callable  # func(damage_type, amount_remaining) -> bool
+
+func use_airbladex_prevent_net_damage(damage_type: String, amount_remaining: int,
+		_ctx: GameContext) -> bool:
+	if airbladex_prevent_damage_proxy.is_valid():
+		return await airbladex_prevent_damage_proxy.call(damage_type, amount_remaining)
+	return false   # Default: don't spend (preserve counters for when-encountered)
+
+
+# Interrupt 2: Prevent a "when encountered" ice ability from firing.
+# Called before each on_encounter_self ability on the encountered ice while
+# AirbladeX has power counters.  Returns true if the runner spends a counter.
+var airbladex_prevent_when_encountered_proxy: Callable  # func(ice_card, ability_def) -> bool
+
+func use_airbladex_prevent_when_encountered(ice_card: InstalledCard,
+		ability_def: Dictionary, _ctx: GameContext) -> bool:
+	if airbladex_prevent_when_encountered_proxy.is_valid():
+		return await airbladex_prevent_when_encountered_proxy.call(ice_card, ability_def)
+	return true   # Default: always prevent when available (when-encountered abilities are usually bad)
+
+
+# ── Psi game bid ──────────────────────────────────────────────────────────────
+
+var psi_bid_proxy: Callable   # func(max_bid: int) -> int
+
+# Runner secretly chooses a psi bid of 0, 1, or 2 credits.
+# max_bid is capped to the Runner's current credit total by the caller.
+func choose_psi_bid(max_bid: int, _ctx: GameContext) -> int:
+	if psi_bid_proxy.is_valid():
+		return await psi_bid_proxy.call(max_bid)
+	return 0   # Default: always bid 0
+
+
 # ── Bigger Picture: Corp chooses how many tags to remove ─────────────────────
 
 var choose_tags_to_remove_proxy: Callable  # func(max_count: int) -> int
@@ -234,7 +274,26 @@ func choose_window_action(ctx: GameContext, actor: String, can_rez_ice: bool) ->
 						var iid: String = c.get("runtime_instance_id") if c.get("runtime_instance_id") != null else ""
 						return GameAction.rez_card(c.card_id, iid)
 
+	# Corp ice trash ability (e.g. M.I.C.: [trash] ice → Runner spends [click] or run ends).
+	if actor == "corp" and not ctx.corp_ice_trash_abilities_available.is_empty() and \
+			ice_trash_ability_proxy.is_valid():
+		for _ita_entry in ctx.corp_ice_trash_abilities_available:
+			var _ita_e: Dictionary = _ita_entry as Dictionary
+			var _ita_ice: InstalledCard = _ita_e.get("card", null) as InstalledCard
+			var _ita_ab: Dictionary     = _ita_e.get("ability", {}) as Dictionary
+			if _ita_ice == null:
+				continue
+			var use_it: bool = await ice_trash_ability_proxy.call(_ita_ice, _ita_ab)
+			if use_it:
+				return GameAction.use_ice_trash_ability(_ita_ice.runtime_instance_id, _ita_ice.card_id)
+
 	return GameAction.pass_window()
+
+
+func choose_spend_click_to_continue(_ctx: GameContext) -> bool:
+	if spend_click_to_continue_proxy.is_valid():
+		return await spend_click_to_continue_proxy.call()
+	return false  # Default: do not spend — accept run ending
 
 
 func choose_host_ice(ctx: GameContext) -> InstalledCard:
@@ -251,6 +310,15 @@ func choose_host_ice(ctx: GameContext) -> InstalledCard:
 	if host_ice_proxy.is_valid():
 		return await host_ice_proxy.call(candidates, ctx)
 
+	return candidates[0]
+
+
+func choose_target_ice(candidates: Array, card_name: String, _ctx: GameContext) -> InstalledCard:
+	if candidates.is_empty():
+		return null
+	if host_ice_proxy.is_valid():
+		var prompt: String = "Choose a piece of ice to target with %s:" % card_name
+		return await host_ice_proxy.call(candidates, _ctx, prompt)
 	return candidates[0]
 
 
@@ -367,3 +435,58 @@ func choose_suffer_damage_or_etr(amount: int, damage_type: String, _ctx: GameCon
 		return await choose_suffer_damage_or_etr_proxy.call(amount, damage_type)
 	# Default: take damage if grip is large enough to survive
 	return _ctx.runner_hand.size() >= amount
+
+
+# ── Discard-to-hand-limit ─────────────────────────────────────────────────────
+
+# Proxy set by Main.gd: func(hand: Array, excess: int) -> Array[Dictionary]
+# Returns an array of hand-entry Dicts the player chose to discard.
+# May return fewer entries than excess (caller loops until satisfied).
+var choose_subs_to_break_proxy: Callable   # func(candidates: Array[int], max_count: int, encounter: EncounterState) -> Array[int]
+
+# Runner chooses which subroutine indices to target when a break_all action cannot
+# cover every unbroken sub (e.g. Boomerang's 2-sub cap, or partial-credit break).
+# candidates — Array[int] of unbroken sub indices available to target
+# max_count  — how many must be chosen (equals the number the breaker can break)
+# Returns    — Array[int] of the chosen indices (subset of candidates, length == max_count)
+func choose_subs_to_break(candidates: Array, max_count: int,
+		encounter: EncounterState, _ctx: GameContext) -> Array:
+	if choose_subs_to_break_proxy.is_valid():
+		return await choose_subs_to_break_proxy.call(candidates, max_count, encounter)
+	# No proxy — return empty so EncounterProcessor falls through to its own heuristic.
+	return []
+
+
+var choose_discard_to_hand_limit_proxy: Callable
+
+# Player (human runner or corp) chooses which cards to discard during their discard phase.
+# hand     — duplicate of current hand (Array of {card_id, card_record} Dicts)
+# excess   — number of cards that need to be discarded
+# Returns  — Array of hand-entry Dicts to discard (may contain 1..excess entries)
+func choose_discard_to_hand_limit(hand: Array, excess: int, _ctx: GameContext) -> Array:
+	if choose_discard_to_hand_limit_proxy.is_valid():
+		return await choose_discard_to_hand_limit_proxy.call(hand, excess)
+	# Fallback: discard the first `excess` cards (TurnManager heuristic takes over if empty)
+	return []
+
+
+# ── Card ordering (Cataloguer R&D reorder, Burner HQ reveal placement) ───────
+
+var choose_card_order_proxy: Callable  # func(cards: Array[CardRecord]) -> Array[CardRecord]
+
+# Runner arranges the provided cards in their desired order.
+# Returns the same cards in a (possibly reordered) array.
+func choose_card_order(cards: Array, _ctx: GameContext) -> Array:
+	if choose_card_order_proxy.is_valid():
+		return await choose_card_order_proxy.call(cards)
+	return cards.duplicate()  # AI/fallback: keep original order
+
+
+var choose_top_or_bottom_proxy: Callable  # func(card: CardRecord) -> String ("top"/"bottom")
+
+# Runner places a single card either on top or bottom of a deck.
+# Returns "top" or "bottom".
+func choose_top_or_bottom(card: CardRecord, context_label: String, _ctx: GameContext) -> String:
+	if choose_top_or_bottom_proxy.is_valid():
+		return await choose_top_or_bottom_proxy.call(card, context_label)
+	return "bottom"  # AI default: hide it at the bottom

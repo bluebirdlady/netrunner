@@ -158,8 +158,7 @@ func choose_action(ctx: GameContext) -> GameAction:
 # ── Run‑time interface (forwarded to CorpRunAI) ───────────────────────────────
 
 func choose_rez(card: InstalledCard, ctx: GameContext) -> bool:
-	# NEW: Use improved rez logic that compares cost vs break cost.
-	return _run_ai.should_rez_ice(card, ctx)
+	return _run_ai.choose_rez(card, ctx)
 
 
 func choose_from_search(candidates: Array, _ctx: GameContext) -> CardRecord:
@@ -244,6 +243,34 @@ func choose_pay_shred_etr(_count: int, _ctx: GameContext) -> bool:
 	return true
 
 
+func choose_discard_to_hand_limit(hand: Array, excess: int, _ctx: GameContext) -> Array:
+	# Heuristic: discard the least-valuable non-agenda cards first.
+	# Agendas are last resort — having them in Archives is dangerous.
+	# Within non-agendas: discard lowest-cost operations first (easiest to redraw/replay),
+	# keep expensive assets/ice/upgrades (harder to rebuild board state).
+	var scored: Array = []
+	for e in hand:
+		var ed: Dictionary = e as Dictionary
+		var cr: CardRecord = ed.get("card_record", null) as CardRecord
+		if cr == null:
+			continue
+		var type_score: int
+		match cr.card_type:
+			"operation": type_score = 0    # cheapest to replay
+			"asset":     type_score = 100
+			"upgrade":   type_score = 150
+			"ice":       type_score = 200
+			"agenda":    type_score = 10000  # strong preference to keep
+			_:           type_score = 50
+		var card_score: int = type_score + (cr.cost if cr.cost >= 0 else 0)
+		scored.append({"entry": ed, "score": card_score})
+	scored.sort_custom(func(a, b): return a.score < b.score)
+	var result: Array = []
+	for i in range(mini(excess, scored.size())):
+		result.append(scored[i].entry)
+	return result
+
+
 func choose_window_action(ctx: GameContext, actor: String, can_rez_ice: bool) -> GameAction:
 	if actor != "corp":
 		return GameAction.pass_window()
@@ -256,8 +283,7 @@ func choose_window_action(ctx: GameContext, actor: String, can_rez_ice: bool) ->
 		for ice in target_server.ice:
 			var c: InstalledCard = ice as InstalledCard
 			if not c.is_rezzed:
-				# Use improved rez logic
-				if _run_ai.should_rez_ice(c, ctx):
+				if _run_ai.should_rez_ice(c, ctx):  # lifetime-value model
 					return GameAction.rez_card(c.card_id, c.runtime_instance_id)
 			break  # only consider the outermost unrezzed ice
 	else:
@@ -267,6 +293,18 @@ func choose_window_action(ctx: GameContext, actor: String, can_rez_ice: bool) ->
 			if not c.is_rezzed and c.card_record != null and c.card_record.card_type == "upgrade":
 				if ctx.corp_credits >= ctx.query_rez_cost(c):
 					return GameAction.rez_card(c.card_id, c.runtime_instance_id)
+
+	# Check ice trash abilities (e.g. M.I.C.: trash self → Runner spends [click] or run ends).
+	if not ctx.corp_ice_trash_abilities_available.is_empty():
+		for _mic_entry in ctx.corp_ice_trash_abilities_available:
+			var _mic_e: Dictionary       = _mic_entry as Dictionary
+			var _mic_ice: InstalledCard  = _mic_e.get("card", null) as InstalledCard
+			if _mic_ice == null:
+				continue
+			# Heuristic: use if runner has no clicks left (guaranteed ETR) or only 1 click.
+			# Trashing our own ice is a real cost, so only do it when it will matter.
+			if ctx.runner_clicks <= 1:
+				return GameAction.use_ice_trash_ability(_mic_ice.runtime_instance_id, _mic_ice.card_id)
 
 	# Check scored agendas with paw_actions (generic)
 	for agenda_card in ctx.corp_score_area_cards:
@@ -771,11 +809,6 @@ func choose_runner_card_type(types: Array, ctx: GameContext) -> String:
 func choose_target(candidates: Array, _context: Dictionary) -> Variant:
 	# Generic target selection — pick the first available candidate.
 	return candidates[0] if not candidates.is_empty() else null
-
-
-func choose_optional_ability(_prompt: String, _ctx: GameContext) -> bool:
-	# Generic optional ability — Corp AI always activates optional abilities.
-	return true
 
 
 func choose_activate_clearinghouse(card: InstalledCard, ctx: GameContext) -> bool:

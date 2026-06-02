@@ -1,0 +1,167 @@
+"","text_code","name","text"
+"1","aggressive_trendsetting","Aggressive Trendsetting","The first time the Runner trashes an installed Corp card during each of their turns, they may spend [click]. If they do not, you get +1 allotted [click] for your next turn."
+"2","anthill_excavation_contract","Anthill Excavation Contract","When you rez this asset, load 8[credit] onto it. When it is empty, trash it.
+When your turn begins, take 4[credit] from this asset and draw 1 card."
+"3","au_co_the_gold_standard_in_clones","AU Co.: The Gold Standard in Clones","Whenever you do damage or trash 1 or more cards from HQ, place 1 power counter on this identity.
+When your turn begins, you may remove 2 hosted power counters to look at the top 3 cards of R&D. Trash 1 of those cards and add the rest to HQ."
+"4","azimat","Azimat","2[recurring-credit] <em>(When you install this program and before your turn begins, refill to 2 hosted credits.)</em>
+You can spend hosted credits to pay trash costs."
+"5","bangun_when_disaster_strikes","BANGUN: When Disaster Strikes","You may install agendas faceup. <em>(This does not make their abilities active.)</em>
+Whenever the Runner accesses a faceup installed agenda, do 2 meat damage and give the Runner 1 tag."
+"6","barry_baz_wong_tri_maf_veteran","Barry “Baz” Wong: Tri-Maf Veteran","Whenever the Corp rezzes a piece of ice, you may install 1 resource or piece of hardware from your grip."
+"7","biawak","Biawak","You can forfeit 1 agenda as you rez this ice to pay for 10[credit] of its rez cost.
+[subroutine] Trash 1 installed program or end the run.
+[subroutine] Trash 1 installed resource or end the run.
+[subroutine] End the run."
+"8","bigger_picture","Bigger Picture","Play only if the Runner is tagged.
+Resolve 1 of the following:<ul><li>Give the Runner 1 tag.</li><li>Remove any number of tags. The Runner loses 5[credit] for each tag removed this way. Gain credits equal to the number of credits the Runner lost.</li></ul>"
+"9","bling","Bling","+1[mu]
+Whenever you install a card without spending credits, you may host the top card of your stack faceup on this hardware. <em>(It is not installed.)</em>
+You can play or install hosted cards as if they were in your grip.
+When your discard phase ends, trash all hosted cards.
+Limit 1 <strong>console</strong> per player."
+"10","bumi_1_0","Bumi 1.0","When you rez this ice during a run against this server, you may trash 1 installed <strong>trojan</strong> program.
+<strong>Lose [click]:</strong> Break 1 subroutine on this ice. Only the Runner can use this ability.
+[subroutine] Trash 1 installed program.
+[subroutine] Do 1 core damage."
+"11","byte","Byte!","While the Runner is accessing this asset in R&D, they must reveal it.
+When the Runner accesses this asset anywhere except in Archives, you may pay 4[credit]. If you do, give the Runner 1 tag and do 3 net damage."
+"12","cacophony","Cacophony","The first time each turn you steal or trash a Corp card, place 1 power counter on this resource.
+When your action phase ends, you may remove 2 hosted power counters to sabotage 3. <em>(The Corp trashes 3 cards of their choice from HQ and/or the top of R&D.)</em>"
+"13","charm_offensive","Charm Offensive","Run Archives. When that run ends, you may trash 1 rezzed copy of a card you accessed in Archives during that run."
+"14","chromatophores","Chromatophores","Install only on a piece of ice.
+Host ice gains <strong>barrier</strong>, <strong>code gate</strong>, and <strong>sentry</strong>."
+"15","clean_getaway","Clean Getaway","Run any server. If successful, gain 6[credit]."
+"16","detente","Detente","+1[mu]
+The first time each turn you make a successful run on HQ, you may host 1 card from HQ at random faceup on this hardware. <em>(It is not installed or rezzed.)</em>
+[click], <strong>add 2 hosted cards to HQ:</strong> The Runner may access 1 card in HQ at random. Any player can use this ability.
+Limit 1 <strong>console</strong> per player."
+"17","devadatta_drone","Devadatta Drone","When you install this program, place 2 power counters on it.
+Whenever you breach R&D, you may remove 1 hosted power counter to access 1 additional card."
+"18","dewi_subrotoputri_pedagogical_dhalang","Dewi Subrotoputri: Pedagogical Dhalang","Whenever you make a successful run, if your [mu] is full, you may flip this identity and gain 1[credit]."
+"19","doomscroll","Doomscroll","[subroutine] Give the Runner 1 tag.
+[subroutine] Do 1 net damage.
+[subroutine] Do 2 net damage if the Runner has at least 2 tags."
+"20","embedded_reporting","Embedded Reporting","Dividends 2 <em>(When you score this agenda, place 2 agenda counters on it for each excess advancement counter.)</em>
+When your discard phase ends, you may remove 1 hosted agenda counter to search R&D for 1 operation and reveal it. <em>(Shuffle R&D after searching it.)</em> Add that operation to the top of R&D."
+"21","empiricist","Empiricist","[subroutine] Draw 1 card. You may add 1 card from HQ to the top of R&D.
+[subroutine] Do 1 net damage. Give the Runner 1 tag.
+[subroutine] Do 2 net damage."
+"22","flyswatter","Flyswatter","When you rez this ice during a run against this server, purge virus counters.
+[subroutine] End the run."
+"23","fransofia_ward","Fransofia Ward","The rez cost of each piece of ice is increased by 1[credit].
+Whenever you encounter a piece of ice, if the Corp has 15[credit] or more, you may trash this resource to bypass that ice. <em>(Pass that ice. No subroutines or further ""when encountered"" abilities resolve.)</em>"
+"24","gamedragon_pro","GAMEDRAGON™ Pro","When you install this hardware and when your turn begins, you may host this hardware on an installed non-<strong>AI</strong> <strong>icebreaker</strong>.
+Host <strong>icebreaker</strong> gets +1 strength. Abilities that increase its strength last for the remainder of the run <em>(instead of any shorter duration)</em>."
+"25","gourmand","Gourmand","Access → [trash]<strong>:</strong> Trash the non-agenda card you are accessing. If you do, draw 1 card."
+"26","greenmail","Greenmail","When you score this agenda, gain 2[credit].
+When you forfeit this agenda, gain 4[credit]."
+"27","hantu","Hantu","When you install this program, place 2 virus counters on it.
+Interface → <strong>1[credit]:</strong> Break 1 <strong>sentry</strong> subroutine.
+<strong>Hosted virus counter:</strong> +2 strength."
+"28","humanoid_resources","Humanoid Resources","[click][click][click], [trash]<strong>:</strong> Gain 4[credit] and draw 3 cards. Install up to 2 cards from HQ <em>(one at a time)</em>. You may play 1 operation from HQ."
+"29","idiosyncresis","Idiosyncresis","You can advance this asset.
+When your turn begins, you may trash this asset. If you do, for each hosted advancement counter, gain 3[credit] and the Runner loses 2[credit]."
+"30","illumination","Illumination","Run R&D. If successful, install up to 3 cards from your grip <em>(one at a time)</em>, paying 1[credit] less for each."
+"31","ip_enforcement","IP Enforcement","As an additional cost to play this operation, remove X tags.
+Install 1 agenda from the Runner’s score area with a printed agenda point value equal to X. If the Runner is still tagged, place 1 advancement counter on that agenda."
+"32","kessleroid","Kessleroid","The Runner cannot trash this ice <em>(while it is rezzed)</em>.
+[subroutine] End the run.
+[subroutine] End the run."
+"33","key_performance_indicators","Key Performance Indicators","Resolve 2 of the following in any order:<ul><li>Draw 1 card. Shuffle 1 card from HQ into R&D.</li><li>Install 1 piece of ice from HQ, ignoring all costs.</li><li>Place 1 advancement counter on an installed card you can advance.</li><li>Gain 2[credit].</li></ul>"
+"34","knickknack_obrian","“Knickknack” O’Brian","The first time each turn a run begins, you may trash 1 of your other installed cards. If you do, gain credits equal to its printed install cost and draw 1 card."
+"35","lamplighter","Lamplighter","When an agenda is scored or stolen from this server or its root, trash this ice.
+[subroutine] Give the Runner 1 tag unless they pay 3[credit].
+[subroutine] End the run if the Runner is tagged."
+"36","leo_construction_labor_solutions","LEO Construction: Labor Solutions","Once per turn → <strong>Trash 1 rezzed bioroid card in the root of or protecting the attacked server:</strong> End the run."
+"37","lie_low","Lie Low","As an additional cost to play this event, spend [click].
+Resolve 1 of the following:<ul><li>Draw 4 cards.</li><li>Remove up to 2 tags.</li></ul>"
+"38","madani","Madani","[click]<strong>:</strong> Host any number of programs from your grip faceup on this hardware. <em>(They are not installed.)</em>
+Once per turn → <strong>0[credit]:</strong> Install 1 hosted program <em>(paying its install cost)</em>.
+Limit 1 <strong>console</strong> per player."
+"39","magdalene_keino_chemutai_cryptarchitect","Magdalene Keino-Chemutai: Cryptarchitect","Whenever you discard cards to reach your maximum hand size, you may install 1 program or piece of hardware from among those cards."
+"40","maglectric_rapid_748_mod","Maglectric Rapid (748 Mod)","Whenever you make a successful run on HQ, you may trash this hardware to derez 1 installed Corp card."
+"41","mahkota_langit_grid","Mahkota Langit Grid","2[recurring-credit] <em>(When you rez this upgrade and before your turn begins, refill to 2 hosted credits.)</em>
+You can spend hosted credits to rez assets in the root of this server and ice protecting this server.
+Persistent → The trash cost of each asset in the root of this server is increased by 2[credit].
+Limit 1 <strong>region</strong> per server."
+"42","maintenance_access","Maintenance Access","As an additional cost to play this event, spend [click].
+Run Archives. When you would approach Archives <em>(after passing all ice)</em>, instead change the attacked server to HQ and approach HQ."
+"43","measured_response","Measured Response","Play only if the threat level is 4 or greater, and only if the Runner made a successful run during their last turn.
+Do 4 meat damage unless the Runner pays 8[credit]."
+"44","mercia_b4ll4rd","Mercia B4LL4RD","When your action phase ends, you may install 1 piece of ice from HQ, paying 1[credit] less. If you do, move this upgrade to the root of the server that piece of ice is protecting."
+"45","mitra_aman","Mitra Aman","Whenever the Runner approaches a piece of ice protecting this server, you may trash this upgrade. If you do, gain 3[credit] and you may swap the ice being approached with a piece of ice from Archives or HQ."
+"46","muslihat_multifarious_marketeer","MuslihaT: Multifarious Marketeer","When your turn begins, look at the top card of your stack. If that card is an <strong>icebreaker</strong> or a <strong>run</strong> event, you may reveal it and add it to your grip."
+"47","mycoweb","Mycoweb","[subroutine] You may install 1 piece of ice from Archives, ignoring all costs.
+[subroutine] You may rez 1 installed piece of ice, paying 2[credit] less.
+[subroutine] Resolve 1 subroutine on a rezzed <strong>sentry</strong>.
+[subroutine] Resolve 1 subroutine on another rezzed <strong>code gate</strong>."
+"48","n_pot","N-Pot","<strong>3[credit]:</strong> Break 1 subroutine on this ice. Only the Runner can use this ability.
+[subroutine] End the run.
+[subroutine] If the threat level is 2 or greater, end the run.
+[subroutine] If the threat level is 4 or greater, end the run."
+"49","nanomanagement","Nanomanagement","Gain [click][click]."
+"50","nebula_talent_management_making_stars","Nebula Talent Management: Making Stars","When your action phase ends, if you played an operation this turn, gain 1[credit] and flip this identity."
+"51","next_big_thing","Next Big Thing","When this agenda is scored or stolen, place 1 agenda counter on it.
+<strong>[click]</strong>, <strong>hosted agenda counter:</strong> Draw 4 cards. Shuffle any number of cards from HQ into R&D. The Corp can use this ability even if this agenda is in the Runner's score area."
+"52","off_the_books","Off the Books","Dividends 1 <em>(When you score this agenda, place 1 agenda counter on it for each excess advancement counter.)</em>
+When your discard phase ends, you may remove 1 hosted agenda counter to search R&D for 1 card and reveal it. <em>(Shuffle R&D after searching it.)</em> You may install that card, ignoring all costs. If you do not, add it to HQ."
+"53","open_market","Open Market","When you install this resource, load 6[credit] onto it. When it is empty, trash it.
+You can spend hosted credits to install <strong>connection</strong> and <strong>job</strong> resources.
+When your turn begins, take 1[credit] from this resource."
+"54","otto_campaign","Otto Campaign","When you rez this asset, load 6[credit] onto it. When it is empty, trash it and gain [click][click].
+When your turn begins, take 2[credit] from this asset."
+"55","peer_review","Peer Review","Reveal all but 1 card in HQ.
+Gain 7[credit]. You may install 1 card from HQ in the root of a remote server."
+"56","petty_cash","Petty Cash","Play only if you have not finished an action yet this turn.
+Gain 5[credit]. If you played this operation from anywhere except HQ, gain [click].
+[click]<strong>:</strong> Play this operation from Archives. After it resolves, remove it from the game."
+"57","phat_gioan_baotixita","Phật Gioan Baotixita","When your discard phase ends, place 1 power counter on this asset.
+The first time each turn an agenda is scored or stolen, you may remove up to 2 hosted power counters. Do 1 net damage plus 1 net damage for each power counter removed this way."
+"58","plutus","Plutus","As an additional cost to rez this asset, forfeit 1 agenda or reveal and trash 3 cards from HQ.
+When your turn begins, you may play 1 <strong>transaction</strong> operation from Archives. After it resolves, remove it from the game."
+"59","poetri_luxury_brands_all_the_rage","Poétrï Luxury Brands: All the Rage","Whenever you score an agenda, look at the top 3 cards of R&D. You may install 1 non-agenda card from among them.
+Whenever an agenda is stolen, you may install 1 non-agenda card from HQ."
+"60","principia","Principia","This program costs 1[credit] less to install for each other installed <strong>icebreaker</strong>. <em>(Programs trashed as part of installing this program don’t count.)</em>
+Interface → <strong>1[credit]:</strong> Break 1 <strong>barrier</strong> subroutine.
+<strong>2[credit]:</strong> +2 strength."
+"61","project_ingatan","Project Ingatan","Dividends 1 <em>(When you score this agenda, place 1 agenda counter on it for each excess advancement counter.)</em>
+When your discard phase ends, you may remove 1 hosted agenda counter to install 1 card from Archives, ignoring all costs."
+"62","proprionegation","Proprionegation","When you score this agenda, place 1 agenda counter on it.
+<strong>Hosted agenda counter:</strong> The Runner moves to the outermost position of Archives. <em>(They approach any ice in that position.)</em> Use this ability only during a run."
+"63","pt_untaian_lifes_building_blocks","PT Untaian: Life's Building Blocks","When your discard phase ends, if there are 3 or fewer cards in HQ, you may pay 1[credit] to place 1 advancement counter on an unrezzed card you can advance. <em>(You cannot score that card this turn.)</em>"
+"64","public_access_plaza","Public Access Plaza","When your turn begins, gain 1[credit].
+Threat 2 → When the Runner trashes this asset <em>(while it is rezzed)</em>, give them 1 tag."
+"65","rent_rioters","Rent Rioters","[click][click][click],[trash]<strong>:</strong> Gain 9[credit]."
+"66","rising_tide","Rising Tide","This program gets +1 strength for each <strong>fracter</strong> in your heap.
+Interface → <strong>1[credit]:</strong> Break 1 <strong>barrier</strong> subroutine.
+<strong>1[credit]:</strong> +1 strength."
+"67","ritual","Ritual","Draw 1 card for each [click] you have remaining."
+"68","ryo_phoenix_ono_out_of_the_ashes","Ryō “Phoenix” Ōno: Out of the Ashes","The first time each turn a run becomes successful after a subroutine resolved during that run, gain 1[credit] and the Corp trashes 1 card from HQ."
+"69","sang_kancil","Sang Kancil","Interface → <strong>1[credit]:</strong> Break 1 <strong>code gate</strong> subroutine.
+<strong>3[credit]:</strong> +2 strength. If a <strong>run</strong> event is active, this ability costs 2[credit] less to use."
+"70","scatter_field","Scatter Field","While this ice is the only piece of ice protecting this server, it gets +4 strength.
+[subroutine] You may install 1 card from HQ.
+[subroutine] End the run."
+"71","scrounge","Scrounge","As an additional cost to play this event, spend [click].
+Install 1 program from your heap. You may add 1 program from your heap to the bottom of your stack."
+"72","semak_samun","Semak-samun","The Runner cannot break the printed subroutine on this ice except using a <strong>fracter</strong>.
+[subroutine] End the run unless the Runner suffers 3 net damage."
+"73","sericulture_expansion","Sericulture Expansion","Dividends 1 <em>(When you score this agenda, place 1 agenda counter on it for each excess advancement counter.)</em>
+When your discard phase ends, you may remove 1 hosted agenda counter to place 2 advancement counters on 1 installed card. <em>(You cannot score that card this turn.)</em>"
+"74","shred","Shred","Run any server. The first time the Corp would end that run, prevent the run from ending unless the Corp reveals and trashes X cards from HQ at random. X is equal to the number of cards in the root of the attacked server."
+"75","side_hustle","Side Hustle","When you install this resource and whenever a run begins, place 1[credit] on this resource.
+When there are 6 or more hosted credits, take all credits from this resource, trash it, and draw 1 card."
+"76","syailendra","Syailendra","You can advance this ice.
+When the Runner encounters this ice, if it has 3 or more hosted advancement counters, you may place 1 advancement counter on an installed card you can advance.
+[subroutine] You may place 1 advancement counter on an installed card you can advance.
+[subroutine] The Runner loses 2[credit].
+[subroutine] Do 1 net damage."
+"77","synapse_global_faster_than_thought","Synapse Global: Faster than Thought","The first time each turn a tag is removed, you may reveal and install 1 card from HQ, ignoring all costs.
+[click], <strong>remove 1 tag:</strong> Gain 2[credit]."
+"78","the_zwicky_group_invisible_hands","The Zwicky Group: Invisible Hands","The first time each turn you gain credits through an ability on an agenda or operation, you may draw 1 card."
+"79","top_down_solutions","Top-Down Solutions","Draw 2 cards. Install up to 2 cards from HQ <em>(one at a time)</em>."
+"80","topan_ormas_leader","Topan: Ormas Leader","Once per turn → [click]<strong>:</strong> Install 1 card from your grip, paying 2[credit] less. When you install that card, suffer 1 meat damage."
+"81","touch_ups","Touch-ups","As an additional cost to play this operation, spend [click].
+Place 2 advancement counters on 1 installed card you can advance. If you do, choose a card type and reveal the grip. Choose up to 2 revealed cards of that type. The Runner shuffles those cards into the stack."
+"82","transfer_of_wealth","Transfer of Wealth","Run HQ. If successful, take 1 tag and the Corp loses 3[credit]. Gain 2[credit] for each credit lost this way."

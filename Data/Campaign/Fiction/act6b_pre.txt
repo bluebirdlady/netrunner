@@ -1,0 +1,32 @@
+PEACE THROUGH POWER
+by Laury "CaKnuckleguy" Plant
+
+The manifest read: seventeen units, Category-9 AP array, modified for orbital deployment.
+
+Which was wrong, Bruxelas reflected, because Category-9 AP arrays were not licensed for orbital deployment under any commercial permit he had ever processed. He looked at the authorisation stamp again: THUNDERBOLT ARMAMENTS LOGISTICS DIVISION — his own stamp, his own digital signature. He had not authorised this.
+
+He pulled the secondary manifest. Twenty-two units, Destroyer-class sentry platforms, firmware modified. The modification was listed as ROUTINE UPDATE, but Bruxelas had eleven years in logistics and he knew that AP hardware didn't take routine updates. It was passive technology. You didn't update what it thought. You just pointed it.
+
+The modification file in the attached notes was three times the length of any routine update he had ever seen.
+
+He cross-referenced the delivery destination. Not a named facility. A coordinate set — an orbital designation in the outer Belt. He ran it against the Heinlein registry. No match. Against the commercial registry. No match. Against the public infrastructure index. Nothing.
+
+He sat with the three manifests open for a long time. His stomach was doing the thing it did when things were wrong.
+
+Then he did what he had learned to do when things were wrong: he closed the files, refiled them in the correct subdirectory, and went to get coffee.
+
+When he came back, his access to that subdirectory had been revoked.
+
+He stared at the error message for a moment. Someone at a level above him had noticed that he'd looked at the files. Someone had decided, in the fifteen minutes he'd been away, that he didn't need to see them anymore.
+
+He wrote down the coordinate set from memory, on the back of a canteen receipt. Old habit from a job before this one, when he'd learned that some things were only yours while you could still hold them in your head.
+
+He put the receipt in his left pocket and went back to work.
+
+The next morning, someone else had already found the manifests.
+
+—
+
+TARGET: Thunderbolt Armaments: Peace Through Power
+FACILITY: Orbital Depot Seven-Delta, Heinlein High Orbit
+OBJECTIVE: The modified manifests. The firmware specification. Every delivery, every destination.
