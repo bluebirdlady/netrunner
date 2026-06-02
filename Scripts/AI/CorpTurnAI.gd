@@ -5,28 +5,40 @@ extends RefCounted
 # Improved Corp decision maker.
 #
 # Priority order each click:
-#   1. Score a ready agenda
-#   2. Advance an agenda one counter away (in a protected remote)
-#   3. Install an agenda (prefer protected remote, else new remote if ice in hand)
-#   4. Reinforce HQ if it has been successfully run this turn and has <2 ice
-#   5. Reinforce R&D similarly
-#   6. Protect HQ if it has no ice
-#   7. Protect R&D if it has no ice
-#   8. Install ice on a remote that has an agenda but needs more ice
-#   9. Install ice on any remote that has cards but no ice
-#  10. Install an asset in a new remote
-#  11. Advance any installed agenda in a protected remote
-#  12. Advance any installed agenda (even unprotected – don’t stall forever)
-#  13. Use a beneficial click action on an installed Corp card (asset/upgrade/agenda)
-#  14. Play a beneficial operation that passes its condition
-#  15. Draw if hand size < MIN_HAND_SIZE
-#  16. Gain credits if below ECONOMY_THRESHOLD
-#  17. Draw (general fallback)
-#  18. Gain credits (hard fallback)
+#   0a. Play Petty Cash from Archives (first action only)
+#   0b. Use a beneficial click action on an installed Corp card (asset/upgrade/agenda)
+#    1. Score a ready agenda
+#   ── State-aware overrides (fire when a decisive condition holds) ────────────
+#    A. Kill window  : play a damage operation if runner grip ≤ 2
+#    A2. Trap window  : advance an installed trap card if one more counter kills
+#    B. Scoring window: advance if agenda is 1 click from scoring and runner is broke
+#    C. Runner pressure: install ice immediately if runner has a complete rig
+#   ───────────────────────────────────────────────────────────────────────────
+#    2. Advance an agenda one counter away (in a protected remote)
+#    3. Install an agenda (prefer protected remote, else new remote if ice in hand)
+#    4. Reinforce HQ if it has been successfully run this turn and has <2 ice
+#    5. Reinforce R&D similarly
+#    6. Protect HQ if it has no ice
+#    7. Protect R&D if it has no ice
+#    8. Install ice on a remote that has an agenda but needs more ice
+#    9. Install ice on any remote that has cards but no ice
+#   9.5 Install an upgrade in the best available server
+#   10. Install an asset in a new remote
+#   11. Advance any installed agenda in a protected remote
+#   12. Advance any installed agenda (even unprotected – don’t stall forever)
+#   13. Play a beneficial operation that passes its condition
+#   14. Draw if hand size < MIN_HAND_SIZE
+#   15. Gain credits if below _economy_threshold() (game-state adaptive)
+#   16. Draw (general fallback)
+#   17. Gain credits up to ceiling
+#   18. Gain credits (hard fallback)
 
 const ECONOMY_THRESHOLD := 6
 const ECONOMY_CEILING   := 14
 const MIN_HAND_SIZE     := 4
+
+# Operations that can deal direct damage.  Checked by _kill_window_check.
+const DAMAGE_OPERATION_IDS := ["neurospike", "punitive_counterstrike", "boom", "scorched_earth"]
 
 var _run_ai: CorpRunAI
 var _ability_registry: AbilityRegistry
@@ -42,6 +54,13 @@ func _init(ability_registry: AbilityRegistry) -> void:
 # ── Turn-time interface ───────────────────────────────────────────────────────
 
 func choose_action(ctx: GameContext) -> GameAction:
+	var action := _choose_action_impl(ctx)
+	if not ctx.simulation_mode:
+		DecisionLogger.log_heuristic(ctx, action)
+	return action
+
+
+func _choose_action_impl(ctx: GameContext) -> GameAction:
 	# 0a. Petty Cash from Archives (first action only)
 	if not ctx.corp_finished_an_action_this_turn:
 		for cr in ctx.corp_discard:
@@ -58,6 +77,28 @@ func choose_action(ctx: GameContext) -> GameAction:
 	var ready := _find_ready_agenda(ctx)
 	if ready != null:
 		return GameAction.advance(ready.card_id)
+
+	# ── State-aware overrides ──────────────────────────────────────────────────
+	# A. Kill window: runner grip is small enough that a damage op ends the game.
+	var kill_action := _kill_window_check(ctx)
+	if kill_action != null:
+		return kill_action
+
+	# A2. Trap window: one more counter on an installed trap card reaches kill range.
+	var trap_action := _trap_window_check(ctx)
+	if trap_action != null:
+		return trap_action
+
+	# B. Scoring window: agenda is one click away and runner cannot afford to run.
+	var window_action := _scoring_window_check(ctx)
+	if window_action != null:
+		return window_action
+
+	# C. Runner pressure: runner has a complete rig — ice up exposed servers now.
+	var pressure_action := _runner_pressure_check(ctx)
+	if pressure_action != null:
+		return pressure_action
+	# ──────────────────────────────────────────────────────────────────────────
 
 	# 2. Advance an agenda that is one away, in a protected remote
 	var almost := _find_almost_scored_agenda(ctx)
@@ -92,6 +133,12 @@ func choose_action(ctx: GameContext) -> GameAction:
 		if ice != null:
 			return GameAction.install(ice, "archives", "ice")
 
+	# 6. Protect HQ if no ice
+	if not _server_has_ice(ctx, "hq"):
+		var ice := _find_ice_in_hand(ctx)
+		if ice != null:
+			return GameAction.install(ice, "hq", "ice")
+
 	# 7. Protect R&D if no ice
 	if not _server_has_ice(ctx, "rd"):
 		var ice := _find_ice_in_hand(ctx)
@@ -112,6 +159,13 @@ func choose_action(ctx: GameContext) -> GameAction:
 		if ice != null:
 			return GameAction.install(ice, unprotected_remote.server_id, "ice")
 
+	# 9.5. Install an upgrade in the best available server
+	var upgrade_to_install := _find_upgrade_in_hand(ctx)
+	if upgrade_to_install != null and ctx.corp_credits >= max(0, upgrade_to_install.cost):
+		var upgrade_server := _find_best_upgrade_server(ctx)
+		if upgrade_server != null:
+			return GameAction.install(upgrade_to_install, upgrade_server.server_id)
+
 	# 10. Install an asset in a new remote
 	var asset_to_install := _find_asset_in_hand(ctx)
 	if asset_to_install != null and ctx.corp_credits >= max(0, asset_to_install.cost):
@@ -130,6 +184,13 @@ func choose_action(ctx: GameContext) -> GameAction:
 		if exposed_agenda != null:
 			return GameAction.advance(exposed_agenda.card_id)
 
+	# 12.5. Advance an installed trap card when the runner's grip is in threat range.
+	# Builds up Clearinghouse counters, Urtica Cipher potency, etc. before kill window.
+	if ctx.corp_credits >= 1 and ctx.runner_hand.size() <= 5:
+		var trap := _find_advanceable_non_agenda(ctx)
+		if trap != null:
+			return GameAction.advance(trap.card_id)
+
 	# 13. Play a beneficial operation (passing condition)
 	var best_op := _find_best_operation(ctx)
 	if best_op != null:
@@ -139,8 +200,8 @@ func choose_action(ctx: GameContext) -> GameAction:
 	if ctx.corp_hand.size() < MIN_HAND_SIZE and not ctx.corp_deck.is_empty():
 		return GameAction.draw_card()
 
-	# 15. Gain credits if below threshold
-	if ctx.corp_credits < ECONOMY_THRESHOLD:
+	# 15. Gain credits if below adaptive threshold
+	if ctx.corp_credits < _economy_threshold(ctx):
 		return GameAction.gain_credits()
 
 	# 16. Draw as fallback
@@ -510,6 +571,168 @@ func choose_optional_ability(prompt: String, ctx: GameContext) -> bool:
 
 
 
+# ── State-aware override helpers ──────────────────────────────────────────────
+
+# Returns true if the runner's rig covers all three standard ice subtypes, or
+# contains an AI breaker (which breaks any ice type regardless of subtype).
+func _runner_has_full_rig(ctx: GameContext) -> bool:
+	var has_fracter := false
+	var has_killer  := false
+	var has_decoder := false
+	for ic in ctx.runner_rig:
+		var c: InstalledCard = ic as InstalledCard
+		if c == null or c.card_record == null:
+			continue
+		if c.card_record.has_subtype("ai"):
+			return true   # AI breaker covers everything
+		if c.card_record.has_subtype("fracter"):
+			has_fracter = true
+		if c.card_record.has_subtype("killer"):
+			has_killer = true
+		if c.card_record.has_subtype("decoder"):
+			has_decoder = true
+	return has_fracter and has_killer and has_decoder
+
+
+# Returns true if an agenda that is ≤1 advance from scoring sits in a protected
+# (iced) remote.  Used by _economy_threshold to lower the credit floor.
+func _is_scoring_window_active(ctx: GameContext) -> bool:
+	for server in ctx.servers.values():
+		var s: Server = server as Server
+		if not s.is_remote() or not s.has_ice():
+			continue
+		for card in s.root:
+			var c: InstalledCard = card as InstalledCard
+			if c.card_record == null or not c.card_record.is_agenda():
+				continue
+			var needed: int = c.card_record.advancement_requirement - c.get_counter("advancement")
+			if needed <= 1:
+				return true
+	return false
+
+
+# Returns the credit threshold below which the Corp should prioritise gaining
+# credits.  Adapts to the current game state rather than using a fixed value.
+func _economy_threshold(ctx: GameContext) -> int:
+	if _is_scoring_window_active(ctx):
+		return 4   # accept a thin credit pool to push an almost-scored agenda
+	if _runner_has_full_rig(ctx):
+		return 8   # need reserve credits to rez ice when the runner runs
+	return ECONOMY_THRESHOLD
+
+
+# Override A — Kill window.
+# Play a damage operation immediately if the runner's hand is small enough
+# that the damage could be decisive (≤2 cards remaining).
+func _kill_window_check(ctx: GameContext) -> GameAction:
+	if ctx.runner_hand.size() > 2:
+		return null
+	for entry in ctx.corp_hand:
+		var r: CardRecord = (entry as Dictionary).get("card_record", null) as CardRecord
+		if r == null or r.card_type != "operation":
+			continue
+		if ctx.corp_credits < max(0, r.cost):
+			continue
+		if r.id in DAMAGE_OPERATION_IDS and _operation_passes_condition(r, ctx):
+			return GameAction.play_operation(r)
+	return null
+
+
+# Override B — Scoring window.
+# Advance an agenda that is exactly one click from scoring if it sits behind
+# ice and the runner cannot afford to break into that server this turn.
+# Estimate break cost per ice: 3cr with a full rig, 4cr with a partial rig,
+# effectively infinite with no rig at all.
+func _scoring_window_check(ctx: GameContext) -> GameAction:
+	if ctx.corp_credits < 1:
+		return null
+	for server in ctx.servers.values():
+		var s: Server = server as Server
+		if not s.is_remote() or not s.has_ice():
+			continue
+		for card in s.root:
+			var c: InstalledCard = card as InstalledCard
+			if c.card_record == null or not c.card_record.is_agenda():
+				continue
+			if c.meets_advancement_requirement():
+				continue   # step 1 already handles ready-to-score agendas
+			var needed: int = c.card_record.advancement_requirement - c.get_counter("advancement")
+			if needed != 1:
+				continue
+			var est_break_cost: int
+			if ctx.runner_rig.is_empty():
+				est_break_cost = 99   # no rig — runner cannot break in at all
+			elif _runner_has_full_rig(ctx):
+				est_break_cost = s.ice_count() * 3
+			else:
+				est_break_cost = s.ice_count() * 4
+			if ctx.runner_credits < est_break_cost:
+				return GameAction.advance(c.card_id)
+	return null
+
+
+# Override A2 — Trap window.
+# Advance an installed trap card when one more counter reaches kill range.
+# Fires in the urgent state-aware block so kill set-up takes priority over
+# routine setup plays.
+func _trap_window_check(ctx: GameContext) -> GameAction:
+	if ctx.runner_hand.size() > 3 or ctx.corp_credits < 1:
+		return null
+	var runner_grip: int = ctx.runner_hand.size()
+	for server in ctx.servers.values():
+		var s: Server = server as Server
+		if not s.is_remote() or not s.has_ice():
+			continue
+		for card in s.root:
+			var c: InstalledCard = card as InstalledCard
+			if c.card_record == null or c.card_record.is_agenda() or not c.can_be_advanced():
+				continue
+			# Advance if the next counter would reach or exceed kill threshold.
+			if c.get_counter("advancement") + 1 >= runner_grip:
+				return GameAction.advance(c.card_id)
+	return null
+
+
+# Returns the best installed advanceable non-agenda card for proactive advancement.
+# Prefers protected (iced) remotes; falls back to any remote.
+func _find_advanceable_non_agenda(ctx: GameContext) -> InstalledCard:
+	var fallback: InstalledCard = null
+	for server in ctx.servers.values():
+		var s: Server = server as Server
+		if not s.is_remote():
+			continue
+		for card in s.root:
+			var c: InstalledCard = card as InstalledCard
+			if c.card_record == null or c.card_record.is_agenda() or not c.can_be_advanced():
+				continue
+			if s.has_ice():
+				return c        # protected server — take it immediately
+			if fallback == null:
+				fallback = c    # keep as fallback
+	return fallback
+
+
+# Override C — Runner pressure.
+# When the runner has a complete rig every server is threatened.  Install ice
+# on the most exposed server before spending clicks on setup or economy.
+func _runner_pressure_check(ctx: GameContext) -> GameAction:
+	if not _runner_has_full_rig(ctx):
+		return null
+	var ice := _find_ice_in_hand(ctx)
+	if ice == null:
+		return null
+	# Protect unprotected centrals first; install cost = existing ice count.
+	if not _server_has_ice(ctx, "hq"):
+		return GameAction.install(ice, "hq", "ice")
+	if not _server_has_ice(ctx, "rd"):
+		return GameAction.install(ice, "rd", "ice")
+	# Then agenda remotes with no ice protection.
+	var vuln := _find_agenda_remote_needing_ice(ctx)
+	if vuln != null and ctx.corp_credits >= vuln.ice_count():
+		return GameAction.install(ice, vuln.server_id, "ice")
+	return null
+
+
 # ── Heuristic helpers ─────────────────────────────────────────────────────────
 
 func _find_ready_agenda(ctx: GameContext) -> InstalledCard:
@@ -602,6 +825,43 @@ func _find_asset_in_hand(ctx: GameContext) -> CardRecord:
 		var r: CardRecord = e.get("card_record", null) as CardRecord
 		if r != null and r.is_asset():
 			return r
+	return null
+
+
+func _find_upgrade_in_hand(ctx: GameContext) -> CardRecord:
+	for entry in ctx.corp_hand:
+		var e: Dictionary = entry as Dictionary
+		var r: CardRecord = e.get("card_record", null) as CardRecord
+		if r != null and r.card_type == "upgrade":
+			return r
+	return null
+
+
+# Returns the server that would benefit most from having an upgrade installed.
+# Priority: iced remote with agenda > iced central > any remote with agenda.
+func _find_best_upgrade_server(ctx: GameContext) -> Server:
+	# 1. Iced remote with an agenda — directly protects the scoring server.
+	for server in ctx.servers.values():
+		var s: Server = server as Server
+		if s == null or not s.is_remote() or not s.has_ice():
+			continue
+		var ic: InstalledCard = s.get_agenda_or_asset()
+		if ic != null and ic.card_record != null and ic.card_record.is_agenda():
+			return s
+	# 2. Iced HQ — proactive central defense.
+	if _server_has_ice(ctx, "hq"):
+		return ctx.get_server("hq")
+	# 3. Iced R&D.
+	if _server_has_ice(ctx, "rd"):
+		return ctx.get_server("rd")
+	# 4. Any remote with an agenda (even without ice).
+	for server in ctx.servers.values():
+		var s: Server = server as Server
+		if s == null or not s.is_remote():
+			continue
+		var ic: InstalledCard = s.get_agenda_or_asset()
+		if ic != null and ic.card_record != null and ic.card_record.is_agenda():
+			return s
 	return null
 
 

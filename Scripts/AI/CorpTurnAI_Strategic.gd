@@ -7,11 +7,11 @@ extends CorpTurnAI_Tactical
 #   • 2-ply beam search:
 #       Ply 1 — Corp action (all candidates from _generate_candidates)
 #       Ply 2 — Runner response (top BEAM_RUNNER_RESPONSES, prob-weighted)
-#       Ply 3 — Corp counter (lightweight positional look-ahead bonus)
+#       Ply 3 — Corp counter (1-ply search + kill-window detection)
 #   • Runner model seeded from the known campaign runner deck composition
 #   • Observation hook called by Main.gd whenever the runner acts
 
-const BEAM_RUNNER_RESPONSES := 3   # runner response branches per Corp action
+const BEAM_RUNNER_RESPONSES := 5   # runner response branches per Corp action
 
 # BayesianRunnerModel replaces the parent's plain RunnerThreatModel.
 var _bayes: BayesianRunnerModel
@@ -50,14 +50,19 @@ func choose_action(ctx: GameContext) -> GameAction:
 
 	var best_action: GameAction = null
 	var best_ev:     float      = -INF
+	var log_entries: Array      = []
 
 	for action in candidates:
 		var ev: float = _expected_value(action as GameAction, snap, ctx)
+		if not ctx.simulation_mode:
+			log_entries.append({"action": action as GameAction, "score": ev})
 		if ev > best_ev:
 			best_ev     = ev
 			best_action = action as GameAction
 
 	if best_action != null:
+		if not ctx.simulation_mode:
+			DecisionLogger.log_scored(ctx, best_action, log_entries, 2)
 		return best_action
 
 	return super.choose_action(ctx)
@@ -104,22 +109,62 @@ func _expected_value(action: GameAction, snap: Dictionary, ctx: GameContext) -> 
 
 
 func _best_corp_counter_ev(state: Dictionary, _ctx: GameContext) -> float:
-	# Evaluate the post-runner state plus a lightweight positional bonus that
-	# approximates what the Corp can accomplish in the next click.
 	var base_ev: float = _evaluator.evaluate(state)
 
-	# Economy reserve — Corp can rez ice or play an operation next click
-	var corp_cr: int = state.get("corp_credits", 0) as int
-	if   corp_cr >= 6: base_ev += 2.0
-	elif corp_cr >= 3: base_ev += 1.0
+	# Kill-window detection: runner at ≤2 cards with damage ops available.
+	# evaluate() already handles runner_hand <= 1; this catches the one-click-
+	# from-kill case that static evaluation alone misses.
+	var runner_grip: int = state.get("runner_hand",               5) as int
+	var corp_dmg:    int = state.get("corp_net_damage_potential",  0) as int
+	if runner_grip <= 2 and corp_dmg >= 1:
+		base_ev += 150.0
 
-	# Near-score bonus — Corp is one advance away from winning
-	for remote in state.get("remotes", []) as Array:
-		var r: Dictionary = remote as Dictionary
-		if r.get("has_agenda", false):
-			var needed: int = (r.get("req", 0) as int) - (r.get("adv", 0) as int)
-			if needed <= 1:
-				base_ev += 3.0
-				break
+	# 1-ply search: project each snapshot-inferred candidate and take the best.
+	# project_corp_action handles symbolic null-card ice installs from Stage 4.
+	for action in _snapshot_candidates(state):
+		var projected: Dictionary = _evaluator.project_corp_action(state, action, null)
+		var ev: float = _evaluator.evaluate(projected)
+		if ev > base_ev:
+			base_ev = ev
 
 	return base_ev
+
+
+# Snapshot-based candidate list for ply-3 evaluation.
+# Mirrors MCTSTree._get_deep_candidates() so ply-3 and tree search
+# consider the same action space.
+func _snapshot_candidates(s: Dictionary) -> Array:
+	var corp_cr:   int = s.get("corp_credits", 0) as int
+	var corp_hand: int = s.get("corp_hand",    0) as int
+	var actions: Array = [GameAction.gain_credits()]
+
+	if (s.get("corp_deck", 0) as int) > 0:
+		actions.append(GameAction.draw_card())
+
+	# Advance if any remote has an agenda and Corp can afford it.
+	if corp_cr >= 1:
+		for remote in s.get("remotes", []) as Array:
+			var r: Dictionary = remote as Dictionary
+			if r.get("has_agenda", false):
+				actions.append(GameAction.advance("__sim_agenda__"))
+				break
+
+	# Symbolic ice installs (null card_record, zone = "ice").
+	if corp_hand > 0:
+		var hq_ice: int = s.get("hq_ice", 0) as int
+		var rd_ice: int = s.get("rd_ice", 0) as int
+		if hq_ice < 3 and corp_cr >= hq_ice:
+			actions.append(GameAction.install(null, "hq", "ice"))
+		if rd_ice < 3 and corp_cr >= rd_ice:
+			actions.append(GameAction.install(null, "rd", "ice"))
+		# Ice the most vulnerable remote.
+		for remote in s.get("remotes", []) as Array:
+			var r: Dictionary = remote as Dictionary
+			var srv:   String = r.get("server_id", "") as String
+			var has_ag: bool  = r.get("has_agenda", false) as bool
+			var ice_ct: int   = r.get("ice_count",  0) as int
+			if (has_ag or srv == "projected") and ice_ct == 0:
+				actions.append(GameAction.install(null, srv, "ice"))
+				break
+
+	return actions
