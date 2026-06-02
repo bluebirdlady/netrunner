@@ -8,10 +8,11 @@ extends CorpTurnAI_Strategic
 # Inherits the Bayesian runner model from CorpTurnAI_Strategic so determinizations
 # are seeded from observed runner behaviour rather than a uniform prior.
 #
-# Time-budget guard: if MCTS exceeds BUDGET_MS, the best action found so far
-# (or the Strategic 2-ply fallback) is returned immediately.
+# The MCTS loop is fully synchronous — each node is scored by static evaluation
+# rather than forward simulation, so the entire search completes in single-digit
+# milliseconds.  SLOW_MS is a sanity-log threshold, not a hard cutoff.
 
-const BUDGET_MS := 2000   # wall-clock limit per choose_action call
+const SLOW_MS := 100   # log a warning if the synchronous loop takes longer than this
 
 # Runner card pool for DeterminizationSampler (CardRecord objects).
 # Populated from card IDs via set_card_pool() called by Main.gd.
@@ -54,16 +55,18 @@ func seed_runner_model(identity_id: String, pool_card_ids: Array) -> void:
 func choose_action(ctx: GameContext) -> GameAction:
 	var t_start: int = Time.get_ticks_msec()
 
-	# Run MCTS. The coroutine chain resolves in-frame in simulation mode;
-	# wall-clock time scales with DETERMINIZATIONS × ITERATIONS_PER_DET × ROLLOUT_DEPTH.
-	var action: GameAction = await _mcts.choose_action(ctx, _card_pool, _bayes)
+	var action: GameAction = _mcts.choose_action(ctx, _card_pool, _bayes)
 
 	var elapsed: int = Time.get_ticks_msec() - t_start
+	if elapsed >= SLOW_MS:
+		ctx.send_log("[MCTS] slow search warning: %d ms for %d iterations" % [
+			elapsed, MCTSTree.DETERMINIZATIONS * MCTSTree.ITERATIONS_PER_DET])
 
-	# If MCTS returned a result within budget, use it.
-	if action != null and elapsed < BUDGET_MS:
+	if action != null:
+		if not ctx.simulation_mode:
+			DecisionLogger.log_mcts(ctx, action, elapsed)
 		return action
 
-	# Time-budget exceeded or no result: fall back to Strategic 2-ply.
-	ctx.send_log("[MCTS] budget exceeded (%d ms) — falling back to Strategic AI" % elapsed)
+	# No result (empty candidate set): fall back to Strategic 2-ply.
+	ctx.send_log("[MCTS] no action found — falling back to Strategic AI")
 	return super.choose_action(ctx)

@@ -7,23 +7,22 @@ extends RefCounted
 # Algorithm per determinization:
 #   1. Selection   — walk tree with UCB1 until a non-fully-expanded node.
 #   2. Expansion   — pick one untried action, project state via CorpStateEvaluator.
-#   3. Rollout     — GameSimulator.advance(det_root, ROLLOUT_DEPTH) → evaluate.
+#   3. Evaluation  — score the expanded node's state snapshot directly.
 #   4. Backprop    — update visit counts and total values up to root.
 #
 # After all iterations across all determinizations, aggregate root-child scores
 # by action key and return the action with the highest average value.
 #
-# Rollout note: rollouts always start from the determinization root context
-# rather than the exact expanded-node state. This is an approximation that
-# avoids storing full GameContexts at every tree node. The UCB1 selection
-# still guides search toward promising first actions; the rollout provides a
-# value signal from that determinized world.
+# Value-network approach: each node is scored by evaluating its projected
+# state snapshot directly rather than running a forward simulation.  This
+# ensures the value signal reflects the consequence of the candidate action
+# (not the root state), makes the loop fully synchronous, and allows far
+# more iterations within the same time budget.
 
 # ── Parameters ────────────────────────────────────────────────────────────────
 
-const DETERMINIZATIONS:   int   = 6
-const ITERATIONS_PER_DET: int   = 30
-const ROLLOUT_DEPTH:       int   = 6
+const DETERMINIZATIONS:   int   = 10
+const ITERATIONS_PER_DET: int   = 200
 const UCB_C:               float = 1.414
 
 
@@ -108,7 +107,7 @@ func choose_action(
 		var det: GameContext = det_entry as GameContext
 		if det == null:
 			continue
-		await _run_mcts_on_determinization(det, ctx)
+		_run_mcts_on_determinization(det, ctx)
 
 	return _pick_best_action(ctx)
 
@@ -126,7 +125,7 @@ func _run_mcts_on_determinization(det_ctx: GameContext, real_ctx: GameContext) -
 		if not node.is_terminal() and not node.is_fully_expanded():
 			node = _expand(node)
 
-		var value: float = await _rollout(node, det_ctx)
+		var value: float = _rollout(node)
 		_backpropagate(node, value)
 
 	# Accumulate root children scores into the global table.
@@ -164,15 +163,10 @@ func _expand(node: MCTSNode) -> MCTSNode:
 	return child
 
 
-# ── Rollout ───────────────────────────────────────────────────────────────────
+# ── Evaluation ────────────────────────────────────────────────────────────────
 
-func _rollout(node: MCTSNode, det_ctx: GameContext) -> float:
-	if node.is_terminal():
-		return _evaluator.evaluate(node.state_snapshot)
-	# Roll out from the determinization root — see class comment for rationale.
-	var result: GameContext = await GameSimulator.advance(
-		det_ctx, _ability_registry, ROLLOUT_DEPTH)
-	return _evaluator.evaluate(_evaluator.snapshot(result))
+func _rollout(node: MCTSNode) -> float:
+	return _evaluator.evaluate(node.state_snapshot)
 
 
 # ── Backpropagation ───────────────────────────────────────────────────────────
@@ -240,27 +234,31 @@ func _get_root_candidates(ctx: GameContext) -> Array:
 		if card.card_type == "operation" and ctx.corp_credits >= max(0, card.cost):
 			actions.append(GameAction.play_operation(card))
 
-	# Install ice: prioritise (1) unprotected centrals, (2) unprotected agenda remotes.
-	var ice_card: CardRecord = null
-	for entry in ctx.corp_hand:
-		var card: CardRecord = (entry as Dictionary).get("card_record", null) as CardRecord
-		if card != null and card.is_ice():
-			ice_card = card
-			break
-	if ice_card != null:
-		# Unprotected centrals first
-		for srv_id in ["hq", "rd"]:
-			if ctx.get_server(srv_id).ice_count() == 0:
-				actions.append(GameAction.install(ice_card, srv_id, "ice"))
-				break
-		# Also offer to protect an agenda remote that has no ice yet
+	# Install ice: up to 2 distinct ice types per server, with a higher cap when
+	# the runner already ran through a server this turn.
+	var ice_options: Array = _unique_ice_from_hand(ctx, 2)
+	if not ice_options.is_empty():
+		var hq_srv: Server = ctx.get_server("hq")
+		var rd_srv: Server = ctx.get_server("rd")
+		var hq_ice: int = hq_srv.ice_count() if hq_srv != null else 0
+		var rd_ice: int = rd_srv.ice_count() if rd_srv != null else 0
+		var hq_cap: int = 3 if ctx.runner_hq_successful_run_this_turn       else 2
+		var rd_cap: int = 3 if ctx.runner_successful_run_on_rd_this_turn else 2
+		for ice_opt in ice_options:
+			var ic: CardRecord = ice_opt as CardRecord
+			if hq_ice < hq_cap and ctx.corp_credits >= hq_ice:
+				actions.append(GameAction.install(ic, "hq", "ice"))
+			if rd_ice < rd_cap and ctx.corp_credits >= rd_ice:
+				actions.append(GameAction.install(ic, "rd", "ice"))
+		# Protect unprotected agenda remotes — one candidate using the first ice option.
+		var first_ice: CardRecord = ice_options[0] as CardRecord
 		for key in ctx.servers:
 			var s: Server = ctx.servers[key] as Server
 			if s == null or not s.is_remote() or s.ice_count() > 0:
 				continue
 			var agenda_ic: InstalledCard = s.get_agenda_or_asset()
 			if agenda_ic != null and agenda_ic.card_record != null and agenda_ic.card_record.is_agenda():
-				actions.append(GameAction.install(ice_card, s.server_id, "ice"))
+				actions.append(GameAction.install(first_ice, s.server_id, "ice"))
 				break
 
 	# Install agenda: prefer an existing protected remote, then any empty remote,
@@ -281,6 +279,34 @@ func _get_root_candidates(ctx: GameContext) -> Array:
 			# score this correctly even though the server doesn't exist yet.
 			actions.append(GameAction.install(agenda_to_install, "new_remote"))
 
+	# Advance advanceable non-agenda (trap) cards when runner grip is in threat range.
+	if ctx.runner_hand.size() <= 5 and ctx.corp_credits >= 1:
+		var trap_found := false
+		for key in ctx.servers:
+			if trap_found:
+				break
+			var s: Server = ctx.servers[key] as Server
+			if s == null or not s.is_remote() or not s.has_ice():
+				continue
+			for card in s.root:
+				var c: InstalledCard = card as InstalledCard
+				if c.card_record != null and not c.card_record.is_agenda() and c.can_be_advanced():
+					actions.append(GameAction.advance(c.card_id))
+					trap_found = true
+					break
+
+	# Install upgrade in best server (evaluator values installed upgrades at +1.5 each).
+	var upgrade_card: CardRecord = null
+	for entry in ctx.corp_hand:
+		var card: CardRecord = (entry as Dictionary).get("card_record", null) as CardRecord
+		if card != null and card.card_type == "upgrade":
+			upgrade_card = card
+			break
+	if upgrade_card != null:
+		var up_srv: Server = _find_best_upgrade_server(ctx)
+		if up_srv != null:
+			actions.append(GameAction.install(upgrade_card, up_srv.server_id))
+
 	actions.append(GameAction.gain_credits())
 
 	# Only draw when there is comfortable room in hand (identity-aware limit).
@@ -291,26 +317,108 @@ func _get_root_candidates(ctx: GameContext) -> Array:
 	return actions
 
 
-# Minimal candidates for depth > 1 nodes where card records are unavailable.
+# Snapshot-inferred candidates for depth > 1 nodes (no live card records).
+# Symbolic ice installs use a null card_record with zone = "ice"; the evaluator
+# handles them as credit/count approximations without subtype detail.
+# end_turn is intentionally excluded — it ends the Corp's turn and is useless
+# as an intra-turn planning step.
 func _get_deep_candidates(s: Dictionary) -> Array:
-	var actions: Array = [GameAction.gain_credits(), GameAction.end_turn()]
+	var actions: Array = [GameAction.gain_credits()]
+	var corp_cr:   int = s.get("corp_credits", 0) as int
+	var corp_hand: int = s.get("corp_hand",    0) as int
+
 	if (s.get("corp_deck", 0) as int) > 0:
 		actions.append(GameAction.draw_card())
+
 	# Advance if any remote has an agenda and Corp can afford it.
-	if (s.get("corp_credits", 0) as int) >= 1:
+	if corp_cr >= 1:
 		for remote in s.get("remotes", []) as Array:
 			var r: Dictionary = remote as Dictionary
 			if r.get("has_agenda", false):
-				# We don't have a real card_id here; use a placeholder that the
-				# evaluator handles via project_corp_action's "advance" branch.
-				# This node will not be returned as the final action (only root
-				# children are used for aggregation).
 				actions.append(GameAction.advance("__sim_agenda__"))
 				break
+
+	# Symbolic ice installs — these are the critical candidates that enable
+	# multi-click planning sequences like "ice a new remote, then install agenda."
+	if corp_hand > 0:
+		var hq_ice: int = s.get("hq_ice", 0) as int
+		var rd_ice: int = s.get("rd_ice", 0) as int
+		if hq_ice < 3 and corp_cr >= hq_ice:
+			actions.append(GameAction.install(null, "hq", "ice"))
+		if rd_ice < 3 and corp_cr >= rd_ice:
+			actions.append(GameAction.install(null, "rd", "ice"))
+		# Ice the most vulnerable remote: an unprotected agenda server or a
+		# "projected" new remote (created by a root-level agenda install this turn).
+		for remote in s.get("remotes", []) as Array:
+			var r: Dictionary = remote as Dictionary
+			var srv: String  = r.get("server_id", "") as String
+			var has_ag: bool = r.get("has_agenda", false) as bool
+			var ice_ct: int  = r.get("ice_count",  0) as int
+			if (has_ag or srv == "projected") and ice_ct == 0:
+				actions.append(GameAction.install(null, srv, "ice"))
+				break
+
 	return actions
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
+# Returns up to max_count distinct ice cards from the Corp hand, deduplicated
+# by primary ice subtype so candidates don't explode when holding many of the
+# same type.
+func _unique_ice_from_hand(ctx: GameContext, max_count: int) -> Array:
+	var seen: Array   = []
+	var result: Array = []
+	for entry in ctx.corp_hand:
+		var card: CardRecord = (entry as Dictionary).get("card_record", null) as CardRecord
+		if card == null or not card.is_ice():
+			continue
+		var sub: String = _primary_ice_subtype(card)
+		if sub in seen:
+			continue
+		seen.append(sub)
+		result.append(card)
+		if result.size() >= max_count:
+			break
+	return result
+
+
+func _primary_ice_subtype(card: CardRecord) -> String:
+	for sub in ["barrier", "sentry", "code_gate"]:
+		if card.has_subtype(sub):
+			return sub
+	return "other"
+
+
+# Returns the server that would benefit most from an upgrade install.
+# Mirrors CorpTurnAI._find_best_upgrade_server().
+func _find_best_upgrade_server(ctx: GameContext) -> Server:
+	# Iced remote with agenda — scoring server protection.
+	for key in ctx.servers:
+		var s: Server = ctx.servers[key] as Server
+		if s == null or not s.is_remote() or not s.has_ice():
+			continue
+		var ic: InstalledCard = s.get_agenda_or_asset()
+		if ic != null and ic.card_record != null and ic.card_record.is_agenda():
+			return s
+	# Iced HQ.
+	var hq: Server = ctx.get_server("hq")
+	if hq != null and hq.has_ice():
+		return hq
+	# Iced R&D.
+	var rd: Server = ctx.get_server("rd")
+	if rd != null and rd.has_ice():
+		return rd
+	# Any remote with an agenda.
+	for key in ctx.servers:
+		var s: Server = ctx.servers[key] as Server
+		if s == null or not s.is_remote():
+			continue
+		var ic: InstalledCard = s.get_agenda_or_asset()
+		if ic != null and ic.card_record != null and ic.card_record.is_agenda():
+			return s
+	return null
+
 
 func _find_empty_remote(ctx: GameContext) -> Server:
 	for key in ctx.servers:

@@ -62,6 +62,19 @@ func _on_run_pressed() -> void:
 	await _test_mcts_win_rate_vs_tactical()
 
 	_log("")
+	_log("[b]── Corp Turn AI Board-State Tests (Phase 8) ──[/b]\n")
+	_test_ai_ready_agenda_scores()
+	_test_ai_kill_window_fires()
+	_test_ai_kill_window_suppressed()
+	_test_ai_trap_window_fires()
+	_test_ai_runner_pressure_ices_hq()
+	_test_ai_upgrade_installs_in_agenda_remote()
+	_test_ai_upgrade_beats_asset()
+	_test_ai_proactive_trap_advance()
+	_test_ai_kill_beats_trap_window_priority()
+	_test_ai_agenda_installs_into_protected_remote()
+
+	_log("")
 	_log("[b]Results: %d passed, %d failed[/b]" % [_pass_count, _fail_count])
 	if _fail_count == 0:
 		_log("[color=green]All tests passed.[/color]")
@@ -617,6 +630,267 @@ func _expect_eq(label: String, actual: Variant, expected: Variant) -> void:
 
 func _log(text: String) -> void:
 	output_label.append_text(text + "\n")
+
+
+# ── Phase 8 helpers ───────────────────────────────────────────────────────────
+
+# Fresh CorpTurnAI backed by an EMPTY registry.
+# Empty registry means get_on_play() always returns {}, so every operation
+# passes its condition check.  Tests synthetic card IDs safely.
+func _make_corp_turn_ai() -> CorpTurnAI:
+	return CorpTurnAI.new(AbilityRegistry.new())
+
+
+# Installed trap: non-agenda asset whose text contains "can be advanced".
+func _make_trap_ic(id: String, server_id: String, n_counters: int) -> InstalledCard:
+	var r := _make_card_record(id, "asset")
+	r.text = "can be advanced"
+	var ic := InstalledCard.make_runtime_instance(r, server_id, "root", false)
+	if n_counters > 0:
+		ic.add_counter("advancement", n_counters)
+	return ic
+
+
+# Runner icebreaker with a specific subtype (fracter / killer / decoder).
+func _make_breaker_ic(id: String, subtype: String) -> InstalledCard:
+	var r := _make_runner_card_record(id, "program")
+	r.subtypes = [subtype]
+	return InstalledCard.make_runtime_instance(r, "runner_rig", "root", true)
+
+
+# Rezzed ice installed in a server's ice zone.
+func _make_ice_ic(id: String, server_id: String) -> InstalledCard:
+	var r := _make_card_record(id, "ice")
+	r.subtypes = ["barrier"]
+	r.strength = 2
+	return InstalledCard.make_runtime_instance(r, server_id, "ice", true)
+
+
+# Fill the runner's hand with N stub event cards.
+func _add_runner_hand_cards(ctx: GameContext, count: int) -> void:
+	for i in range(count):
+		var r := _make_runner_card_record("stub_event_%d" % i, "event")
+		ctx.runner_hand.append({"card_id": r.id, "card_record": r})
+
+
+# ── Phase 8 tests ──────────────────────────────────────────────────────────────
+
+func _test_ai_ready_agenda_scores() -> void:
+	_log("[b]AI Test 13[/b] — Ready agenda scores before any other action")
+	var ai  := _make_corp_turn_ai()
+	var ctx := GameContext.new()
+	ctx.corp_credits = 5
+	_add_runner_hand_cards(ctx, 4)
+
+	var remote    := ctx.create_remote_server()
+	remote.install_ice(_make_ice_ic("palisade", remote.server_id))
+	var agenda_r  := _make_agenda_record("offworld_office", 3, 2)
+	var agenda_ic := InstalledCard.make_runtime_instance(agenda_r, remote.server_id, "root", false)
+	agenda_ic.add_counter("advancement", 3)   # 3/3 — meets requirement
+	remote.install_in_root(agenda_ic)
+
+	var ice_r := _make_card_record("palisade", "ice")
+	ctx.corp_hand.append({"card_id": ice_r.id, "card_record": ice_r})
+
+	var action := ai.choose_action(ctx)
+	_expect_eq("action type is advance",      action.type,                        "advance")
+	_expect_eq("advances the ready agenda",   action.params.get("card_id", ""),  agenda_ic.card_id)
+	_log("")
+
+
+func _test_ai_kill_window_fires() -> void:
+	_log("[b]AI Test 14[/b] — Kill window fires: plays damage op at runner grip = 2")
+	var ai  := _make_corp_turn_ai()
+	var ctx := GameContext.new()
+	ctx.corp_credits = 5
+	_add_runner_hand_cards(ctx, 2)   # grip = 2 — kill window threshold
+
+	var dmg_op := _make_card_record("neurospike", "operation")
+	ctx.corp_hand.append({"card_id": dmg_op.id, "card_record": dmg_op})
+
+	var action := ai.choose_action(ctx)
+	_expect_eq("plays damage operation at grip 2", action.type, "play_operation")
+	_log("")
+
+
+func _test_ai_kill_window_suppressed() -> void:
+	_log("[b]AI Test 15[/b] — Kill window suppressed at grip = 3; advances agenda instead")
+	var ai  := _make_corp_turn_ai()
+	var ctx := GameContext.new()
+	ctx.corp_credits   = 5
+	ctx.runner_credits = 0
+	_add_runner_hand_cards(ctx, 3)   # grip = 3 — above kill threshold
+
+	var dmg_op := _make_card_record("neurospike", "operation")
+	ctx.corp_hand.append({"card_id": dmg_op.id, "card_record": dmg_op})
+
+	# Almost-scored agenda (1/2) in iced remote — scoring window should fire
+	var remote    := ctx.create_remote_server()
+	remote.install_ice(_make_ice_ic("palisade", remote.server_id))
+	var agenda_r  := _make_agenda_record("offworld_office", 2, 2)
+	var agenda_ic := InstalledCard.make_runtime_instance(agenda_r, remote.server_id, "root", false)
+	agenda_ic.add_counter("advancement", 1)
+	remote.install_in_root(agenda_ic)
+
+	var action := ai.choose_action(ctx)
+	_expect_eq("action is advance (not play_operation)", action.type,                       "advance")
+	_expect_eq("advances the agenda card",               action.params.get("card_id", ""), agenda_ic.card_id)
+	_log("")
+
+
+func _test_ai_trap_window_fires() -> void:
+	_log("[b]AI Test 16[/b] — Trap window (A2): advances trap when counter+1 >= grip")
+	var ai  := _make_corp_turn_ai()
+	var ctx := GameContext.new()
+	ctx.corp_credits = 2
+	_add_runner_hand_cards(ctx, 3)   # grip = 3; counter 2+1 = 3 >= 3
+
+	var remote  := ctx.create_remote_server()
+	remote.install_ice(_make_ice_ic("palisade", remote.server_id))
+	var trap_ic := _make_trap_ic("clearinghouse", remote.server_id, 2)
+	remote.install_in_root(trap_ic)
+
+	var action := ai.choose_action(ctx)
+	_expect_eq("action type is advance",  action.type,                       "advance")
+	_expect_eq("advances the trap card",  action.params.get("card_id", ""), trap_ic.card_id)
+	_log("")
+
+
+func _test_ai_runner_pressure_ices_hq() -> void:
+	_log("[b]AI Test 17[/b] — Runner pressure (C): ices HQ when runner has full rig")
+	var ai  := _make_corp_turn_ai()
+	var ctx := GameContext.new()
+	ctx.corp_credits = 5
+	_add_runner_hand_cards(ctx, 5)
+
+	ctx.runner_rig.append(_make_breaker_ic("cleaver",  "fracter"))
+	ctx.runner_rig.append(_make_breaker_ic("echelon",  "killer"))
+	ctx.runner_rig.append(_make_breaker_ic("unity",    "decoder"))
+
+	var ice_r := _make_card_record("palisade", "ice")
+	ctx.corp_hand.append({"card_id": ice_r.id, "card_record": ice_r})
+	# HQ intentionally left bare (GameContext._init creates empty centrals)
+
+	var action := ai.choose_action(ctx)
+	_expect_eq("action type is install",  action.type,                         "install")
+	_expect_eq("target server is hq",     action.params.get("server_id", ""), "hq")
+	_expect_eq("zone is ice",             action.params.get("zone", ""),       "ice")
+	_log("")
+
+
+func _test_ai_upgrade_installs_in_agenda_remote() -> void:
+	_log("[b]AI Test 18[/b] — Upgrade (step 9.5) installs in iced remote with agenda")
+	var ai  := _make_corp_turn_ai()
+	var ctx := GameContext.new()
+	ctx.corp_credits = 5
+	_add_runner_hand_cards(ctx, 5)
+
+	# Iced remote with an agenda that is not close to scoring (0/3)
+	var remote    := ctx.create_remote_server()
+	remote.install_ice(_make_ice_ic("palisade", remote.server_id))
+	var agenda_r  := _make_agenda_record("offworld_office", 3, 2)
+	var agenda_ic := InstalledCard.make_runtime_instance(agenda_r, remote.server_id, "root", false)
+	remote.install_in_root(agenda_ic)
+
+	# Upgrade in hand only — no ice, no other agenda
+	var upgrade_r := _make_card_record("anoetic_void", "upgrade")
+	ctx.corp_hand.append({"card_id": upgrade_r.id, "card_record": upgrade_r})
+
+	var action := ai.choose_action(ctx)
+	_expect_eq("action type is install",             action.type,                         "install")
+	_expect_eq("installs in iced remote with agenda", action.params.get("server_id", ""), remote.server_id)
+	_log("")
+
+
+func _test_ai_upgrade_beats_asset() -> void:
+	_log("[b]AI Test 19[/b] — Upgrade (step 9.5) chosen over asset (step 10) when both in hand")
+	var ai  := _make_corp_turn_ai()
+	var ctx := GameContext.new()
+	ctx.corp_credits = 5
+	_add_runner_hand_cards(ctx, 5)
+
+	var remote    := ctx.create_remote_server()
+	remote.install_ice(_make_ice_ic("palisade", remote.server_id))
+	var agenda_r  := _make_agenda_record("offworld_office", 3, 2)
+	var agenda_ic := InstalledCard.make_runtime_instance(agenda_r, remote.server_id, "root", false)
+	remote.install_in_root(agenda_ic)
+
+	var upgrade_r := _make_card_record("anoetic_void", "upgrade")
+	var asset_r   := _make_card_record("regolith_mining_license", "asset")
+	ctx.corp_hand.append({"card_id": upgrade_r.id, "card_record": upgrade_r})
+	ctx.corp_hand.append({"card_id": asset_r.id,   "card_record": asset_r})
+
+	var action := ai.choose_action(ctx)
+	_expect_eq("action type is install", action.type, "install")
+	var chosen: CardRecord = action.params.get("card_record", null) as CardRecord
+	var chosen_type := chosen.card_type if chosen != null else ""
+	_expect_eq("installed card is upgrade not asset", chosen_type, "upgrade")
+	_log("")
+
+
+func _test_ai_proactive_trap_advance() -> void:
+	_log("[b]AI Test 20[/b] — Proactive trap advance (step 12.5) at runner grip = 4")
+	var ai  := _make_corp_turn_ai()
+	var ctx := GameContext.new()
+	ctx.corp_credits = 2
+	_add_runner_hand_cards(ctx, 4)   # grip = 4: above trap-window (3), at or below step-12.5 threshold (5)
+
+	var remote  := ctx.create_remote_server()
+	remote.install_ice(_make_ice_ic("palisade", remote.server_id))
+	var trap_ic := _make_trap_ic("clearinghouse", remote.server_id, 0)
+	remote.install_in_root(trap_ic)
+	# corp_hand intentionally empty — no other productive action available
+
+	var action := ai.choose_action(ctx)
+	_expect_eq("action type is advance", action.type,                       "advance")
+	_expect_eq("advances the trap",      action.params.get("card_id", ""), trap_ic.card_id)
+	_log("")
+
+
+func _test_ai_kill_beats_trap_window_priority() -> void:
+	_log("[b]AI Test 21[/b] — Kill window (A) fires before trap window (A2) at grip = 2")
+	var ai  := _make_corp_turn_ai()
+	var ctx := GameContext.new()
+	ctx.corp_credits = 5
+	_add_runner_hand_cards(ctx, 2)   # grip = 2 — both kill and trap windows would qualify
+
+	# Trap with 1 counter in iced remote: 1+1=2 >= grip=2, trap window would fire
+	var remote  := ctx.create_remote_server()
+	remote.install_ice(_make_ice_ic("palisade", remote.server_id))
+	var trap_ic := _make_trap_ic("clearinghouse", remote.server_id, 1)
+	remote.install_in_root(trap_ic)
+
+	# Damage op in hand — kill window (checked first) should win
+	var dmg_op := _make_card_record("neurospike", "operation")
+	ctx.corp_hand.append({"card_id": dmg_op.id, "card_record": dmg_op})
+
+	var action := ai.choose_action(ctx)
+	_expect_eq("plays damage op (kill window fires before trap window)", action.type, "play_operation")
+	_log("")
+
+
+func _test_ai_agenda_installs_into_protected_remote() -> void:
+	_log("[b]AI Test 22[/b] — Agenda installs into existing protected remote, not new_remote")
+	var ai  := _make_corp_turn_ai()
+	var ctx := GameContext.new()
+	ctx.corp_credits = 5
+	_add_runner_hand_cards(ctx, 5)
+
+	# Protected empty remote: has ice, no root card
+	var protected_remote := ctx.create_remote_server()
+	protected_remote.install_ice(_make_ice_ic("palisade", protected_remote.server_id))
+
+	# Agenda + backup ice in hand
+	var agenda_r := _make_agenda_record("offworld_office", 3, 2)
+	var ice_r    := _make_card_record("palisade", "ice")
+	ctx.corp_hand.append({"card_id": agenda_r.id, "card_record": agenda_r})
+	ctx.corp_hand.append({"card_id": ice_r.id,    "card_record": ice_r})
+
+	var action := ai.choose_action(ctx)
+	_expect_eq("action type is install", action.type, "install")
+	_expect_eq("installs into existing protected remote, not new_remote",
+		action.params.get("server_id", ""), protected_remote.server_id)
+	_log("")
 
 
 # ── Stub Runner — gains credits every click, never runs ───────────────────────

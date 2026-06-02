@@ -32,14 +32,19 @@ func choose_action(ctx: GameContext) -> GameAction:
 
 	var best_action: GameAction = null
 	var best_score:  float      = -INF
+	var log_entries: Array      = []
 
 	for action in candidates:
 		var s: float = _score_candidate(action as GameAction, snap, threat_server, ctx)
+		if not ctx.simulation_mode:
+			log_entries.append({"action": action as GameAction, "score": s})
 		if s > best_score:
 			best_score  = s
 			best_action = action as GameAction
 
 	if best_action != null:
+		if not ctx.simulation_mode:
+			DecisionLogger.log_scored(ctx, best_action, log_entries, 1)
 		return best_action
 
 	# No candidate beat the baseline — let the heuristic parent decide
@@ -100,32 +105,45 @@ func _generate_candidates(ctx: GameContext) -> Array:
 			if can_open_remote:
 				candidates.append(GameAction.install(agenda, "new_remote"))
 
+	# ── Install upgrade in best available server ─────────────────────────────────
+	var upgrade: CardRecord = _find_upgrade_in_hand(ctx)
+	if upgrade != null and ctx.corp_credits >= max(0, upgrade.cost):
+		var up_srv: Server = _find_best_upgrade_server(ctx)
+		if up_srv != null:
+			candidates.append(GameAction.install(upgrade, up_srv.server_id))
+
 	# ── Install asset in new remote ───────────────────────────────────────────
 	var asset: CardRecord = _find_asset_in_hand(ctx)
 	if asset != null and ctx.corp_credits >= max(0, asset.cost):
 		candidates.append(GameAction.install(asset, "new_remote"))
 
-	# ── Ice on centrals (first layer AND reinforcement up to 2 layers) ────────
-	var ice: CardRecord = _find_ice_in_hand(ctx)
-	if ice != null:
+	# ── Ice on centrals and remotes ──────────────────────────────────────────────
+	# Collect up to 2 distinct ice cards, deduplicated by primary subtype, so the
+	# evaluator can compare e.g. a barrier and a sentry for the same server.
+	var ice_options: Array = _unique_ice_from_hand(ctx, 2)
+	if not ice_options.is_empty():
 		var hq_srv: Server = ctx.get_server("hq")
 		var rd_srv: Server = ctx.get_server("rd")
-		var hq_ice: int    = hq_srv.ice.size() if hq_srv != null else 0
-		var rd_ice: int    = rd_srv.ice.size() if rd_srv != null else 0
-		# Install on HQ if it has fewer than 2 layers and we can afford it
-		if hq_ice < 2 and ctx.corp_credits >= hq_ice:  # install cost = existing ice count
-			candidates.append(GameAction.install(ice, "hq", "ice"))
-		# Install on R&D if it has fewer than 2 layers and we can afford it
-		if rd_ice < 2 and ctx.corp_credits >= rd_ice:
-			candidates.append(GameAction.install(ice, "rd", "ice"))
-		# Ice on vulnerable agenda remote
+		var hq_ice: int = hq_srv.ice.size() if hq_srv != null else 0
+		var rd_ice: int = rd_srv.ice.size() if rd_srv != null else 0
+		# Raise reinforcement cap to 3 when the runner already broke through this turn.
+		var hq_cap: int = 3 if ctx.runner_hq_successful_run_this_turn       else 2
+		var rd_cap: int = 3 if ctx.runner_successful_run_on_rd_this_turn else 2
+		for ice_opt in ice_options:
+			var ic: CardRecord = ice_opt as CardRecord
+			if hq_ice < hq_cap and ctx.corp_credits >= hq_ice:
+				candidates.append(GameAction.install(ic, "hq", "ice"))
+			if rd_ice < rd_cap and ctx.corp_credits >= rd_ice:
+				candidates.append(GameAction.install(ic, "rd", "ice"))
+		# For remotes the subtype distinction matters less at this ply depth —
+		# use the first (highest-priority) ice option.
+		var first_ice: CardRecord = ice_options[0] as CardRecord
 		var vuln: Server = _find_agenda_remote_needing_ice(ctx)
 		if vuln != null:
-			candidates.append(GameAction.install(ice, vuln.server_id, "ice"))
-		# Ice on unprotected non-empty remote
+			candidates.append(GameAction.install(first_ice, vuln.server_id, "ice"))
 		var unprotected: Server = _find_remote_needing_ice(ctx)
 		if unprotected != null:
-			candidates.append(GameAction.install(ice, unprotected.server_id, "ice"))
+			candidates.append(GameAction.install(first_ice, unprotected.server_id, "ice"))
 
 	# ── Installed card click actions ──────────────────────────────────────────
 	var click_card: InstalledCard = _find_corp_click_action(ctx)
@@ -137,6 +155,13 @@ func _generate_candidates(ctx: GameContext) -> Array:
 	var any_agenda: InstalledCard = _find_any_installed_agenda(ctx)
 	if any_agenda != null and ctx.corp_credits >= 1:
 		candidates.append(GameAction.advance(any_agenda.card_id))
+
+	# ── Advance advanceable non-agenda (trap) cards ───────────────────────────
+	# Let the evaluator weigh building trap threat vs. other options.
+	if ctx.corp_credits >= 1 and ctx.runner_hand.size() <= 5:
+		var trap: InstalledCard = _find_advanceable_non_agenda(ctx)
+		if trap != null:
+			candidates.append(GameAction.advance(trap.card_id))
 
 	# ── Economy ───────────────────────────────────────────────────────────────
 	candidates.append(GameAction.gain_credits())
@@ -164,3 +189,32 @@ func _score_candidate(
 	# Project runner's most likely response on the most threatened server
 	var post_runner: Dictionary = _evaluator.project_runner_response(post_corp, threat_server, ctx)
 	return _evaluator.evaluate(post_runner)
+
+
+# ── Ice candidate helpers ─────────────────────────────────────────────────────
+
+# Returns up to max_count distinct ice cards from the Corp hand, deduplicated
+# by primary ice subtype so candidates don't explode when holding many of the
+# same type (e.g. three Palisades).
+func _unique_ice_from_hand(ctx: GameContext, max_count: int) -> Array:
+	var seen: Array  = []
+	var result: Array = []
+	for entry in ctx.corp_hand:
+		var card: CardRecord = (entry as Dictionary).get("card_record", null) as CardRecord
+		if card == null or not card.is_ice():
+			continue
+		var sub: String = _primary_ice_subtype(card)
+		if sub in seen:
+			continue
+		seen.append(sub)
+		result.append(card)
+		if result.size() >= max_count:
+			break
+	return result
+
+
+func _primary_ice_subtype(card: CardRecord) -> String:
+	for sub in ["barrier", "sentry", "code_gate"]:
+		if card.has_subtype(sub):
+			return sub
+	return "other"

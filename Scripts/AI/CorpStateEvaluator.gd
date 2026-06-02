@@ -21,20 +21,61 @@ extends RefCounted
 #   runner_deck     : int
 #   runner_tags     : int
 #   runner_rig      : int   — total installed runner cards
+#   runner_breaker_count  : int   — installed icebreakers only
+#   runner_has_fracter    : bool
+#   runner_has_killer     : bool
+#   runner_has_decoder    : bool
+#   runner_has_ai_breaker : bool
 #   hq_ice          : int
+#   hq_ice_barrier  : bool
+#   hq_ice_sentry   : bool
+#   hq_ice_code_gate: bool
 #   rd_ice          : int
+#   rd_ice_barrier  : bool
+#   rd_ice_sentry   : bool
+#   rd_ice_code_gate: bool
 #   corp_identity   : String  — identity card ID
-#   corp_discard_sz : int   — size of Archives (facedown card count approximation)
+#   corp_discard_sz : int   — size of Archives
+#   corp_net_damage_potential : int  — damage ops in hand + Shock in Archives
 #   remotes         : Array[Dictionary]
-#                     each: { server_id, ice_count, has_agenda, adv, req }
+#                     each: { server_id, ice_count, has_agenda, adv, req,
+#                             has_barrier, has_sentry, has_code_gate }
 
 const WIN_VALUE  :=  10000.0
 const LOSE_VALUE := -10000.0
+
+# Operations that deal direct damage — used when computing corp_net_damage_potential.
+const DAMAGE_OP_IDS := ["neurospike", "punitive_counterstrike", "boom", "scorched_earth"]
+
+
+# ── Private helpers ───────────────────────────────────────────────────────────
+
+# Returns {barrier, sentry, code_gate} presence flags for all ice on a server.
+func _server_ice_subtypes(server: Server) -> Dictionary:
+	var result := {"barrier": false, "sentry": false, "code_gate": false}
+	if server == null:
+		return result
+	for ic in server.ice:
+		var c: InstalledCard = ic as InstalledCard
+		if c == null or c.card_record == null:
+			continue
+		if c.card_record.has_subtype("barrier"):
+			result["barrier"] = true
+		if c.card_record.has_subtype("sentry"):
+			result["sentry"] = true
+		if c.card_record.has_subtype("code_gate"):
+			result["code_gate"] = true
+	return result
 
 
 # ── Snapshot ──────────────────────────────────────────────────────────────────
 
 func snapshot(ctx: GameContext) -> Dictionary:
+	var hq_server: Server = ctx.get_server("hq")
+	var rd_server: Server = ctx.get_server("rd")
+	var identity_id: String = ctx.corp_identity.id if ctx.corp_identity != null else ""
+
+	# ── Remote server entries (include ice subtype flags) ─────────────────────
 	var remotes: Array = []
 	for key in ctx.servers:
 		var s: Server = ctx.servers[key] as Server
@@ -46,17 +87,77 @@ func snapshot(ctx: GameContext) -> Dictionary:
 			if ic != null and ic.card_record != null and ic.card_record.is_agenda():
 				agenda_ic = ic
 				break
+		# Find any advanceable non-agenda (trap) in this server's root.
+		var trap_ic: InstalledCard = null
+		for c in s.root:
+			var ic: InstalledCard = c as InstalledCard
+			if ic != null and ic.card_record != null \
+					and not ic.card_record.is_agenda() and ic.can_be_advanced():
+				trap_ic = ic
+				break
+		var s_sub := _server_ice_subtypes(s)
 		remotes.append({
-			"server_id":  key,
-			"ice_count":  s.ice.size(),
-			"has_agenda": agenda_ic != null,
-			"adv":        agenda_ic.get_counter("advancement") if agenda_ic != null else 0,
-			"req":        agenda_ic.card_record.advancement_requirement if agenda_ic != null else 0,
+			"server_id":     key,
+			"ice_count":     s.ice.size(),
+			"has_agenda":    agenda_ic != null,
+			"adv":           agenda_ic.get_counter("advancement") if agenda_ic != null else 0,
+			"req":           agenda_ic.card_record.advancement_requirement if agenda_ic != null else 0,
+			"has_trap":      trap_ic != null,
+			"trap_adv":      trap_ic.get_counter("advancement") if trap_ic != null else 0,
+			"has_barrier":   s_sub["barrier"],
+			"has_sentry":    s_sub["sentry"],
+			"has_code_gate": s_sub["code_gate"],
 		})
 
-	var hq_server: Server = ctx.get_server("hq")
-	var rd_server: Server = ctx.get_server("rd")
-	var identity_id: String = ctx.corp_identity.id if ctx.corp_identity != null else ""
+	# ── Central ice subtype presence ──────────────────────────────────────────
+	var hq_sub := _server_ice_subtypes(hq_server)
+	var rd_sub := _server_ice_subtypes(rd_server)
+
+	# ── Runner rig quality ────────────────────────────────────────────────────
+	var runner_breaker_count := 0
+	var runner_has_fracter   := false
+	var runner_has_killer    := false
+	var runner_has_decoder   := false
+	var runner_has_ai        := false
+	for ic in ctx.runner_rig:
+		var rr: InstalledCard = ic as InstalledCard
+		if rr == null or rr.card_record == null:
+			continue
+		var cr: CardRecord = rr.card_record
+		if cr.has_subtype("ai"):
+			runner_has_ai         = true
+			runner_breaker_count += 1
+		elif cr.has_subtype("fracter"):
+			runner_has_fracter    = true
+			runner_breaker_count += 1
+		elif cr.has_subtype("killer"):
+			runner_has_killer     = true
+			runner_breaker_count += 1
+		elif cr.has_subtype("decoder"):
+			runner_has_decoder    = true
+			runner_breaker_count += 1
+
+	# ── Installed upgrades ───────────────────────────────────────────────────
+	var upgrade_count := 0
+	for srv_entry in ctx.servers.values():
+		var usrv: Server = srv_entry as Server
+		if usrv == null:
+			continue
+		for uc in usrv.root:
+			var uic: InstalledCard = uc as InstalledCard
+			if uic != null and uic.card_record != null and uic.card_record.card_type == "upgrade":
+				upgrade_count += 1
+
+	# ── Corp damage potential ─────────────────────────────────────────────────
+	var corp_dmg_potential := 0
+	for entry in ctx.corp_hand:
+		var card: CardRecord = (entry as Dictionary).get("card_record", null) as CardRecord
+		if card != null and card.id in DAMAGE_OP_IDS:
+			corp_dmg_potential += 1
+	for discard_entry in ctx.corp_discard:
+		var card: CardRecord = discard_entry as CardRecord
+		if card != null and card.id == "shock":
+			corp_dmg_potential += 1
 
 	return {
 		"corp_credits":    ctx.corp_credits,
@@ -72,10 +173,23 @@ func snapshot(ctx: GameContext) -> Dictionary:
 		"runner_deck":     ctx.runner_deck.size(),
 		"runner_tags":     ctx.runner_tags,
 		"runner_rig":      ctx.runner_rig.size(),
-		"hq_ice":          hq_server.ice.size() if hq_server != null else 0,
-		"rd_ice":          rd_server.ice.size() if rd_server != null else 0,
+		"runner_breaker_count":    runner_breaker_count,
+		"runner_has_fracter":      runner_has_fracter,
+		"runner_has_killer":       runner_has_killer,
+		"runner_has_decoder":      runner_has_decoder,
+		"runner_has_ai_breaker":   runner_has_ai,
+		"hq_ice":           hq_server.ice.size() if hq_server != null else 0,
+		"hq_ice_barrier":   hq_sub["barrier"],
+		"hq_ice_sentry":    hq_sub["sentry"],
+		"hq_ice_code_gate": hq_sub["code_gate"],
+		"rd_ice":           rd_server.ice.size() if rd_server != null else 0,
+		"rd_ice_barrier":   rd_sub["barrier"],
+		"rd_ice_sentry":    rd_sub["sentry"],
+		"rd_ice_code_gate": rd_sub["code_gate"],
 		"corp_identity":   identity_id,
 		"corp_discard_sz": ctx.corp_discard.size(),
+		"corp_net_damage_potential": corp_dmg_potential,
+		"corp_installed_upgrades":   upgrade_count,
 		"remotes":         remotes,
 	}
 
@@ -95,21 +209,40 @@ func evaluate(s: Dictionary) -> float:
 	var identity: String = s.get("corp_identity", "") as String
 	var score := 0.0
 
-	# Progress toward winning (runner penalty is steeper — losing is worse)
-	score += float(corp_score)   / float(pts_to_win) * 30.0
-	score -= float(runner_score) / float(pts_to_win) * 42.0
+	# ── Game-phase multipliers ─────────────────────────────────────────────────
+	var turn: int = s.get("turn_number", 1) as int
+	var phase_econ_mult:  float = 1.0   # applied to economy and ice coverage
+	var phase_score_mult: float = 1.0   # applied to score-progress component
+	var late_penalty:     float = 0.0   # extra cost for falling behind late
 
-	# Economy — credits have diminishing returns above ~10.
-	# Capped so that accumulating 30+ credits doesn't dominate all other factors.
+	if turn <= 6:
+		# Setup phase: economy and ice are the foundations; score urgency is low.
+		phase_econ_mult  = 1.3
+		phase_score_mult = 0.7
+	elif turn >= 14:
+		# Late game: urgency spikes; falling behind compounds each turn.
+		phase_score_mult = 1.4
+		var pts_behind: int = pts_to_win - corp_score
+		late_penalty = float(pts_behind) * float(turn - 13) * 0.3
+
+	# ── Progress toward winning ────────────────────────────────────────────────
+	# Runner penalty is steeper — losing is worse than not winning yet.
+	score += float(corp_score)   / float(pts_to_win) * 30.0 * phase_score_mult
+	score -= float(runner_score) / float(pts_to_win) * 42.0 * phase_score_mult
+	score -= late_penalty
+
+	# ── Economy ────────────────────────────────────────────────────────────────
+	# Corp credits have diminishing returns above ~10; capped so a large pile
+	# does not dominate all other factors.
 	var corp_cr: int = s.get("corp_credits", 0) as int
-	score += minf(float(corp_cr), 15.0) * 0.5 + maxf(float(corp_cr) - 15.0, 0.0) * 0.1
+	score += (minf(float(corp_cr), 15.0) * 0.5 + maxf(float(corp_cr) - 15.0, 0.0) * 0.1) * phase_econ_mult
 	score -= float(s.get("runner_credits", 0)) * 0.3
 
-	# Ice coverage on centrals
-	score += float(s.get("hq_ice", 0)) * 1.5
-	score += float(s.get("rd_ice", 0)) * 1.5
+	# ── Ice coverage on centrals ───────────────────────────────────────────────
+	score += float(s.get("hq_ice", 0)) * 1.5 * phase_econ_mult
+	score += float(s.get("rd_ice", 0)) * 1.5 * phase_econ_mult
 
-	# Remote scoring opportunities
+	# ── Remote scoring opportunities ───────────────────────────────────────────
 	for remote in s.get("remotes", []) as Array:
 		var r: Dictionary = remote as Dictionary
 		if not r.get("has_agenda", false):
@@ -127,16 +260,53 @@ func evaluate(s: Dictionary) -> float:
 		var ice_bonus_per_layer: float = 1.5
 		# ── Jinteki: Replicating Perfection ──────────────────────────────────
 		# Remote servers are inherently safer — runner must run a central first.
-		# Ice on remotes is somewhat less critical than under other identities.
 		if identity == "jinteki_replicating_perfection":
-			ice_bonus_per_layer = 0.8   # ice still helps but the passive deters runs
+			ice_bonus_per_layer = 0.8
 		score += float(min(ice, 2)) * ice_bonus_per_layer
 
-	# Runner tags — Corp can punish
-	score += float(s.get("runner_tags", 0)) * 2.0
+	# ── Advancement trap threat ───────────────────────────────────────────────
+	# Trap cards (Clearinghouse, Urtica Cipher, etc.) in iced remotes build
+	# kill potential.  Score based on proximity to the runner's grip size.
+	var runner_grip_t: int = s.get("runner_hand", 5) as int
+	for remote in s.get("remotes", []) as Array:
+		var r: Dictionary = remote as Dictionary
+		if not r.get("has_trap", false) or (r.get("ice_count", 0) as int) == 0:
+			continue
+		var trap_adv: int = r.get("trap_adv", 0) as int
+		if trap_adv <= 0:
+			continue
+		var threat: int = trap_adv - runner_grip_t
+		if   threat >= 0:  score += 50.0                      # activatable for kill now
+		elif threat == -1: score += 20.0                      # one advance from kill
+		elif threat == -2: score += 8.0                       # two advances away
+		else:              score += float(trap_adv) * 1.5     # building threat
 
-	# Corp hand size — reward a healthy hand (more options), penalise low grip.
-	# Use the identity-aware hand limit so HB (limit 6) scores correctly.
+	# ── Runner tags ────────────────────────────────────────────────────────────
+	var runner_tags: int = s.get("runner_tags", 0) as int
+	score += float(runner_tags) * 2.0
+
+	# ── Installed upgrades ─────────────────────────────────────────────────────
+	# Upgrades (Anoetic Void, Manegarm Skunkworks, etc.) provide run-time
+	# defensive value that the runner response projector can't directly model.
+	# Approximate as a flat per-upgrade bonus consistent with one ice layer.
+	score += float(s.get("corp_installed_upgrades", 0)) * 1.5
+
+	# ── Kill / flatline detection ──────────────────────────────────────────────
+	# A runner with very few cards is vulnerable to a flatline.  Scale the bonus
+	# by corp_net_damage_potential: tools in hand make the window exploitable now;
+	# without them it is still a structurally dangerous state worth valuing.
+	var runner_grip: int = s.get("runner_hand",               5) as int
+	var corp_dmg:    int = s.get("corp_net_damage_potential",  0) as int
+
+	if runner_grip <= 1:
+		# Near-flatline: baseline 100 + up to 400 more with damage tools ready.
+		score += 100.0 + 400.0 * clampf(float(corp_dmg) / 3.0, 0.0, 1.0)
+	elif runner_grip <= 3 and runner_tags >= 1:
+		# Tagged runner with low grip — punishment operations become decisive.
+		score += 15.0
+
+	# ── Corp hand size ─────────────────────────────────────────────────────────
+	# Reward a healthy hand (more options), penalise a thin grip.
 	var hand_limit: int = s.get("corp_hand_limit", 5) as int
 	var corp_hand:  int = min(s.get("corp_hand", 0) as int, hand_limit)
 	var hand_full_threshold := 3
@@ -145,49 +315,32 @@ func evaluate(s: Dictionary) -> float:
 	elif corp_hand <= hand_limit:
 		score += float(corp_hand - hand_full_threshold) * 0.4
 
-	# ── Identity-specific bonuses ─────────────────────────────────────────────
+	# ── Identity-specific bonuses ──────────────────────────────────────────────
 
 	match identity:
 
 		"weyland_consortium_built_to_last":
-			# First advance generates +2cr — reward having advanceable agendas
-			# and a healthy credit base to keep advancing every turn.
 			for remote in s.get("remotes", []) as Array:
 				var r: Dictionary = remote as Dictionary
 				if r.get("has_agenda", false) and (r.get("adv", 0) as int) == 0:
-					# Unadvanced agenda: first advance will be free (net +1cr).
 					score += 1.5
-			# Slight credit floor bonus — Weyland wants to keep pressing advances.
 			if corp_cr >= 4:
 				score += 0.5
 
 		"haas_bioroid_precision_design":
-			# +1 max hand size already captured via hand_limit=6 above.
-			# Archives-to-HQ recovery on score: each scored agenda has residual
-			# value because a card was recovered — approximate as +0.5 per point.
 			score += float(corp_score) * 0.5
-			# Reward having a non-empty Archives (cards to recover on next score).
 			var discard_sz: int = s.get("corp_discard_sz", 0) as int
 			if discard_sz > 0:
 				score += 0.4
 
 		"jinteki_replicating_perfection":
-			# Runner must run a central before running any remote.
-			# Reward having centrals iced (forces runner to spend resources before
-			# accessing remotes, making remotes much safer).
-			# This is captured by the existing central ice score, but amplify it.
-			score += float(s.get("hq_ice", 0)) * 0.5   # extra on top of base 1.5
+			score += float(s.get("hq_ice", 0)) * 0.5
 			score += float(s.get("rd_ice", 0)) * 0.5
-			# Unprotected remotes are safer than they look — reduce the implicit
-			# penalty for having an agenda with no ice.
-			# (already handled by reduced ice_bonus_per_layer above)
 
 		"jinteki_restoring_humanity":
-			# Gain 1cr at end of discard phase if Archives has a facedown card.
-			# Model as passive income: small bonus when Archives is non-empty.
 			var discard_sz: int = s.get("corp_discard_sz", 0) as int
 			if discard_sz > 0:
-				score += 0.7   # ~1 extra credit per turn when discarding to limit
+				score += 0.7
 
 	return score
 
@@ -202,24 +355,50 @@ func project_corp_action(s: Dictionary, action: GameAction, _ctx: GameContext) -
 
 	match action.type:
 		"gain_credits":
-			# Corp gains exactly 1 credit per click — do not overestimate.
 			ns["corp_credits"] = (s.get("corp_credits", 0) as int) + 1
 
 		"draw_card":
-			# Cap at hand_limit — drawing past limit means discarding, net zero benefit.
 			var hand_limit: int = s.get("corp_hand_limit", 5) as int
 			ns["corp_hand"] = min((s.get("corp_hand", 0) as int) + 1, hand_limit)
 			ns["corp_deck"] = max(0, (s.get("corp_deck", 0) as int) - 1)
 
 		"install":
-			var card: CardRecord = action.params.get("card_record", null) as CardRecord
+			var card:      CardRecord = action.params.get("card_record", null) as CardRecord
+			var server_id_i: String   = action.params.get("server_id",   "") as String
+			var zone_i:      String   = action.params.get("zone",        "") as String
+
 			if card == null:
+				# Symbolic ice install from MCTS deep candidates.
+				# Only handle the ice case; any other null-card install is a no-op.
+				if zone_i != "ice" or server_id_i == "":
+					return ns
+				ns["corp_hand"] = max(0, (s.get("corp_hand", 0) as int) - 1)
+				var sym_cost: int = 0
+				match server_id_i:
+					"hq":
+						sym_cost = s.get("hq_ice", 0) as int
+						ns["corp_credits"] = max(0, (s.get("corp_credits", 0) as int) - sym_cost)
+						ns["hq_ice"] = sym_cost + 1
+					"rd":
+						sym_cost = s.get("rd_ice", 0) as int
+						ns["corp_credits"] = max(0, (s.get("corp_credits", 0) as int) - sym_cost)
+						ns["rd_ice"] = sym_cost + 1
+					_:
+						var remotes_sym: Array = (ns.get("remotes", []) as Array).duplicate(true)
+						for i in range(remotes_sym.size()):
+							var r: Dictionary = (remotes_sym[i] as Dictionary).duplicate()
+							if r.get("server_id", "") == server_id_i:
+								sym_cost = r.get("ice_count", 0) as int
+								ns["corp_credits"] = max(0, (s.get("corp_credits", 0) as int) - sym_cost)
+								r["ice_count"] = sym_cost + 1
+								remotes_sym[i] = r
+								break
+						ns["remotes"] = remotes_sym
 				return ns
-			# Always costs 1 card from hand.
+
 			ns["corp_hand"] = max(0, (s.get("corp_hand", 0) as int) - 1)
 
 			if card.is_ice():
-				# Ice install cost = 1 credit per ice already on the target server.
 				var server_id: String = action.params.get("server_id", "") as String
 				var ice_install_cost: int = 0
 				match server_id:
@@ -231,23 +410,32 @@ func project_corp_action(s: Dictionary, action: GameAction, _ctx: GameContext) -
 								ice_install_cost = (remote as Dictionary).get("ice_count", 0) as int
 								break
 				ns["corp_credits"] = max(0, (s.get("corp_credits", 0) as int) - ice_install_cost)
-				# Update ice coverage
+				# Update ice count and subtype flags for the target server.
 				match server_id:
-					"hq": ns["hq_ice"] = (s.get("hq_ice", 0) as int) + 1
-					"rd": ns["rd_ice"] = (s.get("rd_ice", 0) as int) + 1
+					"hq":
+						ns["hq_ice"] = (s.get("hq_ice", 0) as int) + 1
+						if card.has_subtype("barrier"):   ns["hq_ice_barrier"]   = true
+						if card.has_subtype("sentry"):    ns["hq_ice_sentry"]    = true
+						if card.has_subtype("code_gate"): ns["hq_ice_code_gate"] = true
+					"rd":
+						ns["rd_ice"] = (s.get("rd_ice", 0) as int) + 1
+						if card.has_subtype("barrier"):   ns["rd_ice_barrier"]   = true
+						if card.has_subtype("sentry"):    ns["rd_ice_sentry"]    = true
+						if card.has_subtype("code_gate"): ns["rd_ice_code_gate"] = true
 					_:
 						var remotes_copy: Array = (ns.get("remotes", []) as Array).duplicate(true)
 						for i in range(remotes_copy.size()):
 							var r: Dictionary = (remotes_copy[i] as Dictionary).duplicate()
 							if r.get("server_id", "") == server_id:
 								r["ice_count"] = (r.get("ice_count", 0) as int) + 1
+								if card.has_subtype("barrier"):   r["has_barrier"]   = true
+								if card.has_subtype("sentry"):    r["has_sentry"]    = true
+								if card.has_subtype("code_gate"): r["has_code_gate"] = true
 								remotes_copy[i] = r
 								break
 						ns["remotes"] = remotes_copy
 
 			elif card.is_agenda():
-				# Agendas install for free.
-				# Project 1 ice layer if ice is in hand (Corp will protect next click).
 				var proj_ice := 0
 				if _ctx != null:
 					for hentry in _ctx.corp_hand:
@@ -255,50 +443,58 @@ func project_corp_action(s: Dictionary, action: GameAction, _ctx: GameContext) -
 						if hc != null and hc.is_ice():
 							proj_ice = 1
 							break
-				# ── Jinteki: Replicating Perfection ──────────────────────────
-				# Remote is passively safer; project it as if it already has 1
-				# effective layer of protection even without physical ice.
 				if identity == "jinteki_replicating_perfection":
 					proj_ice = max(proj_ice, 1)
 				var remotes_copy: Array = (ns.get("remotes", []) as Array).duplicate(true)
 				remotes_copy.append({
-					"server_id":  "projected",
-					"ice_count":  proj_ice,
-					"has_agenda": true,
-					"adv":        0,
-					"req":        card.advancement_requirement,
+					"server_id":     "projected",
+					"ice_count":     proj_ice,
+					"has_agenda":    true,
+					"adv":           0,
+					"req":           card.advancement_requirement,
+					"has_barrier":   false,
+					"has_sentry":    false,
+					"has_code_gate": false,
 				})
 				ns["remotes"] = remotes_copy
-			# Assets/upgrades also install for free — no credit deduction needed.
+
+			elif card.card_type == "upgrade":
+				# Upgrades install for free (rez cost is separate).
+				# Record the new upgrade so evaluate() can credit its defensive value.
+				ns["corp_installed_upgrades"] = (s.get("corp_installed_upgrades", 0) as int) + 1
 
 		"advance":
 			var adv_cost: int = 1
 			var credit_gain: int = 0
-
-			# ── Weyland: Built to Last ────────────────────────────────────────
-			# First advance on a card (adv == 0) grants +2cr, making it a net
-			# +1cr action rather than -1cr.  Find the target agenda's current
-			# advancement counter to apply the bonus correctly.
 			if identity == "weyland_consortium_built_to_last":
 				for remote in s.get("remotes", []) as Array:
 					var r: Dictionary = remote as Dictionary
 					if r.get("has_agenda", false) and (r.get("adv", 0) as int) == 0:
-						credit_gain = 2   # Built to Last triggers
+						credit_gain = 2
 						break
-
 			ns["corp_credits"] = max(0, (s.get("corp_credits", 0) as int) - adv_cost + credit_gain)
 			var remotes_copy: Array = (ns.get("remotes", []) as Array).duplicate(true)
+			var advanced_agenda := false
 			for i in range(remotes_copy.size()):
 				var r: Dictionary = remotes_copy[i] as Dictionary
 				if r.get("has_agenda", false):
 					var new_r := r.duplicate()
 					new_r["adv"] = (r.get("adv", 0) as int) + 1
 					remotes_copy[i] = new_r
+					advanced_agenda = true
 					break
+			# No agenda to advance — try advancing a trap card instead.
+			if not advanced_agenda:
+				for i in range(remotes_copy.size()):
+					var r: Dictionary = remotes_copy[i] as Dictionary
+					if r.get("has_trap", false) and (r.get("ice_count", 0) as int) > 0:
+						var new_r := r.duplicate()
+						new_r["trap_adv"] = (r.get("trap_adv", 0) as int) + 1
+						remotes_copy[i] = new_r
+						break
 			ns["remotes"] = remotes_copy
 
 		"use_installed_card":
-			# Approximate: installed click actions typically generate ~2 credits
 			ns["corp_credits"] = (s.get("corp_credits", 0) as int) + 2
 
 		"play_operation":
@@ -322,10 +518,9 @@ func project_corp_action(s: Dictionary, action: GameAction, _ctx: GameContext) -
 					ns["corp_hand"] = (ns.get("corp_hand", 0) as int) + 2
 					ns["corp_deck"] = (ns.get("corp_deck", 0) as int) + 2
 				"neurospike":
-					var dmg: int = max(1, ns.get("corp_score", 0) as int)
+					var dmg: int = ns.get("corp_score", 0) as int
 					ns["runner_hand"] = max(0, (ns.get("runner_hand", 0) as int) - dmg)
 				_:
-					# Generic operation: approximate value as 2cr-equivalent
 					ns["corp_credits"] = (ns.get("corp_credits", 0) as int) + 2
 
 	return ns
@@ -350,20 +545,58 @@ func project_runner_response(s: Dictionary, threat_server: String, _ctx: GameCon
 				ice_count = (remote as Dictionary).get("ice_count", 0) as int
 				break
 
-	var runner_cr:  int = s.get("runner_credits", 0) as int
-	var runner_rig: int = s.get("runner_rig",     0) as int
+	var runner_cr: int = s.get("runner_credits", 0) as int
 
-	# Estimate run success probability
-	var success_prob: float = 0.0
-	if runner_rig >= 1 and runner_cr >= 3:
-		success_prob = clampf(0.7 - float(ice_count) * 0.15 + float(runner_cr) * 0.02, 0.1, 0.95)
-	elif runner_cr >= 5:
-		success_prob = clampf(0.5 - float(ice_count) * 0.10, 0.05, 0.70)
+	# ── Rig-quality-aware success probability ──────────────────────────────────
+	var runner_breakers: int = s.get("runner_breaker_count", 0) as int
+	var has_fracter: bool    = s.get("runner_has_fracter",    false) as bool
+	var has_killer:  bool    = s.get("runner_has_killer",     false) as bool
+	var has_decoder: bool    = s.get("runner_has_decoder",    false) as bool
+	var has_ai:      bool    = s.get("runner_has_ai_breaker", false) as bool
+
+	# Base probability from rig completeness.
+	# AI breakers cover all ice types so they rate the same as a full rig.
+	var base_prob: float
+	if   has_ai:                base_prob = 0.80
+	elif runner_breakers == 0:  base_prob = 0.15
+	elif runner_breakers == 1:  base_prob = 0.45
+	elif runner_breakers == 2:  base_prob = 0.65
+	else:                       base_prob = 0.85   # >= 3 dedicated breakers
+
+	# Scale by ice count and available credits.
+	base_prob = clampf(base_prob - float(ice_count) * 0.12 + float(runner_cr) * 0.015, 0.05, 0.95)
+
+	# Subtype penalty: for each ice type on this server the runner cannot break,
+	# reduce success probability by 0.15.  AI breakers skip this check entirely.
+	if not has_ai and runner_breakers > 0:
+		var svr_barrier:   bool = false
+		var svr_sentry:    bool = false
+		var svr_code_gate: bool = false
+		if threat_server == "hq":
+			svr_barrier   = s.get("hq_ice_barrier",   false) as bool
+			svr_sentry    = s.get("hq_ice_sentry",    false) as bool
+			svr_code_gate = s.get("hq_ice_code_gate", false) as bool
+		elif threat_server == "rd":
+			svr_barrier   = s.get("rd_ice_barrier",   false) as bool
+			svr_sentry    = s.get("rd_ice_sentry",    false) as bool
+			svr_code_gate = s.get("rd_ice_code_gate", false) as bool
+		else:
+			for remote in s.get("remotes", []) as Array:
+				if (remote as Dictionary).get("server_id", "") == threat_server:
+					svr_barrier   = (remote as Dictionary).get("has_barrier",   false) as bool
+					svr_sentry    = (remote as Dictionary).get("has_sentry",    false) as bool
+					svr_code_gate = (remote as Dictionary).get("has_code_gate", false) as bool
+					break
+		if svr_barrier   and not has_fracter: base_prob -= 0.20
+		if svr_sentry    and not has_killer:  base_prob -= 0.20
+		if svr_code_gate and not has_decoder: base_prob -= 0.20
+		base_prob = maxf(base_prob, 0.05)
+
+	var success_prob: float = base_prob
 
 	# ── Jinteki: Replicating Perfection ──────────────────────────────────────
-	# Runner must run a central before accessing any remote.  For centrals this
-	# is unchanged.  For remotes it means the runner needs an extra run first,
-	# spending credits and clicks — model as a large success-probability penalty.
+	# Runner must run a central before accessing any remote — model as a large
+	# penalty on remote success probability.
 	var is_remote_target := (threat_server not in ["hq", "rd"] and threat_server != "")
 	if identity == "jinteki_replicating_perfection" and is_remote_target:
 		success_prob = clampf(success_prob - 0.35, 0.0, 0.50)
@@ -373,7 +606,7 @@ func project_runner_response(s: Dictionary, threat_server: String, _ctx: GameCon
 	ns["runner_credits"] = max(0, runner_cr - expected_spend)
 
 	# On successful run, runner may steal an agenda.
-	# "projected" remotes were just installed this turn — the Corp still has clicks
+	# "projected" remotes were just installed this turn — Corp still has clicks
 	# to ice them, so skip the steal projection for them.
 	if success_prob > 0.5:
 		var has_agenda := false
