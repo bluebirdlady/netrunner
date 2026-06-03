@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://4ut4mbk0dfia"
+
+[deps]
+
+files=["res://Planning/the_automata_initiative.card.translation", "res://Planning/the_automata_initiative.full.translation", "res://Planning/the_automata_initiative.card.translation"]
+
+source_file="res://Planning/the_automata_initiative.csv"
+dest_files=["res://Planning/the_automata_initiative.card.translation", "res://Planning/the_automata_initiative.full.translation", "res://Planning/the_automata_initiative.card.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

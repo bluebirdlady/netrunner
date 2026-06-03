@@ -260,9 +260,18 @@ func _get_root_candidates(ctx: GameContext) -> Array:
 			if agenda_ic != null and agenda_ic.card_record != null and agenda_ic.card_record.is_agenda():
 				actions.append(GameAction.install(first_ice, s.server_id, "ice"))
 				break
+		# Pre-ice an empty existing remote to enable the "ice first → install agenda"
+		# planning sequence.  Without this, the MCTS has no way to prepare a safe
+		# scoring slot when all existing remotes are empty and naked.
+		for key in ctx.servers:
+			var s: Server = ctx.servers[key] as Server
+			if s == null or not s.is_remote() or s.has_ice() or not s.root.is_empty():
+				continue
+			actions.append(GameAction.install(first_ice, s.server_id, "ice"))
+			break
 
-	# Install agenda: prefer an existing protected remote, then any empty remote,
-	# then create a new remote when there is ice in hand to follow up with.
+	# Install agenda: prefer an already-iced empty remote (safe), then a totally
+	# empty remote, then create a new one with ice backup in hand.
 	var agenda_to_install: CardRecord = null
 	for entry in ctx.corp_hand:
 		var card: CardRecord = (entry as Dictionary).get("card_record", null) as CardRecord
@@ -270,14 +279,19 @@ func _get_root_candidates(ctx: GameContext) -> Array:
 			agenda_to_install = card
 			break
 	if agenda_to_install != null:
-		var empty_remote: Server = _find_empty_remote(ctx)
-		if empty_remote != null:
-			actions.append(GameAction.install(agenda_to_install, empty_remote.server_id))
+		var iced_slot: Server = _find_iced_empty_remote(ctx)
+		if iced_slot != null:
+			# Best case: slot already protected — just add the agenda.
+			actions.append(GameAction.install(agenda_to_install, iced_slot.server_id))
 		else:
-			# No existing empty remote — offer creating a new one.
-			# The evaluator projects an ice layer if ice is in hand, so MCTS will
-			# score this correctly even though the server doesn't exist yet.
-			actions.append(GameAction.install(agenda_to_install, "new_remote"))
+			var empty_remote: Server = _find_empty_remote(ctx)
+			if empty_remote != null:
+				actions.append(GameAction.install(agenda_to_install, empty_remote.server_id))
+			else:
+				# No existing remote — offer creating a new one.
+				# The evaluator projects an ice layer if ice is in hand, so MCTS will
+				# score this correctly even though the server doesn't exist yet.
+				actions.append(GameAction.install(agenda_to_install, "new_remote"))
 
 	# Advance advanceable non-agenda (trap) cards when runner grip is in threat range.
 	if ctx.runner_hand.size() <= 5 and ctx.corp_credits >= 1:
@@ -358,6 +372,15 @@ func _get_deep_candidates(s: Dictionary) -> Array:
 				actions.append(GameAction.install(null, srv, "ice"))
 				break
 
+		# Symbolic agenda install into an iced empty remote.
+		# Enables the key planning sequence: "ice remote → install agenda → advance."
+		# null card_record + zone="root" is handled by project_corp_action.
+		for remote in s.get("remotes", []) as Array:
+			var r: Dictionary = remote as Dictionary
+			if not r.get("has_agenda", false) and (r.get("ice_count", 0) as int) > 0:
+				actions.append(GameAction.install(null, r.get("server_id", "") as String, "root"))
+				break
+
 	return actions
 
 
@@ -391,9 +414,11 @@ func _primary_ice_subtype(card: CardRecord) -> String:
 
 
 # Returns the server that would benefit most from an upgrade install.
+# Only considers remote servers — installing upgrades in centrals (HQ/RD)
+# causes misplaced cards like Malapert Data Vault landing in HQ.
 # Mirrors CorpTurnAI._find_best_upgrade_server().
 func _find_best_upgrade_server(ctx: GameContext) -> Server:
-	# Iced remote with agenda — scoring server protection.
+	# 1. Iced remote with agenda — directly protects the scoring server.
 	for key in ctx.servers:
 		var s: Server = ctx.servers[key] as Server
 		if s == null or not s.is_remote() or not s.has_ice():
@@ -401,15 +426,7 @@ func _find_best_upgrade_server(ctx: GameContext) -> Server:
 		var ic: InstalledCard = s.get_agenda_or_asset()
 		if ic != null and ic.card_record != null and ic.card_record.is_agenda():
 			return s
-	# Iced HQ.
-	var hq: Server = ctx.get_server("hq")
-	if hq != null and hq.has_ice():
-		return hq
-	# Iced R&D.
-	var rd: Server = ctx.get_server("rd")
-	if rd != null and rd.has_ice():
-		return rd
-	# Any remote with an agenda.
+	# 2. Any remote with an agenda (even uniced — still better than a central).
 	for key in ctx.servers:
 		var s: Server = ctx.servers[key] as Server
 		if s == null or not s.is_remote():
@@ -424,6 +441,16 @@ func _find_empty_remote(ctx: GameContext) -> Server:
 	for key in ctx.servers:
 		var s: Server = ctx.servers[key] as Server
 		if s != null and s.is_remote() and s.root.is_empty() and s.ice.is_empty():
+			return s
+	return null
+
+
+# A remote that has at least one piece of ice but nothing in its root —
+# an ideal slot for an agenda install on the next click.
+func _find_iced_empty_remote(ctx: GameContext) -> Server:
+	for key in ctx.servers:
+		var s: Server = ctx.servers[key] as Server
+		if s != null and s.is_remote() and s.root.is_empty() and s.has_ice():
 			return s
 	return null
 

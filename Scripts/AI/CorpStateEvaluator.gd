@@ -206,6 +206,21 @@ func evaluate(s: Dictionary) -> float:
 	if corp_score   >= pts_to_win: return WIN_VALUE
 	if runner_score >= pts_to_win: return LOSE_VALUE
 
+	# ── Near-loss stall detection ──────────────────────────────────────────────
+	# When the runner is one steal from winning and the Corp has no protected
+	# installed agenda, the position is deterministically losing — credits cannot
+	# win the game.  Return near-LOSE_VALUE so the MCTS strongly prefers any
+	# action that installs or advances a protected agenda over credit farming.
+	if runner_score >= pts_to_win - 1 and corp_score < pts_to_win:
+		var has_scoring_agenda := false
+		for remote in s.get("remotes", []) as Array:
+			var r: Dictionary = remote as Dictionary
+			if r.get("has_agenda", false) and (r.get("ice_count", 0) as int) > 0:
+				has_scoring_agenda = true
+				break
+		if not has_scoring_agenda:
+			return LOSE_VALUE * 0.9   # near-certain loss; prefer any other state
+
 	var identity: String = s.get("corp_identity", "") as String
 	var score := 0.0
 
@@ -251,6 +266,14 @@ func evaluate(s: Dictionary) -> float:
 		var adv:    int = r.get("adv", 0) as int
 		var ice:    int = r.get("ice_count", 0) as int
 		var needed: int = req - adv
+
+		# ── Naked-agenda penalty ───────────────────────────────────────────────
+		# An agenda with zero ice is trivially stolen on the runner's next turn.
+		# This penalty must outweigh the base agenda value so the MCTS never
+		# considers naked installation better than gaining a credit.
+		if ice == 0:
+			score -= 25.0
+
 		# Base value for having an agenda on the table — scoring trajectory.
 		if   needed <= 0: score += 10.0
 		elif needed == 1: score += 6.0
@@ -369,7 +392,23 @@ func project_corp_action(s: Dictionary, action: GameAction, _ctx: GameContext) -
 
 			if card == null:
 				# Symbolic ice install from MCTS deep candidates.
-				# Only handle the ice case; any other null-card install is a no-op.
+				if zone_i == "root" and server_id_i != "":
+					# Symbolic agenda install: null card + zone="root" means the Corp
+					# is installing an agenda into an already-iced remote.
+					# Use req=3 as the average advancement requirement.
+					ns["corp_hand"] = max(0, (s.get("corp_hand", 0) as int) - 1)
+					var remotes_sym_a: Array = (ns.get("remotes", []) as Array).duplicate(true)
+					for i in range(remotes_sym_a.size()):
+						var r: Dictionary = (remotes_sym_a[i] as Dictionary).duplicate()
+						if r.get("server_id", "") == server_id_i:
+							r["has_agenda"] = true
+							r["adv"]        = 0
+							r["req"]        = 3
+							remotes_sym_a[i] = r
+							break
+					ns["remotes"] = remotes_sym_a
+					return ns
+
 				if zone_i != "ice" or server_id_i == "":
 					return ns
 				ns["corp_hand"] = max(0, (s.get("corp_hand", 0) as int) - 1)
@@ -533,6 +572,17 @@ func project_runner_response(s: Dictionary, threat_server: String, _ctx: GameCon
 	var ns: Dictionary = s.duplicate(true)
 	var identity: String = s.get("corp_identity", "") as String
 
+	# ── Naked-agenda override ──────────────────────────────────────────────────
+	# If any remote holds an agenda behind zero ice, the runner will run that
+	# server in preference to any defended central — it is a free steal.
+	# This includes "projected" remotes when the Corp had no ice in hand
+	# (proj_ice == 0 in project_corp_action), so naked installs are always caught.
+	for remote in s.get("remotes", []) as Array:
+		var r: Dictionary = remote as Dictionary
+		if r.get("has_agenda", false) and (r.get("ice_count", 0) as int) == 0:
+			threat_server = r.get("server_id", "") as String
+			break
+
 	# Determine ice count on target server
 	var ice_count: int = 0
 	if threat_server == "hq":
@@ -546,6 +596,32 @@ func project_runner_response(s: Dictionary, threat_server: String, _ctx: GameCon
 				break
 
 	var runner_cr: int = s.get("runner_credits", 0) as int
+
+	# ── Zero-ice short-circuit ─────────────────────────────────────────────────
+	# A server with no ice is always accessible: the runner spends no credits
+	# and steals any agenda present with certainty.
+	if ice_count == 0:
+		var has_agenda_0 := false
+		if threat_server in ["hq", "rd"]:
+			has_agenda_0 = (s.get("corp_deck", 0) as int) > 0
+		else:
+			for remote in s.get("remotes", []) as Array:
+				if (remote as Dictionary).get("server_id", "") == threat_server:
+					has_agenda_0 = (remote as Dictionary).get("has_agenda", false) as bool
+					break
+		if has_agenda_0:
+			ns["runner_score"] = (s.get("runner_score", 0) as int) + 2
+			if threat_server not in ["hq", "rd"]:
+				var remotes_copy: Array = (ns.get("remotes", []) as Array).duplicate(true)
+				for i in range(remotes_copy.size()):
+					var r: Dictionary = remotes_copy[i] as Dictionary
+					if r.get("server_id", "") == threat_server:
+						var new_r := r.duplicate()
+						new_r["has_agenda"] = false
+						remotes_copy[i] = new_r
+						break
+				ns["remotes"] = remotes_copy
+		return ns
 
 	# ── Rig-quality-aware success probability ──────────────────────────────────
 	var runner_breakers: int = s.get("runner_breaker_count", 0) as int
@@ -606,11 +682,8 @@ func project_runner_response(s: Dictionary, threat_server: String, _ctx: GameCon
 	ns["runner_credits"] = max(0, runner_cr - expected_spend)
 
 	# On successful run, runner may steal an agenda.
-	# "projected" remotes were just installed this turn — Corp still has clicks
-	# to ice them, so skip the steal projection for them.
 	if success_prob > 0.5:
 		var has_agenda := false
-		var is_projected := (threat_server == "projected")
 		if threat_server in ["hq", "rd"]:
 			has_agenda = (s.get("corp_deck", 0) as int) > 0
 		else:
@@ -619,7 +692,7 @@ func project_runner_response(s: Dictionary, threat_server: String, _ctx: GameCon
 					has_agenda = (remote as Dictionary).get("has_agenda", false) as bool
 					break
 
-		if has_agenda and not is_projected:
+		if has_agenda:
 			ns["runner_score"] = (s.get("runner_score", 0) as int) + 2
 			if threat_server not in ["hq", "rd"]:
 				var remotes_copy: Array = (ns.get("remotes", []) as Array).duplicate(true)

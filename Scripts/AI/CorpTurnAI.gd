@@ -838,7 +838,8 @@ func _find_upgrade_in_hand(ctx: GameContext) -> CardRecord:
 
 
 # Returns the server that would benefit most from having an upgrade installed.
-# Priority: iced remote with agenda > iced central > any remote with agenda.
+# Only returns remote servers — installing upgrades in HQ or R&D causes
+# misplaced cards (e.g. Malapert Data Vault in HQ).
 func _find_best_upgrade_server(ctx: GameContext) -> Server:
 	# 1. Iced remote with an agenda — directly protects the scoring server.
 	for server in ctx.servers.values():
@@ -848,13 +849,7 @@ func _find_best_upgrade_server(ctx: GameContext) -> Server:
 		var ic: InstalledCard = s.get_agenda_or_asset()
 		if ic != null and ic.card_record != null and ic.card_record.is_agenda():
 			return s
-	# 2. Iced HQ — proactive central defense.
-	if _server_has_ice(ctx, "hq"):
-		return ctx.get_server("hq")
-	# 3. Iced R&D.
-	if _server_has_ice(ctx, "rd"):
-		return ctx.get_server("rd")
-	# 4. Any remote with an agenda (even without ice).
+	# 2. Any remote with an agenda (even without ice).
 	for server in ctx.servers.values():
 		var s: Server = server as Server
 		if s == null or not s.is_remote():
