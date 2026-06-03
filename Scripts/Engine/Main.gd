@@ -103,6 +103,7 @@ func _init_and_start() -> void:
 	# Intercept run initiation to show RunScene
 	_wire_run_via_turn_manager()
 
+	await _perform_mulligan_phase()
 	_start_game_loop()
 
 
@@ -263,6 +264,80 @@ func _start_game_loop() -> void:
 		game_over_callback.call(ctx.winner == "runner")
 	else:
 		game_finished.emit()
+
+# ── Mulligan phase (rule 1.6.6.a) ─────────────────────────────────────────────
+
+func _perform_mulligan_phase() -> void:
+	# Corp decides first, then Runner. Each may shuffle their hand back and redraw 5.
+	# AI Corp uses a heuristic; human Runner is prompted via the UI.
+	if _corp_wants_mulligan():
+		for entry in ctx.corp_hand:
+			var card: CardRecord = (entry as Dictionary).get("card_record", null) as CardRecord
+			if card != null:
+				ctx.corp_deck.append(card)
+		ctx.corp_hand.clear()
+		ctx.corp_deck.shuffle()
+		for _i in range(5):
+			if not ctx.corp_deck.is_empty():
+				var drawn: CardRecord = ctx.corp_deck.pop_front()
+				ctx.corp_hand.append({"card_id": drawn.id, "card_record": drawn})
+		ctx.send_log("Corp takes a mulligan.")
+	else:
+		ctx.send_log("Corp keeps their opening hand.")
+
+	var runner_mulligans: bool
+	if runner_brain is HumanDecisionMaker:
+		runner_mulligans = await game_ui.show_mulligan_prompt(ctx.runner_name(), ctx.runner_hand)
+	else:
+		runner_mulligans = _runner_wants_mulligan()
+
+	if runner_mulligans:
+		for entry in ctx.runner_hand:
+			var card: CardRecord = (entry as Dictionary).get("card_record", null) as CardRecord
+			if card != null:
+				ctx.runner_deck.append(card)
+		ctx.runner_hand.clear()
+		ctx.runner_deck.shuffle()
+		for _i in range(5):
+			if not ctx.runner_deck.is_empty():
+				var drawn: CardRecord = ctx.runner_deck.pop_front()
+				ctx.runner_hand.append({"card_id": drawn.id, "card_record": drawn})
+		ctx.send_log("Runner takes a mulligan.")
+		var new_hand_titles: Array = []
+		for entry in ctx.runner_hand:
+			var cr: CardRecord = (entry as Dictionary).get("card_record", null) as CardRecord
+			if cr != null:
+				new_hand_titles.append(cr.title)
+		ctx.send_log("New hand: %s" % ", ".join(new_hand_titles))
+		game_ui._update_all_displays()
+	else:
+		ctx.send_log("Runner keeps their opening hand.")
+
+
+func _corp_wants_mulligan() -> bool:
+	var agendas      := 0
+	var afford_ice   := 0
+	for entry in ctx.corp_hand:
+		var card: CardRecord = (entry as Dictionary).get("card_record", null) as CardRecord
+		if card == null:
+			continue
+		if card.is_agenda():
+			agendas += 1
+		if card.is_ice() and card.cost <= ctx.corp_credits:
+			afford_ice += 1
+	return agendas > 2 or afford_ice < 2
+
+
+func _runner_wants_mulligan() -> bool:
+	# Mull if there are no events or resources in hand (no economy or run enablers).
+	for entry in ctx.runner_hand:
+		var card: CardRecord = (entry as Dictionary).get("card_record", null) as CardRecord
+		if card == null:
+			continue
+		if card.card_type in ["event", "resource"]:
+			return false
+	return true
+
 
 # ── Test state ────────────────────────────────────────────────────────────────
 

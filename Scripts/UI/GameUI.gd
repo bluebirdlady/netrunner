@@ -14,6 +14,7 @@ signal search_choice_resolved(card: CardRecord)
 signal payment_option_resolved(option: Variant)
 signal game_over_acknowledged
 signal host_ice_choice_resolved(ice: InstalledCard)
+signal mulligan_choice_resolved(took_mulligan: bool)
 
 # ── NSG Game Symbol paths ─────────────────────────────────────────────────────
 const SYM_BASE   := "res://Assets/Art/Game Symbols/Exported/"
@@ -982,27 +983,61 @@ func show_rez_prompt(ice_card: InstalledCard) -> bool:
 	return selection
 
 
-func _choice_with_signal(yes: Button, no: Button, container: HBoxContainer, resolution_signal: Signal) -> bool:
-	var output := false
-	# Use a one-shot signal helper: whichever button fires first resolves the await
-	var resolved := false
-	var _yes_cb: Callable
-	var _no_cb: Callable
-	_yes_cb = func():
-		if not resolved:
-			resolved = true
-			output = true
-			resolution_signal.emit(true)
-	_no_cb = func():
-		if not resolved:
-			resolved = true
-			output = false
-			resolution_signal.emit(false)
-	yes.pressed.connect(_yes_cb, CONNECT_ONE_SHOT)
-	no.pressed.connect(_no_cb, CONNECT_ONE_SHOT)
-	await resolution_signal
+## Shows the runner's opening hand and asks whether they want to mulligan.
+## Returns true if the runner chose to mulligan.
+func show_mulligan_prompt(player_name: String, hand_cards: Array) -> bool:
+	var container := VBoxContainer.new()
+
+	var title_lbl := Label.new()
+	title_lbl.text = "Opening hand — %s:" % player_name
+	title_lbl.add_theme_font_size_override("font_size", 14)
+	container.add_child(title_lbl)
+
+	for entry in hand_cards:
+		var cr: CardRecord = null
+		if entry is Dictionary:
+			cr = (entry as Dictionary).get("card_record", null) as CardRecord
+		elif entry is CardRecord:
+			cr = entry as CardRecord
+		var lbl := Label.new()
+		lbl.text = "  • %s" % (cr.title if cr else "Unknown")
+		container.add_child(lbl)
+
+	var btn_row := HBoxContainer.new()
+	var keep_btn := Button.new()
+	keep_btn.text = "Keep"
+	var mull_btn := Button.new()
+	mull_btn.text = "Mulligan"
+	btn_row.add_child(keep_btn)
+	btn_row.add_child(mull_btn)
+	container.add_child(btn_row)
+
+	action_menu.add_child(container)
+
+	# CONNECT_ONE_SHOT ensures only the first button press fires.
+	# Capture the emitted bool directly from await rather than relying on a
+	# closure modifying an outer primitive (fragile in GDScript 4).
+	var _keep_cb := func(): mulligan_choice_resolved.emit(false)
+	var _mull_cb := func(): mulligan_choice_resolved.emit(true)
+	keep_btn.pressed.connect(_keep_cb, CONNECT_ONE_SHOT)
+	mull_btn.pressed.connect(_mull_cb, CONNECT_ONE_SHOT)
+
+	var took_mull: bool = await mulligan_choice_resolved
 	container.queue_free()
-	return output
+	return took_mull
+
+
+func _choice_with_signal(yes: Button, no: Button, container: HBoxContainer, resolution_signal: Signal) -> bool:
+	# CONNECT_ONE_SHOT ensures only the first button press fires.
+	# Capture the signal's emitted value via await rather than a closure-modified
+	# outer primitive, which is fragile in GDScript 4.
+	var _yes_cb := func(): resolution_signal.emit(true)
+	var _no_cb  := func(): resolution_signal.emit(false)
+	yes.pressed.connect(_yes_cb, CONNECT_ONE_SHOT)
+	no.pressed.connect(_no_cb,  CONNECT_ONE_SHOT)
+	var result: bool = await resolution_signal
+	container.queue_free()
+	return result
 
 ## Pops open a confirmation layout giving the Runner an option to escape the current run
 func show_jack_out_prompt() -> bool:

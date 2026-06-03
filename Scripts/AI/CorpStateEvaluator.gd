@@ -37,6 +37,9 @@ extends RefCounted
 #   corp_identity   : String  — identity card ID
 #   corp_discard_sz : int   — size of Archives
 #   corp_net_damage_potential : int  — damage ops in hand + Shock in Archives
+#   tag_package_strength    : float — max exploit-card strength in deck+hand+identity (0=none)
+#   tag_exploit_in_hand     : bool  — an exploit card is available right now
+#   expected_runner_tags    : float — fractional tags expected from installed tagging ice
 #   remotes         : Array[Dictionary]
 #                     each: { server_id, ice_count, has_agenda, adv, req,
 #                             has_barrier, has_sentry, has_code_gate }
@@ -45,10 +48,133 @@ const WIN_VALUE  :=  10000.0
 const LOSE_VALUE := -10000.0
 
 # Operations that deal direct damage — used when computing corp_net_damage_potential.
-const DAMAGE_OP_IDS := ["neurospike", "punitive_counterstrike", "boom", "scorched_earth"]
+const DAMAGE_OP_IDS := ["neurospike", "measured_response", "punitive_counterstrike", "boom", "scorched_earth"]
+
+# ── Tag exploitation registry ─────────────────────────────────────────────────
+# Cards that the Corp can USE when the runner is tagged.
+# Strength 0.0–2.0: how powerfully the card exploits the tagged state.
+# • 1.5  — game-swinging (recover stolen agenda, instant win condition)
+# • 1.0–1.2 — high impact (trash rig, heavy credit drain)
+# • 0.5–0.7 — medium impact (modest credit gain, conditional recovery)
+const TAG_EXPLOIT_CARD_STRENGTH: Dictionary = {
+	"ip_enforcement":  1.5,   # recover stolen agenda
+	"bigger_picture":  1.2,   # drain 5cr × tags, Corp gains equal
+	"retribution":     1.0,   # trash runner program or hardware
+}
+const TAG_EXPLOIT_IDENTITY_STRENGTH: Dictionary = {
+	"synapse_global_faster_than_thought": 0.7,   # click + tag → 2cr + free install
+}
+
+# ── Tag-producing ice registry ────────────────────────────────────────────────
+# Ice that give the runner tags when encountered (or rezzed).
+# Used in project_corp_action to add a fractional "expected_runner_tags" signal
+# to the snapshot so the MCTS can plan "install tagging ice + hold exploit" lines.
+#
+# Each entry:
+#   base_yield  : float  — expected tags per encounter if no relevant breaker present
+#   breaker_type: String — if runner has this breaker, reduce yield by BREAK_YIELD_FACTOR
+#                          "" means no break-based reduction (passive/on-rez effects)
+#   mechanism   : String — "sub" | "passive" | "on_rez"
+#     "sub"    : subroutine-based; runner can break with the right breaker
+#     "passive": fires when runner passes/encounters regardless of breaking
+#     "on_rez" : fires when Corp rezzes, before runner can break (most reliable)
+const TAG_ICE_YIELD: Dictionary = {
+	# Subroutine-based ─────────────────────────────────────────────────────────
+	"doomscroll":            {"base_yield": 1.0, "breaker_type": "killer",  "mechanism": "sub"},
+	"jaguarundi":            {"base_yield": 1.5, "breaker_type": "killer",  "mechanism": "sub"},   # sub + Threat-4 encounter trigger
+	"pharos":                {"base_yield": 1.0, "breaker_type": "",        "mechanism": "sub"},   # neutral (no standard breaker applies)
+	"hammer":                {"base_yield": 1.0, "breaker_type": "killer",  "mechanism": "sub"},   # break-limit makes sub reliable even vs killers
+	"cloud_eater":           {"base_yield": 1.8, "breaker_type": "killer",  "mechanism": "sub"},   # 2-tag sub + rezzed-this-turn trigger
+	"seraph":                {"base_yield": 0.5, "breaker_type": "killer",  "mechanism": "sub"},   # runner often pays credits or takes net damage instead
+	"vicsek":                {"base_yield": 0.7, "breaker_type": "killer",  "mechanism": "sub"},   # sub2: 1 tag (sub1 scales with existing tags)
+	# Passive ──────────────────────────────────────────────────────────────────
+	"virtual_service_agent": {"base_yield": 0.8, "breaker_type": "decoder", "mechanism": "passive"},  # tag if no decoder broke
+	"phoneutria":            {"base_yield": 0.5, "breaker_type": "",        "mechanism": "passive"},  # tag if runner grip >= 4
+	"lethe":                 {"base_yield": 0.8, "breaker_type": "",        "mechanism": "passive"},  # tag when bypassed OR fully broken — fires for skilled runners
+	# On-rez ───────────────────────────────────────────────────────────────────
+	"ping":                  {"base_yield": 1.0, "breaker_type": "",        "mechanism": "on_rez"},   # tag fires immediately on rez, unbreakable
+}
+
+# When the runner has the relevant breaker type, scale yield down by this factor.
+# (Runner can break the tag sub but may choose not to every run.)
+const BREAK_YIELD_FACTOR := 0.15
+
+# Base run-probability estimates per server type, used when live ctx is unavailable.
+const SERVER_RUN_PROB_FALLBACK: Dictionary = {
+	"hq":       0.40,
+	"rd":       0.50,
+	"archives": 0.10,
+}
 
 
 # ── Private helpers ───────────────────────────────────────────────────────────
+
+# Compute the positional value of `tags` runner tags, given the Corp's
+# tag-exploitation package.  Returns 0 when the Corp has no exploiters.
+#
+# Design:
+#   • No package → 0  (irrelevant for this Corp build)
+#   • Has package in deck only → base value, future payoff discount
+#   • Has package in hand → 1.5× bonus, payoff is immediate
+#
+# Diminishing returns:
+#   • Tag 1 → full per-tag value
+#   • Tag 2 → 55%  (still useful: bigger_picture drains more, ip_enforcement covers 2-pt agendas)
+#   • Tags 3+ → 25%  (law-of-large-tags: already have surplus; marginal value low)
+func _tag_value(tags: int, s: Dictionary) -> float:
+	if tags <= 0:
+		return 0.0
+	var pkg_strength: float = s.get("tag_package_strength", 0.0) as float
+	if pkg_strength <= 0.0:
+		return 0.0   # this Corp build doesn't exploit tags
+
+	# Base value per first tag scales with how powerful the exploiters are.
+	var base: float = 3.5 * pkg_strength
+
+	# Accumulate with diminishing multipliers.
+	var total: float = 0.0
+	for i in range(tags):
+		var mult: float
+		if   i == 0: mult = 1.00
+		elif i == 1: mult = 0.55
+		else:        mult = 0.25
+		total += base * mult
+
+	# Immediate vs. future: exploitation in hand spikes current value because
+	# the Corp can punish THIS turn rather than waiting for the right draw.
+	var in_hand: bool = s.get("tag_exploit_in_hand", false) as bool
+	if in_hand:
+		total *= 1.5
+
+	return total
+
+
+# Float variant of _tag_value — used when blending confirmed + expected tags.
+# Identical logic but accepts a fractional tag count.
+func _tag_value_float(tags: float, s: Dictionary) -> float:
+	if tags <= 0.0:
+		return 0.0
+	var pkg_strength: float = s.get("tag_package_strength", 0.0) as float
+	if pkg_strength <= 0.0:
+		return 0.0
+	var base: float = 3.5 * pkg_strength
+	var total: float = 0.0
+	var remaining: float = tags
+	var i: int = 0
+	while remaining > 0.0:
+		var mult: float
+		if   i == 0: mult = 1.00
+		elif i == 1: mult = 0.55
+		else:        mult = 0.25
+		var portion: float = minf(remaining, 1.0)
+		total    += base * mult * portion
+		remaining -= portion
+		i        += 1
+	var in_hand: bool = s.get("tag_exploit_in_hand", false) as bool
+	if in_hand:
+		total *= 1.5
+	return total
+
 
 # Returns {barrier, sentry, code_gate} presence flags for all ice on a server.
 func _server_ice_subtypes(server: Server) -> Dictionary:
@@ -159,6 +285,45 @@ func snapshot(ctx: GameContext) -> Dictionary:
 		if card != null and card.id == "shock":
 			corp_dmg_potential += 1
 
+	# ── Tag exploitation package ─────────────────────────────────────────────
+	# Scan the Corp's full accessible card pool (deck + hand + identity) to
+	# determine whether the Corp can exploit a tagged runner at all.
+	# Results are baked into the snapshot so every evaluate() call is free.
+	var tag_pkg_strength:   float = 0.0
+	var tag_exploit_in_hand: bool = false
+	# Identity check (always "in deck" level)
+	if identity_id != "":
+		var id_str: float = TAG_EXPLOIT_IDENTITY_STRENGTH.get(identity_id, 0.0) as float
+		tag_pkg_strength = max(tag_pkg_strength, id_str)
+	# Deck scan — establishes the baseline "package" for the whole game
+	for deck_entry in ctx.corp_deck:
+		var dc: CardRecord = deck_entry as CardRecord
+		if dc == null:
+			continue
+		var d_str: float = TAG_EXPLOIT_CARD_STRENGTH.get(dc.id, 0.0) as float
+		if d_str > 0.0:
+			tag_pkg_strength = max(tag_pkg_strength, d_str)
+	# Hand scan — exploit available immediately bumps the in-hand flag
+	for hand_entry in ctx.corp_hand:
+		var hc: CardRecord = (hand_entry as Dictionary).get("card_record", null) as CardRecord
+		if hc == null:
+			continue
+		var h_str: float = TAG_EXPLOIT_CARD_STRENGTH.get(hc.id, 0.0) as float
+		if h_str > 0.0:
+			tag_pkg_strength    = max(tag_pkg_strength, h_str)
+			tag_exploit_in_hand = true
+	# Oracle Thinktank in runner's score area counts as in-hand exploit
+	# (available as a Corp click action) when the runner has scored agendas.
+	if not ctx.runner_score_area_cards.is_empty():
+		for sac in ctx.runner_score_area_cards:
+			var sc: InstalledCard = sac as InstalledCard
+			if sc == null or sc.card_record == null:
+				continue
+			if sc.card_record.id == "oracle_thinktank":
+				tag_pkg_strength    = max(tag_pkg_strength, 0.5)
+				tag_exploit_in_hand = true
+				break
+
 	return {
 		"corp_credits":    ctx.corp_credits,
 		"runner_credits":  ctx.runner_credits,
@@ -190,6 +355,10 @@ func snapshot(ctx: GameContext) -> Dictionary:
 		"corp_discard_sz": ctx.corp_discard.size(),
 		"corp_net_damage_potential": corp_dmg_potential,
 		"corp_installed_upgrades":   upgrade_count,
+		"corp_clicks_left":          ctx.corp_clicks,
+		"tag_package_strength":      tag_pkg_strength,
+		"tag_exploit_in_hand":       tag_exploit_in_hand,
+		"expected_runner_tags":      0.0,   # accumulated by project_corp_action ice installs
 		"remotes":         remotes,
 	}
 
@@ -206,11 +375,14 @@ func evaluate(s: Dictionary) -> float:
 	if corp_score   >= pts_to_win: return WIN_VALUE
 	if runner_score >= pts_to_win: return LOSE_VALUE
 
+	var identity: String = s.get("corp_identity", "") as String
+	var score := 0.0
+
 	# ── Near-loss stall detection ──────────────────────────────────────────────
 	# When the runner is one steal from winning and the Corp has no protected
-	# installed agenda, the position is deterministically losing — credits cannot
-	# win the game.  Return near-LOSE_VALUE so the MCTS strongly prefers any
-	# action that installs or advances a protected agenda over credit farming.
+	# installed agenda, apply a heavy penalty so the evaluator still
+	# differentiates between "ice the naked remote" and "gain a credit"
+	# rather than collapsing both to the same flat near-LOSE value.
 	if runner_score >= pts_to_win - 1 and corp_score < pts_to_win:
 		var has_scoring_agenda := false
 		for remote in s.get("remotes", []) as Array:
@@ -219,10 +391,7 @@ func evaluate(s: Dictionary) -> float:
 				has_scoring_agenda = true
 				break
 		if not has_scoring_agenda:
-			return LOSE_VALUE * 0.9   # near-certain loss; prefer any other state
-
-	var identity: String = s.get("corp_identity", "") as String
-	var score := 0.0
+			score -= 300.0
 
 	# ── Game-phase multipliers ─────────────────────────────────────────────────
 	var turn: int = s.get("turn_number", 1) as int
@@ -258,6 +427,21 @@ func evaluate(s: Dictionary) -> float:
 	score += float(s.get("rd_ice", 0)) * 1.5 * phase_econ_mult
 
 	# ── Remote scoring opportunities ───────────────────────────────────────────
+	# clicks_left: Corp clicks remaining in the snapshot (decremented by
+	# project_corp_action so urgency reflects the current position in the turn).
+	var clicks_left: int = s.get("corp_clicks_left", 0) as int
+
+	# ── Scoring urgency multiplier ─────────────────────────────────────────────
+	# Scale advancement bonuses by how much pressure exists:
+	#   • runner_fraction: how close is the runner to winning?
+	#   • corp_lag: how far is the Corp from winning?
+	# Multiplier grows as the race tightens, capped so it doesn't dominate
+	# other signal completely.
+	var runner_fraction: float = float(runner_score) / float(pts_to_win)
+	var corp_lag:        float = 1.0 - (float(corp_score) / float(pts_to_win))
+	var urgency_mult:    float = clampf(
+		1.0 + runner_fraction * 1.5 + corp_lag * 0.5, 1.0, 3.0)
+
 	for remote in s.get("remotes", []) as Array:
 		var r: Dictionary = remote as Dictionary
 		if not r.get("has_agenda", false):
@@ -274,11 +458,28 @@ func evaluate(s: Dictionary) -> float:
 		if ice == 0:
 			score -= 25.0
 
-		# Base value for having an agenda on the table — scoring trajectory.
-		if   needed <= 0: score += 10.0
-		elif needed == 1: score += 6.0
-		elif needed == 2: score += 4.0
-		else:             score += 2.0
+		# ── Scoring urgency (clicks-aware, pressure-scaled) ────────────────────
+		# Base urgency depends on how many advances remain vs. clicks available;
+		# then multiplied by urgency_mult so the Corp feels the ticking clock.
+		var base_urgency: float
+		if needed <= 0:
+			# Agenda ready to score — highest priority.
+			base_urgency = 30.0
+		elif needed <= clicks_left:
+			# Can finish scoring this turn with remaining clicks.
+			base_urgency = 22.0
+		elif needed == 1:
+			# One advance to scoring: top of next turn.
+			base_urgency = 15.0
+		elif needed == 2:
+			base_urgency = 9.0
+		elif needed == 3:
+			base_urgency = 5.0
+		else:
+			base_urgency = 3.0
+
+		score += base_urgency * urgency_mult
+
 		# Ice protection bonus (up to 2 layers)
 		var ice_bonus_per_layer: float = 1.5
 		# ── Jinteki: Replicating Perfection ──────────────────────────────────
@@ -305,8 +506,20 @@ func evaluate(s: Dictionary) -> float:
 		else:              score += float(trap_adv) * 1.5     # building threat
 
 	# ── Runner tags ────────────────────────────────────────────────────────────
-	var runner_tags: int = s.get("runner_tags", 0) as int
-	score += float(runner_tags) * 2.0
+	# Value is conditional on the Corp having tag-exploitation cards.
+	# Confirmed tags (runner_tags) are scored at full value; expected tags from
+	# installed tagging ice are scored at 50% — they're probabilistic and won't
+	# land until the runner's next run.
+	var runner_tags: int  = s.get("runner_tags", 0) as int
+	score += _tag_value(runner_tags, s)
+	var expected_tags: float = s.get("expected_runner_tags", 0.0) as float
+	if expected_tags > 0.0:
+		# Evaluate the expected tags as if they were 0.5 certain tags each,
+		# blended into the existing confirmed-tag pool for diminishing-returns calc.
+		var blended_tags: float = float(runner_tags) + expected_tags * 0.5
+		var blended_value: float = _tag_value_float(blended_tags, s)
+		var confirmed_value: float = _tag_value(runner_tags, s)
+		score += maxf(blended_value - confirmed_value, 0.0)
 
 	# ── Installed upgrades ─────────────────────────────────────────────────────
 	# Upgrades (Anoetic Void, Manegarm Skunkworks, etc.) provide run-time
@@ -375,6 +588,10 @@ func evaluate(s: Dictionary) -> float:
 func project_corp_action(s: Dictionary, action: GameAction, _ctx: GameContext) -> Dictionary:
 	var ns: Dictionary = s.duplicate(true)
 	var identity: String = s.get("corp_identity", "") as String
+
+	# Every Corp action costs 1 click — track remaining clicks in the snapshot
+	# so evaluate() can compute scoring urgency correctly.
+	ns["corp_clicks_left"] = max(0, (s.get("corp_clicks_left", 0) as int) - 1)
 
 	match action.type:
 		"gain_credits":
@@ -474,6 +691,48 @@ func project_corp_action(s: Dictionary, action: GameAction, _ctx: GameContext) -
 								break
 						ns["remotes"] = remotes_copy
 
+				# ── Prospective tag yield ──────────────────────────────────────────
+				# If this ice produces runner tags (sub, passive, or on-rez), accumulate
+				# a fractional expected-tag signal so the evaluator can value the plan
+				# "install tagging ice → exploit later" before the tag actually lands.
+				var ity: Dictionary = TAG_ICE_YIELD.get(card.id, {}) as Dictionary
+				if not ity.is_empty():
+					var base_yield: float  = ity.get("base_yield",   0.0) as float
+					var breaker_t:  String = ity.get("breaker_type", "")  as String
+					var mechanism:  String = ity.get("mechanism",    "sub") as String
+
+					# On-rez ice fires during approach before breaking — very reliable.
+					var run_prob: float
+					if mechanism == "on_rez":
+						run_prob = 0.90
+					elif server_id in SERVER_RUN_PROB_FALLBACK:
+						run_prob = SERVER_RUN_PROB_FALLBACK[server_id] as float
+					else:
+						# Remote: higher run probability when an agenda is present.
+						var has_agenda_r: bool = false
+						for rr in s.get("remotes", []) as Array:
+							if (rr as Dictionary).get("server_id", "") == server_id and \
+							   (rr as Dictionary).get("has_agenda", false):
+								has_agenda_r = true
+								break
+						run_prob = 0.35 if has_agenda_r else 0.12
+
+					# Reduce yield when the runner already has the counter-breaker.
+					var yield_adj: float = base_yield
+					if breaker_t != "":
+						if _ctx != null:
+							for rig_ic in _ctx.runner_rig:
+								var rr: InstalledCard = rig_ic as InstalledCard
+								if rr != null and rr.card_record != null and \
+								   rr.card_record.has_subtype(breaker_t):
+									yield_adj = base_yield * BREAK_YIELD_FACTOR
+									break
+						else:
+							yield_adj = base_yield * 0.5   # conservative fallback
+
+					ns["expected_runner_tags"] = \
+						(s.get("expected_runner_tags", 0.0) as float) + (yield_adj * run_prob)
+
 			elif card.is_agenda():
 				var proj_ice := 0
 				if _ctx != null:
@@ -559,6 +818,32 @@ func project_corp_action(s: Dictionary, action: GameAction, _ctx: GameContext) -
 				"neurospike":
 					var dmg: int = ns.get("corp_score", 0) as int
 					ns["runner_hand"] = max(0, (ns.get("runner_hand", 0) as int) - dmg)
+				"ip_enforcement":
+					# Remove X runner tags (at X cr cost already deducted above from card.cost=0),
+					# then recover the highest-AP matching agenda from runner's score area.
+					# Net effect: corp_score +X, runner_score -X, runner_tags -X.
+					# The base card cost is 0 (variable cost is paid separately in effects);
+					# we approximate the tag-removal credit cost inline.
+					var ipe_tags: int = s.get("runner_tags", 0) as int
+					var ipe_cred: int = ns.get("corp_credits", 0) as int
+					var ipe_max_x: int = min(ipe_tags, ipe_cred)
+					# Find highest AP available in runner score area (uses live ctx if present).
+					var ipe_x: int = 0
+					if _ctx != null:
+						for ipe_ic in _ctx.runner_score_area_cards:
+							var ipe_c: InstalledCard = ipe_ic as InstalledCard
+							if ipe_c == null or ipe_c.card_record == null:
+								continue
+							var ipe_ap: int = ipe_c.card_record.agenda_points
+							if ipe_ap <= ipe_max_x and ipe_ap > ipe_x:
+								ipe_x = ipe_ap
+					else:
+						ipe_x = min(ipe_max_x, 2)   # fallback: assume a 2-pt agenda
+					if ipe_x > 0:
+						ns["corp_credits"] = max(0, (ns.get("corp_credits", 0) as int) - ipe_x)
+						ns["runner_tags"]  = max(0, ipe_tags - ipe_x)
+						ns["corp_score"]   = (s.get("corp_score",   0) as int) + ipe_x
+						ns["runner_score"] = max(0, (s.get("runner_score", 0) as int) - ipe_x)
 				_:
 					ns["corp_credits"] = (ns.get("corp_credits", 0) as int) + 2
 

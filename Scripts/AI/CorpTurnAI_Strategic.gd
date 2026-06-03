@@ -42,6 +42,20 @@ func observe_runner_action(action_type: String, params: Dictionary) -> void:
 # ── 2-ply beam search ─────────────────────────────────────────────────────────
 
 func choose_action(ctx: GameContext) -> GameAction:
+	# Hard override 1: kill window — lethal combos skip search entirely.
+	var kill_action: GameAction = KillWindowPlanner.first_action(ctx)
+	if kill_action != null:
+		if not ctx.simulation_mode:
+			ctx.send_log("[Strategic] Kill line detected — executing: %s" % kill_action.describe())
+		return kill_action
+
+	# Hard override 2: scoring line — if remaining clicks complete a score, commit.
+	var scoring_action: GameAction = FastAdvancePlanner.first_action(ctx)
+	if scoring_action != null:
+		if not ctx.simulation_mode:
+			ctx.send_log("[Strategic] Scoring line detected — executing: %s" % scoring_action.describe())
+		return scoring_action
+
 	var candidates: Array = _generate_candidates(ctx)
 	if candidates.is_empty():
 		return super.choose_action(ctx)
@@ -104,6 +118,18 @@ func _expected_value(action: GameAction, snap: Dictionary, ctx: GameContext) -> 
 		# Ply 3 — evaluate post-runner state with forward-looking position bonus
 		var counter_ev: float = _best_corp_counter_ev(post_runner, ctx)
 		weighted_ev += prob * counter_ev
+
+	# ── Naked-agenda penalty ──────────────────────────────────────────────────
+	# project_corp_action grants projected remotes a virtual ice layer when
+	# ice is in hand (proj_ice=1), which suppresses the evaluator's -25 naked
+	# penalty for new-remote agenda installs.  Apply the same explicit -40
+	# correction used by the Tactical AI so Strategic never favours naked installs.
+	if _is_naked_agenda_install(action, snap):
+		weighted_ev -= 40.0
+
+	# ── Scoring-slot preparation bonus ────────────────────────────────────────
+	if _is_scoring_slot_prep(action, ctx):
+		weighted_ev += 20.0
 
 	return weighted_ev
 

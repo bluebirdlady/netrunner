@@ -37,8 +37,9 @@ const ECONOMY_THRESHOLD := 6
 const ECONOMY_CEILING   := 14
 const MIN_HAND_SIZE     := 4
 
-# Operations that can deal direct damage.  Checked by _kill_window_check.
-const DAMAGE_OPERATION_IDS := ["neurospike", "punitive_counterstrike", "boom", "scorched_earth"]
+# Operations that can deal direct damage.  Kept for legacy _kill_window_check
+# reference; active kill detection is now handled by KillWindowPlanner.
+const DAMAGE_OPERATION_IDS := ["neurospike", "measured_response", "punitive_counterstrike", "boom", "scorched_earth"]
 
 var _run_ai: CorpRunAI
 var _ability_registry: AbilityRegistry
@@ -73,16 +74,36 @@ func _choose_action_impl(ctx: GameContext) -> GameAction:
 	if best_card != null:
 		return GameAction.use_installed_card(best_card.runtime_instance_id, best_card.card_id)
 
+	# 0b2. Corp identity click action (e.g. Synapse Global: remove tag → 2cr)
+	var identity_click := _get_identity_click_action(ctx)
+	if identity_click != null:
+		return identity_click
+
+	# 0c. Kill window — checked before scoring so a lethal combo is never
+	# delayed by agenda advancement.  KillWindowPlanner covers:
+	#   • Neurospike chain (Corp scored this turn)
+	#   • Measured Response (threat >= 4, runner ran last turn, runner broke)
+	#   • Score-then-Spike combo (ready agenda + enough Neurospikes)
+	var kill_action: GameAction = KillWindowPlanner.first_action(ctx)
+	if kill_action != null:
+		return kill_action
+
 	# 1. Score a ready agenda
 	var ready := _find_ready_agenda(ctx)
 	if ready != null:
 		return GameAction.advance(ready.card_id)
 
+	# 1.5. Multi-click scoring line ─────────────────────────────────────────────
+	# If we can finish scoring an installed agenda THIS TURN using remaining
+	# clicks, commit to it now rather than deferring to economic or defensive
+	# actions.  FastAdvancePlanner checks all installed agendas and returns the
+	# first action of the sequence (could be an operation or an advance).
+	var scoring_action: GameAction = FastAdvancePlanner.first_action(ctx)
+	if scoring_action != null:
+		return scoring_action
+
 	# ── State-aware overrides ──────────────────────────────────────────────────
-	# A. Kill window: runner grip is small enough that a damage op ends the game.
-	var kill_action := _kill_window_check(ctx)
-	if kill_action != null:
-		return kill_action
+	# (Kill window handled above at 0c via KillWindowPlanner.)
 
 	# A2. Trap window: one more counter on an installed trap card reaches kill range.
 	var trap_action := _trap_window_check(ctx)
@@ -443,9 +464,18 @@ func _score_click_action(card: InstalledCard, ctx: GameContext) -> int:
 		var agenda_counters: int = card.get_counter("agenda")
 		if agenda_counters > 0:
 			score += agenda_counters * 3
-	# If the card is in the runner’s score area but has a click action for Corp
+	# Tag-cost click actions in runner’s score area (e.g. Oracle Thinktank: recover agenda).
+	# These remove a stolen agenda from the runner’s area — very valuable.
 	if ctx.runner_score_area_cards.has(card):
-		score += 5   # Corp can use stolen agendas, very valuable
+		var card_def2: Dictionary = _ability_registry._abilities.get(card.card_id, {}) as Dictionary
+		var click_def2: Dictionary = card_def2.get("click_action", {}) as Dictionary
+		var tag_cost: int = click_def2.get("tag_cost", 0)
+		if tag_cost > 0 and ctx.runner_tags >= tag_cost:
+			# Recovering a stolen agenda: value = agenda’s AP × 5 (removes from runner score)
+			var ap: int = card.card_record.agenda_points if card.card_record != null else 1
+			return ap * 5
+		# Other runner-score-area Corp actions (Next Big Thing, etc.)
+		score += 5
 	return score
 
 
@@ -473,14 +503,25 @@ func _best_click_action_card(ctx: GameContext) -> InstalledCard:
 			best_score = score
 			best_card = c
 
-	# Check Runner’s score area (for cards like Next Big Thing)
+	# Check Runner’s score area — Corp abilities on stolen agendas
+	# (e.g. Next Big Thing, Oracle Thinktank).
+	# Abilities may use _owner OR subject to mark Corp-side actions.
 	for card in ctx.runner_score_area_cards:
 		var c: InstalledCard = card as InstalledCard
-		var card_def = _ability_registry._abilities.get(c.card_id, {}) as Dictionary
-		var click_def = card_def.get("click_action", {}) as Dictionary
-		if click_def.is_empty() or click_def.get("subject", "") != "corp":
+		if c == null or c.card_record == null:
 			continue
-		var score = _score_click_action(c, ctx)
+		var card_def: Dictionary = _ability_registry._abilities.get(c.card_id, {}) as Dictionary
+		var click_def: Dictionary = card_def.get("click_action", {}) as Dictionary
+		if click_def.is_empty():
+			continue
+		var owner: String = click_def.get("_owner", click_def.get("subject", ""))
+		if owner != "corp":
+			continue
+		# Check tag cost (e.g. Oracle Thinktank needs 1 runner tag to fire)
+		var tag_cost: int = click_def.get("tag_cost", 0)
+		if tag_cost > 0 and ctx.runner_tags < tag_cost:
+			continue
+		var score := _score_click_action(c, ctx)
 		if score > best_score and ctx.corp_clicks >= 1:
 			best_score = score
 			best_card = c
@@ -522,7 +563,55 @@ func _find_best_operation(ctx: GameContext) -> CardRecord:
 
 
 func _operation_value(record: CardRecord, ctx: GameContext) -> int:
-	# Economy value (net credits gained)
+	# ── Bigger Picture: drain 5cr per tag removed (runner loses, Corp gains) ────
+	# Condition: runner is tagged (checked separately by _operation_passes_condition).
+	if record.id == "bigger_picture":
+		if ctx.runner_tags <= 0:
+			return -1   # condition won't pass
+		# Drain value: each tag we remove = runner loses 5cr + Corp gains 5cr.
+		# The AI defaults to mode 0 (drain), so value = tags × net credit swing.
+		var drain_tags: int = ctx.runner_tags   # drain all of them
+		var runner_can_afford: int = ctx.runner_credits   # capped by runner wealth
+		# Each tag removed: runner loses 5cr (capped at 0) and Corp gains 5cr.
+		var drained: int = mini(drain_tags * 5, runner_can_afford)
+		return (drained + drain_tags * 3) / 5   # rough net value score
+
+	# ── Retribution: trash a runner program or hardware (condition: tagged) ────
+	if record.id == "retribution":
+		if ctx.runner_tags <= 0:
+			return -1   # condition won't pass
+		# Value scales with rig quality — trashing a breaker is game-changing.
+		var has_breaker: bool = false
+		for rig_ic in ctx.runner_rig:
+			var rc: InstalledCard = rig_ic as InstalledCard
+			if rc == null or rc.card_record == null:
+				continue
+			if rc.card_record.has_subtype("fracter") or \
+			   rc.card_record.has_subtype("killer")  or \
+			   rc.card_record.has_subtype("decoder") or \
+			   rc.card_record.has_subtype("ai"):
+				has_breaker = true
+				break
+		if not has_breaker and ctx.runner_rig.is_empty():
+			return 1   # nothing worth trashing
+		return 10 if has_breaker else 5   # breaker trash is very high value
+
+	# ── IP Enforcement: recover highest-AP stolen agenda for X tags + X credits ─
+	# Value = AP recovered × 6 (large: restores corp score AND strips runner score).
+	if record.id == "ip_enforcement":
+		if ctx.runner_tags <= 0 or ctx.runner_score_area_cards.is_empty():
+			return -1   # condition won't pass; skip
+		var max_ap: int = 0
+		for scored_ic in ctx.runner_score_area_cards:
+			var ic: InstalledCard = scored_ic as InstalledCard
+			if ic == null or ic.card_record == null:
+				continue
+			var ap: int = ic.card_record.agenda_points
+			if ap <= ctx.runner_tags and ap <= ctx.corp_credits and ap > max_ap:
+				max_ap = ap
+		return -1 if max_ap == 0 else max_ap * 6
+
+	# ── Economy value (net credits gained) ────────────────────────────────────
 	const ECONOMY_MAP = {
 		"government_subsidy": 11,   # gain 14 cost 3 -> net +11
 		"hedge_fund":          4,   # gain 9 cost 5 -> net +4
@@ -955,6 +1044,33 @@ func _server_has_ice(ctx: GameContext, server_id: String) -> bool:
 	return server != null and server.has_ice()
 
 
+# Returns a GameAction for the Corp identity's click action if it is available
+# and passes its condition, or null otherwise.
+# Covers e.g. Synapse Global (click + remove tag → 2cr) and Topan Ormas Leader.
+# The action uses instance_id "identity_corp" which TurnManager routes correctly.
+func _get_identity_click_action(ctx: GameContext) -> GameAction:
+	if ctx.corp_identity == null:
+		return null
+	var id_def: Dictionary  = _ability_registry._abilities.get(ctx.corp_identity.id, {}) as Dictionary
+	var ca_def: Dictionary  = id_def.get("identity_click_action",
+		id_def.get("click_action", {})) as Dictionary
+	if ca_def.is_empty():
+		return null
+	# Check condition if present
+	var condition: Dictionary = ca_def.get("condition", {}) as Dictionary
+	if not condition.is_empty():
+		if not _interpreter._evaluate_condition(condition, ctx):
+			return null
+	# Check once-per-turn guard
+	var opt_key: String = ca_def.get("once_per_turn_key", "")
+	if opt_key != "":
+		var full_key := "identity_corp:%s" % opt_key
+		if ctx.once_per_turn_triggered.get(full_key, false):
+			return null
+	# Build the action using the sentinel instance_id TurnManager expects.
+	return GameAction.use_installed_card("identity_corp", ctx.corp_identity.id)
+
+
 func _find_unrezzed_asset_or_upgrade(ctx: GameContext) -> InstalledCard:
 	# Find any installed but unrezzed asset or upgrade the Corp can afford to rez
 	for server in ctx.servers.values():
@@ -999,15 +1115,26 @@ func _find_corp_click_action(ctx: GameContext) -> InstalledCard:
 			continue
 		if c.get_counter("agenda") > 0:
 			return c
-	# Also check runner's score area — Corp can use some stolen agendas (e.g. Next Big Thing)
+	# Also check runner's score area — Corp can use some stolen agendas (e.g. Next Big Thing,
+	# Oracle Thinktank).  Accept _owner OR subject == "corp".
 	for card in ctx.runner_score_area_cards:
 		var c: InstalledCard = card as InstalledCard
 		if c == null or c.card_record == null:
 			continue
 		var card_def: Dictionary = _ability_registry._abilities.get(c.card_id, {}) as Dictionary
-		var ca_def: Dictionary = card_def.get("click_action", {}) as Dictionary
-		if ca_def.is_empty() or ca_def.get("subject", "") != "corp":
+		var ca_def: Dictionary   = card_def.get("click_action", {}) as Dictionary
+		if ca_def.is_empty():
 			continue
+		var owner: String = ca_def.get("_owner", ca_def.get("subject", ""))
+		if owner != "corp":
+			continue
+		# Tag-cost actions (e.g. Oracle Thinktank: remove 1 tag → shuffle to R&D)
+		var tag_cost: int = ca_def.get("tag_cost", 0)
+		if tag_cost > 0:
+			if ctx.runner_tags >= tag_cost:
+				return c
+			continue   # can't afford tag cost
+		# Agenda-counter actions (e.g. Next Big Thing, Dividends)
 		if c.get_counter("agenda") > 0:
 			return c
 	return null

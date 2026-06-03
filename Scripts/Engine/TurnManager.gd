@@ -1414,16 +1414,19 @@ func _do_use_installed_card(player: String, action: GameAction) -> void:
 
 	# Find the installed card — also checks scored agendas for Dividends / NBT click actions
 	var installed: InstalledCard = null
-	var search_list: Array = ctx.runner_rig if player == "runner" else []
+	# duplicate() is critical: without it this is a reference alias and every
+	# append_array below permanently mutates ctx.runner_rig, causing Corp server
+	# cards and score-area cards to accumulate there on every use_installed_card call.
+	var search_list: Array = ctx.runner_rig.duplicate() if player == "runner" else []
 	for server in ctx.servers.values():
 		search_list.append_array((server as Server).root)
 	if player == "corp":
 		search_list.append_array(ctx.corp_score_area_cards)
 		# Runner's score area: Corp can use abilities on stolen agendas (e.g. Next Big Thing)
 		search_list.append_array(ctx.runner_score_area_cards)
-	if player == "runner":
-		# Runner's own score area: stolen agendas with click-based counter abilities (e.g. The Basalt Spire)
-		search_list.append_array(ctx.runner_score_area_cards)
+	# Note: runner_score_area_cards are deliberately NOT included for player=="runner".
+	# All stolen Corp agendas have Corp-side click actions (e.g. Basalt Spire, Oracle
+	# Thinktank); those are used by the Corp via the player=="corp" branch above.
 	for card in search_list:
 		var c: InstalledCard = card as InstalledCard
 		if c == null:
@@ -1439,9 +1442,13 @@ func _do_use_installed_card(player: String, action: GameAction) -> void:
 		var id_iid:    String     = "identity_runner"   if player == "runner" else "identity_corp"
 		if id_record != null and (card_id == id_record.id or instance_id == id_iid):
 			var id_def: Dictionary    = ability_registry._abilities.get(id_record.id, {}) as Dictionary
+			# Prefer dedicated identity_click_action key; fall back to plain click_action so
+			# identities like Synapse Global (which use click_action) work without data changes.
 			var id_ca_def: Dictionary = id_def.get("identity_click_action", {}) as Dictionary
 			if id_ca_def.is_empty():
-				ctx.send_log("use_installed_card: identity has no identity_click_action defined.")
+				id_ca_def = id_def.get("click_action", {}) as Dictionary
+			if id_ca_def.is_empty():
+				ctx.send_log("use_installed_card: identity has no click action defined.")
 				return
 			# Optional credit cost (e.g. Vic: 1cr per use)
 			var id_cc: int = id_ca_def.get("credit_cost", 0)

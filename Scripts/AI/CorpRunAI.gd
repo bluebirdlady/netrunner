@@ -74,6 +74,11 @@ func _should_rez_ice(card: InstalledCard, ctx: GameContext) -> bool:
 		# For now: rez anyway. Future enhancement: sometimes bluff unrezzed.
 		# Fall through to rez.
 
+	# Gate 5: strategic opportunity cost — is there a better unrezzed ice
+	# elsewhere that we cannot afford if we spend these credits now?
+	if _better_rez_opportunity_exists(card, ctx):
+		return false
+
 	_log("AI: rezzing %s for %d credits." % [record.title, rez_cost])
 	return true
 
@@ -198,7 +203,15 @@ func should_rez_ice(ice: InstalledCard, ctx: GameContext) -> bool:
 	if ctx.runner_credits == 0:
 		urgency_bonus = float(rez_cost)          # runner is broke — definitely rez
 
-	return (lifetime_value + urgency_bonus) >= float(rez_cost)
+	if not (lifetime_value + urgency_bonus) >= float(rez_cost):
+		return false
+
+	# Strategic opportunity cost: don't spend here if a higher-priority ice
+	# elsewhere would be unaffordable as a result.
+	if _better_rez_opportunity_exists(ice, ctx):
+		return false
+
+	return true
 
 
 # Estimate how many credits the runner will spend (or be forced to spend) each
@@ -308,3 +321,97 @@ func _dynamic_credit_floor(ctx: GameContext) -> int:
 			if not c.is_rezzed:
 				unrezzed += 1
 	return CREDIT_FLOOR + (unrezzed / 3)
+
+
+# ── Strategic rez: opportunity-cost comparison ────────────────────────────────
+
+# Returns true if the Corp should DEFER rezzing `this_ice` because there is
+# another unrezzed ice on a more threatened server with better
+# protection-per-credit, and we cannot afford both.
+#
+# The test: for every other unrezzed ice that we could NOT still afford after
+# rezzing `this_ice`, compare their combined priority scores
+#   priority = _rez_value_per_credit × _server_threat_estimate
+# Defer if any alternative beats this ice's priority by at least DEFER_MARGIN.
+const DEFER_MARGIN := 1.30   # alternative must be ≥30% better to justify holding
+
+func _better_rez_opportunity_exists(this_ice: InstalledCard, ctx: GameContext) -> bool:
+	var this_cost:     int   = ctx.query_rez_cost(this_ice)
+	var this_priority: float = _rez_value_per_credit(this_ice, ctx) * \
+	                           _server_threat_estimate(this_ice.server_id, ctx)
+	var floor: int = _dynamic_credit_floor(ctx)
+
+	for server_entry in ctx.servers.values():
+		var s: Server = server_entry as Server
+		for ice_entry in s.ice:
+			var other: InstalledCard = ice_entry as InstalledCard
+			if other == null or other == this_ice or other.is_rezzed:
+				continue
+			if other.card_record == null:
+				continue
+			var other_cost: int = ctx.query_rez_cost(other)
+			if other_cost <= 0:
+				continue   # free to rez — never blocks us
+
+			# Only matters if rezzing `this_ice` would leave us unable to
+			# rez `other` while staying above the credit floor.
+			var credits_after_this: int = ctx.corp_credits - this_cost
+			if credits_after_this >= other_cost + floor:
+				continue   # can afford both — no conflict
+
+			# We cannot afford both.  Compare priority scores.
+			var other_priority: float = _rez_value_per_credit(other, ctx) * \
+			                            _server_threat_estimate(other.server_id, ctx)
+
+			if other_priority >= this_priority * DEFER_MARGIN:
+				_log("AI: deferring %s (pri=%.2f) — saving for %s on %s (pri=%.2f)" % [
+					this_ice.card_record.title, this_priority,
+					other.card_record.title,    other.server_id,
+					other_priority])
+				return true
+
+	return false
+
+
+# Lifetime-value-per-credit: a dimensionless efficiency score used to rank
+# unrezzed ice when comparing opportunity cost.
+func _rez_value_per_credit(ice: InstalledCard, ctx: GameContext) -> float:
+	var rez_cost: int = ctx.query_rez_cost(ice)
+	if rez_cost <= 0:
+		return 100.0   # free ice is always efficient
+	var tax:       float = _estimate_runner_tax_per_encounter(ice, ctx)
+	var encounters: float = _estimate_remaining_encounter_count(ice, ctx)
+	return (tax * encounters) / float(rez_cost)
+
+
+# Urgency score for a server: how much does the runner want to access it right now?
+# Central servers and servers with agendas are higher-threat.
+# Recent successful runs raise the estimate further.
+func _server_threat_estimate(server_id: String, ctx: GameContext) -> float:
+	var threat: float
+	match server_id:
+		"rd":       threat = 2.5   # R&D is the most run central
+		"hq":       threat = 2.0   # HQ is frequently targeted
+		"archives": threat = 0.8   # usually low priority
+		_:
+			# Remote: depends on what is installed
+			var server: Server = ctx.get_server(server_id)
+			if server == null:
+				return 1.0
+			var root_card: InstalledCard = server.get_agenda_or_asset()
+			if root_card != null and root_card.card_record != null:
+				if root_card.card_record.is_agenda():
+					threat = 2.0   # agenda in remote — runner must check it
+				else:
+					threat = 1.2   # asset — runner may want to trash
+			else:
+				threat = 0.7   # empty remote — low priority
+
+	# Boost when the runner has already broken through this server this turn
+	# (they are actively targeting it).
+	if server_id == "hq" and ctx.runner_hq_successful_run_this_turn:
+		threat += 0.5
+	elif server_id == "rd" and ctx.runner_successful_run_on_rd_this_turn:
+		threat += 0.5
+
+	return threat

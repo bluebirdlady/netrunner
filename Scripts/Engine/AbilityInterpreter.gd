@@ -703,7 +703,10 @@ func _execute_effect(effect: Dictionary, ctx: GameContext, chosen_target: Varian
 
 		"end_run":
 			# Banner: if the runner spent 2cr to suppress ETR subs on this barrier, skip it.
-			var _etr_encounter: EncounterState = ctx.get_meta("_current_encounter", null) as EncounterState
+			# Use has_meta guard — get_meta throws in some Godot 4 builds even with a default.
+			var _etr_encounter: EncounterState = null
+			if ctx.has_meta("_current_encounter"):
+				_etr_encounter = ctx.get_meta("_current_encounter") as EncounterState
 			if _etr_encounter != null and _etr_encounter.barrier_etr_suppressed:
 				var _etr_ice: InstalledCard = _etr_encounter.ice_card
 				if _etr_ice != null and _etr_ice.card_record != null and \

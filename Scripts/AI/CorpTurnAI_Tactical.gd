@@ -23,6 +23,20 @@ func _init(ability_registry: AbilityRegistry) -> void:
 # ── Main override ─────────────────────────────────────────────────────────────
 
 func choose_action(ctx: GameContext) -> GameAction:
+	# Hard override 1: kill window — lethal damage takes absolute priority.
+	var kill_action: GameAction = KillWindowPlanner.first_action(ctx)
+	if kill_action != null:
+		if not ctx.simulation_mode:
+			ctx.send_log("[Tactical] Kill line detected — executing: %s" % kill_action.describe())
+		return kill_action
+
+	# Hard override 2: scoring line — finish advancing an agenda this turn.
+	var scoring_action: GameAction = FastAdvancePlanner.first_action(ctx)
+	if scoring_action != null:
+		if not ctx.simulation_mode:
+			ctx.send_log("[Tactical] Scoring line detected — executing: %s" % scoring_action.describe())
+		return scoring_action
+
 	var candidates: Array = _generate_candidates(ctx)
 	if candidates.is_empty():
 		return super.choose_action(ctx)
@@ -95,11 +109,8 @@ func _generate_candidates(ctx: GameContext) -> Array:
 			# Install into an already-iced remote — best case.
 			candidates.append(GameAction.install(agenda, protected.server_id))
 		else:
-			# No ready remote: install into a new one.
-			# Jinteki RP: runner must run a central first before accessing remotes,
-			# so an unprotected remote is much safer — install without requiring
-			# follow-up ice in hand.
-			# Other identities: require ice in hand to protect next click.
+			# No ready remote: install into a new one only if backup ice is in hand.
+			# Jinteki RP: runner must run a central first, so unprotected remotes are safer.
 			var backup_ice: CardRecord = _find_ice_in_hand(ctx)
 			var can_open_remote: bool = is_rp or (backup_ice != null and ctx.corp_credits >= max(0, agenda.cost) + 1)
 			if can_open_remote:
@@ -144,12 +155,23 @@ func _generate_candidates(ctx: GameContext) -> Array:
 		var unprotected: Server = _find_remote_needing_ice(ctx)
 		if unprotected != null:
 			candidates.append(GameAction.install(first_ice, unprotected.server_id, "ice"))
+		# Scoring-slot preparation: if there's an agenda in hand but no iced empty
+		# remote exists, offer to create one now.  Without this, the naked-install
+		# penalty causes indefinite agenda accumulation in HQ — the Corp can never
+		# build the protected slot it needs to install safely.
+		if agenda != null and _find_protected_empty_remote(ctx) == null:
+			candidates.append(GameAction.install(first_ice, "new_remote", "ice"))
 
 	# ── Installed card click actions ──────────────────────────────────────────
 	var click_card: InstalledCard = _find_corp_click_action(ctx)
 	if click_card != null:
 		candidates.append(GameAction.use_installed_card(
 			click_card.runtime_instance_id, click_card.card_id))
+
+	# ── Corp identity click action (e.g. Synapse Global: click + tag → 2cr) ──
+	var id_action: GameAction = _get_identity_click_action(ctx)
+	if id_action != null:
+		candidates.append(id_action)
 
 	# ── Advance any protected agenda ──────────────────────────────────────────
 	var any_agenda: InstalledCard = _find_any_installed_agenda(ctx)
@@ -188,7 +210,58 @@ func _score_candidate(
 	var post_corp:   Dictionary = _evaluator.project_corp_action(snap, action, ctx)
 	# Project runner's most likely response on the most threatened server
 	var post_runner: Dictionary = _evaluator.project_runner_response(post_corp, threat_server, ctx)
-	return _evaluator.evaluate(post_runner)
+	var score: float = _evaluator.evaluate(post_runner)
+
+	# ── Naked-agenda install penalty ───────────────────────────────────────────
+	# evaluate() is called on post_runner where the agenda has already been stolen,
+	# so the evaluator's naked-agenda penalty never fires for Tactical's 1-ply
+	# scores.  Apply a direct penalty here before returning so naked installs
+	# reliably score worse than gaining a credit.
+	if _is_naked_agenda_install(action, snap):
+		score -= 40.0
+
+	# ── Scoring-slot preparation bonus ─────────────────────────────────────────
+	# Installing ice into a brand-new remote when an agenda is stuck in hand is
+	# worth more than the evaluator can see in one ply — it enables next click's
+	# safe agenda install.  Boost it enough to beat gaining a credit.
+	if _is_scoring_slot_prep(action, ctx):
+		score += 20.0
+
+	return score
+
+
+func _is_scoring_slot_prep(action: GameAction, ctx: GameContext) -> bool:
+	# True when the action creates a brand-new iced remote AND the Corp has an
+	# agenda in hand that has nowhere safe to go yet.
+	if action == null or action.type != "install":
+		return false
+	if action.params.get("zone", "") != "ice" or action.params.get("server_id", "") != "new_remote":
+		return false
+	if _find_protected_empty_remote(ctx) != null:
+		return false   # a slot already exists — this is just ordinary ice
+	for entry in ctx.corp_hand:
+		var card: CardRecord = (entry as Dictionary).get("card_record", null) as CardRecord
+		if card != null and card.is_agenda():
+			return true
+	return false
+
+
+func _is_naked_agenda_install(action: GameAction, snap: Dictionary) -> bool:
+	if action == null or action.type != "install":
+		return false
+	var cr: CardRecord = action.params.get("card_record", null) as CardRecord
+	if cr == null or not cr.is_agenda():
+		return false
+	# new_remote installs always start with 0 ice
+	var server_id: String = action.params.get("server_id", "")
+	if server_id == "new_remote":
+		return true
+	# Check existing remotes in the snapshot for 0 ice
+	for remote in snap.get("remotes", []) as Array:
+		var r: Dictionary = remote as Dictionary
+		if r.get("server_id", "") == server_id and (r.get("ice_count", 0) as int) == 0:
+			return true
+	return false
 
 
 # ── Ice candidate helpers ─────────────────────────────────────────────────────

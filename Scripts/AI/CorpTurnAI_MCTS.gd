@@ -53,6 +53,20 @@ func seed_runner_model(identity_id: String, pool_card_ids: Array) -> void:
 # ── Main decision loop ────────────────────────────────────────────────────────
 
 func choose_action(ctx: GameContext) -> GameAction:
+	# Hard override 1: kill window — lethal combos bypass the MCTS search.
+	var kill_action: GameAction = KillWindowPlanner.first_action(ctx)
+	if kill_action != null:
+		if not ctx.simulation_mode:
+			ctx.send_log("[MCTS] Kill line detected — executing: %s" % kill_action.describe())
+		return kill_action
+
+	# Hard override 2: scoring line — bypass search when the answer is clear.
+	var scoring_action: GameAction = FastAdvancePlanner.first_action(ctx)
+	if scoring_action != null:
+		if not ctx.simulation_mode:
+			ctx.send_log("[MCTS] Scoring line detected — executing: %s" % scoring_action.describe())
+		return scoring_action
+
 	var t_start: int = Time.get_ticks_msec()
 
 	var action: GameAction = _mcts.choose_action(ctx, _card_pool, _bayes)

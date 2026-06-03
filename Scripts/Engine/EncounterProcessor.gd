@@ -54,7 +54,7 @@ func process(action: Dictionary, encounter: EncounterState,
 				ctx.send_log("[Encounter] Cannot afford self-break (need %d)." % bss_cost)
 				return false
 			ctx.runner_credits -= bss_cost
-			encounter.break_sub(bss_idx)
+			encounter.break_subroutine(bss_idx)
 			var sub_label: String = (encounter.subroutines[bss_idx] as Dictionary).get("label", "sub %d" % bss_idx)
 			ctx.send_log("[Encounter] %s spends %d cr to break '%s'." % [
 				ctx.runner_name(), bss_cost, sub_label

@@ -1328,10 +1328,12 @@ func _access_card(card: Variant) -> void:
 				ctx.send_log("Cupellation: card not found in rig.")
 
 	if card_record.is_agenda():
-		await _steal_agenda(card_record)
+		await _steal_agenda(card_record, card)
 	elif card_record.is_asset() or card_record.card_type == "upgrade":
-		# Don't offer trash for cards already in Archives
-		if is_installed:
+		# Rule 7.1.5.b: runner cannot trash cards in Archives.
+		# Cards accessed from HQ or R&D are not installed but still trashable.
+		var _in_archives: bool = _target_server != null and _target_server.server_id == "archives"
+		if not _in_archives:
 			await _offer_trash(card, card_record)
 
 	# Stop if game ended during steal or trash resolution
@@ -1360,7 +1362,7 @@ func _access_card(card: Variant) -> void:
 		var cb: Callable = ctx.get_meta("on_card_display_done") as Callable
 		await cb.call(card_record, _outcome)
 
-func _steal_agenda(card_record: CardRecord) -> void:
+func _steal_agenda(card_record: CardRecord, source: Variant = null) -> void:
 	# Vertigo (VP31): runner cannot steal while this run-scoped flag is active
 	if ctx.runner_cannot_steal_or_trash_this_run:
 		ctx.send_log("[Access] Runner cannot steal %s — Vertigo effect active." % card_record.title)
@@ -1424,6 +1426,13 @@ func _steal_agenda(card_record: CardRecord) -> void:
 				s.remove_from_root(c)
 				ctx.unregister_all_card_effects(c.runtime_instance_id)
 				break
+
+	# Remove from HQ hand or R&D deck when the card was accessed as an uninstalled card.
+	# Without this, the same copy can be stolen on every subsequent HQ/R&D access.
+	if source is Dictionary:
+		ctx.corp_hand.erase(source)
+	elif source is CardRecord:
+		ctx.corp_deck.erase(source)
 
 	# Fire on_steal ability (e.g. Send a Message, Superconducting Hub, Next Big Thing).
 	# Set current_event_data so counter effects (add_self_counters) can find the card.
@@ -1566,6 +1575,12 @@ func _offer_trash(card: Variant, card_record: CardRecord) -> void:
 			# Unrezzed cards go facedown in Archives
 			if not installed.is_rezzed:
 				ctx.corp_discard_facedown[card_record.title] = true
+		elif card is Dictionary:
+			# Card was accessed from HQ hand — remove it from the hand array
+			ctx.corp_hand.erase(card)
+		elif card is CardRecord:
+			# Card was accessed from R&D deck — remove it from the deck
+			ctx.corp_deck.erase(card)
 		ctx.corp_discard.append(card_record)
 
 		# Fire trash-during-breach event (Loup identity ability)
