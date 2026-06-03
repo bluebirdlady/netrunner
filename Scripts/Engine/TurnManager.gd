@@ -431,6 +431,7 @@ func _execute_action(player: String, action: GameAction) -> Dictionary:
 		"rez_card":           await _do_rez_card(player, action)
 		"use_installed_card": await _do_use_installed_card(player, action)
 		"play_from_archives": await _do_play_from_archives(player, action)
+		"use_hq_card":        await _do_use_hq_card(player, action)
 		"end_turn":           await _do_end_turn(player)
 		_:
 			return {"ok": false, "reason": "Unknown action type: %s" % action.type}
@@ -581,11 +582,86 @@ func _validate_action(player: String, action: GameAction) -> Dictionary:
 				return {"ok": false, "reason": "%s not found in Archives" % pfa_card_id}
 			return {"ok": true, "reason": ""}
 
+		"use_hq_card":
+			# Expendable ability: activate a card from HQ by paying [click] + credit cost,
+			# revealing and trashing the card.  Used by Slash & Burn Agriculture, Tree Line,
+			# Angelique Garza Correa, and similar "expendable" TAI Corp cards.
+			if clicks < 1:
+				return {"ok": false, "reason": "Not enough clicks"}
+			var uhcv_card_id: String = action.params.get("card_id", "")
+			var uhcv_def: Dictionary = ability_registry._abilities.get(uhcv_card_id, {}) as Dictionary
+			var uhcv_hq_def: Dictionary = uhcv_def.get("hq_click_ability", {}) as Dictionary
+			# Threat condition (e.g. Angelique requires Threat 3)
+			var uhcv_threat: int = uhcv_hq_def.get("threat_condition", -1)
+			if uhcv_threat >= 0 and ctx.threat_level() < uhcv_threat:
+				return {"ok": false, "reason": "%s requires Threat %d (current: %d)." % [
+					uhcv_card_id, uhcv_threat, ctx.threat_level()]}
+			# Credit cost
+			var uhcv_cr: int = uhcv_hq_def.get("credit_cost", 0)
+			if ctx.corp_credits < uhcv_cr:
+				return {"ok": false, "reason": "Cannot afford %s (need %d cr, have %d)." % [
+					uhcv_card_id, uhcv_cr, ctx.corp_credits]}
+			# Card must be present in HQ
+			var uhcv_found := false
+			for uhcv_e in ctx.corp_hand:
+				if (uhcv_e as Dictionary).get("card_id", "") == uhcv_card_id:
+					uhcv_found = true
+					break
+			if not uhcv_found:
+				return {"ok": false, "reason": "%s not found in HQ." % uhcv_card_id}
+			return {"ok": true, "reason": ""}
+
 		_:
 			return {"ok": false, "reason": "Unknown action type: %s" % action.type}
 
 
 # ── Action implementations ────────────────────────────────────────────────────
+
+# ── Expendable (HQ click ability) ────────────────────────────────────────────
+# Handles non-operation Corp cards (agendas, ice, upgrades) that have an ability
+# usable from HQ by paying [click] + credit_cost, then revealing and trashing
+# the card itself.  Examples: Slash & Burn Agriculture, Tree Line, Angelique.
+func _do_use_hq_card(player: String, action: GameAction) -> void:
+	_spend_click(player)
+
+	var uhc_card_id: String   = action.params.get("card_id", "")
+	var uhc_def: Dictionary   = ability_registry._abilities.get(uhc_card_id, {}) as Dictionary
+	var uhc_hq_def: Dictionary = uhc_def.get("hq_click_ability", {}) as Dictionary
+	var uhc_cr: int           = uhc_hq_def.get("credit_cost", 0)
+
+	# Find the card entry in HQ.
+	var uhc_entry: Variant    = null
+	var uhc_record: CardRecord = null
+	for e in ctx.corp_hand:
+		var d: Dictionary = e as Dictionary
+		if d.get("card_id", "") == uhc_card_id:
+			uhc_entry  = e
+			uhc_record = d.get("card_record", null) as CardRecord
+			break
+
+	if uhc_entry == null or uhc_record == null:
+		push_error("_do_use_hq_card: '%s' not found in HQ." % uhc_card_id)
+		return
+
+	# Pay credit cost.
+	if uhc_cr > 0:
+		ctx.corp_credits -= uhc_cr
+		if not ctx.simulation_mode: emit_signal("credits_changed", player, ctx.corp_credits)
+
+	# Reveal (log) and trash from HQ to Archives faceup.
+	ctx.corp_hand.erase(uhc_entry)
+	ctx.corp_discard.append(uhc_record)
+	ctx.send_log("[Expendable] %s reveals and trashes %s from HQ." % [
+		ctx.corp_name(), uhc_record.title])
+	if not ctx.simulation_mode: emit_signal("hand_changed", player)
+
+	# Fire the effects defined in hq_click_ability.
+	var uhc_effects: Array = uhc_hq_def.get("effects", []) as Array
+	if not uhc_effects.is_empty():
+		ctx.current_event_data = {"card_id": uhc_card_id, "card_instance_id": uhc_card_id}
+		await interpreter.execute_trigger({"effects": uhc_effects}, ctx)
+		ctx.current_event_data = {}
+
 
 func _do_gain_credits(player: String) -> void:
 	_spend_click(player)
@@ -845,6 +921,12 @@ func _do_install(player: String, action: GameAction) -> void:
 				"card": installed,
 				"card_instance_id": installed.runtime_instance_id
 			}, interpreter)
+		# Fire runner_installs_program for LilyPAD and similar "first program install" triggers
+		if record.card_type == "program":
+			await ctx.notify_event("runner_installs_program", {
+				"card": installed,
+				"card_instance_id": installed.runtime_instance_id
+			}, interpreter)
 		# Fire runner_installs_card for Bling and similar triggers
 		await ctx.notify_event("runner_installs_card", {
 			"credits_paid": ic_remaining_cost,
@@ -942,6 +1024,14 @@ func _do_install(player: String, action: GameAction) -> void:
 	# Track Corp installs this turn for Seamless Launch restriction
 	if player == "corp":
 		ctx.corp_installed_this_turn.append(record.id)
+
+	# Fire corp_installs_in_root for Lago Paranoá Shelter and similar triggers.
+	# Fires whenever the Corp places a card in the root zone of any server (not ice).
+	if player == "corp" and zone == "root":
+		await ctx.notify_event("corp_installs_in_root", {
+			"card_id": record.id,
+			"server_id": server_id
+		}, interpreter)
 
 	# A Teia: IP Recovery — the first time each turn the Corp installs a card in the root
 	# of, or protecting (ice), a remote server, offer a free install from HQ into another
@@ -1805,7 +1895,9 @@ func _register_card_listeners(installed: InstalledCard) -> void:
 						"runner_action_phase_ends", "melies_u_flipped",
 						"tag_removed", "corp_purges_virus_counters", "corp_rezzes_card",
 						"corp_rezzes_ice", "runner_takes_tags", "runner_rig_action",
-						"card_accessed_event", "wage_workers_threshold"]:
+						"card_accessed_event", "wage_workers_threshold",
+						"runner_bypasses_ice",
+						"runner_installs_program", "corp_installs_in_root"]:
 		var trigger_def = card_def.get(event_type, null)
 		if trigger_def != null:
 			ctx.register_listener(event_type, instance_id, trigger_def as Dictionary)

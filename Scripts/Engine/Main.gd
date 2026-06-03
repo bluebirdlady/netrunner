@@ -131,6 +131,8 @@ func _wire_proxies_to_game_ui() -> void:
 		return await game_ui.show_carnivore_prompt(card_record)
 	runner_brain.choose_pay_to_avoid_damage_proxy = func(cost: int, damage: int, damage_type: String) -> bool:
 		return await game_ui.show_pay_to_avoid_damage_prompt(cost, damage, damage_type)
+	runner_brain.choose_suffer_damage_or_etr_proxy = func(amount: int, damage_type: String) -> bool:
+		return await game_ui.show_suffer_damage_or_etr_prompt(amount, damage_type)
 	runner_brain.choose_optional_ability_proxy = func(prompt_text: String) -> bool:
 		return await game_ui.show_optional_ability_prompt(prompt_text)
 	runner_brain.spend_click_to_continue_proxy = func() -> bool:
@@ -172,6 +174,8 @@ func _wire_proxies_to_run_scene(run_scene: RunScene) -> void:
 		return await run_scene.show_choose_subs_to_break_prompt(candidates, max_count, encounter)
 	runner_brain.host_ice_proxy = func(candidates: Array, _ctx: GameContext, prompt: String = "") -> InstalledCard:
 		return await game_ui.show_host_ice_prompt(candidates, prompt if prompt != "" else "Choose a piece of ice to host this card on:")
+	runner_brain.choose_suffer_damage_or_etr_proxy = func(amount: int, damage_type: String) -> bool:
+		return await game_ui.show_suffer_damage_or_etr_prompt(amount, damage_type)
 	runner_brain.choose_optional_ability_proxy = func(prompt_text: String) -> bool:
 		return await game_ui.show_optional_ability_prompt(prompt_text)
 	runner_brain.spend_click_to_continue_proxy = func() -> bool:

@@ -90,6 +90,8 @@ func execute(server_id: String) -> void:
 	ctx.active_server_additional_steal_cost   = {}     # reset for Daniela Jorge Inácio
 	ctx.active_server_additional_trash_cost   = {}     # reset for Daniela Jorge Inácio
 	ctx.run_event_trash_credits               = 0      # reset for Bahia Bands
+	ctx.run_s_dobrado_encounter_count         = 0      # reset for S-Dobrado
+	ctx.arissana_installed_this_run_iid       = ""    # reset for Arissana
 
 	ctx.send_log("--- Run on %s begins ---" % server.display_name())
 	await _phase_initiation()
@@ -273,10 +275,39 @@ func _phase_encounter_ice(ice_card: InstalledCard) -> void:
 		await _phase_end()
 		return
 
+	# S-Dobrado (TAI): first encountered rezzed ice is bypassed automatically.
+	# At Threat 4, the runner may spend [click] to bypass the second encountered ice.
+	# Threat level is checked at the moment the encounter begins (Archer ruling:
+	# if threat drops during the encounter window, the ability is no longer active).
+	if ctx.run_modifiers.get("s_dobrado_active", false) and ice_card.is_rezzed:
+		var _sdb_n: int = ctx.run_s_dobrado_encounter_count
+		ctx.run_s_dobrado_encounter_count += 1
+		if _sdb_n == 0:
+			ctx.run_modifiers["bypass_current_ice"] = true
+			ctx.send_log("[S-Dobrado] First encountered ice (%s) — bypassed." % ice_card.display_name())
+		elif _sdb_n == 1 and ctx.threat_level() >= 4:
+			var _sdb_spend := false
+			var _sdb_dm: Object = ctx.runner_decision_maker
+			if _sdb_dm != null and _sdb_dm.has_method("choose_optional_ability"):
+				_sdb_spend = await _sdb_dm.choose_optional_ability(
+					"S-Dobrado (Threat 4): spend [click] to bypass %s?" % ice_card.display_name(), ctx)
+			else:
+				_sdb_spend = ctx.runner_clicks > 0  # AI: spend if possible
+			if _sdb_spend and ctx.runner_clicks > 0:
+				ctx.runner_clicks -= 1
+				ctx.run_modifiers["bypass_current_ice"] = true
+				ctx.send_log("[S-Dobrado] Threat 4 — Runner spends [click] to bypass %s." % ice_card.display_name())
+
 	# Bypass: runner ability set this flag during encounter_ice — skip subroutines entirely
 	if ctx.run_modifiers.get("bypass_current_ice", false):
 		ctx.run_modifiers.erase("bypass_current_ice")
 		ctx.send_log("[Bypass] %s is bypassed — subroutines do not fire." % ice_card.display_name())
+		# Fire bypass event so hardware such as Capybara can respond (derez, etc.)
+		await ctx.notify_event("runner_bypasses_ice",
+			{"ice": ice_card, "card_instance_id": ice_card.runtime_instance_id}, interpreter)
+		if ctx.run_ended:
+			await _phase_end()
+			return
 		await _phase_movement()
 		return
 
@@ -520,6 +551,13 @@ func _phase_movement() -> void:
 		# Fire ice-specific and trojan on-pass triggers (Phoneutria, Tatu-Bola, VSA, Pichação).
 		# These run AFTER the general pass_ice event and BEFORE the Sisyphus re-encounter check.
 		await _fire_on_pass_triggers(_ice_positions[_ice_index], pass_broken_with_decoder)
+		# Tatu-Bola (and similar pass-swap effects): update _ice_positions snapshot so any
+		# re-encounter (Sisyphus Protocol etc.) uses the newly installed ice, not the departed one.
+		if ctx.has_meta("pass_swap_ice"):
+			var psw_ic: InstalledCard = ctx.get_meta("pass_swap_ice") as InstalledCard
+			ctx.remove_meta("pass_swap_ice")
+			if psw_ic != null and _ice_index < _ice_positions.size():
+				_ice_positions[_ice_index] = psw_ic
 		if ctx.run_ended:
 			await _phase_end()
 			return
@@ -799,6 +837,23 @@ func _phase_end() -> void:
 				ctx.runner_deck.push_front(bb_card.card_record)
 				ctx.send_log("Beta Build: %s returned to top of stack." % bb_card.card_record.title)
 
+	# Arissana Rocha Nahu: Street Artist (TAI): if the runner installed a program via Arissana
+	# this run, check whether it is a trojan. If not, trash it at run end.
+	if ctx.arissana_installed_this_run_iid != "":
+		var aris_end_iid: String = ctx.arissana_installed_this_run_iid
+		ctx.arissana_installed_this_run_iid = ""
+		var aris_prog: InstalledCard = ctx.get_installed_card_by_instance_id(aris_end_iid)
+		if aris_prog != null:
+			var aris_is_trojan: bool = ability_registry.get_flag(aris_prog.card_id, "install_on_ice")
+			if not aris_is_trojan:
+				ctx.runner_rig.erase(aris_prog)
+				ctx.unregister_all_card_effects(aris_end_iid)
+				if aris_prog.card_record != null:
+					ctx.runner_discard.append(aris_prog.card_record)
+					ctx.send_log("[Arissana] %s is not a trojan — trashed at run end." % aris_prog.display_name())
+			else:
+				ctx.send_log("[Arissana] %s is a trojan — stays installed." % aris_prog.display_name())
+
 	ctx.run_ended      = false
 	ctx.run_modifiers  = {}   # clear all run-scoped modifiers
 
@@ -859,25 +914,40 @@ func _breach_server() -> void:
 						access_list.append(ctx.corp_deck[i + 1])
 		ctx.send_log("[Breach] Bonus access: %d extra card(s)." % bonus_access)
 
-	# Mercury (TAI): +1 access on HQ or R&D breach if the runner broke no subroutines this run.
+	# Mercury: Chrome Libertador (TAI): once per turn, when breaching HQ or R&D, if the
+	# runner did not break any subroutines this run, may access 1 additional card.
+	# Rulings: "once per turn" spans all runs (not per-run); optional ("you may");
+	# Divide and Conquer: bonus applies to HQ or R&D, not both in the same trigger.
 	if ctx.runner_identity != null and ctx.runner_identity.id == "mercury" \
 			and not ctx.run_runner_broke_any_subroutine \
-			and _target_server.server_id in ["hq", "rd"]:
-		match _target_server.server_id:
-			"hq":
-				var merc_available: Array = []
-				for mi in range(ctx.corp_hand.size()):
-					if mi not in _hq_accessed_indices:
-						merc_available.append(mi)
-				merc_available.shuffle()
-				if not merc_available.is_empty():
-					access_list.append(ctx.corp_hand[merc_available[0]])
-					_hq_accessed_indices.append(merc_available[0])
-			"rd":
-				var merc_next: int = access_list.size()   # next card index in R&D
-				if merc_next < ctx.corp_deck.size():
-					access_list.append(ctx.corp_deck[merc_next])
-		ctx.send_log("[Mercury] No subroutines broken this run — +1 bonus access.")
+			and _target_server.server_id in ["hq", "rd"] \
+			and not ctx.once_per_turn_triggered.get("mercury:bonus_access", false):
+		var merc_use := false
+		var merc_dm: Object = ctx.runner_decision_maker
+		if merc_dm != null and merc_dm.has_method("choose_optional_ability"):
+			merc_use = await merc_dm.choose_optional_ability(
+				"Mercury: Chrome Libertador — access 1 additional card from %s?" % \
+				_target_server.server_id.to_upper(), ctx)
+		else:
+			merc_use = true   # AI: always take bonus access
+		if merc_use:
+			ctx.once_per_turn_triggered["mercury:bonus_access"] = true
+			match _target_server.server_id:
+				"hq":
+					var merc_available: Array = []
+					for mi in range(ctx.corp_hand.size()):
+						if mi not in _hq_accessed_indices:
+							merc_available.append(mi)
+					merc_available.shuffle()
+					if not merc_available.is_empty():
+						access_list.append(ctx.corp_hand[merc_available[0]])
+						_hq_accessed_indices.append(merc_available[0])
+				"rd":
+					var merc_next: int = access_list.size()   # next card index in R&D
+					if merc_next < ctx.corp_deck.size():
+						access_list.append(ctx.corp_deck[merc_next])
+			ctx.send_log("[Mercury] No subroutines broken this run — +1 bonus access on %s." % \
+				_target_server.server_id.to_upper())
 
 	if access_list.is_empty():
 		ctx.send_log("[Breach] Nothing to access.")
@@ -1740,6 +1810,83 @@ func _apply_run_position_reset() -> bool:
 # ── On-pass trigger firing ───────────────────────────────────────────────────
 #
 # Fires after the runner successfully passes a piece of ice.  Two trigger types:
+# ── Arissana Rocha Nahu: Street Artist — in-run program install ───────────────
+#
+# Called when the runner chooses to use Arissana's once-per-turn paid ability.
+# Installs 1 program from grip at normal install cost. At run end, RSM trashes
+# the program unless it is a trojan (has install_on_ice: true flag).
+func _arissana_install_program() -> void:
+	# Filter grip for programs
+	var aris_candidates: Array = []
+	for aris_entry in ctx.runner_hand:
+		var aris_e: Dictionary = aris_entry as Dictionary
+		var aris_r: CardRecord = aris_e.get("card_record", null) as CardRecord
+		if aris_r != null and aris_r.card_type == "program":
+			aris_candidates.append(aris_entry)
+	if aris_candidates.is_empty():
+		ctx.send_log("[Arissana] No programs in grip to install.")
+		return
+
+	# Runner chooses which program
+	var aris_chosen: Variant = aris_candidates[0]
+	var aris_rdm: Object = ctx.runner_decision_maker
+	if aris_rdm != null and aris_rdm.has_method("choose_card_from_hand"):
+		aris_chosen = await aris_rdm.choose_card_from_hand(aris_candidates, ctx)
+	if aris_chosen == null:
+		ctx.send_log("[Arissana] Runner declines to install.")
+		return
+
+	var aris_record: CardRecord = (aris_chosen as Dictionary).get("card_record", null) as CardRecord
+	if aris_record == null:
+		return
+
+	# Check install cost and MU
+	var aris_cost: int = max(0, aris_record.cost if aris_record.cost >= 0 else 0)
+	if ctx.runner_credits < aris_cost:
+		ctx.send_log("[Arissana] Cannot afford %s (costs %d cr)." % [aris_record.title, aris_cost])
+		return
+	if aris_record.memory_cost > 0 and ctx.runner_mu_available() < aris_record.memory_cost:
+		ctx.send_log("[Arissana] Not enough MU to install %s (%d MU needed)." % [
+			aris_record.title, aris_record.memory_cost])
+		return
+
+	# Pay and install
+	ctx.runner_credits -= aris_cost
+	ctx.runner_hand.erase(aris_chosen)
+	var aris_inst := InstalledCard.make_runtime_instance(aris_record, "runner_rig", "root", true)
+	ctx.runner_rig.append(aris_inst)
+
+	# Register listeners
+	if ctx.has_meta("register_installed_card"):
+		(ctx.get_meta("register_installed_card") as Callable).call(aris_inst)
+
+	# Fire on_rez ability (install-time effects, e.g. Botulus places counters)
+	var aris_on_rez = ability_registry.get_on_rez(aris_record.id)
+	if aris_on_rez != null:
+		ctx.current_event_data = {"card": aris_inst, "card_instance_id": aris_inst.runtime_instance_id}
+		await interpreter.execute_trigger(aris_on_rez as Dictionary, ctx)
+		ctx.current_event_data = {}
+
+	# Fire install events (virus, program, card — for Cookbook, LilyPAD, Bling, etc.)
+	if aris_record.has_subtype("virus"):
+		await ctx.notify_event("runner_installs_virus", {
+			"card": aris_inst, "card_instance_id": aris_inst.runtime_instance_id
+		}, interpreter)
+	await ctx.notify_event("runner_installs_program", {
+		"card": aris_inst, "card_instance_id": aris_inst.runtime_instance_id
+	}, interpreter)
+	await ctx.notify_event("runner_installs_card", {
+		"card": aris_inst, "card_instance_id": aris_inst.runtime_instance_id
+	}, interpreter)
+
+	# Track for end-of-run trojan check
+	ctx.arissana_installed_this_run_iid = aris_inst.runtime_instance_id
+
+	ctx.send_log("[Arissana] %s installs %s for %d cr. [MU: %d/%d used]" % [
+		ctx.runner_name(), aris_record.title, aris_cost,
+		ctx.runner_mu_used(), ctx.runner_total_mu()])
+
+
 #   on_runner_passes      — defined on the ice itself (Phoneutria, Tatu-Bola, VSA)
 #   on_runner_passes_host — defined on a trojan hosted on the ice (Pichação)
 #
@@ -1889,6 +2036,23 @@ func _execute_paid_ability_and_rez_window(can_rez_ice: bool = false) -> void:
 	var max_window_actions := 100
 
 	emit_signal("timing_window_opened", current_priority_actor)
+
+	# Arissana Rocha Nahu: Street Artist (TAI): once per turn, 0cr, only during a run:
+	# install 1 program from grip (paying its install cost). Offered at the top of each
+	# PAW window so the runner gets first priority (active player in their turn).
+	# Ruling: Runner must act before the Corp can rez; once both pass, window closes.
+	if ctx.run_active and ctx.runner_identity != null and \
+			ctx.runner_identity.id == "arissana_rocha_nahu" and \
+			not ctx.once_per_turn_triggered.get("arissana:install", false):
+		var aris_dm: Object = ctx.runner_decision_maker
+		var aris_use := false
+		if aris_dm != null and aris_dm.has_method("choose_optional_ability"):
+			aris_use = await aris_dm.choose_optional_ability(
+				"Arissana Rocha Nahu: Street Artist — install a program from grip (paying its cost)?", ctx)
+		# else: AI defaults to false (conserve unless DM overrides)
+		if aris_use:
+			ctx.once_per_turn_triggered["arissana:install"] = true
+			await _arissana_install_program()
 
 	while consecutive_passes < 2:
 		if action_count >= max_window_actions:

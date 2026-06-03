@@ -256,6 +256,14 @@ var runner_outside_credits_spent_pending: int = 0
 # Incremented by the pichacao_pass_host effect; cleared at the start of each run.
 # Used to determine whether Pichação returns itself to grip on the 2nd click gained.
 var run_clicks_gained_this_run: int = 0
+# S-Dobrado (TAI): counts how many rezzed ice the runner has encountered during this run.
+# Used to gate the first-encounter auto-bypass and the Threat-4 second-encounter click-bypass.
+# Cleared at the start of each run.
+var run_s_dobrado_encounter_count: int = 0
+# Arissana Rocha Nahu: Street Artist (TAI): runtime_instance_id of the program Arissana
+# installed during the current run. Empty string if none. Cleared at run start.
+# At run end, RSM checks if the program is a trojan; if not, it is trashed.
+var arissana_installed_this_run_iid: String = ""
 # VP36 Méliès U: which central server the Corp secretly predicted ("hq", "rd", "archives").
 # Set by corp_secretly_select_melies_side at corp_discard_phase_ends; read by flip_melies_u.
 # Empty string means no prediction has been made yet (before Corp's first discard phase).
@@ -1278,6 +1286,8 @@ func clone_for_sim() -> GameContext:
 	c.runner_access_blocked_card_iids             = runner_access_blocked_card_iids.duplicate()
 	c.run_accessed_archives_card_ids              = run_accessed_archives_card_ids.duplicate()
 	c.run_modifiers                               = run_modifiers.duplicate()
+	c.run_s_dobrado_encounter_count               = run_s_dobrado_encounter_count
+	c.arissana_installed_this_run_iid             = arissana_installed_this_run_iid
 	c.runner_hq_successful_run_this_turn          = runner_hq_successful_run_this_turn
 
 	# ── Per-turn Corp flags ────────────────────────────────────────────────────

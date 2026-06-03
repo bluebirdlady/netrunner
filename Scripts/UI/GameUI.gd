@@ -1927,8 +1927,8 @@ func show_ice_swap_prompt(eligible_servers: Array) -> Variant:
 # ── Pay-to-avoid-damage prompt (Measured Response) ───────────────────────────
 
 func show_pay_to_avoid_damage_prompt(cost: int, damage: int, damage_type: String) -> bool:
-	var result := false
-	var done   := false
+	var done   := [false]
+	var result := [false]
 
 	var backdrop := ColorRect.new()
 	backdrop.color = Color(0, 0, 0, 0.5)
@@ -1969,8 +1969,8 @@ func show_pay_to_avoid_damage_prompt(cost: int, damage: int, damage_type: String
 	no_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	no_btn.add_theme_color_override("font_color", Color(1.0, 0.4, 0.4))
 	no_btn.pressed.connect(func():
-		result = false
-		done = true
+		result[0] = false
+		done[0] = true
 	)
 	btn_row.add_child(no_btn)
 
@@ -1981,23 +1981,92 @@ func show_pay_to_avoid_damage_prompt(cost: int, damage: int, damage_type: String
 	if _ctx.runner_credits < cost:
 		yes_btn.disabled = true
 	yes_btn.pressed.connect(func():
-		result = true
-		done = true
+		result[0] = true
+		done[0] = true
 	)
 	btn_row.add_child(yes_btn)
 
-	while not done:
+	while not done[0]:
 		await get_tree().process_frame
 
 	backdrop.queue_free()
-	return result
+	return result[0]
+
+
+# ── Semak-samun: suffer damage or end the run ────────────────────────────────
+
+func show_suffer_damage_or_etr_prompt(amount: int, damage_type: String) -> bool:
+	var done   := [false]
+	var result := [false]
+
+	var backdrop := ColorRect.new()
+	backdrop.color = Color(0, 0, 0, 0.55)
+	backdrop.set_anchors_preset(Control.PRESET_FULL_RECT)
+	backdrop.mouse_filter = Control.MOUSE_FILTER_STOP
+	add_child(backdrop)
+
+	var panel := PanelContainer.new()
+	panel.set_anchors_preset(Control.PRESET_CENTER)
+	panel.custom_minimum_size = Vector2(360, 0)
+	backdrop.add_child(panel)
+
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 10)
+	panel.add_child(vbox)
+
+	var lbl := Label.new()
+	lbl.text = "Semak-samun: end the run, or suffer %d %s damage to continue?" % [
+		amount, damage_type
+	]
+	lbl.add_theme_font_size_override("font_size", 13)
+	lbl.add_theme_color_override("font_color", Color(1.0, 0.5, 0.5))
+	lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	vbox.add_child(lbl)
+
+	var hand_lbl := Label.new()
+	hand_lbl.text = "Cards in grip: %d" % _ctx.runner_hand.size()
+	hand_lbl.add_theme_font_size_override("font_size", 11)
+	hand_lbl.add_theme_color_override("font_color", Color(0.55, 0.55, 0.6))
+	vbox.add_child(hand_lbl)
+
+	var btn_row := HBoxContainer.new()
+	btn_row.add_theme_constant_override("separation", 8)
+	vbox.add_child(btn_row)
+
+	var etr_btn := Button.new()
+	etr_btn.text = "End the Run"
+	etr_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	etr_btn.add_theme_color_override("font_color", Color(0.6, 0.6, 0.65))
+	etr_btn.pressed.connect(func():
+		result[0] = false
+		done[0] = true
+	)
+	btn_row.add_child(etr_btn)
+
+	var dmg_btn := Button.new()
+	dmg_btn.text = "Suffer %d %s Damage" % [amount, damage_type.capitalize()]
+	dmg_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	dmg_btn.add_theme_color_override("font_color", Color(1.0, 0.4, 0.4))
+	if _ctx.runner_hand.size() < amount:
+		dmg_btn.disabled = true
+	dmg_btn.pressed.connect(func():
+		result[0] = true
+		done[0] = true
+	)
+	btn_row.add_child(dmg_btn)
+
+	while not done[0]:
+		await get_tree().process_frame
+
+	backdrop.queue_free()
+	return result[0]
 
 
 # ── Optional ability prompt (e.g. Cacophony end-of-turn counter spend) ───────
 
 func show_optional_ability_prompt(prompt_text: String) -> bool:
-	var result := false
-	var done   := false
+	var done   := [false]
+	var result := [false]
 
 	var backdrop := ColorRect.new()
 	backdrop.color = Color(0, 0, 0, 0.5)
@@ -2030,8 +2099,8 @@ func show_optional_ability_prompt(prompt_text: String) -> bool:
 	no_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	no_btn.add_theme_color_override("font_color", Color(0.6, 0.6, 0.65))
 	no_btn.pressed.connect(func():
-		result = false
-		done = true
+		result[0] = false
+		done[0] = true
 	)
 	btn_row.add_child(no_btn)
 
@@ -2040,23 +2109,23 @@ func show_optional_ability_prompt(prompt_text: String) -> bool:
 	yes_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	yes_btn.add_theme_color_override("font_color", Color(0.4, 0.9, 0.5))
 	yes_btn.pressed.connect(func():
-		result = true
-		done = true
+		result[0] = true
+		done[0] = true
 	)
 	btn_row.add_child(yes_btn)
 
-	while not done:
+	while not done[0]:
 		await get_tree().process_frame
 
 	backdrop.queue_free()
-	return result
+	return result[0]
 
 
 # ── Psi game bid prompt ───────────────────────────────────────────────────────
 
 func show_psi_bid_prompt(max_bid: int) -> int:
-	var result := 0
-	var done   := false
+	var done   := [false]
+	var result := [0]
 
 	var backdrop := ColorRect.new()
 	backdrop.color = Color(0, 0, 0, 0.6)
@@ -2101,24 +2170,25 @@ func show_psi_bid_prompt(max_bid: int) -> int:
 			btn.add_theme_color_override("font_color", Color(0.4, 0.4, 0.4))
 		else:
 			btn.add_theme_color_override("font_color", Color(0.4, 0.9, 0.5))
+		var captured_bid: int = bid_amount
 		btn.pressed.connect(func():
-			result = bid_amount
-			done = true
+			result[0] = captured_bid
+			done[0] = true
 		)
 		btn_row.add_child(btn)
 
-	while not done:
+	while not done[0]:
 		await get_tree().process_frame
 
 	backdrop.queue_free()
-	return result
+	return result[0]
 
 
 # ── Carnivore prompt ──────────────────────────────────────────────────────────
 
 func show_carnivore_prompt(card_record: CardRecord) -> bool:
-	var result := false
-	var done   := false
+	var done   := [false]
+	var result := [false]
 
 	var backdrop := ColorRect.new()
 	backdrop.color = Color(0, 0, 0, 0.5)
@@ -2156,8 +2226,8 @@ func show_carnivore_prompt(card_record: CardRecord) -> bool:
 	no_btn.text = "Pass"
 	no_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	no_btn.pressed.connect(func():
-		result = false
-		done = true
+		result[0] = false
+		done[0] = true
 	)
 	btn_row.add_child(no_btn)
 
@@ -2166,16 +2236,16 @@ func show_carnivore_prompt(card_record: CardRecord) -> bool:
 	yes_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	yes_btn.add_theme_color_override("font_color", Color(1.0, 0.5, 0.3))
 	yes_btn.pressed.connect(func():
-		result = true
-		done = true
+		result[0] = true
+		done[0] = true
 	)
 	btn_row.add_child(yes_btn)
 
-	while not done:
+	while not done[0]:
 		await get_tree().process_frame
 
 	backdrop.queue_free()
-	return result
+	return result[0]
 
 
 # ── Discard to hand limit ─────────────────────────────────────────────────────
@@ -2217,7 +2287,11 @@ func show_discard_to_hand_limit_prompt(hand: Array, excess: int) -> Array:
 	scroll.add_child(card_row)
 
 	var selected: Array = []
-	var confirm_btn: Button
+
+	# Create confirm_btn before the for loop so toggle lambdas capture the real reference.
+	var confirm_btn := Button.new()
+	confirm_btn.text = "Confirm"
+	confirm_btn.disabled = true
 
 	for entry in hand:
 		var ed: Dictionary = entry as Dictionary
@@ -2253,9 +2327,6 @@ func show_discard_to_hand_limit_prompt(hand: Array, excess: int) -> Array:
 		)
 		col.add_child(tog)
 
-	confirm_btn = Button.new()
-	confirm_btn.text = "Confirm"
-	confirm_btn.disabled = true
 	vbox.add_child(confirm_btn)
 
 	var done := [false]

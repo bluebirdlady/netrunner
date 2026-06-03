@@ -23,7 +23,7 @@ func process(action: Dictionary, encounter: EncounterState,
 
 	match action_type:
 		"boost_strength":
-			var boost_ok: bool = _do_boost(action, encounter, ctx, ability_registry)
+			var boost_ok: bool = await _do_boost(action, encounter, ctx, ability_registry)
 			await ctx.check_outside_credits_trigger(interpreter)
 			return boost_ok
 		"break_subroutine":
@@ -98,7 +98,7 @@ func process(action: Dictionary, encounter: EncounterState,
 # ── Private helpers ───────────────────────────────────────────────────────────
 
 func _do_boost(action: Dictionary, encounter: EncounterState,
-		ctx: GameContext, ability_registry: AbilityRegistry) -> bool:
+		ctx: GameContext, ability_registry: AbilityRegistry):
 
 	var breaker := _find_breaker(action.get("card_id", ""), encounter)
 	if breaker == null:
@@ -123,6 +123,41 @@ func _do_boost(action: Dictionary, encounter: EncounterState,
 	if trashed_own_discount > 0 and ctx.runner_trashed_own_installed_this_turn:
 		cost = max(0, cost - trashed_own_discount)
 
+	# Calculate strength gained per use before any payment path.
+	# Unity: 1cr → strength equal to number of installed icebreakers (including itself).
+	var str_per_use: int = boost_dict.get("strength_gained", 1)
+	if boost_dict.get("strength_gained_modifier", "") == "installed_icebreaker_count":
+		str_per_use = ctx.count_installed_icebreakers()
+	var total_boost: int = str_per_use * times
+
+	# ── Audrey v2: boost costs trashing a card from grip ──────────────────────
+	var trash_grip_cost: int = boost_dict.get("cost_trash_grip", 0)
+	if trash_grip_cost > 0:
+		if ctx.runner_hand.size() < trash_grip_cost * times:
+			ctx.send_log("[Encounter] Cannot boost %s — not enough grip cards (need %d)." % [
+				breaker.display_name(), trash_grip_cost * times])
+			return false
+		for _tgc_i in range(times):
+			var tgc_entry: Dictionary = {}
+			var tgc_dm: Object = ctx.runner_decision_maker
+			if tgc_dm != null and tgc_dm.has_method("choose_card_from_grip_to_trash"):
+				tgc_entry = await tgc_dm.choose_card_from_grip_to_trash(ctx)
+			if tgc_entry.is_empty() and not ctx.runner_hand.is_empty():
+				tgc_entry = ctx.runner_hand[0] as Dictionary
+			if tgc_entry.is_empty():
+				return false
+			var tgc_cr: CardRecord = tgc_entry.get("card_record", null) as CardRecord
+			ctx.runner_hand.erase(tgc_entry)
+			if tgc_cr != null:
+				ctx.runner_discard.append(tgc_cr)
+				ctx.send_log("[Encounter] %s trashes %s from grip: +%d str." % [
+					breaker.display_name(), tgc_cr.title, str_per_use])
+		encounter.apply_boost(breaker, total_boost)
+		ctx.send_log("[Encounter] %s now at effective str %d." % [
+			breaker.display_name(), encounter.get_breaker_strength(breaker)])
+		return true
+
+	# ── Standard credit or stealth payment ───────────────────────────────────
 	var total_cost: int     = cost * times
 	var costs_stealth: bool = boost_dict.get("costs_stealth", false)
 
@@ -136,18 +171,11 @@ func _do_boost(action: Dictionary, encounter: EncounterState,
 			total_cost, ctx.runner_available_credits()])
 		return false
 
-	# Calculate strength gained per use.
-	# Unity: 1cr → strength equal to number of installed icebreakers (including itself).
-	var str_per_use: int = boost_dict.get("strength_gained", 1)
-	if boost_dict.get("strength_gained_modifier", "") == "installed_icebreaker_count":
-		str_per_use = ctx.count_installed_icebreakers()
-
 	if costs_stealth:
 		ctx.runner_spend_stealth_credits(total_cost)
 	else:
 		ctx.runner_spend_credits(total_cost)
 
-	var total_boost: int = str_per_use * times
 	if boost_dict.get("target_ice", false):
 		# Corsair and similar: reduce the encountered ice's strength rather than boosting the breaker.
 		encounter.ice_strength -= total_boost
@@ -360,6 +388,9 @@ func _do_break_all(action: Dictionary, encounter: EncounterState,
 
 	var cost_per_sub: int = break_dict.get("cost_per_sub", 1)
 	var virus_cost: int   = break_dict.get("cost_virus_counter", 0)
+	# Flat virus cost: pay once to break up to subs_per_use subs (Audrey v2 model).
+	# Different from cost_virus_counter which deducts 1 counter per sub (Botulus model).
+	var virus_flat: int   = break_dict.get("cost_virus_counter_flat", 0)
 
 	# discount_if_runner_trashed_own: paid abilities cost N less if runner trashed own card this turn (Boi Tata)
 	var ball_trashed_discount: int = break_dict.get("discount_if_runner_trashed_own", 0)
@@ -369,13 +400,28 @@ func _do_break_all(action: Dictionary, encounter: EncounterState,
 	var unbroken: Array   = encounter.unbroken_indices()
 
 	# ── subs_per_use cap ─────────────────────────────────────────────────────
-	# When the breaker can only break N subs per activation (Boomerang: 2),
+	# When the breaker can only break N subs per activation (Boomerang: 2, Audrey v2: 2),
 	# the runner chooses *which* subs to break rather than defaulting to 0..N-1.
 	var subs_cap: int = break_dict.get("subs_per_use", 0)
 	if subs_cap > 0 and unbroken.size() > subs_cap:
 		unbroken = await _ask_runner_choose_subs(unbroken, subs_cap, breaker, encounter, ctx)
 
-	if virus_cost > 0:
+	if virus_flat > 0:
+		# Flat virus cost (Audrey v2): pay once, break up to subs_per_use subs.
+		# The subs_cap selection above already capped unbroken to subs_per_use.
+		var av_flat: int = breaker.get_counter("virus")
+		if av_flat < virus_flat:
+			ctx.send_log("[Encounter] %s needs %d virus counter(s) to activate — has %d." % [
+				breaker.display_name(), virus_flat, av_flat])
+			return false
+		breaker.remove_counter("virus", virus_flat)
+		for idx in unbroken:
+			encounter.break_subroutine(idx)
+			var sub_label_flat: String = (encounter.subroutines[idx] as Dictionary).get("label", "sub %d" % idx)
+			ctx.send_log("[Encounter] %s breaks '%s'." % [breaker.display_name(), sub_label_flat])
+		ctx.send_log("[Encounter] %s spends 1 virus counter (%d remaining)." % [
+			breaker.display_name(), breaker.get_counter("virus")])
+	elif virus_cost > 0:
 		# Virus-counter cost — break as many as we have virus counters for.
 		var available_virus: int = breaker.get_counter("virus")
 		var can_break_v: int     = min(available_virus, unbroken.size())

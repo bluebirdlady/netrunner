@@ -217,7 +217,7 @@ func _estimate_runner_tax_per_encounter(ice: InstalledCard, ctx: GameContext) ->
 
 	# Breaker installed: estimate the credit cost to boost + break.
 	var b_record: CardRecord = breaker.card_record
-	var b_abilities: Dictionary = ability_registry._abilities.get(b_record.card_id, {})
+	var b_abilities: Dictionary = ability_registry._abilities.get(b_record.id, {})
 
 	var boost_cost: float = 0.0
 	var break_cost: float = 0.0

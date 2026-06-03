@@ -1851,7 +1851,10 @@
 	},
 
 	"hermes": {
-		"_note": "TAI Runner hardware (Console). +1 MU. Whenever an agenda is scored or stolen, Runner must add 1 unrezzed installed Corp card to HQ (mandatory). Runner always chooses the card.",
+		"_note": "TAI Runner hardware (Criminal, Console, 2cr, Inf 3). +1 MU. Whenever an agenda is scored or stolen, Runner must add 1 unrezzed installed Corp card to HQ (mandatory, no opt-out per ruling). Runner always chooses which card.",
+		"passive_modifiers": [
+			{"type": "mu_bonus", "value": 1}
+		],
 		"corp_scores_agenda": {
 			"effects": [{"type": "add_unrezzed_corp_card_to_hq"}]
 		},
@@ -1861,7 +1864,7 @@
 	},
 
 	"tucana": {
-		"_note": "TAI Corp upgrade (HB). Rezzed. When an agenda is scored or stolen FROM THIS SERVER: search R&D for 1 ice, install it in any server (cost −3, min 0), rez it for free.",
+		"_note": "TAI Corp upgrade (Remote only, Persistent, 2cr trash 1, Inf 3). When rezzed and an agenda is scored or stolen from the root of this server: Corp may search R&D for 1 ice, shuffle R&D, install and rez it paying a total of 3cr less (discount spreads across install+rez). If Corp cannot afford rez after discount, ice is installed unrezzed and revealed. Conditions: agenda_on_my_server (event server matches Tucana server) + self_is_rezzed.",
 		"corp_scores_agenda": {
 			"condition": {"type": "and", "conditions": [
 				{"type": "agenda_on_my_server"},
@@ -1875,6 +1878,21 @@
 				{"type": "self_is_rezzed"}
 			]},
 			"effects": [{"type": "search_rd_install_rez_ice_discount_3"}]
+		}
+	},
+
+	"salvo_testing": {
+		"_note": "TAI Corp agenda 5/3 (Weyland, Security). Whenever the Corp scores an agenda (including this one), may do 1 core damage. Fires via corp_scores_agenda listener registered after scoring.",
+		"corp_scores_agenda": {
+			"effects": [{
+				"type": "may_pay_for_effect",
+				"params": {
+					"subject": "corp",
+					"cost": 0,
+					"label": "Salvo Testing: do 1 core damage?",
+					"effects": [{"type": "deal_damage", "params": {"damage_type": "core", "amount": 1}}]
+				}
+			}]
 		}
 	},
 
@@ -1958,7 +1976,7 @@
 	},
 
 	"jaguarundi": {
-		"_note": "TAI Corp ice (NBN). Sentry. Str 2. When encountered at Threat 4: Runner must spend 1[click] or take 1 tag. Sub: End the run.",
+		"_note": "TAI Corp ice (NBN). Sentry - AP. Str 3. Threat 4: when encountered, give Runner 1 tag unless they spend [click]. Sub 1: give Runner 1 tag. Sub 2: if Runner is tagged, do 1 core damage.",
 		"on_encounter_self": {
 			"threat": 4,
 			"effects": [
@@ -1966,7 +1984,20 @@
 			]
 		},
 		"subroutines": [
-			{"label": "End the run.", "effects": [{"type": "end_run"}]}
+			{
+				"label": "Give the Runner 1 tag.",
+				"effects": [{"type": "give_tags", "params": {"amount": 1}}]
+			},
+			{
+				"label": "If the Runner is tagged, do 1 core damage.",
+				"effects": [
+					{
+						"type": "deal_damage",
+						"params": {"damage_type": "core", "amount": 1},
+						"condition": {"type": "runner_is_tagged"}
+					}
+				]
+			}
 		]
 	},
 
@@ -2904,7 +2935,7 @@
 	},
 
 	"phoneutria": {
-		"_note": "TAI Corp ice (Jinteki). AI Sentry. Str 3. on_runner_passes: if Runner grip >= 4 cards, give 1 tag. Two net damage subs.",
+		"_note": "TAI Corp ice (Jinteki). Sentry - AP - Observer. Str 2. on_runner_passes: if Runner grip >= 4 cards, give 1 tag. Two net damage subs.",
 		"on_runner_passes": {
 			"condition": {"type": "grip_size_gte", "value": 4},
 			"effects": [{"type": "give_tags", "params": {"amount": 1}}]
@@ -5426,9 +5457,9 @@
 	},
 
 	"solidarity_badge": {
-		"_note": "RWR Runner hardware (Criminal). First time each turn you trash a Corp card: place 1 power counter. Turn start: may remove 1 power counter to draw 1 card or remove 1 tag.",
-		"on_runner_trashes_corp_card": {
-			"condition": {"type": "first_time_this_turn"},
+		"_note": "TAI Runner hardware (Criminal, Chip, Inf 1). First time each turn you trash a Corp card: place 1 power counter. Turn start: may remove 1 power counter to draw 1 card or remove 1 tag.",
+		"runner_trashes_during_breach": {
+			"once_per_turn_key": "solidarity_trash",
 			"effects": [{"type": "add_self_counters", "counter": "power", "amount": 1}]
 		},
 		"runner_turn_start": {
@@ -5719,7 +5750,7 @@
 	},
 
 	"tatu_bola": {
-		"_note": "TAI Corp ice (Jinteki). AI Sentry. Str 4. on_runner_passes: Corp may swap with ice from HQ, gain 4cr. Sub: end the run.",
+		"_note": "TAI Corp ice 2cr Barrier str 1 (Neutral). When runner passes, Corp may swap with ice from HQ (gain 4cr; new ice installed unrezzed, no install cost). Sub: End the run.",
 		"on_runner_passes": {
 			"effects": [{"type": "corp_swap_self_ice_with_hq_gain_credits", "params": {"credits": 4}}]
 		},
@@ -5810,16 +5841,6 @@
 				"effects": [{"type": "install_from_archives_or_hq_free", "params": {"optional": true}}]
 			}
 		]
-	},
-
-	"tucana": {
-		"_note": "RWR Corp upgrade (Weyland). Remote server only. Persistent: whenever an agenda is scored or stolen from the root of this server, may search R&D for 1 ice, install and rez it paying 3cr less.",
-		"on_agenda_scored_or_stolen_in_root_server": {
-			"effects": [{
-				"type": "search_rd_install_ice_with_discount",
-				"params": {"optional": true, "discount": 3, "rez_included": true}
-			}]
-		}
 	},
 
 	"the_holo_man": {
@@ -6634,6 +6655,14 @@
 		}
 	},
 
+	"mercury_chrome_libertador": {
+		"_note": "TAI Runner identity (Criminal, Bioroid, 45/15, Link 0). Once per turn: when breaching HQ or R&D during a run, if no subroutines were broken this run, may access 1 additional card. Hardcoded in RSM _phase_breach (breach list builder) with once_per_turn_triggered guard + optional choose_optional_ability prompt. Ruling: Konjin with 0 subs does not count as breaking a subroutine. Divide and Conquer: bonus applies to either HQ or R&D, not both."
+	},
+
+	"arissana_rocha_nahu": {
+		"_note": "TAI Runner identity (Criminal, Natural, 45/15, Link 0). Once per turn → 0cr: Install 1 program from grip (paying its install cost) only during a run. At run end, trash that program if it is not a trojan (install_on_ice flag). Hardcoded in RSM _execute_paid_ability_and_rez_window (offer at top of each PAW) and _phase_end (trash check). _arissana_install_program() helper handles install+events. Ruling: cannot install after both players pass in approach PAW (window already closed)."
+	},
+
 	"epiphany_analytica_nations_undivided": {
 		"_note": "TAI Corp identity (NBN). The first time each turn the Runner steals or trashes a Corp card, place 1 power counter on this identity. [click], hosted power counter: look at top 3 R&D; may install 1.",
 		"runner_steals_agenda": {
@@ -6679,31 +6708,40 @@
 	},
 
 	"chrysopoeian_skimming": {
-		"_note": "TAI Corp asset (Weyland). Paid ability: 1cr, trash — Corp gains [click]. Implemented as a click_action in digital edition (one activation per turn).",
-		"click_action": {
-			"_owner": "corp",
-			"effects": [{"type": "corp_gain_click", "params": {"amount": 1}}]
+		"_note": "TAI Runner event 1cr (Criminal). Corp may reveal an agenda from HQ; if they do, Corp gains [click] next turn and draws 1 card. Otherwise, Runner looks at top 3 cards of R&D. The [click] is deferred (pending_click_bonuses) because this fires during the Runner's turn.",
+		"on_play": {
+			"effects": [{"type": "chrysopoeian_skimming_reveal_or_peek"}]
 		}
 	},
 
 	"slash_and_burn_agriculture": {
-		"_note": "TAI Corp operation (Weyland). Reveal and trash 1 card from HQ as a cost; place 2 advancement counters on 1 installed card.",
-		"on_play": {
+		"_note": "TAI Corp agenda 4/2 (Weyland, Expansion-Expendable). While in HQ: [click], 1cr, reveal and trash this agenda → place 2 advancement counters on 1 installed card you can advance. Activated via use_hq_card action.",
+		"hq_click_ability": {
+			"credit_cost": 1,
 			"effects": [
-				{"type": "reveal_trash_from_hq_as_cost", "params": {"amount": 1}},
-				{"type": "add_advancement_counters_on_installed", "params": {"amount": 2}}
+				{"type": "add_advancement_counters_on_installed", "params": {"amount": 2, "target_zone": "root"}}
 			]
 		}
 	},
 
 	"tree_line": {
-		"_note": "TAI Corp operation (Weyland). Reveal and trash 1 card from HQ as a cost; place 3 advancement counters on 1 installed card.",
-		"on_play": {
+		"_note": "TAI Corp ice 4cr Barrier-Expendable str 4 (Neutral). While in HQ: [click], 1cr, reveal and trash → place 3 advancement counters on 1 installed ice. Can be advanced; +1 str per hosted advancement counter (str_from_advance_tokens). Sub: Gain 1cr. End the run.",
+		"str_from_advance_tokens": true,
+		"hq_click_ability": {
+			"credit_cost": 1,
 			"effects": [
-				{"type": "reveal_trash_from_hq_as_cost", "params": {"amount": 1}},
-				{"type": "add_advancement_counters_on_installed", "params": {"amount": 3}}
+				{"type": "add_advancement_counters_on_installed", "params": {"amount": 3, "target_zone": "ice"}}
 			]
-		}
+		},
+		"subroutines": [
+			{
+				"label": "Gain 1[credit]. End the run.",
+				"effects": [
+					{"type": "gain_credits", "params": {"subject": "corp", "amount": 1}},
+					{"type": "end_run"}
+				]
+			}
+		]
 	},
 
 	"greasing_the_palm": {
@@ -6711,6 +6749,42 @@
 		"on_play": {
 			"effects": [
 				{"type": "add_advancement_counters_on_installed_multi", "params": {"amount": 1, "max_targets": 3}}
+			]
+		}
+	},
+
+	"armed_asset_protection": {
+		"_note": "TAI Corp operation 2cr (Weyland, Transaction). Gain 3cr. Gain 1cr per distinct card type among faceup cards in Archives. If any are agendas, gain 2 more.",
+		"on_play": {
+			"effects": [
+				{"type": "gain_credits", "params": {"subject": "corp", "amount": 3}},
+				{"type": "count_card_types_in_archives", "params": {"credit_per_type": 1, "agenda_bonus": 2}}
+			]
+		}
+	},
+
+	"angelique_garza_correa": {
+		"_note": "TAI Corp upgrade 0cr Ambush-Enforcer-Expendable, trash 2 (Jinteki). Threat 3 → while in HQ: [click], 1cr, reveal and trash this upgrade → do 1 meat damage. When accessed while rezzed: Corp may pay 2cr to do 2 meat damage.",
+		"hq_click_ability": {
+			"credit_cost": 1,
+			"threat_condition": 3,
+			"effects": [
+				{"type": "deal_damage", "params": {"damage_type": "meat", "amount": 1}}
+			]
+		},
+		"on_access": {
+			"effects": [
+				{
+					"type": "may_pay_for_effect",
+					"params": {
+						"subject": "corp",
+						"cost": 2,
+						"label": "Pay 2[credit] to deal 2 meat damage? (Angelique Garza Correa)",
+						"effects": [
+							{"type": "deal_damage", "params": {"damage_type": "meat", "amount": 2}}
+						]
+					}
+				}
 			]
 		}
 	},
@@ -6731,6 +6805,91 @@
 					]
 				}
 			]
+		}
+	},
+
+	"s_dobrado": {
+		"_note": "TAI Runner event 2cr (Criminal, influence 3). Run a central server. First rezzed ice encountered: bypassed automatically. Threat 4: second rezzed ice encountered, runner may spend [click] to bypass. Threat check happens at encounter start (Archer ruling). Ganked!-forced encounters count toward the counter.",
+		"on_play": {
+			"effects": [
+				{"type": "run_s_dobrado_central"}
+			]
+		}
+	},
+
+	"capybara": {
+		"_note": "TAI Runner hardware 2cr (Criminal, influence 2). Unique (♦). Whenever the runner bypasses a piece of ice, may remove this hardware from the game to derez that ice. Runner-active-player window fires first (Anansi ruling: derezzing prevents Anansi's on-bypass damage).",
+		"runner_bypasses_ice": {
+			"effects": [
+				{"type": "remove_self_from_game_derez_bypassed_ice"}
+			]
+		}
+	},
+
+	"strike_fund": {
+		"_note": "TAI Runner event (Criminal, 1cr, Inf 1). on_play: gain 4cr. on_self_trashed_from_grip_or_stack: may gain 2cr. Ruling: playing the event trashes from the play area (not grip) — does NOT trigger the second ability. Discarding to hand size is not a trash. Fired by _fire_self_trashed_triggers in _deal_damage and Lago Paranoá Shelter stack trash.",
+		"on_play": {
+			"effects": [{"type": "gain_credits", "params": {"subject": "runner", "amount": 4}}]
+		},
+		"on_self_trashed_from_grip_or_stack": {
+			"effects": [{
+				"type": "may_pay_for_effect",
+				"params": {
+					"subject": "runner",
+					"cost": 0,
+					"label": "Strike Fund: gain 2 credits?",
+					"effects": [{"type": "gain_credits", "params": {"subject": "runner", "amount": 2}}]
+				}
+			}]
+		}
+	},
+
+	"saci": {
+		"_note": "TAI Runner program (Anarch, Trojan, 1cr, 1MU, Inf 1). install_on_ice. Whenever host ice is rezzed or derezzed, gain 3cr. Ruling: Magnet on_rez pulls Saci off before corp_rezzes_ice fires, so Saci's listener is already unregistered — does NOT gain 3cr on rez to Magnet. Derez fires on_derez after Saci is still on ice, so it DOES gain 3cr. Condition rezzed_card_is_host checks event card IID vs. self.hosted_on_id.",
+		"install_on_ice": true,
+		"corp_rezzes_ice": {
+			"condition": {"type": "rezzed_card_is_host"},
+			"effects": [{"type": "gain_credits", "params": {"subject": "runner", "amount": 3}}]
+		},
+		"on_derez": {
+			"condition": {"type": "rezzed_card_is_host"},
+			"effects": [{"type": "gain_credits", "params": {"subject": "runner", "amount": 3}}]
+		}
+	},
+
+	"lago_paranoa_shelter": {
+		"_note": "TAI Runner resource (Criminal, Connection - Location, 2cr, Inf 2). Unique. The first time each turn the Corp installs in the root of a server, may trash top stack card to draw 1. Ruling: usable with 1 card in stack (cost side-effects ignored for eligibility).",
+		"corp_installs_in_root": {
+			"once_per_turn_key": "lago_install",
+			"effects": [{"type": "lago_paranoa_trash_draw_one"}]
+		}
+	},
+
+	"lilypad": {
+		"_note": "TAI Runner hardware (Shaper, Console, 4cr, Inf 3). +2 MU. The first time each turn you install a program, you may draw 1 card. Ruling: if LilyPAD and Begemot both trigger on the same install, runner chooses resolution order.",
+		"passive_modifiers": [
+			{"type": "mu_bonus", "value": 2}
+		],
+		"runner_installs_program": {
+			"once_per_turn_key": "lilypad_draw",
+			"effects": [{"type": "draw_cards_optional", "params": {"subject": "runner", "amount": 1}}]
+		}
+	},
+
+	"audrey_v2": {
+		"_note": "TAI Runner program (Criminal). AI Icebreaker - Virus. 3cr, 2MU, Str 0. on_runner_trashes_during_breach: place 1 virus counter. Interface → 1 virus counter (flat): break up to 2 subs on any ice. Trash 1 grip card: +3 strength.",
+		"runner_trashes_during_breach": {
+			"effects": [
+				{"type": "add_self_counters", "counter": "virus", "amount": 1}
+			]
+		},
+		"break": {
+			"cost_virus_counter_flat": 1,
+			"subs_per_use": 2
+		},
+		"boost": {
+			"cost_trash_grip": 1,
+			"strength_gained": 3
 		}
 	}
 }
