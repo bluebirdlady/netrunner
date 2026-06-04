@@ -349,6 +349,31 @@ func _evaluate_condition(condition: Dictionary, ctx: GameContext) -> bool:
 			# Used by Valentão subroutine 3.
 			return ctx.corp_credits > ctx.runner_credits
 
+		"encounter_ice_is_barrier":
+			# True when the currently encountered ice has the 'barrier' subtype.
+			# Used by Curupira (encounter_ice bypass trigger).
+			var eiib_ice: InstalledCard = ctx.current_event_data.get("ice", null) as InstalledCard
+			if eiib_ice == null or eiib_ice.card_record == null:
+				return false
+			return eiib_ice.card_record.has_subtype("barrier")
+
+		"last_ice_all_subs_broken":
+			# True when all subroutines on the last encountered ice were broken.
+			# RSM sets run_modifiers["last_ice_all_subs_broken"] before firing encounter_ended.
+			# Used by Curupira (place power counter on full break).
+			return ctx.run_modifiers.get("last_ice_all_subs_broken", false)
+
+		"event_card_has_subtype":
+			# True when the event card referenced in current_event_data has the given subtype.
+			# Requires "card_record" to be present in the event data (added by TurnManager for
+			# runner_plays_event). condition dict field: "subtype": String.
+			# Used by: Debbie "Downtown" Moreira (fires when runner plays a run event).
+			var echs_rec: CardRecord = ctx.current_event_data.get("card_record", null) as CardRecord
+			if echs_rec == null:
+				return false
+			var echs_sub: String = condition.get("subtype", "")
+			return echs_sub != "" and echs_rec.has_subtype(echs_sub)
+
 		"encounter_ice_has_subtype_any":
 			# True when the currently encountered ice has at least one of the listed subtypes.
 			# Condition dict fields: "subtypes": Array[String].
@@ -10834,6 +10859,329 @@ func _execute_effect(effect: Dictionary, ctx: GameContext, chosen_target: Varian
 			ctx.send_log("[The Price] %s installs %s for %d cr (3cr discount). [MU: %d/%d]" % [
 				ctx.runner_name(), tp_chosen.title, tp_install_cost,
 				ctx.runner_mu_used(), ctx.runner_total_mu()])
+
+		# ── Curupira: spend 3 power counters during barrier encounter to bypass ───
+
+		"curupira_spend_counters_bypass":
+			# Curupira (TAI Runner icebreaker): during encounter with a barrier,
+			# may spend 3 hosted power counters to bypass it.
+			# Condition (barrier) is in JSON; counter check and optionality handled here.
+			var cur_self := _get_self_card(ctx)
+			if cur_self == null:
+				return
+			if cur_self.get_counter("power") < 3:
+				return  # Not enough counters — silently skip (condition was met on event, but counts may have changed)
+			var cur_ice: InstalledCard = ctx.current_event_data.get("ice", null) as InstalledCard
+			var cur_ice_name: String = cur_ice.display_name() if cur_ice != null else "this barrier"
+			var cur_use := false
+			if ctx.runner_decision_maker != null and \
+					ctx.runner_decision_maker.has_method("choose_optional_ability"):
+				cur_use = await ctx.runner_decision_maker.choose_optional_ability(
+					"Curupira: spend 3 power counters to bypass %s?" % cur_ice_name, ctx)
+			else:
+				cur_use = true  # AI: always bypass if counters available
+			if not cur_use:
+				return
+			cur_self.remove_counter("power", 3)
+			ctx.send_log("[Curupira] %s spends 3 power counters to bypass %s." % [
+				ctx.runner_name(), cur_ice_name])
+			ctx.run_modifiers["bypass_current_ice"] = true
+
+		# ── Vovô Ozetti: move to another server at Corp turn end ──────────────────
+
+		"vovo_move_to_server":
+			# Vovô Ozetti (TAI Corp upgrade): when Corp turn ends, may move to another server.
+			var vvo_self := _get_self_card(ctx)
+			if vvo_self == null:
+				return
+			var vvo_dm: Object = ctx.corp_decision_maker
+			var vvo_use := false
+			if vvo_dm != null and vvo_dm.has_method("choose_optional_ability"):
+				vvo_use = await vvo_dm.choose_optional_ability(
+					"Vovô Ozetti: move to the root of another server?", ctx)
+			else:
+				vvo_use = false  # AI: conservative default — stay put
+			if not vvo_use:
+				return
+			# Gather candidate servers (excluding the current one)
+			var vvo_targets: Array = []
+			for vvo_srv_id in ctx.servers:
+				if vvo_srv_id != vvo_self.server_id:
+					vvo_targets.append(vvo_srv_id)
+			vvo_targets.append("new_remote")
+			if vvo_targets.is_empty():
+				ctx.send_log("[Vovô Ozetti] No other servers to move to.")
+				return
+			var vvo_dest_id: String = vvo_targets[0]
+			if vvo_dm != null and vvo_dm.has_method("choose_server"):
+				vvo_dest_id = await vvo_dm.choose_server(vvo_targets, ctx)
+			# Remove from current server root
+			var vvo_old_srv: Server = ctx.get_server(vvo_self.server_id)
+			if vvo_old_srv != null:
+				vvo_old_srv.root.erase(vvo_self)
+				ctx.remove_empty_remote_servers()
+			# Install on destination
+			var vvo_new_srv: Server = null
+			if vvo_dest_id == "new_remote":
+				vvo_new_srv = ctx.create_remote_server()
+			else:
+				vvo_new_srv = ctx.get_server(vvo_dest_id)
+			if vvo_new_srv == null:
+				ctx.send_log("[Vovô Ozetti] Could not find destination server.")
+				return
+			vvo_new_srv.root.append(vvo_self)
+			var vvo_old_id: String = vvo_self.server_id
+			vvo_self.server_id = vvo_new_srv.server_id
+			ctx.send_log("[Vovô Ozetti] %s moves from %s to %s." % [
+				ctx.corp_name(), vvo_old_id, vvo_new_srv.display_name()])
+
+		# ── Hannah "Wheels" Pilintra: two click abilities ─────────────────────────
+
+		"hannah_wheels_choose_ability":
+			# Hannah "Wheels" Pilintra (TAI Runner resource):
+			# Ability 1 (once/turn): [click] → Gain [click], run a remote server.
+			#   When that run ends, if unsuccessful → take 1 tag.
+			# Ability 2: [click][trash] → Gain 2[click], remove 1 tag (if any).
+			# The outer click_action already spent 1 click; ability 2 costs 1 more + self-trash.
+			var hw_self := _get_self_card(ctx)
+			if hw_self == null:
+				return
+			var hw_iid: String = hw_self.runtime_instance_id
+			var hw_once_key: String = "%s:hw_run" % hw_iid
+			var hw_ability1_available: bool = not ctx.once_per_turn_triggered.get(hw_once_key, false)
+			var hw_ability2_available: bool = ctx.runner_clicks >= 1  # need 1 more click
+			# Build mode list
+			var hw_modes: Array = []
+			if hw_ability1_available:
+				hw_modes.append({"label": "Gain [click], run a remote server (once per turn)", "hw_idx": 1})
+			if hw_ability2_available:
+				hw_modes.append({"label": "[click][trash]: Gain 2[click], remove 1 tag", "hw_idx": 2})
+			if hw_modes.is_empty():
+				ctx.send_log("[Hannah] No abilities available.")
+				return
+			# Ask runner which ability to use
+			var hw_chosen_idx: int = hw_modes[0].get("hw_idx", 1) as int
+			if hw_modes.size() > 1 and ctx.runner_decision_maker != null and \
+					ctx.runner_decision_maker.has_method("choose_modes"):
+				var hw_mode_list: Array = hw_modes.map(func(m: Dictionary): return {"label": m.get("label","")})
+				var hw_pick: Array = await ctx.runner_decision_maker.choose_modes(hw_mode_list, 1, ctx)
+				if not hw_pick.is_empty():
+					hw_chosen_idx = hw_modes[hw_pick[0] as int].get("hw_idx", 1) as int
+
+			if hw_chosen_idx == 1:
+				# ── Ability 1: once/turn run remote ──────────────────────────────
+				ctx.once_per_turn_triggered[hw_once_key] = true
+				# Gain 1 click
+				ctx.runner_clicks += 1
+				ctx.send_log("[Hannah] %s gains [click]. (%d remaining)" % [ctx.runner_name(), ctx.runner_clicks])
+				# Choose a remote server to run
+				var hw_remotes: Array = []
+				for hw_srv in ctx.get_remote_servers():
+					hw_remotes.append((hw_srv as Server).server_id)
+				if hw_remotes.is_empty():
+					ctx.send_log("[Hannah] No remote servers to run.")
+					return
+				var hw_target: String = hw_remotes[0]
+				if ctx.runner_decision_maker != null and ctx.runner_decision_maker.has_method("choose_server"):
+					hw_target = await ctx.runner_decision_maker.choose_server(hw_remotes, ctx)
+				# Run the chosen server (not a run event — don't set run_event_active)
+				if ctx.has_meta("on_run_started"):
+					(ctx.get_meta("on_run_started") as Callable).call(hw_target)
+					await Engine.get_main_loop().process_frame
+				var hw_rsm: Object = ctx.get_meta("run_state_machine") if ctx.has_meta("run_state_machine") else null
+				if hw_rsm == null:
+					push_error("AbilityInterpreter: hannah_wheels_choose_ability — no run_state_machine")
+					return
+				ctx.send_log("[Hannah] %s runs %s." % [ctx.runner_name(), hw_target.to_upper()])
+				await hw_rsm.execute(hw_target)
+				# After run: if unsuccessful, take 1 tag
+				if not ctx.run_successful:
+					var hw_was_zero: bool = (ctx.runner_tags == 0)
+					ctx.runner_tags += 1
+					ctx.send_log("[Hannah] Run unsuccessful — %s takes 1 tag. (%d total)" % [
+						ctx.runner_name(), ctx.runner_tags])
+					await ctx.notify_event("runner_takes_tags",
+						{"amount": 1, "from_zero": hw_was_zero}, self)
+
+			elif hw_chosen_idx == 2:
+				# ── Ability 2: [click][trash] → +2 clicks, remove 1 tag ─────────
+				# Pay additional click cost
+				ctx.runner_clicks -= 1
+				ctx.send_log("[Hannah] %s spends additional [click]. (%d remaining)" % [
+					ctx.runner_name(), ctx.runner_clicks])
+				# Trash self
+				var hw_record: CardRecord = hw_self.card_record
+				ctx.runner_rig.erase(hw_self)
+				if hw_record != null:
+					ctx.runner_discard.append(hw_record)
+				ctx.unregister_all_card_effects(hw_iid)
+				ctx.send_log("[Hannah] %s trashes Hannah \"Wheels\" Pilintra." % ctx.runner_name())
+				# Gain 2 clicks
+				ctx.runner_clicks += 2
+				ctx.send_log("[Hannah] %s gains 2[click]. (%d remaining)" % [ctx.runner_name(), ctx.runner_clicks])
+				# Remove 1 tag (if any)
+				if ctx.runner_tags > 0:
+					ctx.runner_tags -= 1
+					ctx.send_log("[Hannah] %s removes 1 tag. (%d remaining)" % [ctx.runner_name(), ctx.runner_tags])
+					await ctx.notify_event("tag_removed", {"amount": 1}, self)
+				else:
+					ctx.send_log("[Hannah] Runner has no tags to remove.")
+
+		# ── Debbie "Downtown" Moreira: run with hosted credits ────────────────────
+
+		"debbie_run_with_hosted_credits":
+			# Debbie "Downtown" Moreira (TAI Runner resource):
+			# [click]: Run any server. You can spend hosted credits during that run.
+			# Implementation: transfer all hosted credits to runner pool before the run.
+			# Any unspent hosted credits remain as runner credits (known limitation).
+			var deb_self := _get_self_card(ctx)
+			if deb_self == null:
+				return
+			# Choose any server
+			var deb_servers: Array = ["hq", "rd", "archives"]
+			for deb_srv in ctx.get_remote_servers():
+				deb_servers.append((deb_srv as Server).server_id)
+			var deb_target: String = deb_servers[0]
+			if ctx.runner_decision_maker != null and ctx.runner_decision_maker.has_method("choose_server"):
+				deb_target = await ctx.runner_decision_maker.choose_server(deb_servers, ctx)
+			# Transfer hosted credits to runner pool
+			var deb_hosted: int = deb_self.get_counter("credits")
+			if deb_hosted > 0:
+				deb_self.remove_counter("credits", deb_hosted)
+				ctx.runner_credits += deb_hosted
+				ctx.send_log("[Debbie] %s transfers %d hosted credit(s) to their pool for this run." % [
+					ctx.runner_name(), deb_hosted])
+			# Run the server (not a run event card — no run_event_active)
+			if ctx.has_meta("on_run_started"):
+				(ctx.get_meta("on_run_started") as Callable).call(deb_target)
+				await Engine.get_main_loop().process_frame
+			var deb_rsm: Object = ctx.get_meta("run_state_machine") if ctx.has_meta("run_state_machine") else null
+			if deb_rsm == null:
+				push_error("AbilityInterpreter: debbie_run_with_hosted_credits — no run_state_machine")
+				return
+			ctx.send_log("[Debbie] %s runs %s." % [ctx.runner_name(), deb_target.to_upper()])
+			await deb_rsm.execute(deb_target)
+
+		# ── Pivot: search R&D for op/agenda → HQ, shuffle; Threat 3 bonus ────────
+
+		"pivot_search_play":
+			# Pivot (TAI Corp operation, additional cost [click] handled by additional_cost_clicks):
+			# Search R&D for 1 operation or agenda, reveal it, add to HQ, shuffle R&D.
+			# Threat 3: Corp may play or install 1 card from HQ (paying costs).
+			var piv_dm: Object = ctx.corp_decision_maker
+			# 1. Search R&D
+			if ctx.corp_deck.is_empty():
+				ctx.send_log("[Pivot] R&D is empty — nothing to search.")
+			else:
+				var piv_candidates: Array = []
+				for piv_c in ctx.corp_deck:
+					var piv_rec: CardRecord = piv_c as CardRecord
+					if piv_rec != null and \
+							(piv_rec.card_type == "operation" or piv_rec.card_type == "agenda"):
+						piv_candidates.append(piv_rec)
+				if piv_candidates.is_empty():
+					ctx.send_log("[Pivot] No operations or agendas found in R&D.")
+				else:
+					var piv_chosen: CardRecord = null
+					if piv_dm != null and piv_dm.has_method("choose_from_search"):
+						piv_chosen = await piv_dm.choose_from_search(piv_candidates, ctx)
+					else:
+						piv_chosen = piv_candidates[0]
+					if piv_chosen != null:
+						ctx.corp_deck.erase(piv_chosen)
+						ctx.corp_hand.append({"card_id": piv_chosen.id, "card_record": piv_chosen})
+						ctx.send_log("[Pivot] Corp finds %s and adds it to HQ." % piv_chosen.title)
+				ctx.corp_deck.shuffle()
+				ctx.send_log("[Pivot] R&D shuffled.")
+			# 2. Threat 3: play or install 1 from HQ
+			if ctx.threat_level() < 3 or ctx.corp_hand.is_empty():
+				return
+			var piv_t3_use := false
+			if piv_dm != null and piv_dm.has_method("choose_optional_ability"):
+				piv_t3_use = await piv_dm.choose_optional_ability(
+					"Pivot (Threat 3): play or install 1 card from HQ?", ctx)
+			else:
+				piv_t3_use = true  # AI: always use
+			if not piv_t3_use or ctx.corp_hand.is_empty():
+				return
+			# Corp picks a card
+			var piv_t3_entry: Variant = null
+			if piv_dm != null and piv_dm.has_method("choose_card_from_hand"):
+				piv_t3_entry = await piv_dm.choose_card_from_hand(ctx.corp_hand, ctx)
+			else:
+				piv_t3_entry = ctx.corp_hand[0]
+			if piv_t3_entry == null:
+				return
+			var piv_t3_rec: CardRecord = (piv_t3_entry as Dictionary).get("card_record", null) as CardRecord
+			if piv_t3_rec == null:
+				return
+			if piv_t3_rec.card_type == "operation":
+				# Play it (costs paid) via the shared helper
+				await _do_play_operation_from_hq("[Pivot Threat 3]", false, ctx)
+			else:
+				# Install it — paying standard costs, choosing a server
+				var piv_t3_cost: int = max(0, piv_t3_rec.cost)
+				if ctx.corp_credits < piv_t3_cost:
+					ctx.send_log("[Pivot] Cannot afford to install %s (costs %d)." % [
+						piv_t3_rec.title, piv_t3_cost])
+					return
+				var piv_t3_servers: Array = []
+				for piv_srv_id in ctx.servers:
+					piv_t3_servers.append(piv_srv_id)
+				piv_t3_servers.append("new_remote")
+				var piv_srv_id: String = piv_t3_servers[0] if not piv_t3_servers.is_empty() else "new_remote"
+				if piv_dm != null and piv_dm.has_method("choose_server"):
+					piv_srv_id = await piv_dm.choose_server(piv_t3_servers, ctx)
+				var piv_srv: Server = null
+				if piv_srv_id == "new_remote":
+					piv_srv = ctx.create_remote_server()
+				else:
+					piv_srv = ctx.get_server(piv_srv_id)
+				if piv_srv == null:
+					return
+				ctx.corp_credits -= piv_t3_cost
+				ctx.corp_hand.erase(piv_t3_entry)
+				var piv_zone: String = "ice" if piv_t3_rec.is_ice() else "root"
+				var piv_ic: InstalledCard = _install_corp_card(piv_t3_rec, piv_srv, piv_zone, false)
+				ctx.corp_installed_this_turn.append(piv_ic.runtime_instance_id)
+				if ctx.has_meta("register_installed_card"):
+					(ctx.get_meta("register_installed_card") as Callable).call(piv_ic)
+				ctx.send_log("[Pivot] Corp installs %s on %s for %d cr (Threat 3)." % [
+					piv_t3_rec.title, piv_srv.display_name(), piv_t3_cost])
+
+		# ── Mindscaping mode A: bounce HQ card to top of R&D ─────────────────────
+
+		"corp_bounce_hq_to_top_rd":
+			# Mindscaping (TAI Corp operation): add 1 card from HQ to the top of R&D.
+			if ctx.corp_hand.is_empty():
+				ctx.send_log("[Mindscaping] HQ is empty — nothing to add to R&D.")
+				return
+			var cbhtr_dm: Object = ctx.corp_decision_maker
+			var cbhtr_entry: Variant = null
+			if cbhtr_dm != null and cbhtr_dm.has_method("choose_card_from_hand"):
+				cbhtr_entry = await cbhtr_dm.choose_card_from_hand(ctx.corp_hand, ctx)
+			else:
+				cbhtr_entry = ctx.corp_hand.back()  # AI: return most recently drawn card
+			if cbhtr_entry == null:
+				return
+			var cbhtr_rec: CardRecord = (cbhtr_entry as Dictionary).get("card_record", null) as CardRecord
+			ctx.corp_hand.erase(cbhtr_entry)
+			if cbhtr_rec != null:
+				ctx.corp_deck.push_front(cbhtr_rec)
+				ctx.send_log("[Mindscaping] %s adds %s to the top of R&D." % [
+					ctx.corp_name(), cbhtr_rec.title])
+
+		# ── Mindscaping mode B: X net damage = runner tags (max 3) ───────────────
+
+		"deal_damage_tags_max3":
+			# Mindscaping (TAI Corp operation): do net damage equal to runner's tags, up to 3.
+			var ddtm_amount: int = mini(ctx.runner_tags, 3)
+			if ddtm_amount <= 0:
+				ctx.send_log("[Mindscaping] Runner has no tags — no damage dealt.")
+				return
+			ctx.send_log("[Mindscaping] Runner has %d tag(s) — dealing %d net damage." % [
+				ctx.runner_tags, ddtm_amount])
+			await _deal_damage("net", ddtm_amount, ctx)
 
 		# ── Your Digital Life: gain 1cr per card in HQ ──────────────────────────
 

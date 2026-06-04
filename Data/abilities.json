@@ -6872,6 +6872,108 @@
 		}
 	},
 
+	"curupira": {
+		"_note": "TAI Runner program (Shaper, Icebreaker, Fracter, 3cr, 1MU, Str 3). Encounter barrier: may spend 3 power counters to bypass. Fully breaks ice: place 1 power counter. Interface 1cr: break 1 barrier sub. 1cr: +1 str.",
+		"break": {
+			"subtype_restriction": "barrier",
+			"cost_per_sub": 1,
+			"subs_per_use": 1
+		},
+		"boost": {
+			"cost": 1,
+			"strength_gained": 1
+		},
+		"encounter_ice": {
+			"condition": {"type": "encounter_ice_is_barrier"},
+			"effects": [{"type": "curupira_spend_counters_bypass"}]
+		},
+		"encounter_ended": {
+			"condition": {"type": "last_ice_all_subs_broken"},
+			"effects": [{"type": "add_counters_to_self", "params": {"counter_type": "power", "amount": 1}}]
+		}
+	},
+
+	"living_mural": {
+		"_note": "TAI Runner program (Shaper, Icebreaker, Sentry, Trojan, install_on_ice, 3cr, 1MU, Str 3). Threat 4 on_rez: +3 str this turn (turn_str_bonus counter, cleared at runner turn start). Interface 1cr: break 1 sentry sub on ice protecting this server (same_server_only). 1cr: +2 str.",
+		"install_on_ice": true,
+		"break": {
+			"subtype_restriction": "sentry",
+			"cost_per_sub": 1,
+			"subs_per_use": 1,
+			"same_server_only": true
+		},
+		"boost": {
+			"cost": 1,
+			"strength_gained": 2
+		},
+		"on_rez": {
+			"condition": {"type": "threat_gte", "params": {"value": 4}},
+			"effects": [{"type": "add_counters_to_self", "params": {"counter_type": "turn_str_bonus", "amount": 3}}]
+		}
+	},
+
+	"vovo_ozetti": {
+		"_note": "TAI Corp upgrade (Jinteki, 3/3). Rez discount -2cr for ice on same server (rez_discount_for_ice_on_same_server). Threat 4: -2cr for root cards on same server (rez_discount_for_root_on_same_server). Corp turn end: may move to another server (vovo_move_to_server).",
+		"rez_discount_for_ice_on_same_server": 2,
+		"rez_discount_for_root_on_same_server": {
+			"amount": 2,
+			"condition": {"type": "threat_gte", "params": {"value": 4}}
+		},
+		"corp_turn_end": {
+			"effects": [{"type": "vovo_move_to_server"}]
+		}
+	},
+
+	"hannah_wheels_pilintra": {
+		"_note": "TAI Runner resource (Anarch, Connection, 3cr). Ability 1 (once/turn): [click]: gain [click], run a remote; if unsuccessful take 1 tag. Ability 2: [click][trash]: gain 2[click], remove 1 tag.",
+		"click_action": {
+			"effects": [{"type": "hannah_wheels_choose_ability"}]
+		}
+	},
+
+	"debbie_downtown_moreira": {
+		"_note": "TAI Runner resource (Criminal, Connection, 3cr). Threat 4 on_rez: place 2cr. Whenever a run event is played: place 1cr. Click: run any server, hosted credits available for that run (transferred to runner pool).",
+		"on_rez": {
+			"condition": {"type": "threat_gte", "params": {"value": 4}},
+			"effects": [{"type": "add_counters_to_self", "params": {"counter_type": "credits", "amount": 2}}]
+		},
+		"runner_plays_event": {
+			"condition": {"type": "event_card_has_subtype", "subtype": "run"},
+			"effects": [{"type": "add_counters_to_self", "params": {"counter_type": "credits", "amount": 1}}]
+		},
+		"click_action": {
+			"effects": [{"type": "debbie_run_with_hosted_credits"}]
+		}
+	},
+
+	"pivot": {
+		"_note": "TAI Corp operation (HB, 3cr + extra [click]). Search R&D for op/agenda → HQ, shuffle. Threat 3: play or install 1 from HQ (paying costs).",
+		"additional_cost_clicks": 1,
+		"on_play": {
+			"effects": [{"type": "pivot_search_play"}]
+		}
+	},
+
+	"mindscaping": {
+		"_note": "TAI Corp operation (Jinteki, 1cr). Modal: (A) Gain 4cr, draw 2, add 1 HQ card to top R&D. (B) X net damage = runner tags, max 3.",
+		"on_play": {
+			"modes": [
+				{
+					"label": "Gain 4[credit], draw 2 cards, add 1 card from HQ to top of R&D.",
+					"effects": [
+						{"type": "gain_credits", "params": {"subject": "corp", "amount": 4}},
+						{"type": "draw_cards", "params": {"subject": "corp", "amount": 2}},
+						{"type": "corp_bounce_hq_to_top_rd"}
+					]
+				},
+				{
+					"label": "Do X net damage. X equals runner's tags, up to 3.",
+					"effects": [{"type": "deal_damage_tags_max3"}]
+				}
+			]
+		}
+	},
+
 	"ablative_barrier": {
 		"_note": "TAI Corp ice (Weyland, Barrier, 1cr, Str 4). ETR sub. Threat 3 on_rez during run on this server: install 1 non-agenda from HQ or Archives on another server ignoring costs.",
 		"subroutines": [

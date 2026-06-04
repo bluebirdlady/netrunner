@@ -1,0 +1,325 @@
+TAI IMPLEMENTATION — DEFERRED LIMITATION FIXES
+===============================================
+Written after Batches 1–5 were completed. This document describes the
+implementation plan for six limitations that were deferred during the batch
+implementation of The Automata Initiative card set.
+
+Each entry states: what the limitation is, what its root cause is, what
+files need to change, and exactly what code to write or where to add it.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. B-1001 — "Remote server only" not enforced
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+LIMITATION
+  B-1001's "Use this ability only during a run against another server" is not
+  enforced. The run_paid_ability scan in RSM checks ctx.run_active but not
+  which server is being run.
+
+ROOT CAUSE
+  The run_paid_ability scan in RunStateMachine._execute_paid_ability_and_rez_window
+  (around line 2072) only guards on ctx.run_active. There is no server-type
+  filter per card.
+
+SOLUTION
+  Add a new optional field "remote_only": true to the run_paid_ability JSON block.
+  In the RSM scan, after the condition check, skip the card if remote_only is set
+  and ctx.run_target_server is one of ["hq", "rd", "archives"].
+
+FILES TO CHANGE
+
+  Data/abilities.json  — b_1001 entry
+    Add "remote_only": true inside the "run_paid_ability" block:
+      "run_paid_ability": {
+          "once_per_turn_key": "b1001_etr",
+          "remote_only": true,           ← ADD THIS
+          "label": "B-1001: Remove 1 tag to end the run?",
+          ...
+      }
+
+  Scripts/Engine/RunStateMachine.gd  — run_paid_ability scan block (~line 2094)
+    After the condition guard block, add:
+      # remote_only: skip if the current run is on a central server.
+      if rpab_dict.get("remote_only", false) and \
+              ctx.run_target_server in ["hq", "rd", "archives"]:
+          continue
+
+COMPLEXITY  Low — 1 JSON field, 3 lines of GDScript.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2. Behold! — must_reveal has no visual flip in RunScene
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+LIMITATION
+  The must_reveal: true flag is stored in abilities.json but only produces a
+  log line. There is no visual effect in the RunScene when the card is accessed
+  from R&D.
+
+ROOT CAUSE
+  RSM._access_card() checks is_installed before firing on_access. For R&D
+  deck cards (CardRecord, not InstalledCard), there is currently no callback
+  to the UI to present the card face-up before the access window opens.
+
+NOTE ON SCOPE
+  In the current single-player-vs-AI implementation, R&D cards are always shown
+  to the human player by name when accessed (the log prints the card title).
+  The must_reveal mechanic matters in two-player contexts where unaccessed R&D
+  cards would appear face-down before selection. If the game never develops
+  selective R&D access (i.e., the runner always accesses the top N cards
+  sequentially), this limitation has zero gameplay impact and can remain as-is.
+
+  If selective access IS ever added, implement as follows:
+
+SOLUTION
+  Add an on_must_reveal_rd_card proxy callback (similar to on_look_at_top_rd_n)
+  to GameContext. RSM's R&D breach loop checks each card for must_reveal before
+  proceeding with the normal access sequence.
+
+FILES TO CHANGE
+
+  Scripts/Engine/RunStateMachine.gd  — R&D breach access loop
+    When iterating the R&D access list, before calling _access_card(card, ...):
+      var must_rev: bool = ability_registry._abilities.get(
+          card.id if card is CardRecord else "", {}
+      ).get("must_reveal", false)
+      if must_rev and ctx.has_meta("on_must_reveal_rd_card"):
+          await (ctx.get_meta("on_must_reveal_rd_card") as Callable).call(card)
+
+  Scripts/UI/RunScene.gd  — add show_must_reveal_card() method
+    func show_must_reveal_card(card: CardRecord) -> void:
+        _add_section("Revealed (must reveal): %s" % card.title)
+        await get_tree().create_timer(1.5).timeout
+    Wire this method via _wire_proxies_to_run_scene in Main.gd, similar to
+    the on_look_at_top_rd_n proxy.
+
+  Scripts/Engine/Main.gd  — _wire_proxies_to_run_scene
+    Add: ctx.set_meta("on_must_reveal_rd_card",
+             Callable(run_scene, "show_must_reveal_card"))
+
+COMPLEXITY  Medium — only needed if selective R&D access is ever introduced.
+            Currently deferred with no game impact.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+3. Debbie "Downtown" Moreira — hosted credits not properly isolated
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+LIMITATION
+  The debbie_run_with_hosted_credits effect transfers all hosted credits to the
+  runner's pool before the run, with no mechanism to return unspent credits to
+  Debbie's counter afterward. If the runner spends less than the hosted amount,
+  the surplus stays in the runner pool permanently.
+
+ROOT CAUSE
+  Full credit-source isolation (intercepting each spend to distinguish "hosted"
+  from "own") requires modifying the credit-spend path. The original
+  implementation took the simple route of a one-way transfer.
+
+SOLUTION
+  Use a snapshot approach: record the runner credit total immediately after the
+  transfer. After the run completes, compute how many credits were actually
+  spent from the combined pool, determine how many of those came from Debbie's
+  share, and return the remainder to her counter.
+
+  Specifically, in debbie_run_with_hosted_credits (AbilityInterpreter.gd):
+
+    # Before the run
+    var deb_hosted: int = deb_self.get_counter("credits")
+    if deb_hosted > 0:
+        deb_self.remove_counter("credits", deb_hosted)
+        ctx.runner_credits += deb_hosted
+    var deb_pool_snapshot: int = ctx.runner_credits   # total after transfer
+
+    # ... (run executes) ...
+
+    # After the run
+    if deb_hosted > 0 and deb_self != null:
+        var deb_total_spent: int = deb_pool_snapshot - ctx.runner_credits
+        # If runner gained credits during the run, total_spent may be negative
+        var deb_used: int = max(0, min(deb_hosted, deb_total_spent))
+        var deb_unused: int = deb_hosted - deb_used
+        if deb_unused > 0:
+            deb_self.add_counter("credits", deb_unused)
+            ctx.send_log("[Debbie] %d unspent hosted credit(s) returned to %s." % [
+                deb_unused, deb_self.display_name()])
+
+  Edge cases handled by this approach:
+  - Runner gains credits during run (e.g. bad pub): deb_total_spent < 0,
+    deb_used = 0, all hosted credits returned.
+  - Runner spends more than hosted amount: deb_used = deb_hosted, nothing returned.
+  - Runner spends exactly the hosted amount: deb_used = deb_hosted, nothing returned.
+
+CAVEAT
+  This approach correctly tracks the aggregate, but does not enforce that the
+  runner draws from Debbie first before their own pool. In practice, the net
+  effect is identical: hosted credits are debited exactly to the amount spent,
+  no more. The only observable difference from a "true" isolated pool would be
+  in edge cases where the runner tries to spend hosted credits they no longer
+  have (already a non-issue since they're pre-transferred).
+
+FILES TO CHANGE
+  Scripts/Engine/AbilityInterpreter.gd — debbie_run_with_hosted_credits effect
+    Replace the current "Transfer hosted credits" section and the rsm.execute
+    call with the snapshot pattern described above. Approximately 10 lines
+    changed around line 10960.
+
+COMPLEXITY  Low — ~10 lines, all in one effect block.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+4. Curupira — runner_paid_ability RSM integration
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+STATUS: RESOLVED — NO ACTION NEEDED
+
+  This limitation was listed in the batch plan as a contingency if the
+  runner_paid_ability JSON mechanism was too complex to build. In practice,
+  Curupira was implemented using the encounter_ice listener, which fires before
+  RSM checks the bypass_current_ice flag. The bypass offer is presented at the
+  correct timing (encounter start, before subroutines) via the
+  curupira_spend_counters_bypass effect.
+
+  The encounter_ice listener approach is actually cleaner than a general
+  runner_paid_ability mechanism for this card, because it fires at precisely
+  the right timing window. No further work is needed.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+5. Living Mural — same_server_only not enforced in UI or AI breaker list
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+LIMITATION
+  EncounterProcessor correctly rejects same_server_only breaks at execution
+  time. However, EncounterState.breakers_for_ice() — which RunScene and the AI
+  both call to build the list of usable breakers — does not filter Living Mural
+  out when the encountered ice is on a different server. This means:
+  - The human player sees Living Mural as an option for all sentry encounters,
+    and clicks "Break all subs" only to have it silently fail.
+  - The AI may waste action budget attempting the break.
+
+ROOT CAUSE
+  EncounterState._breaker_matches_ice() checks subtype compatibility (killer
+  matches sentry, etc.) but has no access to the break definition's
+  same_server_only flag, nor to the breaker's host-ice server context.
+
+SOLUTION
+  Extend EncounterState.breakers_for_ice() to post-filter the result using the
+  ability registry. EncounterState already holds ctx (GameContext), which
+  carries ctx.get_meta("ability_registry").
+
+FILES TO CHANGE
+
+  Scripts/Engine/EncounterState.gd — breakers_for_ice() method
+    After building the `result` array (before returning), add:
+
+      # Filter out same_server_only breakers when encountered ice is on a
+      # different server than the breaker's host ice.
+      if ctx != null and ctx.has_meta("ability_registry"):
+          var _bfi_ab_reg: AbilityRegistry = \
+              ctx.get_meta("ability_registry") as AbilityRegistry
+          var _bfi_filtered: Array = []
+          for _bfi_b in result:
+              var _bfi_ic: InstalledCard = _bfi_b as InstalledCard
+              var _bfi_def: Dictionary = \
+                  _bfi_ab_reg._abilities.get(_bfi_ic.card_id, {}) as Dictionary
+              var _bfi_break: Dictionary = _bfi_def.get("break", {}) as Dictionary
+              if not _bfi_break.get("same_server_only", false):
+                  _bfi_filtered.append(_bfi_ic)
+                  continue
+              # Trojan must have its host ice on the same server as the encounter.
+              var _bfi_host: InstalledCard = \
+                  ctx.get_ice_by_instance_id(_bfi_ic.hosted_on_id) \
+                  if _bfi_ic.hosted_on_id != "" else null
+              if _bfi_host != null and _bfi_host.server_id == ice_card.server_id:
+                  _bfi_filtered.append(_bfi_ic)
+          result = _bfi_filtered
+
+    This filter runs once per breakers_for_ice() call, which is lightweight.
+    Both RunScene (human UI) and SimRunnerAI (which calls breakers_for_ice
+    indirectly) will see the filtered list.
+
+COMPLEXITY  Low-Medium — ~15 lines in one method, no new events or effects.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+6. Oppo Research — pre_play_condition not checked at validation time
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+LIMITATION
+  The pre_play_condition check in TurnManager exists in _do_play_card (execution
+  path) but NOT in _validate_action (the method the UI and AI query to determine
+  which actions are legal). As a result, the UI may present Oppo Research as a
+  playable card even when the condition is not met (runner did not steal or trash
+  a Corp card last turn). Clicking it gets blocked mid-execution with a log
+  message, but this is a degraded experience: the card appears green/available
+  when it should appear greyed-out.
+
+ROOT CAUSE
+  _validate_action's "play_operation" case checks credits and additional click
+  costs but does not replicate the pre_play_condition guards that live in
+  _do_play_card.
+
+SOLUTION
+  Mirror the pre_play_condition checks into _validate_action so the UI receives
+  an "ok: false" result before allowing the action.
+
+FILES TO CHANGE
+
+  Scripts/Engine/TurnManager.gd — _validate_action(), "play_operation" case
+    After the op_extra click check (around line 574), add:
+
+      # Pre-play condition guard — mirrors _do_play_card's early-return checks.
+      var va_ppc: String = op_card_def.get("pre_play_condition", "")
+      if va_ppc == "runner_stole_or_trashed_last_runner_turn" and player == "corp":
+          if not ctx.runner_stole_or_trashed_last_runner_turn:
+              return {"ok": false,
+                  "reason": "%s: Runner did not steal or trash last turn." % record.title}
+      if va_ppc == "corp_scored_non_installed_agenda_this_turn" and player == "corp":
+          if not ctx.corp_scored_agenda_not_installed_this_turn:
+              return {"ok": false,
+                  "reason": "%s: Corp has not scored a non-installed agenda this turn." % record.title}
+      if va_ppc == "runner_made_successful_run_last_turn" and player == "runner":
+          if not ctx.runner_made_successful_run_last_turn:
+              return {"ok": false,
+                  "reason": "%s: Runner did not make a successful run last turn." % record.title}
+
+    Note: the third check (runner_made_successful_run_last_turn) covers Public
+    Trail and other existing cards that use this condition, not just Oppo Research.
+    Adding all three makes the validation complete for all current pre_play_condition
+    users.
+
+COMPLEXITY  Low — ~10 lines in _validate_action, no new events or effects.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+IMPLEMENTATION ORDER
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Recommended sequence (all five active fixes fit in a single session):
+
+  1. Oppo Research validation         TurnManager.gd only, ~10 lines, lowest risk
+  2. B-1001 remote_only               RunStateMachine.gd + JSON, ~4 lines
+  3. Debbie hosted credits snapshot   AbilityInterpreter.gd only, ~10 lines
+  4. Living Mural breaker filter      EncounterState.gd only, ~15 lines
+  5. Behold! must_reveal callback     RunScene + Main + RSM, defer unless needed
+
+Items 1–4 are independent and can be written in any order. Item 5 (Behold!)
+should be deferred until/unless selective R&D access is implemented, at which
+point it becomes relevant.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+AFFECTED FILES SUMMARY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Scripts/Engine/TurnManager.gd          Oppo Research validation (#6)
+  Scripts/Engine/RunStateMachine.gd      B-1001 remote_only check (#1)
+  Scripts/Engine/AbilityInterpreter.gd   Debbie snapshot pattern (#3)
+  Scripts/Engine/EncounterState.gd       Living Mural breaker filter (#5)
+  Data/abilities.json                    B-1001 remote_only: true field (#1)
+
+  Deferred / conditional:
+  Scripts/Engine/RunStateMachine.gd      Behold! must_reveal RSM hook (#2)
+  Scripts/UI/RunScene.gd                 Behold! show_must_reveal_card (#2)
+  Scripts/Engine/Main.gd                 Behold! proxy wiring (#2)

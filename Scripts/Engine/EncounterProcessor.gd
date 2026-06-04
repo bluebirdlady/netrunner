@@ -296,6 +296,16 @@ func _do_break_sub(action: Dictionary, encounter: EncounterState,
 			])
 			return false
 
+	# same_server_only: Living Mural can only break subs on ice protecting its own server.
+	# The breaker is a trojan hosted on ice; that host ice's server must match the encounter.
+	if break_dict.get("same_server_only", false):
+		var sso_host: InstalledCard = ctx.get_ice_by_instance_id(breaker.hosted_on_id) \
+			if breaker.hosted_on_id != "" else null
+		if sso_host == null or sso_host.server_id != encounter.ice_card.server_id:
+			ctx.send_log("[Encounter] %s can only break subroutines on ice protecting its server." % \
+				breaker.display_name())
+			return false
+
 	# Strength check (host_only and target_only bypass the strength check).
 	if not break_dict.get("host_only", false) and not break_dict.get("target_only", false) \
 			and not encounter.breaker_reaches(breaker):
@@ -396,6 +406,15 @@ func _do_break_all(action: Dictionary, encounter: EncounterState,
 				breaker.display_name(),
 				target_ice.display_name() if target_ice != null else "its chosen target"
 			])
+			return false
+
+	# same_server_only: Living Mural can only break subs on ice protecting its own server.
+	if break_dict.get("same_server_only", false):
+		var sso_host_all: InstalledCard = ctx.get_ice_by_instance_id(breaker.hosted_on_id) \
+			if breaker.hosted_on_id != "" else null
+		if sso_host_all == null or sso_host_all.server_id != encounter.ice_card.server_id:
+			ctx.send_log("[Encounter] %s can only break subroutines on ice protecting its server." % \
+				breaker.display_name())
 			return false
 
 	# Strength check (skip for host_only or target_only breakers).

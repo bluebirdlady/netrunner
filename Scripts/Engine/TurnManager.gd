@@ -374,6 +374,11 @@ func _runner_turn() -> void:
 	ctx.runner_successful_run_on_rd_this_turn       = false  # reset each turn (VP1 Chain Reaction)
 	ctx.runner_successful_run_on_archives_this_turn = false  # reset each turn (VP1 Chain Reaction)
 	ctx.once_per_turn_triggered.clear()                      # reset per-turn trigger guards
+	# Clear turn-scoped strength bonuses (e.g. Living Mural Threat 4 install: +3 str this turn).
+	for _ts_card in ctx.runner_rig:
+		var _ts_ic: InstalledCard = _ts_card as InstalledCard
+		if _ts_ic != null and _ts_ic.get_counter("turn_str_bonus") > 0:
+			_ts_ic.remove_counter("turn_str_bonus", _ts_ic.get_counter("turn_str_bonus"))
 	if runner_penalty > 0:
 		ctx.send_log("%s loses %d click(s) this turn (deferred penalty)." % [ctx.runner_name(), runner_penalty])
 	ctx.turn_number   += 1
@@ -1324,7 +1329,10 @@ func _do_play_operation(player: String, action: GameAction) -> void:
 			ctx.runner_discard.append(record)
 		# VP20 Touchstone and other cards that react to the runner playing an event.
 		if record.card_type == "event":
-			await ctx.notify_event("runner_plays_event", {"card_id": record.id}, interpreter)
+			await ctx.notify_event("runner_plays_event", {
+				"card_id": record.id,
+				"card_record": record   # Added so listeners can check subtypes (e.g. Debbie)
+			}, interpreter)
 	ctx.send_log("%s plays %s." % [ctx.player_name(player), record.title])
 	if not ctx.simulation_mode: emit_signal("hand_changed", player)
 
@@ -1591,6 +1599,43 @@ func _do_rez_card(player: String, action: GameAction) -> void:
 				rez_cost = max(0, rez_cost - tm_fd_amount)
 				await interpreter._forfeit_agenda(tm_fd_chosen, ctx)
 
+		# ── Vovô Ozetti: rez discount for ice/root on the same server ───────────
+		# Scan the server's root for installed cards with rez discount flags.
+		var vv_server: Server = ctx.get_server(installed.server_id)
+		if vv_server != null:
+			for vv_root_card in vv_server.root:
+				var vv_rc: InstalledCard = vv_root_card as InstalledCard
+				if vv_rc == null or not vv_rc.is_rezzed:
+					continue
+				var vv_def: Dictionary = ability_registry._abilities.get(vv_rc.card_id, {}) as Dictionary
+				# Ice rez discount (unconditional)
+				var vv_ice_disc: int = int(vv_def.get("rez_discount_for_ice_on_same_server", 0))
+				if vv_ice_disc > 0 and installed.zone == "ice":
+					rez_cost = max(0, rez_cost - vv_ice_disc)
+					ctx.send_log("[Vovô Ozetti] %s lowers rez cost by %d cr (now %d)." % [
+						vv_rc.display_name(), vv_ice_disc, rez_cost])
+				# Root card rez discount (Threat 4 only)
+				if installed.zone == "root" and installed.runtime_instance_id != vv_rc.runtime_instance_id:
+					var vv_root_disc_def: Variant = vv_def.get("rez_discount_for_root_on_same_server", null)
+					if vv_root_disc_def != null:
+						var vv_root_disc_amount: int = 0
+						var vv_root_disc_cond: Dictionary = {}
+						if vv_root_disc_def is Dictionary:
+							vv_root_disc_amount = int((vv_root_disc_def as Dictionary).get("amount", 0))
+							vv_root_disc_cond   = (vv_root_disc_def as Dictionary).get("condition", {}) as Dictionary
+						elif vv_root_disc_def is int:
+							vv_root_disc_amount = int(vv_root_disc_def)
+						var vv_cond_ok: bool = true
+						if not vv_root_disc_cond.is_empty():
+							var vv_cond_type: String = vv_root_disc_cond.get("type", "")
+							var vv_cond_val: int     = int(vv_root_disc_cond.get("params", {}).get("value", 0))
+							if vv_cond_type == "threat_gte":
+								vv_cond_ok = ctx.threat_level() >= vv_cond_val
+						if vv_cond_ok and vv_root_disc_amount > 0:
+							rez_cost = max(0, rez_cost - vv_root_disc_amount)
+							ctx.send_log("[Vovô Ozetti] Threat 4 — lowers root rez cost by %d cr (now %d)." % [
+								vv_root_disc_amount, rez_cost])
+
 		# ── Mandatory additional rez cost (e.g. Plutus: forfeit agenda OR reveal+trash 3 HQ) ──
 		var tm_arc_def: Variant = tm_card_def.get("additional_rez_cost", null)
 		if tm_arc_def != null:
@@ -1625,29 +1670,29 @@ func _do_rez_card(player: String, action: GameAction) -> void:
 					ctx.send_log("Rez failed: %s cannot pay additional rez cost." % installed.display_name())
 					return
 
-		# ── Valentão: additional rez cost — take 1 bad pub OR remove 1 runner tag ──
-		if tm_arc_type == "bad_pub_or_remove_runner_tag":
-			# Corp must choose one option. Remove tag is only available if runner has tags.
-			var vm_can_tag: bool = ctx.runner_tags > 0
-			var vm_take_bad_pub: bool = true  # Corp can always take bad pub
-			if vm_can_tag and ctx.corp_decision_maker != null and \
-					ctx.corp_decision_maker.has_method("choose_optional_ability"):
-				# true = remove runner tag (preferred), false = take bad pub
-				var vm_prefer_tag: bool = await ctx.corp_decision_maker.choose_optional_ability(
-					"Valentão rez cost: remove 1 Runner tag (or take 1 bad pub)?", ctx)
-				vm_take_bad_pub = not vm_prefer_tag
-			elif vm_can_tag:
-				vm_take_bad_pub = false  # AI: prefer removing a Runner tag
-			if vm_take_bad_pub:
-				ctx.corp_bad_pub += 1
-				ctx.send_log("[Valentão] %s takes 1 bad publicity as rez cost. (%d total)" % [
-					ctx.corp_name(), ctx.corp_bad_pub])
-				await ctx.notify_event("corp_gains_bad_pub", {"amount": 1}, interpreter)
-			else:
-				ctx.runner_tags -= 1
-				ctx.send_log("[Valentão] %s removes 1 Runner tag as rez cost. (%d remaining)" % [
-					ctx.corp_name(), ctx.runner_tags])
-				await ctx.notify_event("tag_removed", {"amount": 1}, interpreter)
+			# ── Valentão: take 1 bad pub OR remove 1 Runner tag ──────────────────
+			elif tm_arc_type == "bad_pub_or_remove_runner_tag":
+				# Corp must pay one option. Remove tag only available if runner has tags.
+				var vm_can_tag: bool = ctx.runner_tags > 0
+				var vm_take_bad_pub: bool = true  # Corp can always take bad pub
+				if vm_can_tag and ctx.corp_decision_maker != null and \
+						ctx.corp_decision_maker.has_method("choose_optional_ability"):
+					# true = remove runner tag (preferred), false = take bad pub
+					var vm_prefer_tag: bool = await ctx.corp_decision_maker.choose_optional_ability(
+						"Valentão rez cost: remove 1 Runner tag (or take 1 bad pub)?", ctx)
+					vm_take_bad_pub = not vm_prefer_tag
+				elif vm_can_tag:
+					vm_take_bad_pub = false  # AI: prefer removing a Runner tag
+				if vm_take_bad_pub:
+					ctx.corp_bad_pub += 1
+					ctx.send_log("[Valentão] %s takes 1 bad publicity as rez cost. (%d total)" % [
+						ctx.corp_name(), ctx.corp_bad_pub])
+					await ctx.notify_event("corp_gains_bad_pub", {"amount": 1}, interpreter)
+				else:
+					ctx.runner_tags -= 1
+					ctx.send_log("[Valentão] %s removes 1 Runner tag as rez cost. (%d remaining)" % [
+						ctx.corp_name(), ctx.runner_tags])
+					await ctx.notify_event("tag_removed", {"amount": 1}, interpreter)
 
 	if player == "corp":
 		# Corp may supplement with Mahkota Langit Grid recurring credits on the same server

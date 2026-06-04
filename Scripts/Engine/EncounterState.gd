@@ -115,7 +115,10 @@ func get_breaker_strength(breaker: InstalledCard) -> int:
 	var gamedragon_bonus: int = 0
 	if ctx != null and ctx.has_method("gamedragon_breaker_bonus"):
 		gamedragon_bonus = ctx.gamedragon_breaker_bonus(breaker)
-	return base + permanent + boost + board_bonus + gamedragon_bonus - breaker_strength_penalty
+	# Turn-scoped strength bonus (e.g. Living Mural Threat 4 install: +3 str this turn).
+	# Stored as "turn_str_bonus" counter; cleared at runner turn start by TurnManager.
+	var turn_bonus: int = breaker.get_counter("turn_str_bonus")
+	return base + permanent + boost + board_bonus + gamedragon_bonus - breaker_strength_penalty + turn_bonus
 
 
 func _resolve_breaker_base_strength(breaker: InstalledCard) -> int:
