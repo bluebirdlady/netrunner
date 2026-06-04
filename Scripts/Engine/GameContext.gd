@@ -890,6 +890,10 @@ func query_dynamic_breaker_base(breaker: InstalledCard) -> int:
 			"fracter_in_heap_count":
 				# Rising Tide: +1 strength per fracter in the heap
 				return count_fracters_in_heap()
+			"shibboleth_threat_penalty":
+				# Shibboleth (TAI): printed strength minus 2 at Threat 4.
+				var shib_base: int = breaker.card_record.strength if breaker.card_record != null else 4
+				return shib_base - (2 if threat_level() >= 4 else 0)
 	return -1
 
 

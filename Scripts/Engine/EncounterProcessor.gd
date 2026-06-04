@@ -76,9 +76,40 @@ func process(action: Dictionary, encounter: EncounterState,
 			await ctx.check_outside_credits_trigger(interpreter)
 			return tbs_ok
 		"umbrella_break":
-			# Umbrella (and similar): rig program breaks up to N code-gate subs,
-			# gated on the encountered ice having at least one hosted trojan.
+			# Umbrella (TAI): breaks up to N code-gate subs on ice hosting a trojan.
+			# If at least 1 subroutine was broken, each player may draw 1 card.
+			var umb_before: int = encounter.unbroken_indices().size()
 			var umb_ok: bool = await _do_umbrella_break(action, encounter, ctx, ability_registry)
+			# Draw trigger: fires when at least 1 sub was actually broken this activation
+			if umb_ok and encounter.unbroken_indices().size() < umb_before:
+				# Corp may draw 1 card
+				if not ctx.corp_deck.is_empty():
+					var umb_corp_draw := false
+					if ctx.corp_decision_maker != null and \
+							ctx.corp_decision_maker.has_method("choose_optional_ability"):
+						umb_corp_draw = await ctx.corp_decision_maker.choose_optional_ability(
+							"Umbrella: draw 1 card?", ctx)
+					else:
+						umb_corp_draw = true  # AI: always draw
+					if umb_corp_draw:
+						var umb_cr: CardRecord = ctx.corp_deck.pop_front() as CardRecord
+						if umb_cr != null:
+							ctx.corp_hand.append({"card_id": umb_cr.id, "card_record": umb_cr})
+							ctx.send_log("[Umbrella] %s draws 1 card." % ctx.corp_name())
+				# Runner may draw 1 card
+				if not ctx.runner_deck.is_empty():
+					var umb_run_draw := false
+					if ctx.runner_decision_maker != null and \
+							ctx.runner_decision_maker.has_method("choose_optional_ability"):
+						umb_run_draw = await ctx.runner_decision_maker.choose_optional_ability(
+							"Umbrella: draw 1 card?", ctx)
+					else:
+						umb_run_draw = true  # AI: always draw
+					if umb_run_draw:
+						var umb_rr: CardRecord = ctx.runner_deck.pop_front() as CardRecord
+						if umb_rr != null:
+							ctx.runner_hand.append({"card_id": umb_rr.id, "card_record": umb_rr})
+							ctx.send_log("[Umbrella] %s draws 1 card." % ctx.runner_name())
 			await ctx.check_outside_credits_trigger(interpreter)
 			return umb_ok
 		"use_encounter_ability":

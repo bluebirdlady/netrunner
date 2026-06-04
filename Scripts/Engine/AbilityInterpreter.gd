@@ -344,6 +344,24 @@ func _evaluate_condition(condition: Dictionary, ctx: GameContext) -> bool:
 				return false
 			return eis_ice.runtime_instance_id == eis_self.runtime_instance_id
 
+		"corp_credits_gt_runner":
+			# True when the Corp currently has strictly more credits than the Runner.
+			# Used by Valentão subroutine 3.
+			return ctx.corp_credits > ctx.runner_credits
+
+		"encounter_ice_has_subtype_any":
+			# True when the currently encountered ice has at least one of the listed subtypes.
+			# Condition dict fields: "subtypes": Array[String].
+			# Used by: Laser Pointer (fires on AP, destroyer, or observer ice).
+			var eihs_ice: InstalledCard = ctx.current_event_data.get("ice", null) as InstalledCard
+			if eihs_ice == null or eihs_ice.card_record == null:
+				return false
+			var eihs_subtypes: Array = condition.get("subtypes", []) as Array
+			for st in eihs_subtypes:
+				if eihs_ice.card_record.has_subtype(st as String):
+					return true
+			return false
+
 		"event_param_gte":
 			# True when a named key in the current event data is >= a threshold.
 			# Condition dict fields: "key" (String), "threshold" (int).
@@ -1236,6 +1254,48 @@ func _execute_effect(effect: Dictionary, ctx: GameContext, chosen_target: Varian
 
 			# Clean up the listener regardless of run outcome.
 			ctx.unregister_all_card_effects(rwbr_lid)
+
+		"eru_ayase_pessoa_run":
+			# Eru Ayase-Pessoa (TAI): Once per turn → [click], take 1 tag: run Archives.
+			# If successful, breach R&D instead. Threat 3: +1 access on that R&D breach.
+			# The tag is taken here (as cost) before the run starts.
+
+			# 1. Runner takes 1 tag (cost — mandatory, cannot be prevented)
+			var eru_was_zero: bool = (ctx.runner_tags == 0)
+			ctx.runner_tags += 1
+			ctx.send_log("[Eru Ayase-Pessoa] %s takes 1 tag (%d total)." % [
+				ctx.runner_name(), ctx.runner_tags])
+			await ctx.notify_event("runner_takes_tags", {"amount": 1, "from_zero": eru_was_zero}, self)
+
+			# 2. Register one-shot successful_run listener to redirect breach to R&D.
+			# Threat 3: add +1 extra access on the redirected R&D breach.
+			var eru_extra: int = 1 if ctx.threat_level() >= 3 else 0
+			var eru_lid := "eru_redir_%s" % str(randi())
+			ctx.register_listener("successful_run", eru_lid, {
+				"effects": [{
+					"type": "set_breach_redirect",
+					"params": {"server": "rd", "extra_accesses": eru_extra}
+				}]
+			})
+
+			# 3. Initiate run on Archives
+			ctx.run_modifiers["run_event_active"] = 1
+			ctx.set_meta("chosen_run_server", "archives")
+			if ctx.has_meta("on_run_started"):
+				(ctx.get_meta("on_run_started") as Callable).call("archives")
+				await Engine.get_main_loop().process_frame
+			var eru_rsm: Object = ctx.get_meta("run_state_machine") if ctx.has_meta("run_state_machine") else null
+			if eru_rsm == null:
+				push_error("AbilityInterpreter: eru_ayase_pessoa_run — no run_state_machine on ctx")
+				ctx.unregister_all_card_effects(eru_lid)
+				return
+			ctx.send_log("Eru Ayase-Pessoa: %s runs Archives → breach R&D%s." % [
+				ctx.runner_name(),
+				" (+1 access, Threat 3)" if eru_extra > 0 else ""])
+			await eru_rsm.execute("archives")
+
+			# Clean up listener regardless of run outcome
+			ctx.unregister_all_card_effects(eru_lid)
 
 		"set_breach_redirect":
 			# Beatriz Friere Gonzalez / Eru Ayase-Pessoa (TAI):
@@ -6108,6 +6168,86 @@ func _execute_effect(effect: Dictionary, ctx: GameContext, chosen_target: Varian
 
 		# ── Poétrï Luxury Brands: install 1 non-agenda from HQ ───────────────────
 
+		"greasing_the_palm_install_and_advance":
+			# Greasing the Palm (TAI): Corp may install 1 card from HQ (paying normal costs),
+			# then may remove 1 Runner tag to place 1 advancement counter on the installed card.
+			if ctx.corp_hand.is_empty():
+				ctx.send_log("[Greasing the Palm] HQ is empty — no card to install.")
+				return
+			# Corp may decline the install entirely
+			var gtp_use := false
+			var gtp_cdm: Object = ctx.corp_decision_maker
+			if gtp_cdm != null and gtp_cdm.has_method("choose_optional_ability"):
+				gtp_use = await gtp_cdm.choose_optional_ability(
+					"Greasing the Palm: install 1 card from HQ?", ctx)
+			else:
+				gtp_use = true  # AI: always install when possible
+			if not gtp_use:
+				ctx.send_log("[Greasing the Palm] Corp declines to install.")
+				return
+
+			# Corp chooses which HQ card to install
+			var gtp_chosen: Variant = ctx.corp_hand[0]
+			if gtp_cdm != null and gtp_cdm.has_method("choose_card_from_hand"):
+				gtp_chosen = await gtp_cdm.choose_card_from_hand(ctx.corp_hand, ctx)
+			if gtp_chosen == null:
+				ctx.send_log("[Greasing the Palm] Corp declines to install.")
+				return
+			var gtp_record: CardRecord = (gtp_chosen as Dictionary).get("card_record", null) as CardRecord
+			if gtp_record == null:
+				return
+
+			# Corp chooses which server to install into
+			var gtp_all_servers: Array = ctx.servers.keys()
+			var gtp_server_id: String  = gtp_all_servers[0] if not gtp_all_servers.is_empty() else ""
+			if gtp_cdm != null and gtp_cdm.has_method("choose_server"):
+				gtp_server_id = await gtp_cdm.choose_server(gtp_all_servers, ctx)
+			var gtp_server: Server = ctx.get_server(gtp_server_id) if gtp_server_id != "" else null
+			if gtp_server == null:
+				ctx.send_log("[Greasing the Palm] No valid server chosen — install skipped.")
+				return
+
+			# Calculate and pay install cost (base cost + positional for ice)
+			var gtp_cost: int = maxi(0, gtp_record.cost if gtp_record.cost >= 0 else 0)
+			if gtp_record.card_type == "ice":
+				gtp_cost += gtp_server.ice.size()
+			if ctx.corp_credits < gtp_cost:
+				ctx.send_log("[Greasing the Palm] Corp cannot afford install cost %d (has %d cr)." % [
+					gtp_cost, ctx.corp_credits])
+				return
+			ctx.corp_credits -= gtp_cost
+			ctx.corp_hand.erase(gtp_chosen)
+
+			# Install the card
+			var gtp_zone: String = "ice" if gtp_record.card_type == "ice" else "root"
+			var gtp_inst := _install_corp_card(gtp_record, gtp_server, gtp_zone, false)
+			if ctx.has_meta("register_installed_card"):
+				(ctx.get_meta("register_installed_card") as Callable).call(gtp_inst)
+			ctx.corp_installed_this_turn.append(gtp_record.id)
+			ctx.send_log("[Greasing the Palm] %s installs %s in %s for %d cr." % [
+				ctx.corp_name(), gtp_record.title, gtp_server.display_name(), gtp_cost])
+
+			# Optional: remove 1 Runner tag to place 1 advancement counter on the installed card
+			if ctx.runner_tags > 0:
+				var gtp_advance := false
+				if gtp_cdm != null and gtp_cdm.has_method("choose_optional_ability"):
+					gtp_advance = await gtp_cdm.choose_optional_ability(
+						"Greasing the Palm: remove 1 Runner tag to place 1 advancement counter on %s?" % \
+						gtp_record.title, ctx)
+				else:
+					gtp_advance = true  # AI: always advance if possible
+				if gtp_advance:
+					ctx.runner_tags -= 1
+					gtp_inst.add_counter("advancement", 1)
+					ctx.send_log("[Greasing the Palm] Removes 1 Runner tag — %s gains 1 advancement counter (%d total)." % [
+						gtp_record.title, gtp_inst.get_counter("advancement")])
+					# Check if advancing this card completes agenda scoring
+					if gtp_record.is_agenda() and gtp_record.advancement_requirement > 0 and \
+							gtp_inst.get_counter("advancement") >= gtp_record.advancement_requirement:
+						ctx.send_log("[Greasing the Palm] %s meets advancement requirement — may be scored." % gtp_record.title)
+			elif ctx.runner_tags == 0:
+				ctx.send_log("[Greasing the Palm] Runner has no tags — advancement counter unavailable.")
+
 		"install_non_agenda_from_hq":
 			# Corp installs 1 non-agenda card from HQ, ignoring all costs.
 			var inafh_candidates: Array = []
@@ -10356,6 +10496,415 @@ func _execute_effect(effect: Dictionary, ctx: GameContext, chosen_target: Varian
 			# Add to corp_hand as a known card
 			ctx.corp_hand.append({"card_record": dtmh_self.card_record, "known": true})
 			ctx.send_log("Descent: Corp moves %s to HQ." % dtmh_self.display_name())
+
+		# ── Ablative Barrier: Threat 3 on-rez install from HQ/Archives elsewhere ──
+
+		"ablative_barrier_install_on_rez":
+			# Ablative Barrier (TAI Corp ice): when rezzed during a run against this server
+			# at Threat 3, Corp may install 1 non-agenda from HQ or Archives on another server.
+			# Condition (threat_gte 3) is checked in JSON; here we verify run + same server.
+			var ab_self := _get_self_card(ctx)
+			if ab_self == null:
+				return
+			if not ctx.run_active or ctx.run_target_server != ab_self.server_id:
+				# Not rezzed during a run against this server — ability does not fire.
+				return
+			# Gather candidates: non-agendas from HQ and Archives
+			var ab_candidates: Array = []
+			for ab_entry in ctx.corp_hand:
+				var ab_rec: CardRecord = (ab_entry as Dictionary).get("card_record", null) as CardRecord
+				if ab_rec != null and ab_rec.card_type != "agenda":
+					ab_candidates.append({"source": "hq", "entry": ab_entry, "card_record": ab_rec})
+			for ab_arc in ctx.corp_discard:
+				var ab_arc_rec: CardRecord = ab_arc as CardRecord
+				if ab_arc_rec != null and ab_arc_rec.card_type != "agenda":
+					ab_candidates.append({"source": "archives", "entry": null, "card_record": ab_arc_rec})
+			if ab_candidates.is_empty():
+				ctx.send_log("[Ablative Barrier] No non-agenda cards in HQ or Archives to install.")
+				return
+			# Optional: Corp may decline
+			var ab_dm: Object = ctx.corp_decision_maker
+			var ab_use := false
+			if ab_dm != null and ab_dm.has_method("choose_optional_ability"):
+				ab_use = await ab_dm.choose_optional_ability(
+					"Ablative Barrier (Threat 3): install 1 non-agenda from HQ/Archives on another server?", ctx)
+			else:
+				ab_use = true  # AI: always use
+			if not ab_use:
+				return
+			# Corp chooses which card to install
+			var ab_chosen_entry: Variant = null
+			if ab_dm != null and ab_dm.has_method("choose_card_from_hand"):
+				# Pass candidate list (using card_record as the card_record field, source in _from_archives)
+				var ab_hand_like: Array = []
+				for ab_c in ab_candidates:
+					var ab_cd: Dictionary = ab_c as Dictionary
+					ab_hand_like.append({
+						"card_id": (ab_cd["card_record"] as CardRecord).id,
+						"card_record": ab_cd["card_record"],
+						"_from_archives": (ab_cd["source"] == "archives")
+					})
+				ab_chosen_entry = await ab_dm.choose_card_from_hand(ab_hand_like, ctx)
+			if ab_chosen_entry == null and not ab_candidates.is_empty():
+				ab_chosen_entry = {
+					"card_id": (ab_candidates[0]["card_record"] as CardRecord).id,
+					"card_record": ab_candidates[0]["card_record"],
+					"_from_archives": (ab_candidates[0]["source"] == "archives")
+				}
+			if ab_chosen_entry == null:
+				return
+			var ab_card_rec: CardRecord = (ab_chosen_entry as Dictionary).get("card_record", null) as CardRecord
+			var ab_from_archives: bool  = (ab_chosen_entry as Dictionary).get("_from_archives", false)
+			if ab_card_rec == null:
+				return
+			# Corp chooses target server (not the run server / not this ice's server)
+			var ab_all_servers: Array = []
+			for ab_srv_id in ctx.servers:
+				if ab_srv_id != ab_self.server_id:
+					ab_all_servers.append(ab_srv_id)
+			# Always allow creating a new remote
+			ab_all_servers.append("new_remote")
+			var ab_target_srv_id: String = ab_all_servers[0] if not ab_all_servers.is_empty() else ""
+			if ab_dm != null and ab_dm.has_method("choose_server"):
+				var ab_srv_chosen: String = await ab_dm.choose_server(ab_all_servers, ctx)
+				if ab_srv_chosen != "":
+					ab_target_srv_id = ab_srv_chosen
+			var ab_target_srv: Server = null
+			if ab_target_srv_id == "new_remote":
+				ab_target_srv = ctx.create_remote_server()
+			else:
+				ab_target_srv = ctx.get_server(ab_target_srv_id)
+			if ab_target_srv == null:
+				ctx.send_log("[Ablative Barrier] No valid target server — aborting.")
+				return
+			# Remove card from source
+			if ab_from_archives:
+				ctx.corp_discard.erase(ab_card_rec)
+			else:
+				for ab_hi in range(ctx.corp_hand.size() - 1, -1, -1):
+					var ab_he: Dictionary = ctx.corp_hand[ab_hi] as Dictionary
+					if ab_he.get("card_record", null) == ab_card_rec:
+						ctx.corp_hand.remove_at(ab_hi)
+						break
+			# Install ignoring costs (zone depends on card type)
+			var ab_zone: String = "ice" if ab_card_rec.is_ice() else "root"
+			var ab_installed: InstalledCard = _install_corp_card(ab_card_rec, ab_target_srv, ab_zone, false)
+			ctx.corp_installed_this_turn.append(ab_installed.runtime_instance_id)
+			if ctx.has_meta("register_installed_card"):
+				(ctx.get_meta("register_installed_card") as Callable).call(ab_installed)
+			ctx.send_log("[Ablative Barrier] Corp installs %s on %s (ignoring costs)." % [
+				ab_card_rec.title, ab_target_srv.display_name()])
+			await ctx.notify_event("corp_installs_in_root", {
+				"card": ab_installed, "card_instance_id": ab_installed.runtime_instance_id
+			}, self)
+
+		# ── Behold!: Corp may pay 4cr → give Runner 2 tags (not Archives) ────────
+
+		"behold_corp_pay_tags":
+			# Behold! (TAI Corp asset): when Runner accesses this card anywhere except Archives,
+			# Corp may pay 4cr to give the Runner 2 tags.
+			# on_access only fires for installed cards, so the "not Archives" case covers
+			# the edge case of Behold! installed in an Archives root equivalent.
+			if ctx.run_target_server == "archives":
+				return  # Does not fire during Archives breaches
+			if ctx.corp_credits < 4:
+				ctx.send_log("[Behold!] Corp cannot afford to activate (needs 4cr, has %d)." % ctx.corp_credits)
+				return
+			var bh_dm: Object = ctx.corp_decision_maker
+			var bh_use := false
+			if bh_dm != null and bh_dm.has_method("choose_optional_ability"):
+				bh_use = await bh_dm.choose_optional_ability(
+					"Behold!: pay 4[credit] to give Runner 2 tags?", ctx)
+			else:
+				bh_use = true  # AI: always activate if affordable
+			if not bh_use:
+				return
+			ctx.corp_credits -= 4
+			var bh_was_zero: bool = (ctx.runner_tags == 0)
+			ctx.runner_tags += 2
+			ctx.send_log("[Behold!] Corp pays 4cr — %s receives 2 tags. (%d total)" % [
+				ctx.runner_name(), ctx.runner_tags])
+			await ctx.notify_event("runner_takes_tags", {"amount": 2, "from_zero": bh_was_zero}, self)
+
+		# ── Laser Pointer: encounter AP/destroyer/observer → trash self to bypass ─
+
+		"laser_pointer_offer_bypass":
+			# Laser Pointer (TAI Runner program): during encounter with AP, destroyer,
+			# or observer ice, may trash this program to bypass it.
+			var lp_self := _get_self_card(ctx)
+			if lp_self == null:
+				ctx.send_log("[Laser Pointer] Card not found in rig — ignoring.")
+				return
+			# Optional: ask runner
+			var lp_use := false
+			var lp_ice: InstalledCard = ctx.current_event_data.get("ice", null) as InstalledCard
+			var lp_ice_name: String = lp_ice.display_name() if lp_ice != null else "this ice"
+			if ctx.runner_decision_maker != null and \
+					ctx.runner_decision_maker.has_method("choose_optional_ability"):
+				lp_use = await ctx.runner_decision_maker.choose_optional_ability(
+					"Laser Pointer: trash to bypass %s?" % lp_ice_name, ctx)
+			else:
+				lp_use = true  # AI: always bypass if the condition is met
+			if not lp_use:
+				return
+			# Trash self: remove from rig → heap, unregister all its listeners/modifiers
+			var lp_record: CardRecord = lp_self.card_record
+			ctx.runner_rig.erase(lp_self)
+			if lp_record != null:
+				ctx.runner_discard.append(lp_record)
+			ctx.unregister_all_card_effects(lp_self.runtime_instance_id)
+			ctx.send_log("[Laser Pointer] %s trashes Laser Pointer to bypass %s." % [
+				ctx.runner_name(), lp_ice_name])
+			# Set the bypass flag — RSM checks this after encounter_ice listeners resolve
+			ctx.run_modifiers["bypass_current_ice"] = true
+
+		# ── Balanced Coverage: choose type, peek R&D, conditional gain 2cr ───────
+
+		"balanced_coverage_peek":
+			# Balanced Coverage (TAI Corp asset): at start of Corp turn, may choose a card
+			# type, look at the top card of R&D. If it matches the chosen type, may reveal it
+			# and gain 2cr.
+			if ctx.corp_deck.is_empty():
+				ctx.send_log("[Balanced Coverage] R&D is empty.")
+				return
+			# Optional activation
+			var bc_use := false
+			var bc_dm: Object = ctx.corp_decision_maker
+			if bc_dm != null and bc_dm.has_method("choose_optional_ability"):
+				bc_use = await bc_dm.choose_optional_ability(
+					"Balanced Coverage: use start-of-turn ability?", ctx)
+			else:
+				bc_use = true  # AI: always use
+			if not bc_use:
+				return
+			# Choose card type
+			var bc_types: Array = ["operation", "asset", "upgrade", "ice", "agenda"]
+			var bc_chosen_type: String = bc_types[0]
+			if bc_dm != null and bc_dm.has_method("choose_modes"):
+				var bc_mode_labels: Array = bc_types.map(func(t: String): return {"label": t.capitalize()})
+				var bc_idx: Array = await bc_dm.choose_modes(bc_mode_labels, 1, ctx)
+				if not bc_idx.is_empty() and (bc_idx[0] as int) < bc_types.size():
+					bc_chosen_type = bc_types[bc_idx[0] as int]
+			ctx.send_log("[Balanced Coverage] Corp chooses type: %s." % bc_chosen_type.capitalize())
+			# Peek top card (Corp sees it; runner does not)
+			var bc_top: CardRecord = ctx.corp_deck[0] as CardRecord
+			if bc_top == null:
+				return
+			ctx.send_log("[Balanced Coverage] Corp looks at top of R&D: %s (%s)." % [
+				bc_top.title, bc_top.card_type])
+			# Check for match
+			if bc_top.card_type == bc_chosen_type:
+				var bc_reveal := false
+				if bc_dm != null and bc_dm.has_method("choose_optional_ability"):
+					bc_reveal = await bc_dm.choose_optional_ability(
+						"Balanced Coverage: %s matches — reveal and gain 2cr?" % bc_top.title, ctx)
+				else:
+					bc_reveal = true  # AI: always reveal on a match
+				if bc_reveal:
+					ctx.corp_credits += 2
+					ctx.send_log("[Balanced Coverage] Corp reveals %s — gains 2cr. (%d total)" % [
+						bc_top.title, ctx.corp_credits])
+			else:
+				ctx.send_log("[Balanced Coverage] No match (top is %s, not %s)." % [
+					bc_top.card_type, bc_chosen_type])
+
+		# ── Federal Fundraising: arrange top 3 R&D; draw 1 if unprotected ────────
+
+		"federal_fundraising_arrange":
+			# Federal Fundraising (TAI Corp asset): at start of Corp turn, may look at the
+			# top 3 cards of R&D and arrange them. Then, if this server has no ice, may draw 1.
+			var ff_dm: Object = ctx.corp_decision_maker
+			if not ctx.corp_deck.is_empty():
+				var ff_use := false
+				if ff_dm != null and ff_dm.has_method("choose_optional_ability"):
+					ff_use = await ff_dm.choose_optional_ability(
+						"Federal Fundraising: arrange top 3 R&D?", ctx)
+				else:
+					ff_use = true  # AI: always arrange
+				if ff_use:
+					var ff_n: int = mini(3, ctx.corp_deck.size())
+					var ff_view: Array = []
+					for _i in range(ff_n):
+						ff_view.append(ctx.corp_deck[_i])
+					ctx.send_log("[Federal Fundraising] Corp looks at top %d of R&D: %s." % [
+						ff_n, ", ".join(ff_view.map(func(r): return (r as CardRecord).title))])
+					if ff_dm != null and ff_dm.has_method("arrange_top_rd"):
+						var ff_arranged: Array = await ff_dm.arrange_top_rd(ff_view, ctx)
+						if ff_arranged.size() == ff_n:
+							for _j in range(ff_n):
+								ctx.corp_deck[_j] = ff_arranged[_j]
+					# (if DM has no arrange method, leave order unchanged)
+			# Then: if this server has no ice → may draw 1 card
+			var ff_self := _get_self_card(ctx)
+			var ff_srv_id: String = ff_self.server_id if ff_self != null else ""
+			var ff_server: Server = ctx.get_server(ff_srv_id) if ff_srv_id != "" else null
+			var ff_unprotected: bool = ff_server != null and (ff_server as Server).ice.is_empty()
+			if ff_unprotected and not ctx.corp_deck.is_empty():
+				var ff_draw := false
+				if ff_dm != null and ff_dm.has_method("choose_optional_ability"):
+					ff_draw = await ff_dm.choose_optional_ability(
+						"Federal Fundraising: server unprotected — draw 1 card?", ctx)
+				else:
+					ff_draw = true  # AI: always draw
+				if ff_draw:
+					_draw_cards("corp", 1, ctx)
+
+		# ── The Price: trash top 4 stack, may install one for 3cr less ───────────
+
+		"the_price_play":
+			# The Price (TAI Runner event): trash the top 4 cards of your stack.
+			# You may install 1 of those cards, paying 3cr less than its install cost.
+			var tp_n: int = mini(4, ctx.runner_deck.size())
+			if tp_n == 0:
+				ctx.send_log("[The Price] Stack is empty — nothing to trash.")
+				return
+			# Trash top N cards
+			var tp_trashed: Array = []
+			for _tp_i in range(tp_n):
+				var tp_card: CardRecord = ctx.runner_deck.pop_front() as CardRecord
+				if tp_card != null:
+					ctx.runner_discard.append(tp_card)
+					tp_trashed.append(tp_card)
+			ctx.send_log("[The Price] %s trashes %d card(s): %s." % [
+				ctx.runner_name(), tp_trashed.size(),
+				", ".join(tp_trashed.map(func(r): return (r as CardRecord).title))])
+			# Fire self-trashed triggers (e.g. Strike Fund in top of stack)
+			await _fire_self_trashed_triggers(tp_trashed, ctx)
+			if tp_trashed.is_empty():
+				return
+			# Optional: install 1 of the trashed cards for 3cr less
+			var tp_dm: Object = ctx.runner_decision_maker
+			var tp_chosen: CardRecord = null
+			if tp_dm != null and tp_dm.has_method("choose_from_search"):
+				tp_chosen = await tp_dm.choose_from_search(tp_trashed, ctx)
+			else:
+				# AI: install the first card we can afford (cost after discount)
+				for tp_c in tp_trashed:
+					var tp_cr: CardRecord = tp_c as CardRecord
+					if tp_cr == null:
+						continue
+					var tp_cost_check: int = max(0, tp_cr.cost - 3)
+					if ctx.runner_credits < tp_cost_check:
+						continue
+					if tp_cr.card_type == "program" and tp_cr.memory_cost > 0:
+						if ctx.runner_mu_available() < tp_cr.memory_cost:
+							continue
+					tp_chosen = tp_cr
+					break
+			if tp_chosen == null:
+				ctx.send_log("[The Price] %s does not install any card." % ctx.runner_name())
+				return
+			# Validate install (affordability + MU)
+			var tp_install_cost: int = max(0, tp_chosen.cost - 3)
+			if ctx.runner_credits < tp_install_cost:
+				ctx.send_log("[The Price] Cannot afford to install %s (cost %d after discount)." % [
+					tp_chosen.title, tp_install_cost])
+				return
+			if tp_chosen.card_type == "program" and tp_chosen.memory_cost > 0:
+				if ctx.runner_mu_available() < tp_chosen.memory_cost:
+					ctx.send_log("[The Price] Not enough MU to install %s." % tp_chosen.title)
+					return
+			# Pay and install
+			ctx.runner_spend_credits(tp_install_cost)
+			ctx.runner_discard.erase(tp_chosen)
+			var tp_installed := InstalledCard.make_runtime_instance(tp_chosen, "runner_rig", "root", true)
+			ctx.runner_rig.append(tp_installed)
+			if ctx.has_meta("register_installed_card"):
+				(ctx.get_meta("register_installed_card") as Callable).call(tp_installed)
+			if ctx.has_meta("ability_registry"):
+				var tp_ab_reg: AbilityRegistry = ctx.get_meta("ability_registry") as AbilityRegistry
+				var tp_on_rez = tp_ab_reg.get_on_rez(tp_chosen.id)
+				if tp_on_rez != null:
+					ctx.current_event_data = {
+						"card": tp_installed,
+						"card_instance_id": tp_installed.runtime_instance_id
+					}
+					await execute_trigger(tp_on_rez as Dictionary, ctx)
+					ctx.current_event_data = {}
+			if tp_chosen.card_type == "program" and tp_chosen.has_subtype("virus"):
+				await ctx.notify_event("runner_installs_virus", {
+					"card": tp_installed,
+					"card_instance_id": tp_installed.runtime_instance_id
+				}, self)
+			await ctx.notify_event("runner_installs_card", {
+				"credits_paid": tp_install_cost,
+				"card": tp_installed,
+				"card_instance_id": tp_installed.runtime_instance_id
+			}, self)
+			ctx.send_log("[The Price] %s installs %s for %d cr (3cr discount). [MU: %d/%d]" % [
+				ctx.runner_name(), tp_chosen.title, tp_install_cost,
+				ctx.runner_mu_used(), ctx.runner_total_mu()])
+
+		# ── Your Digital Life: gain 1cr per card in HQ ──────────────────────────
+
+		"gain_credits_per_hq_card":
+			# Your Digital Life (TAI Corp operation): gain 1cr for each card in HQ.
+			var ydl_amount: int = ctx.corp_hand.size()
+			if ydl_amount == 0:
+				ctx.send_log("[Your Digital Life] HQ is empty — no credits gained.")
+				return
+			ctx.corp_credits += ydl_amount
+			ctx.send_log("[Your Digital Life] %s gains %d credit(s) (HQ has %d card(s))." % [
+				ctx.corp_name(), ydl_amount, ydl_amount])
+
+		# ── Joy Ride: run R&D, draw 5 on success ──────────────────────────────
+
+		"joy_ride_run_rd":
+			# Joy Ride (TAI Runner event): Run R&D. If successful, draw 5 cards.
+			var jr_lid := "joy_ride_listener_%s" % str(randi())
+			ctx.register_listener("successful_run", jr_lid, {
+				"effects": [{"type": "draw_cards", "params": {"subject": "runner", "amount": 5}}]
+			})
+			ctx.run_modifiers["run_event_active"] = 1
+			if ctx.has_meta("on_run_started"):
+				(ctx.get_meta("on_run_started") as Callable).call("rd")
+				await Engine.get_main_loop().process_frame
+			var jr_rsm: Object = ctx.get_meta("run_state_machine") if ctx.has_meta("run_state_machine") else null
+			if jr_rsm == null:
+				push_error("AbilityInterpreter: joy_ride_run_rd — no run_state_machine on ctx")
+				ctx.unregister_all_card_effects(jr_lid)
+				return
+			ctx.send_log("Joy Ride: %s runs R&D." % ctx.runner_name())
+			await jr_rsm.execute("rd")
+			ctx.unregister_all_card_effects(jr_lid)
+
+		# ── Oppo Research: tag Runner, end Corp action phase ──────────────────
+
+		"oppo_research_play":
+			# Oppo Research (TAI Corp operation): give Runner 2 tags; Corp action phase ends.
+			# Threat 3: Corp may pay 5cr → give Runner 2 more tags.
+			# Pre-play condition (runner_stole_or_trashed_last_runner_turn) is enforced
+			# by TurnManager's pre_play_condition check before this effect fires.
+
+			# 1. Give Runner 2 tags
+			var or_was_zero: bool = (ctx.runner_tags == 0)
+			ctx.runner_tags += 2
+			ctx.send_log("[Oppo Research] %s gives %s 2 tags. (%d total)" % [
+				ctx.corp_name(), ctx.runner_name(), ctx.runner_tags])
+			await ctx.notify_event("runner_takes_tags", {"amount": 2, "from_zero": or_was_zero}, self)
+
+			# 2. Threat 3: optional 5cr payment → 2 more tags
+			if not ctx.game_over and ctx.threat_level() >= 3 and ctx.corp_credits >= 5:
+				var or_pay := false
+				if ctx.corp_decision_maker != null and \
+						ctx.corp_decision_maker.has_method("choose_optional_ability"):
+					or_pay = await ctx.corp_decision_maker.choose_optional_ability(
+						"Oppo Research: pay 5[credit] to give Runner 2 more tags?", ctx)
+				else:
+					or_pay = true  # AI: always activate Threat 3 bonus if affordable
+				if or_pay:
+					ctx.corp_credits -= 5
+					var or_was_zero2: bool = (ctx.runner_tags == 0)
+					ctx.runner_tags += 2
+					ctx.send_log("[Oppo Research] Corp pays 5cr — %s takes 2 more tags. (%d total)" % [
+						ctx.runner_name(), ctx.runner_tags])
+					await ctx.notify_event("runner_takes_tags",
+						{"amount": 2, "from_zero": or_was_zero2}, self)
+
+			# 3. End Corp's action phase (forfeit remaining clicks)
+			if ctx.corp_clicks > 0:
+				ctx.send_log("[Oppo Research] Corp's action phase ends (%d click(s) forfeited)." % ctx.corp_clicks)
+				ctx.corp_clicks = 0
 
 		_:
 			push_error("AbilityInterpreter: unknown effect type '%s'" % etype)

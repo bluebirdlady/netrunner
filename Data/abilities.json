@@ -1944,22 +1944,6 @@
 		}
 	},
 
-	"eru_ayase_pessoa": {
-		"_note": "TAI Runner resource. [click]: Make a run on any server. If successful, redirect the breach to Archives and access 1 additional card.",
-		"click_action": {
-			"effects": [
-				{
-					"type": "run_with_breach_redirect",
-					"params": {
-						"servers": ["hq", "rd", "archives", "remote"],
-						"redirect_to": "archives",
-						"extra_accesses": 1
-					}
-				}
-			]
-		}
-	},
-
 	"front_company": {
 		"_note": "TAI Corp upgrade. While rezzed in a non-Archives server: Runner cannot run remotes unless they have already made a run this turn. When Runner runs Archives and Front Company's server has no ice: deal 2 net damage. Both effects are hardcoded in TurnManager (_validate_action) and RunStateMachine (_phase_initiation) respectively."
 	},
@@ -5643,16 +5627,10 @@
 	},
 
 	"eru_ayase_pessoa": {
-		"_note": "RWR Runner resource (Shaper). Once per turn — click + take 1 tag: run Archives; if successful, breach R&D instead. Threat 3: whenever you breach R&D during an Archives run, access 1 additional card. Full redirect requires engine support; threat bonus is passive.",
-		"passive_modifiers": [{
-			"type": "rd_additional_access_during_archives_run",
-			"value": 1,
-			"condition": {"type": "threat_active", "threshold": 3}
-		}],
+		"_note": "TAI Runner resource (Criminal, Connection). Once per turn → [click], take 1 tag: run Archives; if successful, breach R&D instead. Threat 3: whenever you breach R&D this way, access 1 additional card. Tag is given inside eru_ayase_pessoa_run before the run starts. Threat 3 bonus access is computed at run start (matches Archer ruling: checked when breach begins).",
 		"click_action": {
-			"cost_tags": 1,
-			"once_per_turn": true,
-			"effects": [{"type": "run_archives_breach_rd_instead", "params": {}}]
+			"once_per_turn_key": "eru_run",
+			"effects": [{"type": "eru_ayase_pessoa_run"}]
 		}
 	},
 
@@ -6745,10 +6723,11 @@
 	},
 
 	"greasing_the_palm": {
-		"_note": "TAI Corp operation (Weyland). Place 1 advancement counter on each of up to 3 different installed cards.",
+		"_note": "TAI Corp operation 3cr (Weyland, Transaction). Gain 5cr. May install 1 card from HQ (paying normal install cost). May remove 1 Runner tag to place 1 advancement counter on the installed card.",
 		"on_play": {
 			"effects": [
-				{"type": "add_advancement_counters_on_installed_multi", "params": {"amount": 1, "max_targets": 3}}
+				{"type": "gain_credits", "params": {"subject": "corp", "amount": 5}},
+				{"type": "greasing_the_palm_install_and_advance"}
 			]
 		}
 	},
@@ -6890,6 +6869,152 @@
 		"boost": {
 			"cost_trash_grip": 1,
 			"strength_gained": 3
+		}
+	},
+
+	"ablative_barrier": {
+		"_note": "TAI Corp ice (Weyland, Barrier, 1cr, Str 4). ETR sub. Threat 3 on_rez during run on this server: install 1 non-agenda from HQ or Archives on another server ignoring costs.",
+		"subroutines": [
+			{"label": "End the run.", "effects": [{"type": "end_run"}]}
+		],
+		"on_rez": {
+			"condition": {"type": "threat_gte", "params": {"value": 3}},
+			"effects": [{"type": "ablative_barrier_install_on_rez"}]
+		}
+	},
+
+	"valentao": {
+		"_note": "TAI Corp ice (Weyland, Sentry-AP, 5cr, Str 4). Additional rez cost: take 1 bad pub OR remove 1 Runner tag. Subs: Corp gains 2cr; Runner loses 2cr; ETR if Corp has more credits.",
+		"additional_rez_cost": {"type": "bad_pub_or_remove_runner_tag"},
+		"subroutines": [
+			{"label": "Gain 2[credit].", "effects": [{"type": "gain_credits", "params": {"subject": "corp", "amount": 2}}]},
+			{"label": "The Runner loses 2[credit].", "effects": [{"type": "lose_credits", "params": {"subject": "runner", "amount": 2}}]},
+			{
+				"label": "End the run if you have more credits than the Runner.",
+				"condition": {"type": "corp_credits_gt_runner"},
+				"effects": [{"type": "end_run"}]
+			}
+		]
+	},
+
+	"behold": {
+		"_note": "TAI Corp asset (NBN, trap, 5/5). must_reveal: true (shown when accessed in R&D). On access (not Archives): Corp may pay 4cr → Runner gets 2 tags.",
+		"must_reveal": true,
+		"on_access": {
+			"effects": [{"type": "behold_corp_pay_tags"}]
+		}
+	},
+
+	"b_1001": {
+		"_note": "TAI Runner resource (Criminal, Connection, 2cr). Once per turn, during a run: remove 1 tag → end the run. ('Another server' interpreted as any active run.)",
+		"run_paid_ability": {
+			"once_per_turn_key": "b1001_etr",
+			"label": "B-1001: Remove 1 tag to end the run?",
+			"condition": {"type": "runner_is_tagged"},
+			"cost": {"remove_tag": 1},
+			"effects": [{"type": "end_run"}]
+		}
+	},
+
+	"shibboleth": {
+		"_note": "TAI Runner program (Shaper, Icebreaker, Code Gate, 3cr, 1MU, Str 4). Threat 4: -2 str. Interface 1cr: break 1 code gate sub. 2cr: +2 str.",
+		"break": {
+			"subtype_restriction": "code_gate",
+			"cost_per_sub": 1,
+			"subs_per_use": 1
+		},
+		"boost": {
+			"cost": 2,
+			"strength_gained": 2
+		},
+		"passive_modifiers": [
+			{
+				"type": "dynamic_base_strength",
+				"card_id": "shibboleth",
+				"method": "shibboleth_threat_penalty"
+			}
+		]
+	},
+
+	"laser_pointer": {
+		"_note": "TAI Runner program (Criminal, 2cr). During encounter with AP, destroyer, or observer ice: may trash self to bypass.",
+		"encounter_ice": {
+			"condition": {
+				"type": "encounter_ice_has_subtype_any",
+				"subtypes": ["ap", "destroyer", "observer"]
+			},
+			"effects": [
+				{"type": "laser_pointer_offer_bypass"}
+			]
+		}
+	},
+
+	"balanced_coverage": {
+		"_note": "TAI Corp asset (NBN, Advertisement, 3/3). Corp turn start: choose card type, look at top R&D; if match, may reveal and gain 2cr.",
+		"corp_turn_start": {
+			"effects": [
+				{"type": "balanced_coverage_peek"}
+			]
+		}
+	},
+
+	"federal_fundraising": {
+		"_note": "TAI Corp asset (NBN, Advertisement, 5/3). Corp turn start: may arrange top 3 R&D. If server unprotected by ice, may draw 1.",
+		"corp_turn_start": {
+			"effects": [
+				{"type": "federal_fundraising_arrange"}
+			]
+		}
+	},
+
+	"the_price": {
+		"_note": "TAI Runner event (Anarch, 2cr). Trash top 4 stack; may install 1 of them for 3cr less.",
+		"on_play": {
+			"effects": [
+				{"type": "the_price_play"}
+			]
+		}
+	},
+
+	"your_digital_life": {
+		"_note": "TAI Corp operation (NBN, 3cr). Gain 1cr for each card in HQ when played.",
+		"on_play": {
+			"effects": [
+				{"type": "gain_credits_per_hq_card"}
+			]
+		}
+	},
+
+	"fujii_asset_retrieval": {
+		"_note": "TAI Corp agenda (Jinteki, 3/2). When this agenda is scored or stolen, do 2 net damage.",
+		"on_score": {
+			"effects": [
+				{"type": "deal_damage", "params": {"damage_type": "net", "amount": 2}}
+			]
+		},
+		"on_steal": {
+			"effects": [
+				{"type": "deal_damage", "params": {"damage_type": "net", "amount": 2}}
+			]
+		}
+	},
+
+	"joy_ride": {
+		"_note": "TAI Runner event (Anarch, Run, 2cr). Run R&D. If successful, draw 5 cards.",
+		"on_play": {
+			"effects": [
+				{"type": "joy_ride_run_rd"}
+			]
+		}
+	},
+
+	"oppo_research": {
+		"_note": "TAI Corp operation (NBN, 2cr). Play only if runner stole/trashed last turn. Give Runner 2 tags; Corp action phase ends. Threat 3: pay 5cr → 2 more tags.",
+		"pre_play_condition": "runner_stole_or_trashed_last_runner_turn",
+		"on_play": {
+			"effects": [
+				{"type": "oppo_research_play"}
+			]
 		}
 	}
 }

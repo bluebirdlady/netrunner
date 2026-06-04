@@ -22,6 +22,7 @@ signal payment_resolved(option: Variant)
 signal server_choice_resolved(server_id: String)
 signal modal_resolved(indices: Array)
 signal search_resolved(card: CardRecord)
+signal suffer_damage_or_etr_resolved(take_damage: bool)
 
 # ── Engine references ─────────────────────────────────────────────────────────
 var ctx:              GameContext
@@ -866,6 +867,23 @@ func show_jack_out_prompt() -> bool:
 		Color(0.4, 0.9, 0.5))
 
 	var result: bool = await jack_out_resolved
+	_clear_actions()
+	return result
+
+
+func show_suffer_damage_or_etr_prompt(amount: int, damage_type: String) -> bool:
+	_clear_actions()
+	_add_section("Semak-samun — end the run, or suffer %d %s damage to continue?" % [amount, damage_type])
+	_add_btn("End the Run",
+		func(): suffer_damage_or_etr_resolved.emit(false),
+		Color(0.6, 0.6, 0.65))
+	var dmg_btn := _add_btn(
+		"Suffer %d %s Damage" % [amount, damage_type.capitalize()],
+		func(): suffer_damage_or_etr_resolved.emit(true),
+		Color(1.0, 0.4, 0.4))
+	if ctx.runner_hand.size() < amount:
+		dmg_btn.disabled = true
+	var result: bool = await suffer_damage_or_etr_resolved
 	_clear_actions()
 	return result
 

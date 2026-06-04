@@ -2069,6 +2069,61 @@ func _execute_paid_ability_and_rez_window(can_rez_ice: bool = false) -> void:
 			ctx.once_per_turn_triggered["arissana:install"] = true
 			await _arissana_install_program()
 
+	# ── Run-time runner paid abilities (e.g. B-1001): scan rig for run_paid_ability ──
+	# Offered once at the start of each PAW invocation, before the Corp/Runner loop.
+	# Each card with "run_paid_ability" is offered if: run is active, condition met,
+	# not yet used this turn (once_per_turn_key). Cost (e.g. remove tag) paid here.
+	if ctx.run_active:
+		for _rpab_card in ctx.runner_rig.duplicate():
+			var rpab_ic: InstalledCard = _rpab_card as InstalledCard
+			if rpab_ic == null or rpab_ic.card_record == null:
+				continue
+			var rpab_def: Dictionary = ability_registry._abilities.get(rpab_ic.card_id, {}) as Dictionary
+			var rpab_pab: Variant = rpab_def.get("run_paid_ability", null)
+			if rpab_pab == null:
+				continue
+			var rpab_dict: Dictionary = rpab_pab as Dictionary
+			# Once-per-turn guard
+			var rpab_once_key: String = rpab_dict.get("once_per_turn_key", "")
+			var rpab_full_key: String = "%s:%s" % [rpab_ic.runtime_instance_id, rpab_once_key] \
+				if rpab_once_key != "" else ""
+			if rpab_full_key != "" and ctx.once_per_turn_triggered.get(rpab_full_key, false):
+				continue
+			# Condition guard
+			var rpab_cond: Dictionary = rpab_dict.get("condition", {}) as Dictionary
+			if not rpab_cond.is_empty() and not interpreter._evaluate_condition(rpab_cond, ctx):
+				continue
+			# Offer to runner DM
+			var rpab_label: String = rpab_dict.get("label", "%s ability" % rpab_ic.display_name())
+			var rpab_use := false
+			if ctx.runner_decision_maker != null and \
+					ctx.runner_decision_maker.has_method("choose_optional_ability"):
+				rpab_use = await ctx.runner_decision_maker.choose_optional_ability(rpab_label, ctx)
+			# AI defaults to false — conservative (don't end run unexpectedly)
+			if not rpab_use:
+				continue
+			# Pay cost
+			var rpab_cost: Dictionary = rpab_dict.get("cost", {}) as Dictionary
+			var rpab_remove_tags: int = rpab_cost.get("remove_tag", 0)
+			if rpab_remove_tags > 0:
+				if ctx.runner_tags < rpab_remove_tags:
+					ctx.send_log("[%s] Not enough tags to pay cost." % rpab_ic.display_name())
+					continue
+				ctx.runner_tags -= rpab_remove_tags
+				ctx.send_log("[%s] Runner removes %d tag(s) as cost. (%d remaining)" % [
+					rpab_ic.display_name(), rpab_remove_tags, ctx.runner_tags])
+				await ctx.notify_event("tag_removed", {"amount": rpab_remove_tags}, interpreter)
+			# Mark used
+			if rpab_full_key != "":
+				ctx.once_per_turn_triggered[rpab_full_key] = true
+			# Execute effects
+			ctx.current_event_data = {"card": rpab_ic, "card_instance_id": rpab_ic.runtime_instance_id}
+			var rpab_effects: Array = rpab_dict.get("effects", []) as Array
+			await interpreter.execute_trigger({"effects": rpab_effects}, ctx)
+			ctx.current_event_data = {}
+			if ctx.run_ended:
+				break
+
 	while consecutive_passes < 2:
 		if action_count >= max_window_actions:
 			push_error("RunStateMachine: paid-ability window hit %d-action limit — forcing close." % max_window_actions)

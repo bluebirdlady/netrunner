@@ -1625,6 +1625,30 @@ func _do_rez_card(player: String, action: GameAction) -> void:
 					ctx.send_log("Rez failed: %s cannot pay additional rez cost." % installed.display_name())
 					return
 
+		# ── Valentão: additional rez cost — take 1 bad pub OR remove 1 runner tag ──
+		if tm_arc_type == "bad_pub_or_remove_runner_tag":
+			# Corp must choose one option. Remove tag is only available if runner has tags.
+			var vm_can_tag: bool = ctx.runner_tags > 0
+			var vm_take_bad_pub: bool = true  # Corp can always take bad pub
+			if vm_can_tag and ctx.corp_decision_maker != null and \
+					ctx.corp_decision_maker.has_method("choose_optional_ability"):
+				# true = remove runner tag (preferred), false = take bad pub
+				var vm_prefer_tag: bool = await ctx.corp_decision_maker.choose_optional_ability(
+					"Valentão rez cost: remove 1 Runner tag (or take 1 bad pub)?", ctx)
+				vm_take_bad_pub = not vm_prefer_tag
+			elif vm_can_tag:
+				vm_take_bad_pub = false  # AI: prefer removing a Runner tag
+			if vm_take_bad_pub:
+				ctx.corp_bad_pub += 1
+				ctx.send_log("[Valentão] %s takes 1 bad publicity as rez cost. (%d total)" % [
+					ctx.corp_name(), ctx.corp_bad_pub])
+				await ctx.notify_event("corp_gains_bad_pub", {"amount": 1}, interpreter)
+			else:
+				ctx.runner_tags -= 1
+				ctx.send_log("[Valentão] %s removes 1 Runner tag as rez cost. (%d remaining)" % [
+					ctx.corp_name(), ctx.runner_tags])
+				await ctx.notify_event("tag_removed", {"amount": 1}, interpreter)
+
 	if player == "corp":
 		# Corp may supplement with Mahkota Langit Grid recurring credits on the same server
 		if ctx.corp_rez_credits_available(installed.server_id) < rez_cost:
