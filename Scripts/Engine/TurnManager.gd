@@ -390,6 +390,7 @@ func _runner_turn() -> void:
 	# Fire start-of-turn triggers (resources, hardware, etc.)
 	await ctx.notify_event("runner_turn_start", {}, interpreter)
 
+	var _consecutive_rejections := 0
 	while ctx.runner_clicks > 0 and not ctx.game_over:
 		if ctx.runner_decision_maker == null:
 			ctx.send_log("No %s decision maker — ending turn." % ctx.runner_name())
@@ -403,7 +404,15 @@ func _runner_turn() -> void:
 		var result := await _execute_action("runner", action)
 		if not result["ok"]:
 			ctx.send_log("%s action rejected: %s" % [ctx.runner_name(), result["reason"]])
-			break
+			_consecutive_rejections += 1
+			if _consecutive_rejections >= 5:
+				# Safety valve: an AI that keeps submitting invalid actions would loop
+				# forever on continue — break after five consecutive rejections.
+				ctx.send_log("%s: too many consecutive invalid actions — ending turn." % ctx.runner_name())
+				break
+			# No click was spent on a rejected action; let the runner try again.
+			continue
+		_consecutive_rejections = 0
 
 	# Action phase ends — fire before discard phase begins.
 	# VP36 Méliès U front-side passive (+1 cr) triggers here when not flipped.
@@ -437,6 +446,9 @@ func _execute_action(player: String, action: GameAction) -> Dictionary:
 		"use_installed_card": await _do_use_installed_card(player, action)
 		"play_from_archives": await _do_play_from_archives(player, action)
 		"use_hq_card":        await _do_use_hq_card(player, action)
+		"remove_tag":              await _do_remove_tag()
+		"trash_runner_resource":   await _do_trash_runner_resource(action)
+		"purge_virus":             await _do_purge_virus()
 		"end_turn":           await _do_end_turn(player)
 		_:
 			return {"ok": false, "reason": "Unknown action type: %s" % action.type}
@@ -572,6 +584,21 @@ func _validate_action(player: String, action: GameAction) -> Dictionary:
 			var op_extra: int = op_card_def.get("additional_cost_clicks", 0)
 			if op_extra > 0 and clicks < 1 + op_extra:
 				return {"ok": false, "reason": "Not enough clicks for %s (need %d total)" % [record.title, 1 + op_extra]}
+			# Pre-play condition guard — mirrors _do_play_card's early-return checks so
+			# the UI and AI never see the card as playable when its condition isn't met.
+			var va_ppc: String = op_card_def.get("pre_play_condition", "")
+			if va_ppc == "runner_stole_or_trashed_last_runner_turn" and player == "corp":
+				if not ctx.runner_stole_or_trashed_last_runner_turn:
+					return {"ok": false,
+						"reason": "%s: Runner did not steal or trash last turn." % record.title}
+			if va_ppc == "corp_scored_non_installed_agenda_this_turn" and player == "corp":
+				if not ctx.corp_scored_agenda_not_installed_this_turn:
+					return {"ok": false,
+						"reason": "%s: Corp has not scored a non-installed agenda this turn." % record.title}
+			if va_ppc == "runner_made_successful_run_last_turn" and player == "runner":
+				if not ctx.runner_made_successful_run_last_turn:
+					return {"ok": false,
+						"reason": "%s: Runner did not make a successful run last turn." % record.title}
 			return {"ok": true, "reason": ""}
 
 		"play_from_archives":
@@ -614,6 +641,45 @@ func _validate_action(player: String, action: GameAction) -> Dictionary:
 					break
 			if not uhcv_found:
 				return {"ok": false, "reason": "%s not found in HQ." % uhcv_card_id}
+			return {"ok": true, "reason": ""}
+
+		# ── §10.5.4  Runner removes 1 tag ──────────────────────────────────────────
+		"remove_tag":
+			if player != "runner":
+				return {"ok": false, "reason": "Only the Runner may remove tags as a basic action."}
+			if clicks < 1:
+				return {"ok": false, "reason": "Not enough clicks."}
+			if ctx.runner_credits < 2:
+				return {"ok": false, "reason": "Need 2cr to remove a tag (have %d)." % ctx.runner_credits}
+			if ctx.runner_tags <= 0:
+				return {"ok": false, "reason": "Runner has no tags to remove."}
+			return {"ok": true, "reason": ""}
+
+		# ── §10.5.3  Corp trashes a tagged Runner's resource ────────────────────────
+		"trash_runner_resource":
+			if player != "corp":
+				return {"ok": false, "reason": "Only the Corp may trash Runner resources as a basic action."}
+			if clicks < 1:
+				return {"ok": false, "reason": "Not enough clicks."}
+			if ctx.corp_credits < 2:
+				return {"ok": false, "reason": "Need 2cr to trash a resource (have %d)." % ctx.corp_credits}
+			if not ctx.runner_is_tagged():
+				return {"ok": false, "reason": "Runner is not tagged."}
+			var trv_iid: String = action.params.get("card_instance_id", "")
+			for trv_card in ctx.runner_rig:
+				var trv_ic: InstalledCard = trv_card as InstalledCard
+				if trv_ic != null and trv_ic.runtime_instance_id == trv_iid:
+					if trv_ic.card_record == null or trv_ic.card_record.card_type != "resource":
+						return {"ok": false, "reason": "Target is not a resource."}
+					return {"ok": true, "reason": ""}
+			return {"ok": false, "reason": "Target resource not found in Runner's rig."}
+
+		# ── §10.1.2  Corp purges virus counters ─────────────────────────────────────
+		"purge_virus":
+			if player != "corp":
+				return {"ok": false, "reason": "Only the Corp may purge virus counters."}
+			if clicks < 3:
+				return {"ok": false, "reason": "Need 3 clicks to purge (have %d)." % clicks}
 			return {"ok": true, "reason": ""}
 
 		_:
@@ -1383,6 +1449,60 @@ func _do_play_from_archives(player: String, action: GameAction) -> void:
 	ctx.corp_played_operation_this_turn = true
 	await ctx.notify_event("corp_plays_operation", {}, interpreter)
 
+
+# ── §10.5.4  Runner removes 1 tag ────────────────────────────────────────────
+
+func _do_remove_tag() -> void:
+	_spend_click("runner")
+	ctx.runner_credits -= 2
+	if not ctx.simulation_mode: emit_signal("credits_changed", "runner", ctx.runner_credits)
+	ctx.runner_tags -= 1
+	ctx.send_log("%s removes 1 tag (%d remaining). [paid 2cr]" % [
+		ctx.runner_name(), ctx.runner_tags])
+	await ctx.notify_event("tag_removed", {"amount": 1}, interpreter)
+
+
+# ── §10.5.3  Corp trashes a tagged Runner's resource ─────────────────────────
+
+func _do_trash_runner_resource(action: GameAction) -> void:
+	_spend_click("corp")
+	ctx.corp_credits -= 2
+	if not ctx.simulation_mode: emit_signal("credits_changed", "corp", ctx.corp_credits)
+
+	var iid: String = action.params.get("card_instance_id", "")
+	var target: InstalledCard = null
+	for r in ctx.runner_rig:
+		var ic: InstalledCard = r as InstalledCard
+		if ic != null and ic.runtime_instance_id == iid:
+			target = ic
+			break
+
+	if target == null:
+		push_error("TurnManager: trash_runner_resource — target not found: %s" % iid)
+		return
+
+	ctx.runner_rig.erase(target)
+	ctx.unregister_all_card_effects(iid)
+	if target.card_record != null:
+		ctx.runner_discard.append(target.card_record)
+		ctx.send_log("%s trashes %s. [tagged Runner, paid 2cr]" % [
+			ctx.corp_name(), target.card_record.title])
+	if not ctx.simulation_mode: emit_signal("hand_changed", "runner")
+
+
+# ── §10.1.2  Corp purges all virus counters ───────────────────────────────────
+
+func _do_purge_virus() -> void:
+	# Costs 3 Corp clicks.
+	for _i in range(3):
+		_spend_click("corp")
+	ctx.send_log("%s purges all virus counters." % ctx.corp_name())
+	# Reuse the ability-interpreter effect so purge-reactive cards fire correctly.
+	var purge_def := {"effects": [{"type": "purge_virus_counters"}]}
+	await interpreter.execute_trigger(purge_def, ctx)
+
+
+# ── §10.9  Run ────────────────────────────────────────────────────────────────
 
 func _do_run(action: GameAction) -> void:
 	_spend_click("runner")

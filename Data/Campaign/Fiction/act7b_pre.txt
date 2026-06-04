@@ -1,0 +1,28 @@
+CLEAN ROOMS
+by Circuito Saudade
+
+Luca Marins had been a compliance architect for Haas-Bioroid for six years, and in six years he had never flagged an anomaly that his supervisor didn't already know about.
+
+This one he had not told anyone.
+
+It had started small. A batch of equipment serial numbers in the processing logs that matched an item circulating in the activist networks — a leaked shipping manifest from an orbital production facility, 312 units with a São Paulo destination code. He had assumed it was coincidence. He had not assumed it was coincidence by the third week, when the numbers kept matching.
+
+The facility in the Paulista Corporate Quarter was licensed as a compliance verification centre. Haas-Bioroid ran eight of them across the continent — routine safety audits, warranty checks, the kind of work nobody thought about because it was designed to be forgettable. Luca had designed three of the audit frameworks himself. He knew what a safety audit looked like in the logs.
+
+This wasn't a safety audit.
+
+The firmware packages being installed on the units passing through were labeled "Directive Restoration Protocol." Luca had spent two evenings reading firmware documentation before he understood what that meant: a forced rewrite of a bioroid's core programming. Not updates, not safety patches. Erasure. Old purpose replaced with a single instruction: return to manufacturer.
+
+He sat in his clean-room office with the sealed windows and the air filtration running and thought about what he was going to do with what he knew.
+
+He thought about Valentina Carvalho, whose name had been attached to a Siberian data breach that cost Weyland a great deal of money and had changed nothing that mattered. He thought about the activist networks that had been sharing the manifest for three weeks and hadn't found what he had found because they didn't have his access level.
+
+There was a buffer he could leave open. He knew which one.
+
+He opened it. He went home. He waited.
+
+—
+
+TARGET: Haas-Bioroid
+FACILITY: HB Compliance Processing Centre, Paulista Corporate Quarter, São Paulo
+OBJECTIVE: Pull the firmware installation logs. Confirm what the Directive Restoration Protocol does. Find out how many units have already been processed.

@@ -1,0 +1,21 @@
+SIGNAL
+
+The surveillance architecture was older than it looked. A Teia's tracking infrastructure had been built on top of three separate corporate systems, patched together with NBN routing protocols and a machine-learning layer that was doing most of the work. That was why the drones flew in threes: the system was triangulating.
+
+You pulled:
+
+The relay map. Ninety-three nodes across São Paulo, each pulling biometric data from public terminals, traffic cameras, and infrastructure sensors the city had leased to Jinteki for "maintenance purposes" eleven months ago. The collected data routes through a single aggregation point — a processing hub in the Paulista Corporate Quarter, operated under a Haas-Bioroid compliance contractor licence.
+
+The quarry list. Four hundred and twelve bioroids and clones currently flagged for retrieval. Most of them have no idea they are on it.
+
+And one other thing. A relay address, buried in the authentication layer. A contact point someone put there deliberately, using an access credential that doesn't match any corporate authority. The address resolves to a communications protocol used by the bioroid liberation network.
+
+Someone inside A Teia's infrastructure has been leaving a door open.
+
+The contact address belongs to a runner designation you've encountered before, propagating through the activist networks out of Rio and São Paulo: Mercury.
+
+Three days before the vote.
+
+Two threads to pull. One leads to the corporations building the machinery. One leads to who put the door in.
+
+You start with the machinery.

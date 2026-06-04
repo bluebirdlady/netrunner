@@ -6083,11 +6083,11 @@ func _execute_effect(effect: Dictionary, ctx: GameContext, chosen_target: Varian
 		"muslihat_peek_top_card":
 			# Runner looks at the top card of their stack.
 			# If it is an icebreaker or run event, they may reveal it and add it to their grip.
+			# runner_deck is Array[CardRecord]; runner_hand is Array[{"card_id","card_record"}].
 			if ctx.runner_deck.is_empty():
 				ctx.send_log("MuslihaT: stack is empty.")
 				return
-			var mpt_entry: Dictionary = ctx.runner_deck.back() as Dictionary
-			var mpt_record: CardRecord = mpt_entry.get("card_record", null) as CardRecord
+			var mpt_record: CardRecord = ctx.runner_deck.back() as CardRecord
 			if mpt_record == null:
 				return
 			ctx.send_log("MuslihaT: %s peeks at the top of their stack." % ctx.runner_name())
@@ -6103,8 +6103,8 @@ func _execute_effect(effect: Dictionary, ctx: GameContext, chosen_target: Varian
 			else:
 				mpt_want = true   # AI default: always take it
 			if mpt_want:
-				ctx.runner_deck.erase(mpt_entry)
-				ctx.runner_hand.append(mpt_entry)
+				ctx.runner_deck.erase(mpt_record)
+				ctx.runner_hand.append({"card_id": mpt_record.id, "card_record": mpt_record})
 				ctx.send_log("MuslihaT: reveals %s and adds it to the grip." % mpt_record.title)
 			else:
 				ctx.send_log("MuslihaT: %s declines." % ctx.runner_name())
@@ -11032,8 +11032,8 @@ func _execute_effect(effect: Dictionary, ctx: GameContext, chosen_target: Varian
 		"debbie_run_with_hosted_credits":
 			# Debbie "Downtown" Moreira (TAI Runner resource):
 			# [click]: Run any server. You can spend hosted credits during that run.
-			# Implementation: transfer all hosted credits to runner pool before the run.
-			# Any unspent hosted credits remain as runner credits (known limitation).
+			# Snapshot pattern: transfer all hosted credits before the run, then return
+			# any unspent portion back to Debbie's counter after the run ends.
 			var deb_self := _get_self_card(ctx)
 			if deb_self == null:
 				return
@@ -11044,13 +11044,14 @@ func _execute_effect(effect: Dictionary, ctx: GameContext, chosen_target: Varian
 			var deb_target: String = deb_servers[0]
 			if ctx.runner_decision_maker != null and ctx.runner_decision_maker.has_method("choose_server"):
 				deb_target = await ctx.runner_decision_maker.choose_server(deb_servers, ctx)
-			# Transfer hosted credits to runner pool
+			# Transfer hosted credits to runner pool and record snapshot for return calc
 			var deb_hosted: int = deb_self.get_counter("credits")
 			if deb_hosted > 0:
 				deb_self.remove_counter("credits", deb_hosted)
 				ctx.runner_credits += deb_hosted
 				ctx.send_log("[Debbie] %s transfers %d hosted credit(s) to their pool for this run." % [
 					ctx.runner_name(), deb_hosted])
+			var deb_pool_snapshot: int = ctx.runner_credits   # credits available entering the run
 			# Run the server (not a run event card — no run_event_active)
 			if ctx.has_meta("on_run_started"):
 				(ctx.get_meta("on_run_started") as Callable).call(deb_target)
@@ -11061,6 +11062,17 @@ func _execute_effect(effect: Dictionary, ctx: GameContext, chosen_target: Varian
 				return
 			ctx.send_log("[Debbie] %s runs %s." % [ctx.runner_name(), deb_target.to_upper()])
 			await deb_rsm.execute(deb_target)
+			# Return unspent hosted credits to Debbie's counter.
+			# If the runner gained credits during the run (bad pub, etc.) total_spent
+			# may be negative — treat as 0 spent from Debbie's share.
+			if deb_hosted > 0 and deb_self != null:
+				var deb_total_spent: int = deb_pool_snapshot - ctx.runner_credits
+				var deb_used: int = max(0, min(deb_hosted, deb_total_spent))
+				var deb_unused: int = deb_hosted - deb_used
+				if deb_unused > 0:
+					deb_self.add_counter("credits", deb_unused)
+					ctx.send_log("[Debbie] %d unspent hosted credit(s) returned to %s." % [
+						deb_unused, deb_self.display_name()])
 
 		# ── Pivot: search R&D for op/agenda → HQ, shuffle; Threat 3 bonus ────────
 
@@ -11253,6 +11265,72 @@ func _execute_effect(effect: Dictionary, ctx: GameContext, chosen_target: Varian
 			if ctx.corp_clicks > 0:
 				ctx.send_log("[Oppo Research] Corp's action phase ends (%d click(s) forfeited)." % ctx.corp_clicks)
 				ctx.corp_clicks = 0
+
+		"corp_may_end_breach":
+			# Anoetic Void (HB upgrade): the Corp may pay {cost_credits}cr and trash
+			# {cost_trash_hq} cards from HQ to end the breach before any access occurs.
+			# Fires via the before_breach listener; once_per_turn_key handled by GameContext.
+			var av_cr_cost: int = params.get("cost_credits",  2) as int
+			var av_hq_cost: int = params.get("cost_trash_hq", 2) as int
+
+			# Only applies when Anoetic Void is installed in the server being breached.
+			var av_self: InstalledCard = _get_self_card(ctx)
+			var av_breached_server: String = ctx.current_event_data.get("server_id", "") as String
+			if av_self != null and av_self.server_id != av_breached_server:
+				return   # Anoetic Void is in a different server
+			if av_self != null and not av_self.is_rezzed:
+				return   # must be rezzed to activate
+
+			# Cannot use if Corp can't pay both costs.
+			if ctx.corp_credits < av_cr_cost or ctx.corp_hand.size() < av_hq_cost:
+				return
+
+			# Ask Corp DM.
+			var av_prompt: String = \
+				"Anoetic Void: pay %d[c] and trash %d card(s) from HQ to end the breach?" \
+				% [av_cr_cost, av_hq_cost]
+			var av_use := false
+			if ctx.corp_decision_maker != null and \
+					ctx.corp_decision_maker.has_method("choose_optional_ability"):
+				av_use = await ctx.corp_decision_maker.choose_optional_ability(av_prompt, ctx)
+			else:
+				av_use = true   # AI conservative default: always use when affordable
+
+			if not av_use:
+				ctx.send_log("Anoetic Void: Corp declines.")
+				return
+
+			# Pay credit cost.
+			ctx.corp_credits -= av_cr_cost
+			if not ctx.simulation_mode:
+				emit_signal("credits_changed", "corp", ctx.corp_credits)
+
+			# Trash cards from HQ: non-agendas first (preserve agenda density), then agendas.
+			var av_hand_snap: Array = ctx.corp_hand.duplicate()
+			var av_trashed := 0
+			for av_pass in range(2):
+				for av_entry in av_hand_snap:
+					if av_trashed >= av_hq_cost:
+						break
+					if not ctx.corp_hand.has(av_entry):
+						continue
+					var av_card: CardRecord = \
+						(av_entry as Dictionary).get("card_record", null) as CardRecord
+					if av_card == null:
+						continue
+					var av_is_agenda: bool = av_card.is_agenda()
+					if (av_pass == 0 and not av_is_agenda) or (av_pass == 1 and av_is_agenda):
+						ctx.corp_hand.erase(av_entry)
+						ctx.corp_discard.append(av_card)
+						ctx.send_log("Anoetic Void: Corp trashes %s from HQ." % av_card.title)
+						av_trashed += 1
+
+			if not ctx.simulation_mode:
+				emit_signal("hand_changed", "corp")
+
+			# Cancel the breach — RSM checks this flag in _breach_server().
+			ctx.run_modifiers["breach_cancelled"] = true
+			ctx.send_log("Anoetic Void: Breach ended before access.")
 
 		_:
 			push_error("AbilityInterpreter: unknown effect type '%s'" % etype)

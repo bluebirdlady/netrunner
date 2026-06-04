@@ -1,0 +1,22 @@
+LOGISTICS
+by Patrick Sklar
+
+Cora processed forty-seven equipment orders the day the counter reached 312.
+
+The orders had been running for eight months. Armoured vehicles, first — which she had processed without comment, because Nuvem SA operated in jurisdictions where armoured vehicles were ordinary. Then crowd control units, which she had also processed, because those too were ordinary in the places Nuvem SA operated. Then fencing materials rated for ten thousand volts and three metres and designed for rapid deployment. Then communications jammers cleared for use in "high-density civilian environments." Then, three weeks ago, the first order that had made her pause: a manifest for forty-seven units of something classified as "automated compliance enforcement hardware," destination code INITIATIVE_ENFORCEMENT, routing through the Belém-7 relay to São Paulo.
+
+She had looked up INITIATIVE_ENFORCEMENT. The recipient code didn't appear in any public registry. It appeared in one internal document, a logistics protocol filed under Weyland's Amazon operational framework, referencing a joint implementation agreement with three other corporations that she had never heard of before and had not heard of since.
+
+She processed the order. She processed the forty-seven that came after it.
+
+Cora had been a logistics dispatcher for nine years, and in nine years she had understood that you did not investigate the recipient codes. You typed them. You filed the paperwork. The equipment went where it was told to go. The fact that it went to São Paulo, of all places, in the current political moment — that was not her department.
+
+She told herself this the way she had always told herself it.
+
+She did not quite believe it the way she had always believed it.
+
+—
+
+TARGET: Nuvem SA
+FACILITY: Amazon Basin Relay Station Belém-7, Logistics Node
+OBJECTIVE: Take down the supply corridor. The enforcement hardware stops moving. Buy 72 hours for the safe house relocations.

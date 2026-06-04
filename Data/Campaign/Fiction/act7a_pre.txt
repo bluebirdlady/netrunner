@@ -1,0 +1,30 @@
+THE NET CLOSES
+by Circuito Saudade
+
+Ezra-Seven had lived in the Jaborandi Complex for ninety-one days, which was seventy-three days longer than they had expected.
+
+The building had been a garment warehouse before the trade agreement that made garment warehouses uneconomical. Now it held eleven families, four bioroids, and a water reclamation system held together with replacement parts from three different manufacturers. Ezra-Seven knew the weight distribution of every floor panel. They had memorised which exits could be opened quietly. They slept four hours at a time and spent the rest watching the street.
+
+Tonight the street had changed.
+
+The drones were new. Not police issue — the silhouette was wrong, the flight pattern too deliberate, running on a search-and-match algorithm rather than patrol sweep. They moved in clusters of three, their imaging arrays cycling through spectra. Ezra-Seven pulled the thermal blanket tighter and did not move.
+
+A Teia, people in the building called it. The net. IP Recovery, in corporate language. In practice it meant: Jinteki's manhunters had started using Haas-Bioroid tracking infrastructure to map the city, and the map was getting more detailed every day. Seven people from the Jaborandi Complex had been taken in the last three weeks. Six clones, one bioroid. All gone before anyone else woke up.
+
+Ninety-one days. Ezra-Seven was, by the standards of the neighbourhood, old.
+
+They thought about the manifests that had been moving through the activist networks — 312 units, São Paulo routing — and thought about what it meant that a bioroid from an AU Co. production run was counting things in a notebook and leaving the numbers where someone might find them. They thought about what it would mean if the Automata Initiative passed the vote three days from now.
+
+They thought about the runner who was supposed to be coming.
+
+Not because the runner would save them specifically. Ezra-Seven had stopped thinking in terms of being saved. But someone needed to break A Teia's surveillance routing open from the outside, pull the network architecture, and get the location of the relay node before the legislation passed and the map became a warrant.
+
+Three days. The drones completed their sweep and moved on.
+
+Ezra-Seven exhaled, slowly, as quietly as they knew how.
+
+—
+
+TARGET: A Teia: IP Recovery
+FACILITY: Jaborandi Complex Relay Node, Vila Nova Boa Vista, São Paulo
+OBJECTIVE: Break A Teia's surveillance network. Pull the routing architecture. Find where the tracking data is going before the vote.

@@ -93,6 +93,14 @@ func execute(server_id: String) -> void:
 	ctx.run_s_dobrado_encounter_count         = 0      # reset for S-Dobrado
 	ctx.arissana_installed_this_run_iid       = ""    # reset for Arissana
 
+	# §10.6.3a — Bad publicity fund: Runner receives 1cr per Corp bad pub for this run.
+	# The fund is isolated in run_modifiers so it cannot be spent outside runs and is
+	# automatically cleared (§10.6.3b) when run_modifiers is wiped at _phase_end().
+	if ctx.corp_bad_pub > 0:
+		ctx.run_modifiers["bad_pub_credits"] = ctx.corp_bad_pub
+		ctx.send_log("[Bad Pub] Runner receives %d bad publicity credit(s) for this run." % \
+			ctx.corp_bad_pub)
+
 	ctx.send_log("--- Run on %s begins ---" % server.display_name())
 	await _phase_initiation()
 
@@ -674,7 +682,6 @@ func _phase_success() -> void:
 	else:
 		ctx.run_successful = true
 		ctx.send_log("[Success] Run successful on %s!" % _target_server.display_name())
-		emit_signal("run_succeeded", _target_server.server_id)
 		# Track successful runs on each central for Chain Reaction (VP1) and other per-central guards.
 		# Set here (not only in TurnManager) so event-card-initiated runs also populate these flags.
 		match _target_server.server_id:
@@ -689,7 +696,8 @@ func _phase_success() -> void:
 		await ctx.notify_event("successful_run", {"server_id": _target_server.server_id}, interpreter)
 
 		# Run-event "gain on success" reward (e.g. Clean Getaway: gain 6cr if successful)
-		var gain_on_success: int = ctx.run_modifiers.get("gain_on_success", 0)
+		var gain_on_success: int = ctx.run_modifiers.get("gain_on_success", 0) as int
+		ctx.send_log("[Debug/gain_on_success] run_modifiers at success: %s" % str(ctx.run_modifiers))
 		if gain_on_success > 0:
 			ctx.runner_credits += gain_on_success
 			ctx.send_log("%s gains %d cr (run successful)." % [ctx.runner_name(), gain_on_success])
@@ -708,6 +716,13 @@ func _phase_success() -> void:
 				ctx.send_log("Transfer of Wealth: %s loses %d cr; %s gains %d cr." % [
 					ctx.corp_name(), tow_lost, ctx.runner_name(), tow_gained
 				])
+
+		# Emit run_succeeded AFTER all credit mutations so that GameUI's
+		# _update_all_displays() snapshot sees the post-gain credit total.
+		# Previously emitted before gain_on_success / Transfer of Wealth, which
+		# caused the display to show stale credits (e.g. Clean Getaway appeared
+		# to pay 0 because the +6 happened after the display refresh).
+		emit_signal("run_succeeded", _target_server.server_id)
 
 	# Red Team payout: take hosted credits before breach
 	if ctx.has_meta("red_team_pending_payout"):
@@ -2092,6 +2107,10 @@ func _execute_paid_ability_and_rez_window(can_rez_ice: bool = false) -> void:
 			# Condition guard
 			var rpab_cond: Dictionary = rpab_dict.get("condition", {}) as Dictionary
 			if not rpab_cond.is_empty() and not interpreter._evaluate_condition(rpab_cond, ctx):
+				continue
+			# remote_only: ability requires a run on a remote server (e.g. B-1001 "another server").
+			if rpab_dict.get("remote_only", false) and \
+					ctx.run_target_server in ["hq", "rd", "archives"]:
 				continue
 			# Offer to runner DM
 			var rpab_label: String = rpab_dict.get("label", "%s ability" % rpab_ic.display_name())

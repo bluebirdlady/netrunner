@@ -277,11 +277,103 @@
 			"fiction_pre": "act6f_pre",
 			"fiction_post": "act6f_post",
 			"opponent_id": "au_co_orbital",
-			"unlocks_missions": [],
+			"unlocks_missions": ["act7a_a_teia"],
 			"unlocks_cards": [
 				"amelia_earhart", "eye_for_an_eye", "privileged_access"
 			],
 			"prerequisite_missions": ["act6d_hb_annex", "act6e_jinteki_distributed"]
+		},
+
+		{
+			"id": "act7a_a_teia",
+			"title": "The Net Closes",
+			"subtitle": "Jaborandi Complex Relay Node, Vila Nova Boa Vista, São Paulo",
+			"act": 7,
+			"ai_level": 3,
+			"fiction_pre": "act7a_pre",
+			"fiction_post": "act7a_post",
+			"opponent_id": "a_teia_reclamation",
+			"unlocks_missions": ["act7b_hb_compliance", "act7c_jinteki_iteration"],
+			"unlocks_cards": [
+				"b_1001", "curupira", "pichacao", "solidarity_badge"
+			],
+			"prerequisite_missions": ["act6f_au_co_orbital"]
+		},
+		{
+			"id": "act7b_hb_compliance",
+			"title": "Clean Rooms",
+			"subtitle": "HB Compliance Processing Centre, Paulista Corporate Quarter, São Paulo",
+			"act": 7,
+			"ai_level": 3,
+			"fiction_pre": "act7b_pre",
+			"fiction_post": "act7b_post",
+			"opponent_id": "hb_spike_protocol",
+			"unlocks_missions": ["act7d_nuvem_amazon", "act7e_epiphany_brasilia"],
+			"unlocks_cards": [
+				"shibboleth", "living_mural", "slap_vandal", "beatriz_friere_gonzalez"
+			],
+			"prerequisite_missions": ["act7a_a_teia"]
+		},
+		{
+			"id": "act7c_jinteki_iteration",
+			"title": "Controlled Variables",
+			"subtitle": "Jinteki Research Annex 14, Lapa Industrial Zone, São Paulo",
+			"act": 7,
+			"ai_level": 3,
+			"fiction_pre": "act7c_pre",
+			"fiction_post": "act7c_post",
+			"opponent_id": "jinteki_labyrinth",
+			"unlocks_missions": ["act7d_nuvem_amazon", "act7e_epiphany_brasilia"],
+			"unlocks_cards": [
+				"debbie_downtown_moreira", "saci", "tatu_bola", "hermes"
+			],
+			"prerequisite_missions": ["act7a_a_teia"]
+		},
+		{
+			"id": "act7d_nuvem_amazon",
+			"title": "Logistics",
+			"subtitle": "Nuvem SA Relay Station Belém-7, Amazon Basin",
+			"act": 7,
+			"ai_level": 3,
+			"fiction_pre": "act7d_pre",
+			"fiction_post": "act7d_post",
+			"opponent_id": "weyland_hammer",
+			"unlocks_missions": ["act7f_synapse_broadcast"],
+			"unlocks_cards": [
+				"strike_fund", "wage_workers", "daniela_jorge_inacio", "bahia_bands"
+			],
+			"prerequisite_missions": ["act7b_hb_compliance", "act7c_jinteki_iteration"]
+		},
+		{
+			"id": "act7e_epiphany_brasilia",
+			"title": "Briefing",
+			"subtitle": "Epiphany Analytica Campaign Intelligence Hub, Brasília Digital Quarter",
+			"act": 7,
+			"ai_level": 3,
+			"fiction_pre": "act7e_pre",
+			"fiction_post": "act7e_post",
+			"opponent_id": "epiphany_factory",
+			"unlocks_missions": ["act7f_synapse_broadcast"],
+			"unlocks_cards": [
+				"urban_art_vernissage", "vovo_ozetti", "lago_paranoa_shelter", "airbladex_jsrf_ed"
+			],
+			"prerequisite_missions": ["act7b_hb_compliance", "act7c_jinteki_iteration"]
+		},
+		{
+			"id": "act7f_synapse_broadcast",
+			"title": "Broadcast",
+			"subtitle": "Synapse Global São Paulo Broadcast Tower, Centro, São Paulo",
+			"act": 7,
+			"ai_level": 3,
+			"fiction_pre": "act7f_pre",
+			"fiction_post": "act7f_post",
+			"opponent_id": "synapse_signal_economy",
+			"unlocks_missions": [],
+			"unlocks_cards": [
+				"mercury_chrome_libertador", "arissana_rocha_nahu_street_artist",
+				"joy_ride", "your_digital_life"
+			],
+			"prerequisite_missions": ["act7d_nuvem_amazon", "act7e_epiphany_brasilia"]
 		}
 	],
 
@@ -871,6 +963,157 @@
 				"business_as_usual", "business_as_usual",
 				"sudden_commandment", "sudden_commandment",
 				"seamless_launch"
+			]
+		},
+
+		"a_teia_reclamation": {
+			"name": "A Teia: IP Recovery",
+			"identity": "a_teia_ip_recovery",
+			"description": "A dragnet three years in the making. Every bioroid in the city is already mapped. They are waiting for the vote to make the map a warrant.",
+			"deck": [
+				"oracle_thinktank", "oracle_thinktank",
+				"send_a_message", "send_a_message",
+				"embedded_reporting", "embedded_reporting", "embedded_reporting",
+				"cloud_eater", "cloud_eater", "cloud_eater",
+				"jaguarundi", "jaguarundi", "jaguarundi",
+				"doomscroll", "doomscroll",
+				"ping", "ping", "ping",
+				"knowledge_seeker", "knowledge_seeker",
+				"n_pot", "n_pot", "n_pot",
+				"funhouse",
+				"ip_enforcement", "ip_enforcement", "ip_enforcement",
+				"bigger_picture", "bigger_picture", "bigger_picture",
+				"retribution", "retribution",
+				"hedge_fund", "hedge_fund", "hedge_fund",
+				"behold", "behold", "behold",
+				"regolith_mining_license", "regolith_mining_license", "regolith_mining_license",
+				"malapert_data_vault",
+				"spin_doctor", "spin_doctor"
+			]
+		},
+
+		"hb_spike_protocol": {
+			"name": "Haas-Bioroid",
+			"identity": "haas_bioroid_precision_design",
+			"description": "They call it a compliance audit. The firmware they install has a different name. One scored agenda. One Neurospike. A full grip becomes nothing.",
+			"deck": [
+				"proprionegation", "proprionegation", "proprionegation",
+				"oracle_thinktank", "oracle_thinktank",
+				"longevity_serum", "longevity_serum",
+				"semak_samun", "semak_samun", "semak_samun",
+				"vicsek", "vicsek",
+				"bran_1_0", "bran_1_0", "bran_1_0",
+				"flyswatter", "flyswatter", "flyswatter",
+				"empiricist", "empiricist", "empiricist",
+				"neurospike", "neurospike", "neurospike",
+				"hansei_review", "hansei_review", "hansei_review",
+				"predictive_planogram", "predictive_planogram",
+				"pivot", "pivot", "pivot",
+				"hedge_fund", "hedge_fund",
+				"regolith_mining_license", "regolith_mining_license", "regolith_mining_license",
+				"spin_doctor", "spin_doctor", "spin_doctor"
+			]
+		},
+
+		"jinteki_labyrinth": {
+			"name": "Jinteki",
+			"identity": "jinteki_replicating_perfection",
+			"description": "They do not conduct arrests. They compile information. The maps they have been building know where you sleep tonight.",
+			"deck": [
+				"sericulture_expansion", "sericulture_expansion", "sericulture_expansion",
+				"longevity_serum", "longevity_serum",
+				"send_a_message", "send_a_message",
+				"phoneutria", "phoneutria", "phoneutria",
+				"lethe", "lethe", "lethe",
+				"seraph", "seraph",
+				"pharos", "pharos", "pharos",
+				"empiricist", "empiricist",
+				"tithe", "tithe", "tithe",
+				"retribution", "retribution",
+				"bigger_picture", "bigger_picture",
+				"hansei_review", "hansei_review", "hansei_review",
+				"hedge_fund", "hedge_fund", "hedge_fund",
+				"idiosyncresis", "idiosyncresis", "idiosyncresis",
+				"behold", "behold", "behold",
+				"regolith_mining_license", "regolith_mining_license",
+				"spin_doctor", "spin_doctor", "spin_doctor"
+			]
+		},
+
+		"weyland_hammer": {
+			"name": "Nuvem SA / Weyland Consortium",
+			"identity": "weyland_consortium_built_to_last",
+			"description": "They have been moving hardware into the city for eight months. The first advance on any fresh agenda is free. They intend to collect.",
+			"deck": [
+				"offworld_office", "offworld_office",
+				"stoke_the_embers", "stoke_the_embers", "stoke_the_embers",
+				"send_a_message", "send_a_message",
+				"above_the_law",
+				"hammer", "hammer", "hammer",
+				"lionsmane", "lionsmane", "lionsmane",
+				"pharos", "pharos", "pharos",
+				"palisade", "palisade", "palisade",
+				"logjam", "logjam",
+				"ballista", "ballista",
+				"measured_response", "measured_response", "measured_response",
+				"retribution", "retribution",
+				"government_subsidy", "government_subsidy", "government_subsidy",
+				"hedge_fund", "hedge_fund", "hedge_fund",
+				"hansei_review",
+				"regolith_mining_license", "regolith_mining_license", "regolith_mining_license",
+				"spin_doctor", "spin_doctor", "spin_doctor",
+				"malapert_data_vault", "malapert_data_vault"
+			]
+		},
+
+		"epiphany_factory": {
+			"name": "Epiphany Analytica",
+			"identity": "epiphany_analytica_nations_undivided",
+			"description": "Results, delivered. They have been buying votes for fourteen months. Every install triggers a draw. By the time you reach the agenda, they have already seen everything.",
+			"deck": [
+				"proprionegation", "proprionegation", "proprionegation",
+				"oracle_thinktank", "oracle_thinktank",
+				"longevity_serum", "longevity_serum",
+				"semak_samun", "semak_samun", "semak_samun",
+				"virtual_service_agent", "virtual_service_agent", "virtual_service_agent",
+				"vicsek", "vicsek",
+				"bran_1_0", "bran_1_0", "bran_1_0",
+				"flyswatter", "flyswatter",
+				"empiricist", "empiricist", "empiricist",
+				"hansei_review", "hansei_review", "hansei_review",
+				"predictive_planogram", "predictive_planogram", "predictive_planogram",
+				"hedge_fund", "hedge_fund",
+				"government_subsidy", "government_subsidy",
+				"regolith_mining_license", "regolith_mining_license", "regolith_mining_license",
+				"spin_doctor", "spin_doctor", "spin_doctor",
+				"idiosyncresis", "idiosyncresis", "idiosyncresis",
+				"malapert_data_vault", "malapert_data_vault"
+			]
+		},
+
+		"synapse_signal_economy": {
+			"name": "Synapse Global",
+			"identity": "synapse_global_faster_than_thought",
+			"description": "Every tag the runner carries is two credits for the Corp and a free install. They have been running this city's narrative for fourteen months. Today they intend to end it.",
+			"deck": [
+				"oracle_thinktank", "oracle_thinktank",
+				"send_a_message", "send_a_message",
+				"embedded_reporting", "embedded_reporting", "embedded_reporting",
+				"ping", "ping", "ping",
+				"doomscroll", "doomscroll",
+				"cloud_eater", "cloud_eater", "cloud_eater",
+				"jaguarundi", "jaguarundi",
+				"knowledge_seeker", "knowledge_seeker",
+				"n_pot", "n_pot", "n_pot",
+				"funhouse", "funhouse",
+				"bigger_picture", "bigger_picture", "bigger_picture",
+				"ip_enforcement", "ip_enforcement",
+				"retribution", "retribution",
+				"measured_response", "measured_response",
+				"hedge_fund", "hedge_fund", "hedge_fund",
+				"behold", "behold", "behold",
+				"regolith_mining_license", "regolith_mining_license", "regolith_mining_license",
+				"spin_doctor", "spin_doctor"
 			]
 		},
 

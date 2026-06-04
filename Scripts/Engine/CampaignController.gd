@@ -89,12 +89,30 @@ func _launch_game(mission: Dictionary, opponent: Dictionary, ai_level_override: 
 
 
 func _on_game_over(runner_wins: bool) -> void:
+	# Complete mission and collect any newly unlocked cards for display.
+	var newly_unlocked: Array = []
 	if runner_wins:
-		_state.complete_mission(_current_mission_id)
+		newly_unlocked = _state.complete_mission(_current_mission_id)
 
-	# Show post-match fiction before returning to menu
 	var mission := _state.get_mission(_current_mission_id)
 	var fiction_post: String = mission.get("fiction_post", "")
+
+	# Chain: post-fiction → card unlocks → campaign menu.
+	# Each step calls the next via its done-callback.
+
+	var _go_to_menu := func():
+		_show_menu()
+
+	var _show_unlocks := func():
+		if newly_unlocked.is_empty():
+			_go_to_menu.call()
+			return
+		var unlock_screen := CardUnlockScreen.new()
+		add_child(unlock_screen)
+		unlock_screen.show_unlocks(newly_unlocked, func():
+			unlock_screen.queue_free()
+			_go_to_menu.call()
+		)
 
 	if fiction_post != "":
 		var viewer := FictionViewer.new()
@@ -103,10 +121,10 @@ func _on_game_over(runner_wins: bool) -> void:
 			_state.get_fiction_text(fiction_post),
 			func():
 				viewer.queue_free()
-				_show_menu()
+				_show_unlocks.call()
 		)
 	else:
-		_show_menu()
+		_show_unlocks.call()
 		
 # Add this function
 func launch_starter_match() -> void:

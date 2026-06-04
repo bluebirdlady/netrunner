@@ -2,28 +2,32 @@ class_name CorpTurnAI_MCTS
 extends CorpTurnAI_Strategic
 
 # ── CorpTurnAI_MCTS ───────────────────────────────────────────────────────────
-# Expert difficulty AI — 4th tier.  Wraps MCTSTree over DeterminizationSampler
-# to plan several turns ahead under hidden-information uncertainty.
+# Expert difficulty AI — 4th tier.  Uses MCTSTurnTree: a turn-granularity MCTS
+# where each node is a game state at the start of a Corp turn and each edge is a
+# (Corp full-turn sequence, runner response) pair.
 #
-# Inherits the Bayesian runner model from CorpTurnAI_Strategic so determinizations
-# are seeded from observed runner behaviour rather than a uniform prior.
+# CorpTurnPlanner handles intra-turn optimisation; MCTSTurnTree handles
+# inter-turn strategy across rollout_depth full turn pairs.
 #
-# The MCTS loop is fully synchronous — each node is scored by static evaluation
-# rather than forward simulation, so the entire search completes in single-digit
-# milliseconds.  SLOW_MS is a sanity-log threshold, not a hard cutoff.
+# The legacy click-level MCTSTree (Scripts/AI/MCTSTree.gd) is retained as
+# reference but is no longer called from this tier.
 
-const SLOW_MS := 100   # log a warning if the synchronous loop takes longer than this
+const SLOW_MS := 200   # log a warning if search takes longer than this (ms)
 
-# Runner card pool for DeterminizationSampler (CardRecord objects).
-# Populated from card IDs via set_card_pool() called by Main.gd.
+# Runner card pool — still populated for seed_runner_model compatibility.
 var _card_pool: Array = []
 
-var _mcts: MCTSTree
+var _turn_tree: MCTSTurnTree
 
 
 func _init(ability_registry: AbilityRegistry) -> void:
 	super._init(ability_registry)
-	_mcts = MCTSTree.new(ability_registry)
+	# _planner and _evaluator are inherited from CorpTurnAI_Tactical/_Strategic.
+	_turn_tree = MCTSTurnTree.new(_evaluator, _planner, _bayes)
+	_turn_tree.iterations          = 100   # halved from 200; ~1s per action vs ~2-3s
+	_turn_tree.expansion_sequences = 5
+	_turn_tree.rollout_depth       = 3    # reduced from 4; saves ~25% per rollout
+	_turn_tree.rollout_beam_width  = 2
 
 
 # ── Card pool wiring ──────────────────────────────────────────────────────────
@@ -69,18 +73,19 @@ func choose_action(ctx: GameContext) -> GameAction:
 
 	var t_start: int = Time.get_ticks_msec()
 
-	var action: GameAction = _mcts.choose_action(ctx, _card_pool, _bayes)
+	var action: GameAction = _turn_tree.search(ctx)
 
 	var elapsed: int = Time.get_ticks_msec() - t_start
-	if elapsed >= SLOW_MS:
-		ctx.send_log("[MCTS] slow search warning: %d ms for %d iterations" % [
-			elapsed, MCTSTree.DETERMINIZATIONS * MCTSTree.ITERATIONS_PER_DET])
+	if elapsed >= SLOW_MS and not ctx.simulation_mode:
+		ctx.send_log("[MCTS] slow search: %d ms (%d iterations, depth %d)" % [
+			elapsed, _turn_tree.iterations, _turn_tree.rollout_depth])
 
 	if action != null:
 		if not ctx.simulation_mode:
 			DecisionLogger.log_mcts(ctx, action, elapsed)
 		return action
 
-	# No result (empty candidate set): fall back to Strategic 2-ply.
-	ctx.send_log("[MCTS] no action found — falling back to Strategic AI")
+	# Fallback: no action returned (should not occur — MCTSTurnTree always returns
+	# at least gain_credits as a last resort).
+	ctx.send_log("[MCTS] no action found — falling back to Strategic beam search")
 	return super.choose_action(ctx)

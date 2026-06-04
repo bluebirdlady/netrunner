@@ -1,0 +1,24 @@
+CONTROLLED VARIABLES
+by Circuito Saudade
+
+Supervisor Andrade documented things.
+
+It was, in his considered professional opinion, the most important thing he did. The protest movement outside the Esplanada dos Ministérios had been running for eleven months. Andrade had documented all of them: attendance figures, composition by apparent genomic phenotype, police response patterns, crowd density by quadrant and time. His facility in the Lapa Industrial Zone processed and cross-referenced data from a contract with the city's public infrastructure network. They did not conduct arrests. They did not conduct violence. They compiled information.
+
+He was very comfortable with this distinction.
+
+The data Andrade's facility produced had been purchased by A Teia's IP Recovery operation for nine months, supplemented with biometric pattern-matching and location inference from fourteen additional data sources. The resulting maps were extremely precise. His facility's contribution was the genomic phenotype flagging — the system that identified, in a crowd of ten thousand people, the ones who were not entirely human.
+
+Andrade found it elegant work. Jinteki's iterative refinement process at its best: each pass of the data improving the model, the model improving the next pass. He had been with the company for eleven years. He had never seen a better demonstration of the core philosophy. Replicating Perfection. Run the experiment. Improve the variables. Run it again.
+
+He watched the holofeed of the Esplanada protest with this thought in mind. The people outside were very loud. In forty-eight hours, he calculated, they would no longer be relevant to the outcome.
+
+The maps his facility had compiled would be transmitted to enforcement teams the night after the vote.
+
+It was very precise data. He was proud of it.
+
+—
+
+TARGET: Jinteki
+FACILITY: Research Annex 14, Lapa Industrial Zone, São Paulo
+OBJECTIVE: Extract the targeting maps before they reach enforcement. Find every location in the dataset. Get the data to the people on the list before the vote makes it a warrant.

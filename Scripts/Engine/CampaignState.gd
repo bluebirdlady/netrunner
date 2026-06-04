@@ -154,7 +154,10 @@ func is_mission_complete(mission_id: String) -> bool:
 	return mission_id in _save.get("completed_missions", [])
 
 
-func complete_mission(mission_id: String) -> void:
+# Returns an Array[CardRecord] of cards that were genuinely new at the moment
+# of completion (for display in the card-unlock reveal screen).
+func complete_mission(mission_id: String) -> Array:
+	var newly_unlocked: Array = []
 	var completed: Array = _save.get("completed_missions", [])
 	if mission_id not in completed:
 		completed.append(mission_id)
@@ -166,13 +169,30 @@ func complete_mission(mission_id: String) -> void:
 				_unlock_mission(next_id)
 			for unlock in mission_def.get("unlocks_cards", []):
 				# unlock can be a string (card_id, 1 copy) or dict {id, count}
+				var card_id: String
+				var count:   int
 				if unlock is String:
-					unlock_card(unlock, 1)
+					card_id = unlock as String
+					count   = 1
 				elif unlock is Dictionary:
-					unlock_card(unlock.get("id", ""), unlock.get("count", 1))
+					card_id = (unlock as Dictionary).get("id", "")
+					count   = (unlock as Dictionary).get("count", 1) as int
+				else:
+					continue
+				if card_id == "":
+					continue
+				# Compare before/after to detect a genuine new unlock.
+				var prev: int = int((_save.get("unlocked_cards", {}) as Dictionary).get(card_id, 0))
+				unlock_card(card_id, count)
+				var after: int = int((_save.get("unlocked_cards", {}) as Dictionary).get(card_id, 0))
+				if after > prev:
+					var record: CardRecord = CardRegistry.get_card(card_id)
+					if record != null:
+						newly_unlocked.append(record)
 			break
 
 	persist()
+	return newly_unlocked
 
 
 func _unlock_mission(mission_id: String) -> void:

@@ -1,22 +1,3 @@
-
-Next we need to implement The Automata Initiative. Please check for the card list, text, and internal codes in the automata_initiative.csv file inside the Sets folder. Then provide a plan to implement all the necessary mechanisms, effects, and cards to include this set.
-
-###
-
-Please design six Corp decks to highlight Automata Initiative cards. These decks can draw on cards from The Automata Initiative, Rebellion without Rehearsal, System Gateway, Elevation, and Vantage Point, following the Standard ban list. However, they should primarily emphasize cards from The Automata Initiative. They should be as strategically coherent and distinctive from each other as possible. There should certainly be decks built around the two new Corp identities in this set (A Teia: IP Recovery and Epiphany Analytica: Nations Undivided). There should be some decks that focus on trying to fast-advance agendas, there should be decks that spotlight operations and assets, and there should be decks that build ice to house assets. There should be a deck built to try to maximize win chances by giving the runner tags and then applying damage.
-
-###
-
-Take the six decks from the last response and weave them into the campaign to unlock the Automata Initiative Runner-side cards. Add relevant fiction consistent with the existing narratives, the deck identities, and the canon at https://nullsignal.games/blog/category/story/
-
-Please make sure that these six matches form a complete act in the campaign and that the campaign.json is fully updated with the new material.
-
-###
-
-We should make sure that card unlocks register as a meaningful event for players. Let's add a UI experience that shows new unlocked cards one at a time, together with UI styling that fits the overall game.
-
-###
-
 Next we need to implement Parhelion. Please check for the card list, text, and internal codes in the parhelion.csv file inside the Sets folder. Then provide a plan to implement all the necessary mechanisms, effects, and cards to include this set.
 
 ###
@@ -83,9 +64,6 @@ Let's take a beat to implement an interesting, engaging, fun, and truly instruct
 
 Please put together a design, plan implementation phases, and specify deliverables for each stage.
 
-###
-
-My impression is that the various levels of AI still feel weak and incomplete. But I'd like to gather better data, both to confirm my impression and to diagnose issues, before proceeding. Can you suggest what we should do to address this?
 
 ###
 

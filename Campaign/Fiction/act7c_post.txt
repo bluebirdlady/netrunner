@@ -1,0 +1,19 @@
+LOCATION DATA
+
+The maps are everything Andrade said they were. Elegant, precise, and eleven months in the making.
+
+Eight hundred and forty-seven individuals. The data includes confirmed bioroids, confirmed clones, and a third category labeled "high-probability genomic deviation" — people flagged by the pattern-matching system who may or may not be what the system thinks they are. All mapped to addresses, daily movement patterns, workplace locations. In twelve cases: the addresses of safe houses the resistance networks considered secure.
+
+The transmission was scheduled for 22:00 the night after the vote. Forty-eight hours from now.
+
+You have the dataset. You also have the source files that generated it: fourteen integrated data streams, nine of which are infrastructure sensors the city was legally required to share under the Heinlein-adjacent orbital data framework Nuvem SA filed eleven months ago. The same framework, Version 12, that Beatriz processed at Relay Station 7 without understanding what it was for.
+
+The pieces connect.
+
+The maps went out through the resistance network within three hours of the extraction. Warning messages reached the twelve safe house addresses by morning. By the time the vote came to the floor, 847 people knew their names were on a list — and knew where to go.
+
+Supervisor Andrade flagged the breach in his incident report as "external access, minimal data integrity impact." He noted that no physical assets were disturbed.
+
+He continued documenting. It was what he did.
+
+The data, however, was already gone.

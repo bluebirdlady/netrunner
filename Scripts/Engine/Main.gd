@@ -97,6 +97,13 @@ func _init_and_start() -> void:
 			_observe_runner_action(action)
 	)
 
+	# Observe end of runner turn: fires when a Corp turn starts, meaning the
+	# previous runner turn is fully resolved (action phase + discard phase done).
+	turn_manager.turn_started.connect(func(player: String, _turn_num: int):
+		if player == "corp":
+			_observe_runner_action(GameAction._make("end_turn", {}))
+	)
+
 	# Default proxies → GameUI (used outside of runs)
 	_wire_proxies_to_game_ui()
 
@@ -250,6 +257,10 @@ func _observe_runner_action(action: GameAction) -> void:
 				params["card_id"] = cr.id
 		"run":
 			params = action.params.duplicate()
+		"draw_card":
+			params = {"count": 1}   # runner drew one card via click action
+		"end_turn":
+			pass   # no params needed — model increments turn counter
 	corp_brain.observe_runner_action(action.type, params)
 
 

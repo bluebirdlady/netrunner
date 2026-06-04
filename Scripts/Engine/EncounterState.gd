@@ -189,6 +189,29 @@ func breakers_for_ice() -> Array:
 		if _breaker_matches_ice(b, ice_subtypes):
 			result.append(b)
 
+	# Filter out same_server_only breakers (e.g. Living Mural) when the breaker's
+	# host ice is on a different server than the ice being encountered.
+	# Without this filter, the UI and AI would offer Living Mural for any sentry
+	# encounter, only for it to fail silently at execution time.
+	if ctx != null and ctx.has_meta("ability_registry"):
+		var _bfi_ab_reg: AbilityRegistry = ctx.get_meta("ability_registry") as AbilityRegistry
+		var _bfi_filtered: Array = []
+		for _bfi_b in result:
+			var _bfi_ic: InstalledCard = _bfi_b as InstalledCard
+			var _bfi_def: Dictionary = \
+				_bfi_ab_reg._abilities.get(_bfi_ic.card_id, {}) as Dictionary
+			var _bfi_break: Dictionary = _bfi_def.get("break", {}) as Dictionary
+			if not _bfi_break.get("same_server_only", false):
+				_bfi_filtered.append(_bfi_ic)
+				continue
+			# Trojan must have its host ice on the same server as the encountered ice.
+			var _bfi_host: InstalledCard = \
+				ctx.get_ice_by_instance_id(_bfi_ic.hosted_on_id) \
+				if _bfi_ic.hosted_on_id != "" else null
+			if _bfi_host != null and _bfi_host.server_id == ice_card.server_id:
+				_bfi_filtered.append(_bfi_ic)
+		result = _bfi_filtered
+
 	return result
 
 

@@ -2475,9 +2475,10 @@ func show_host_ice_prompt(candidates: Array, prompt_text: String = "Choose a pie
 			continue
 		var server_display: String = {"hq": "HQ", "rd": "R&D", "archives": "Archives"}.get(
 			ic.server_id, ic.server_id.replace("_", " ").capitalize())
-		var rezzed_str: String = " (rezzed)" if ic.is_rezzed else " (unrezzed)"
+		# Unrezzed ice is face-down — the runner must not see the card name.
+		var card_label: String = ic.display_name() if ic.is_rezzed else "Unrezzed ice"
 		var btn := Button.new()
-		btn.text = "%s  —  %s%s" % [ic.display_name(), server_display, rezzed_str]
+		btn.text = "%s  —  %s" % [card_label, server_display]
 		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		btn.add_theme_font_size_override("font_size", 13)

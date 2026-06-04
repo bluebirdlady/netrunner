@@ -14,7 +14,7 @@
 			"fiction_pre": "act1_pre",
 			"fiction_post": "act1_post",
 			"opponent_id": "hb_syndicate",
-			"unlocks_missions": ["act2a_weyland", "act2b_jinteki", "act2c_nbn"],
+			"unlocks_missions": ["act2a_weyland", "act2b_jinteki"],
 			"unlocks_cards": [],
 			"prerequisite_missions": []
 		},
@@ -29,26 +29,8 @@
 			"opponent_id": "weyland_built_to_last",
 			"unlocks_missions": ["act3a_hb"],
 			"unlocks_cards": [
-				{"id": "conduit", "count": 2},
-				{"id": "mutual_favor", "count": 3},
-				{"id": "leech", "count": 3},
-				"zahya_sadeghi_versatile_smuggler"
-			],
-			"prerequisite_missions": ["act1_hb"]
-		},
-		{
-			"id": "act2c_nbn",
-			"title": "Broadcast",
-			"subtitle": "NBN Regional Relay, Heinlein Broadcast Tower",
-			"act": 2,
-			"ai_level": 1,
-			"fiction_pre": "act2c_pre",
-			"fiction_post": "act2c_post",
-			"opponent_id": "nbn_reality_plus",
-			"unlocks_missions": ["act3a_hb"],
-			"unlocks_cards": [
-				"conduit", "mutual_favor", "unity", "tread_lightly",
-				"tao_salonga_telepresence_magician"
+				"conduit", "daily_casts", "earthrise_hotel",
+				"mutual_favor", "leech", "k2cp_turbine"
 			],
 			"prerequisite_missions": ["act1_hb"]
 		},
@@ -63,8 +45,8 @@
 			"opponent_id": "jinteki_replicating",
 			"unlocks_missions": ["act3a_hb"],
 			"unlocks_cards": [
-				"conduit", "mutual_favor", "leech",
-				"rene_loup_arcemont_party_animal"
+				"conduit", "daily_casts", "earthrise_hotel",
+				"mutual_favor", "leech", "k2cp_turbine"
 			],
 			"prerequisite_missions": ["act1_hb"]
 		},
@@ -79,23 +61,8 @@
 			"opponent_id": "hb_precision_design",
 			"unlocks_missions": ["act3b_jinteki_rh"],
 			"unlocks_cards": [
-				{"id": "wildcat_strike", "count": 3},
-				{"id": "dzmz_optimizer", "count": 3},
-				{"id": "echelon", "count": 3},
-				{"id": "t400_memory_diamond", "count": 3},
-				{"id": "buzzsaw", "count": 3},
-				{"id": "pantograph", "count": 3},
-				"tao_salonga_telepresence_magician",
-				{"id": "tread_lightly",        "count": 3},
-				{"id": "unity",                "count": 3},
-				{"id": "creative_commission",  "count": 3},
-				{"id": "vrcation",             "count": 3},
-				{"id": "overclock",            "count": 3},
-				{"id": "telework_contract",    "count": 3},
-				{"id": "smartware_distributor","count": 3},
-				{"id": "mayfly",               "count": 3},
-				{"id": "cleaver",              "count": 3},
-				{"id": "carmen",               "count": 3}
+				"wildcat_strike", "dzmz_optimizer", "echelon",
+				"t400_memory_diamond", "buzzsaw"
 			],
 			"prerequisite_missions": ["act2a_weyland", "act2b_jinteki"]
 		},
@@ -108,147 +75,122 @@
 			"fiction_pre": "act3b_pre",
 			"fiction_post": "act3b_post",
 			"opponent_id": "jinteki_restoring_humanity",
-			"unlocks_missions": ["act4a_zwicky"],
+			"unlocks_missions": ["act4a_zwicky", "act4b_pt_untaian"],
 			"unlocks_cards": [
-				{"id": "botulus", "count": 3},
-				{"id": "cookbook", "count": 3},
-				{"id": "fermenter", "count": 3},
-				{"id": "tranquilizer", "count": 3},
-				{"id": "marjanah", "count": 3},
-				{"id": "carnivore", "count": 3},
-				{"id": "docklands_pass", "count": 3},
-				{"id": "pennyshaver", "count": 3},
-				{"id": "red_team", "count": 3},
-				{"id": "verbal_plasticity", "count": 3}
+				"botulus", "cookbook", "fermenter",
+				"tranquilizer", "marjanah", "carnivore"
 			],
 			"prerequisite_missions": ["act3a_hb"]
 		},
 		{
 			"id": "act4a_zwicky",
-			"title": "Papertrail",
-			"subtitle": "Heinlein Belt Financial Transfer Node",
+			"title": "Paper Trail",
+			"subtitle": "The Zwicky Group, Heinlein Belt Transfer Node",
 			"act": 4,
 			"ai_level": 2,
 			"fiction_pre": "act4a_pre",
 			"fiction_post": "act4a_post",
-			"opponent_id": "the_zwicky_group_invisible_hands",
-			"unlocks_missions": ["act4b_ptuntaian"],
+			"opponent_id": "zwicky_group",
+			"unlocks_missions": ["act4c_au_co"],
 			"unlocks_cards": [
-				{"id": "bling", "count": 3},
-				{"id": "clean_getaway", "count": 3},
-				{"id": "detente", "count": 3},
-				{"id": "barry_baz_wong_tri_maf_veteran", "count": 3},
-				{"id": "magelectric_rapid_748_mod", "count": 3},
-				{"id": "scrounge", "count": 3},
-				{"id": "open_market", "count": 3},
-				{"id": "side_hustle", "count": 3}
+				"bling", "clean_getaway", "detente",
+				"barry_baz_wong_tri_maf_veteran",
+				"maglectric_rapid_748_mod", "scrounge",
+				"open_market", "side_hustle",
+				"take_a_dive", "the_tungsten_tailor",
+				"nurse_hanh", "stick_and_poke"
 			],
 			"prerequisite_missions": ["act3b_jinteki_rh"]
 		},
 		{
-			"id": "act4b_ptuntaian",
-			"title": "Secondstudy",
-			"subtitle": "Heinlein Equatorial Ring Research Division",
+			"id": "act4b_pt_untaian",
+			"title": "Second Study",
+			"subtitle": "PT Untaian Pharmaceutical, Heinlein Equatorial Ring",
 			"act": 4,
 			"ai_level": 2,
 			"fiction_pre": "act4b_pre",
 			"fiction_post": "act4b_post",
-			"opponent_id": "pt_untaian_lifes_building_blocks",
+			"opponent_id": "pt_untaian",
 			"unlocks_missions": ["act4c_au_co"],
 			"unlocks_cards": [
-				{"id": "cacophony", "count": 3},
-				{"id": "charm_offensive", "count": 3},
-				{"id": "fransofia_ward", "count": 3},
-				{"id": "muslihat_multifarious_marketeer", "count": 3},
-				{"id": "rent_rioters", "count": 3},
-				{"id": "lie_low", "count": 3},
-				{"id": "illumination", "count": 3},
-				{"id": "ritual", "count": 3}
+				"cacophony", "charm_offensive", "fransofia_ward",
+				"muslihat_multifarious_marketeer",
+				"rent_rioters", "lie_low", "illumination", "ritual"
 			],
-			"prerequisite_missions": ["act4a_zwicky"]
+			"prerequisite_missions": ["act3b_jinteki_rh"]
 		},
 		{
 			"id": "act4c_au_co",
 			"title": "Convergence",
-			"subtitle": "Natal Division, Heinlein Agricultural Zones",
+			"subtitle": "AU Co. Natal Division, Heinlein Agricultural Zones",
 			"act": 4,
-			"ai_level": 2,
-			"fiction_pre": "act4b_pre",
-			"fiction_post": "act4b_post",
-			"opponent_id": "au_co_the_gold_standard_in_clones",
-			"unlocks_missions": ["act5a_editorial"],
+			"ai_level": 3,
+			"fiction_pre": "act4c_pre",
+			"fiction_post": "act4c_post",
+			"opponent_id": "au_co",
+			"unlocks_missions": ["act5a_editorial", "act5b_melies_u"],
 			"unlocks_cards": [
-				{"id": "azimat", "count": 3},
-				{"id": "devadatta_drone", "count": 3},
-				{"id": "chromatophores", "count": 3},
-				{"id": "gamedragon_pro", "count": 3},
-				{"id": "ryo_phoenix_ono_out_of_the_ashes", "count": 3},
-				{"id": "gourmand", "count": 3},
-				{"id": "hantu", "count": 3},
-				{"id": "principia", "count": 3}
+				"azimat", "devadatta_drone", "chromatophores", "gamedragon_pro",
+				"ryo_phoenix_ono_out_of_the_ashes",
+				"gourmand", "hantu", "principia",
+				"sell_out", "tailgate", "rotary",
+				"hiram_0mission_svensson", "underdome_irregulars"
 			],
-			"prerequisite_missions": ["act4b_ptuntaian"]
-		},	
+			"prerequisite_missions": ["act4a_zwicky", "act4b_pt_untaian"]
+		},
 		{
 			"id": "act5a_editorial",
-			"title": "Memoryhole",
-			"subtitle": "Synapse Global Tower, Heinlein High Orbit",
+			"title": "Memory Hole",
+			"subtitle": "Editorial Division, Synapse Global Tower, Heinlein High Orbit",
 			"act": 5,
-			"ai_level": 2,
+			"ai_level": 3,
 			"fiction_pre": "act5a_pre",
 			"fiction_post": "act5a_post",
-			"opponent_id": "editorial_division_ad_nihilum",
-			"unlocks_missions": ["act5b_melies_u"],
+			"opponent_id": "editorial_division",
+			"unlocks_missions": ["act5c_bangun"],
 			"unlocks_cards": [
-				{"id": "aircheck", "count": 3},
-				{"id": "kompromat", "count": 3},
-				{"id": "topan_ormas_leader", "count": 3},
-				{"id": "shred", "count": 3},
-				{"id": "maintenance_access", "count": 3},
-				{"id": "transfer_of_wealth", "count": 3},
-				{"id": "knickknack_obrien", "count": 3}
+				"aircheck", "kompromat",
+				"topan_ormas_leader",
+				"shred", "maintenance_access", "transfer_of_wealth",
+				"knickknack_obrian"
 			],
 			"prerequisite_missions": ["act4c_au_co"]
 		},
 		{
 			"id": "act5b_melies_u",
 			"title": "Published",
-			"subtitle": "Research Division Archive, Heinlein Central Campus",
+			"subtitle": "Méliès University Research Division, Heinlein Central Campus",
 			"act": 5,
-			"ai_level": 2,
+			"ai_level": 3,
 			"fiction_pre": "act5b_pre",
 			"fiction_post": "act5b_post",
-			"opponent_id": "melies_u_only_the_brightest",
-			"unlocks_missions": [],
+			"opponent_id": "melies_u",
+			"unlocks_missions": ["act5c_bangun"],
 			"unlocks_cards": [
-				{"id": "beta_build", "count": 3},
-				{"id": "borrowed_goods", "count": 3},
-				{"id": "hackerspace", "count": 3},
-				{"id": "magdalene_keino_chemutai_cryptarchitect", "count": 3},
-				{"id": "dewi_subrotoputri_pedagogical_dhalang", "count": 3},
-				{"id": "sang_kancil", "count": 3},
-				{"id": "rising_tide", "count": 3}
+				"beta_build", "borrowed_goods", "hackerspace",
+				"magdalene_keino_chemutai_cryptarchitect",
+				"dewi_subrotoputri_pedagogical_dhalang",
+				"sang_kancil", "rising_tide",
+				"methuselah", "touchstone", "read_write_share",
+				"sipa", "stowaway", "word_on_the_street"
 			],
-			"prerequisite_missions": ["act5a_editorial"]
+			"prerequisite_missions": ["act4c_au_co"]
 		},
 		{
 			"id": "act5c_bangun",
 			"title": "Demolition",
 			"subtitle": "H-982 Remediation Zone, BANGUN Clearance Operations",
 			"act": 5,
-			"ai_level": 2,
+			"ai_level": 3,
 			"fiction_pre": "act5c_pre",
 			"fiction_post": "act5c_post",
-			"opponent_id": "bangun_when_disaster_strikes",
+			"opponent_id": "bangun",
 			"unlocks_missions": ["act6a_nuvem_sa"],
 			"unlocks_cards": [
-				{"id": "chain_reaction", "count": 3},
-				{"id": "corsair", "count": 3},
-				{"id": "lampades", "count": 3},
-				{"id": "baker", "count": 3},
-				{"id": "madani", "count": 3}
+				"chain_reaction", "corsair", "lampades", "baker",
+				"madani", "virtual_intelligence_p_i_you_can_call_me_vic"
 			],
-			"prerequisite_missions": ["act5b_melies_u"]
+			"prerequisite_missions": ["act5a_editorial", "act5b_melies_u"]
 		},
 		{
 			"id": "act6a_nuvem_sa",
@@ -258,14 +200,10 @@
 			"ai_level": 3,
 			"fiction_pre": "act6a_pre",
 			"fiction_post": "act6a_post",
-			"opponent_id": "nuvem_sa_law_of_the_land",
+			"opponent_id": "nuvem_sa_hub",
 			"unlocks_missions": ["act6b_thunderbolt", "act6c_weyland_isaac"],
 			"unlocks_cards": [
-				{"id": "boi_tata", "count": 3},
-				{"id": "lobisomem", "count": 3},
-				{"id": "coalescence", "count": 3},
-				{"id": "malandragem", "count": 3},
-				{"id": "arruaceiras_crew", "count": 3}
+				"boi_tata", "lobisomem", "coalescence", "malandragem", "arruaceiras_crew"
 			],
 			"prerequisite_missions": ["act5c_bangun"]
 		},
@@ -277,14 +215,10 @@
 			"ai_level": 3,
 			"fiction_pre": "act6b_pre",
 			"fiction_post": "act6b_post",
-			"opponent_id": "thunderbolt_armaments_peace_through_power",
+			"opponent_id": "thunderbolt_armaments_depot",
 			"unlocks_missions": ["act6d_hb_annex", "act6e_jinteki_distributed"],
 			"unlocks_cards": [
-				{"id": "pressure_spike", "count": 3},
-				{"id": "muse", "count": 3},
-				{"id": "physarum_entangler", "count": 3},
-				{"id": "spree", "count": 3},
-				{"id": "window_of_opportunity", "count": 3}
+				"pressure_spike", "muse", "physarum_entangler", "spree", "window_of_opportunity"
 			],
 			"prerequisite_missions": ["act6a_nuvem_sa"]
 		},
@@ -299,11 +233,7 @@
 			"opponent_id": "weyland_isaac_station",
 			"unlocks_missions": ["act6d_hb_annex", "act6e_jinteki_distributed"],
 			"unlocks_cards": [
-				{"id": "cataloguer", "count": 3},
-				{"id": "heliamphora", "count": 3},
-				{"id": "jeitinho", "count": 3},
-				{"id": "alarm_clock", "count": 3},
-				{"id": "cupellation", "count": 3}
+				"cataloguer", "heliamphora", "jeitinho", "alarm_clock", "cupellation"
 			],
 			"prerequisite_missions": ["act6a_nuvem_sa"]
 		},
@@ -318,11 +248,7 @@
 			"opponent_id": "hb_annex_seven",
 			"unlocks_missions": ["act6f_au_co_orbital"],
 			"unlocks_cards": [
-				{"id": "amanuensis", "count": 3},
-				{"id": "friend_of_a_friend", "count": 3},
-				{"id": "meeting_of_minds", "count": 3},
-				{"id": "the_wizards_chest", "count": 3},
-				{"id": "burner", "count": 3}
+				"amanuensis", "friend_of_a_friend", "meeting_of_minds", "the_wizards_chest", "burner"
 			],
 			"prerequisite_missions": ["act6b_thunderbolt", "act6c_weyland_isaac"]
 		},
@@ -337,10 +263,8 @@
 			"opponent_id": "jinteki_asset_flood",
 			"unlocks_missions": ["act6f_au_co_orbital"],
 			"unlocks_cards": [
-				{"id": "juli_moreira_lee", "count": 3},
-				{"id": "valentina_ferreira_carvalho", "count": 3},
-				{"id": "manuel_lattes_de_moura", "count": 3},
-				{"id": "pretty_mary_da_silva", "count": 3}
+				"juli_moreira_lee", "valentina_ferreira_carvalho",
+				"manuel_lattes_de_moura", "pretty_mary_da_silva"
 			],
 			"prerequisite_missions": ["act6b_thunderbolt", "act6c_weyland_isaac"]
 		},
@@ -353,13 +277,103 @@
 			"fiction_pre": "act6f_pre",
 			"fiction_post": "act6f_post",
 			"opponent_id": "au_co_orbital",
-			"unlocks_missions": [],
+			"unlocks_missions": ["act7a_a_teia"],
 			"unlocks_cards": [
-				{"id": "amelia_earhart", "count": 3},
-				{"id": "eye_for_an_eye", "count": 3},
-				{"id": "privileged_access", "count": 3}
+				"amelia_earhart", "eye_for_an_eye", "privileged_access"
 			],
 			"prerequisite_missions": ["act6d_hb_annex", "act6e_jinteki_distributed"]
+		},
+
+		{
+			"id": "act7a_a_teia",
+			"title": "The Net Closes",
+			"subtitle": "Jaborandi Complex Relay Node, Vila Nova Boa Vista, São Paulo",
+			"act": 7,
+			"ai_level": 3,
+			"fiction_pre": "act7a_pre",
+			"fiction_post": "act7a_post",
+			"opponent_id": "a_teia_reclamation",
+			"unlocks_missions": ["act7b_hb_compliance", "act7c_jinteki_iteration"],
+			"unlocks_cards": [
+				"b_1001", "curupira", "pichacao", "solidarity_badge"
+			],
+			"prerequisite_missions": ["act6f_au_co_orbital"]
+		},
+		{
+			"id": "act7b_hb_compliance",
+			"title": "Clean Rooms",
+			"subtitle": "HB Compliance Processing Centre, Paulista Corporate Quarter, São Paulo",
+			"act": 7,
+			"ai_level": 3,
+			"fiction_pre": "act7b_pre",
+			"fiction_post": "act7b_post",
+			"opponent_id": "hb_spike_protocol",
+			"unlocks_missions": ["act7d_nuvem_amazon", "act7e_epiphany_brasilia"],
+			"unlocks_cards": [
+				"shibboleth", "living_mural", "slap_vandal", "beatriz_friere_gonzalez"
+			],
+			"prerequisite_missions": ["act7a_a_teia"]
+		},
+		{
+			"id": "act7c_jinteki_iteration",
+			"title": "Controlled Variables",
+			"subtitle": "Jinteki Research Annex 14, Lapa Industrial Zone, São Paulo",
+			"act": 7,
+			"ai_level": 3,
+			"fiction_pre": "act7c_pre",
+			"fiction_post": "act7c_post",
+			"opponent_id": "jinteki_labyrinth",
+			"unlocks_missions": ["act7d_nuvem_amazon", "act7e_epiphany_brasilia"],
+			"unlocks_cards": [
+				"debbie_downtown_moreira", "saci", "tatu_bola", "hermes"
+			],
+			"prerequisite_missions": ["act7a_a_teia"]
+		},
+		{
+			"id": "act7d_nuvem_amazon",
+			"title": "Logistics",
+			"subtitle": "Nuvem SA Relay Station Belém-7, Amazon Basin",
+			"act": 7,
+			"ai_level": 3,
+			"fiction_pre": "act7d_pre",
+			"fiction_post": "act7d_post",
+			"opponent_id": "weyland_hammer",
+			"unlocks_missions": ["act7f_synapse_broadcast"],
+			"unlocks_cards": [
+				"strike_fund", "wage_workers", "daniela_jorge_inacio", "bahia_bands"
+			],
+			"prerequisite_missions": ["act7b_hb_compliance", "act7c_jinteki_iteration"]
+		},
+		{
+			"id": "act7e_epiphany_brasilia",
+			"title": "Briefing",
+			"subtitle": "Epiphany Analytica Campaign Intelligence Hub, Brasília Digital Quarter",
+			"act": 7,
+			"ai_level": 3,
+			"fiction_pre": "act7e_pre",
+			"fiction_post": "act7e_post",
+			"opponent_id": "epiphany_factory",
+			"unlocks_missions": ["act7f_synapse_broadcast"],
+			"unlocks_cards": [
+				"urban_art_vernissage", "vovo_ozetti", "lago_paranoa_shelter", "airbladex_jsrf_ed"
+			],
+			"prerequisite_missions": ["act7b_hb_compliance", "act7c_jinteki_iteration"]
+		},
+		{
+			"id": "act7f_synapse_broadcast",
+			"title": "Broadcast",
+			"subtitle": "Synapse Global São Paulo Broadcast Tower, Centro, São Paulo",
+			"act": 7,
+			"ai_level": 3,
+			"fiction_pre": "act7f_pre",
+			"fiction_post": "act7f_post",
+			"opponent_id": "synapse_signal_economy",
+			"unlocks_missions": [],
+			"unlocks_cards": [
+				"mercury_chrome_libertador", "arissana_rocha_nahu_street_artist",
+				"joy_ride", "your_digital_life"
+			],
+			"prerequisite_missions": ["act7d_nuvem_amazon", "act7e_epiphany_brasilia"]
 		}
 	],
 
@@ -456,30 +470,6 @@
 				"karuna", "karuna", "karuna"
 			]
 		},
-		"jinteki_restoring_humanity_compact": {
-			"name": "Jinteki",
-			"identity": "jinteki_restoring_humanity",
-			"description": "A leaner, more aggressive Jinteki build. Efficiency over theatrics.",
-			"deck": [
-				"proprionegation", "proprionegation", "proprionegation",
-				"send_a_message", "send_a_message",
-				"sericulture_expansion", "sericulture_expansion", "sericulture_expansion",
-				"regolith_mining_license", "regolith_mining_license", "regolith_mining_license",
-				"spin_doctor", "spin_doctor", "spin_doctor",
-				"hansei_review", "hansei_review", "hansei_review",
-				"hedge_fund", "hedge_fund", "hedge_fund",
-				"peer_review", "peer_review",
-				"petty_cash", "petty_cash", "petty_cash",
-				"anoetic_void", "anoetic_void",
-				"mitra_aman",
-				"bran_1_0", "bran_1_0", "bran_1_0",
-				"semak_samun", "semak_samun",
-				"flyswatter", "flyswatter", "flyswatter",
-				"mycoweb", "mycoweb",
-				"doomscroll", "doomscroll", "doomscroll",
-				"empiricist", "empiricist", "empiricist"
-			]
-		},
 		"jinteki_replicating": {
 			"name": "Jinteki",
 			"identity": "jinteki_replicating_perfection",
@@ -506,35 +496,11 @@
 				"tithe", "tithe", "tithe"
 			]
 		},
-		"nbn_reality_plus": {
-			"name": "NBN",
-			"identity": "nbn_reality_plus",
-			"description": "Every tag you take is a profit centre. They are watching, and every mistake makes them richer.",
-			"deck": [
-				"tomorrows_headline",
-				"offworld_office", "offworld_office", "offworld_office",
-				"orbital_superiority", "orbital_superiority", "orbital_superiority",
-				"send_a_message",
-				"superconducting_hub",
-				"spin_doctor", "spin_doctor", "spin_doctor",
-				"regolith_mining_license", "regolith_mining_license", "regolith_mining_license",
-				"amaze_amusements", "amaze_amusements", "amaze_amusements",
-				"predictive_planogram", "predictive_planogram", "predictive_planogram",
-				"public_trail", "public_trail", "public_trail",
-				"retribution", "retribution", "retribution",
-				"hedge_fund", "hedge_fund", "hedge_fund",
-				"ping", "ping", "ping",
-				"pharos", "pharos", "pharos",
-				"funhouse", "funhouse", "funhouse",
-				"whitespace", "whitespace",
-				"tithe", "tithe", "tithe"
-			]
-		},
 
-		"the_zwicky_group_invisible_hands": {
+		"zwicky_group": {
 			"name": "The Zwicky Group",
-			"identity": "the_zwicky_group_invisible_hands",
-			"description": "A formidable opponent.",
+			"identity": "weyland_consortium_built_to_last",
+			"description": "Invisible hands move invisible money. Their operation spans three moons and answers to no government.",
 			"deck": [
 				"above_the_law",
 				"greenmail", "greenmail", "greenmail",
@@ -560,10 +526,11 @@
 				"flywheel", "flywheel"
 			]
 		},
-		"melies_u_only_the_brightest": {
+
+		"melies_u": {
 			"name": "Méliès U",
-			"identity": "melies_u_only_the_brightest",
-			"description": "A formidable opponent.",
+			"identity": "haas_bioroid_precision_design",
+			"description": "The most prestigious university in the Heinlein Belt. Their research division does not publish.",
 			"deck": [
 				"longevity_serum",
 				"proprionegation", "proprionegation",
@@ -590,10 +557,11 @@
 				"lionsmane", "lionsmane"
 			]
 		},
-		"pt_untaian_lifes_building_blocks": {
+
+		"pt_untaian": {
 			"name": "PT Untaian",
-			"identity": "pt_untaian_lifes_building_blocks",
-			"description": "A formidable opponent.",
+			"identity": "jinteki_restoring_humanity",
+			"description": "A Jinteki subsidiary operating out of Heinlein's equatorial ring. They call it pharmaceutical research.",
 			"deck": [
 				"longevity_serum",
 				"proprionegation", "proprionegation", "proprionegation",
@@ -618,10 +586,11 @@
 				"karuna", "karuna", "karuna"
 			]
 		},
-		"au_co_the_gold_standard_in_clones": {
+
+		"au_co": {
 			"name": "AU Co.",
-			"identity": "au_co_the_gold_standard_in_clones",
-			"description": "A formidable opponent.",
+			"identity": "jinteki_restoring_humanity",
+			"description": "The gold standard in clone production. Every unit guaranteed or your credits back — if you can find them.",
 			"deck": [
 				"longevity_serum",
 				"orbital_superiority", "orbital_superiority", "orbital_superiority",
@@ -643,10 +612,11 @@
 				"tithe", "tithe", "tithe"
 			]
 		},
-		"weyland_consortium_built_to_last": {
+
+		"weyland_btl": {
 			"name": "Weyland Consortium",
 			"identity": "weyland_consortium_built_to_last",
-			"description": "A formidable opponent.",
+			"description": "Old money, heavy iron, and a tax code that has never been audited. They build things meant to last.",
 			"deck": [
 				"above_the_law",
 				"greenmail", "greenmail", "greenmail",
@@ -674,10 +644,11 @@
 				"flywheel", "flywheel"
 			]
 		},
-		"synapse_global_faster_than_thought": {
+
+		"synapse_global": {
 			"name": "Synapse Global",
-			"identity": "synapse_global_faster_than_thought",
-			"description": "A formidable opponent.",
+			"identity": "the_syndicate_profit_over_principle",
+			"description": "Faster than thought, wider than reach. Their media empire stretches from Earth to the outer settlements.",
 			"deck": [
 				"embedded_reporting", "embedded_reporting", "embedded_reporting",
 				"next_big_thing", "next_big_thing",
@@ -703,10 +674,36 @@
 				"tithe", "tithe", "tithe"
 			]
 		},
-		"poetri_luxury_brands_all_the_rage": {
+
+		"jinteki_rh": {
+			"name": "Jinteki",
+			"identity": "jinteki_restoring_humanity",
+			"description": "They speak of healing. Their ICE speaks a different language.",
+			"deck": [
+				"proprionegation", "proprionegation", "proprionegation",
+				"send_a_message", "send_a_message",
+				"sericulture_expansion", "sericulture_expansion", "sericulture_expansion",
+				"regolith_mining_license", "regolith_mining_license", "regolith_mining_license",
+				"spin_doctor", "spin_doctor", "spin_doctor",
+				"hansei_review", "hansei_review", "hansei_review",
+				"hedge_fund", "hedge_fund", "hedge_fund",
+				"peer_review", "peer_review",
+				"petty_cash", "petty_cash", "petty_cash",
+				"anoetic_void", "anoetic_void",
+				"mitra_aman",
+				"bran_1_0", "bran_1_0", "bran_1_0",
+				"semak_samun", "semak_samun",
+				"flyswatter", "flyswatter", "flyswatter",
+				"mycoweb", "mycoweb",
+				"doomscroll", "doomscroll", "doomscroll",
+				"empiricist", "empiricist", "empiricist"
+			]
+		},
+
+		"poetri_luxury": {
 			"name": "Poétrï Luxury Brands",
-			"identity": "poetri_luxury_brands_all_the_rage",
-			"description": "A formidable opponent.",
+			"identity": "haas_bioroid_precision_design",
+			"description": "All the rage this season. Their bioroid workforce is impeccably dressed and utterly expendable.",
 			"deck": [
 				"aggressive_trendsetting", "aggressive_trendsetting",
 				"melies_city_luxury_line", "melies_city_luxury_line",
@@ -731,10 +728,11 @@
 				"bumi_1_0", "bumi_1_0"
 			]
 		},
-		"bangun_when_disaster_strikes": {
+
+		"bangun": {
 			"name": "BANGUN",
-			"identity": "bangun_when_disaster_strikes",
-			"description": "A formidable opponent.",
+			"identity": "weyland_consortium_built_to_last",
+			"description": "When disaster strikes, BANGUN is there. They have extensive experience ensuring the disaster strikes on schedule.",
 			"deck": [
 				"above_the_law",
 				"off_the_books", "off_the_books", "off_the_books",
@@ -758,13 +756,14 @@
 				"bumi_1_0",
 				"event_horizon", "event_horizon",
 				"flywheel", "flywheel",
-				"lethe", "lethe"
+				"lethe"
 			]
 		},
-		"editorial_division_ad_nihilum": {
+
+		"editorial_division": {
 			"name": "Editorial Division",
-			"identity": "editorial_division_ad_nihilum",
-			"description": "A formidable opponent.",
+			"identity": "the_syndicate_profit_over_principle",
+			"description": "They don't report the news. They decide what the news is. You've been living inside their narrative your whole life.",
 			"deck": [
 				"next_big_thing", "next_big_thing",
 				"embedded_reporting", "embedded_reporting", "embedded_reporting",
@@ -788,7 +787,37 @@
 				"doomscroll", "doomscroll", "doomscroll"
 			]
 		},
-		"nuvem_sa_law_of_the_land": {
+
+		"nebula_talent": {
+			"name": "Nebula Talent Management",
+			"identity": "the_syndicate_profit_over_principle",
+			"description": "They make stars. They also make stars disappear. Their talent contracts have a liquidation clause.",
+			"deck": [
+				"embedded_reporting", "embedded_reporting", "embedded_reporting",
+				"next_big_thing", "next_big_thing",
+				"witch_hunt", "witch_hunt", "witch_hunt",
+				"tomorrows_headline",
+				"humanoid_resources", "humanoid_resources",
+				"magistrate_revontulet", "magistrate_revontulet",
+				"public_access_plaza", "public_access_plaza", "public_access_plaza",
+				"regolith_mining_license", "regolith_mining_license", "regolith_mining_license",
+				"spin_doctor", "spin_doctor", "spin_doctor",
+				"flood_the_market", "flood_the_market", "flood_the_market",
+				"hedge_fund", "hedge_fund", "hedge_fund",
+				"petty_cash", "petty_cash", "petty_cash",
+				"predictive_planogram", "predictive_planogram", "predictive_planogram",
+				"retirement_plan",
+				"flagship",
+				"hype_machine",
+				"bran_1_0", "bran_1_0", "bran_1_0",
+				"grubber", "grubber", "grubber",
+				"paywall", "paywall",
+				"n_pot", "n_pot",
+				"doomscroll", "doomscroll"
+			]
+		},
+
+		"nuvem_sa_hub": {
 			"name": "Nuvem SA",
 			"identity": "nuvem_sa_law_of_the_land",
 			"description": "They plant ten trees in the net for every one they cut in the Amazon. The legal paperwork for what comes next is already filed.",
@@ -818,7 +847,7 @@
 			]
 		},
 
-		"thunderbolt_armaments_peace_through_power": {
+		"thunderbolt_armaments_depot": {
 			"name": "Thunderbolt Armaments",
 			"identity": "thunderbolt_armaments_peace_through_power",
 			"description": "They supplied both sides of the uprising. The firmware modifications were not in the public contract. Neither was the delivery destination.",
@@ -851,7 +880,7 @@
 		"weyland_isaac_station": {
 			"name": "Weyland Consortium",
 			"identity": "weyland_consortium_built_to_last",
-			"description": "They call it the Isaac Protocol. Every night, the ice grows stronger. It has been growing for twenty-two months.",
+			"description": "They call it the Isaac Protocol. Every night, the ice grows stronger. It has been growing for twenty-two months. No one outside the project knows what it is protecting.",
 			"deck": [
 				"stoke_the_embers", "stoke_the_embers", "stoke_the_embers",
 				"send_a_message", "send_a_message", "send_a_message",
@@ -937,6 +966,157 @@
 			]
 		},
 
+		"a_teia_reclamation": {
+			"name": "A Teia: IP Recovery",
+			"identity": "a_teia_ip_recovery",
+			"description": "A dragnet three years in the making. Every bioroid in the city is already mapped. They are waiting for the vote to make the map a warrant.",
+			"deck": [
+				"oracle_thinktank", "oracle_thinktank",
+				"send_a_message", "send_a_message",
+				"embedded_reporting", "embedded_reporting", "embedded_reporting",
+				"cloud_eater", "cloud_eater", "cloud_eater",
+				"jaguarundi", "jaguarundi", "jaguarundi",
+				"doomscroll", "doomscroll",
+				"ping", "ping", "ping",
+				"knowledge_seeker", "knowledge_seeker",
+				"n_pot", "n_pot", "n_pot",
+				"funhouse",
+				"ip_enforcement", "ip_enforcement", "ip_enforcement",
+				"bigger_picture", "bigger_picture", "bigger_picture",
+				"retribution", "retribution",
+				"hedge_fund", "hedge_fund", "hedge_fund",
+				"behold", "behold", "behold",
+				"regolith_mining_license", "regolith_mining_license", "regolith_mining_license",
+				"malapert_data_vault",
+				"spin_doctor", "spin_doctor"
+			]
+		},
+
+		"hb_spike_protocol": {
+			"name": "Haas-Bioroid",
+			"identity": "haas_bioroid_precision_design",
+			"description": "They call it a compliance audit. The firmware they install has a different name. One scored agenda. One Neurospike. A full grip becomes nothing.",
+			"deck": [
+				"proprionegation", "proprionegation", "proprionegation",
+				"oracle_thinktank", "oracle_thinktank",
+				"longevity_serum", "longevity_serum",
+				"semak_samun", "semak_samun", "semak_samun",
+				"vicsek", "vicsek",
+				"bran_1_0", "bran_1_0", "bran_1_0",
+				"flyswatter", "flyswatter", "flyswatter",
+				"empiricist", "empiricist", "empiricist",
+				"neurospike", "neurospike", "neurospike",
+				"hansei_review", "hansei_review", "hansei_review",
+				"predictive_planogram", "predictive_planogram",
+				"pivot", "pivot", "pivot",
+				"hedge_fund", "hedge_fund",
+				"regolith_mining_license", "regolith_mining_license", "regolith_mining_license",
+				"spin_doctor", "spin_doctor", "spin_doctor"
+			]
+		},
+
+		"jinteki_labyrinth": {
+			"name": "Jinteki",
+			"identity": "jinteki_replicating_perfection",
+			"description": "They do not conduct arrests. They compile information. The maps they have been building know where you sleep tonight.",
+			"deck": [
+				"sericulture_expansion", "sericulture_expansion", "sericulture_expansion",
+				"longevity_serum", "longevity_serum",
+				"send_a_message", "send_a_message",
+				"phoneutria", "phoneutria", "phoneutria",
+				"lethe", "lethe", "lethe",
+				"seraph", "seraph",
+				"pharos", "pharos", "pharos",
+				"empiricist", "empiricist",
+				"tithe", "tithe", "tithe",
+				"retribution", "retribution",
+				"bigger_picture", "bigger_picture",
+				"hansei_review", "hansei_review", "hansei_review",
+				"hedge_fund", "hedge_fund", "hedge_fund",
+				"idiosyncresis", "idiosyncresis", "idiosyncresis",
+				"behold", "behold", "behold",
+				"regolith_mining_license", "regolith_mining_license",
+				"spin_doctor", "spin_doctor", "spin_doctor"
+			]
+		},
+
+		"weyland_hammer": {
+			"name": "Nuvem SA / Weyland Consortium",
+			"identity": "weyland_consortium_built_to_last",
+			"description": "They have been moving hardware into the city for eight months. The first advance on any fresh agenda is free. They intend to collect.",
+			"deck": [
+				"offworld_office", "offworld_office",
+				"stoke_the_embers", "stoke_the_embers", "stoke_the_embers",
+				"send_a_message", "send_a_message",
+				"above_the_law",
+				"hammer", "hammer", "hammer",
+				"lionsmane", "lionsmane", "lionsmane",
+				"pharos", "pharos", "pharos",
+				"palisade", "palisade", "palisade",
+				"logjam", "logjam",
+				"ballista", "ballista",
+				"measured_response", "measured_response", "measured_response",
+				"retribution", "retribution",
+				"government_subsidy", "government_subsidy", "government_subsidy",
+				"hedge_fund", "hedge_fund", "hedge_fund",
+				"hansei_review",
+				"regolith_mining_license", "regolith_mining_license", "regolith_mining_license",
+				"spin_doctor", "spin_doctor", "spin_doctor",
+				"malapert_data_vault", "malapert_data_vault"
+			]
+		},
+
+		"epiphany_factory": {
+			"name": "Epiphany Analytica",
+			"identity": "epiphany_analytica_nations_undivided",
+			"description": "Results, delivered. They have been buying votes for fourteen months. Every install triggers a draw. By the time you reach the agenda, they have already seen everything.",
+			"deck": [
+				"proprionegation", "proprionegation", "proprionegation",
+				"oracle_thinktank", "oracle_thinktank",
+				"longevity_serum", "longevity_serum",
+				"semak_samun", "semak_samun", "semak_samun",
+				"virtual_service_agent", "virtual_service_agent", "virtual_service_agent",
+				"vicsek", "vicsek",
+				"bran_1_0", "bran_1_0", "bran_1_0",
+				"flyswatter", "flyswatter",
+				"empiricist", "empiricist", "empiricist",
+				"hansei_review", "hansei_review", "hansei_review",
+				"predictive_planogram", "predictive_planogram", "predictive_planogram",
+				"hedge_fund", "hedge_fund",
+				"government_subsidy", "government_subsidy",
+				"regolith_mining_license", "regolith_mining_license", "regolith_mining_license",
+				"spin_doctor", "spin_doctor", "spin_doctor",
+				"idiosyncresis", "idiosyncresis", "idiosyncresis",
+				"malapert_data_vault", "malapert_data_vault"
+			]
+		},
+
+		"synapse_signal_economy": {
+			"name": "Synapse Global",
+			"identity": "synapse_global_faster_than_thought",
+			"description": "Every tag the runner carries is two credits for the Corp and a free install. They have been running this city's narrative for fourteen months. Today they intend to end it.",
+			"deck": [
+				"oracle_thinktank", "oracle_thinktank",
+				"send_a_message", "send_a_message",
+				"embedded_reporting", "embedded_reporting", "embedded_reporting",
+				"ping", "ping", "ping",
+				"doomscroll", "doomscroll",
+				"cloud_eater", "cloud_eater", "cloud_eater",
+				"jaguarundi", "jaguarundi",
+				"knowledge_seeker", "knowledge_seeker",
+				"n_pot", "n_pot", "n_pot",
+				"funhouse", "funhouse",
+				"bigger_picture", "bigger_picture", "bigger_picture",
+				"ip_enforcement", "ip_enforcement",
+				"retribution", "retribution",
+				"measured_response", "measured_response",
+				"hedge_fund", "hedge_fund", "hedge_fund",
+				"behold", "behold", "behold",
+				"regolith_mining_license", "regolith_mining_license", "regolith_mining_license",
+				"spin_doctor", "spin_doctor"
+			]
+		},
+
 		"au_co_orbital": {
 			"name": "AU Co.",
 			"identity": "au_co_the_gold_standard_in_clones",
@@ -964,35 +1144,6 @@
 				"business_as_usual", "business_as_usual",
 				"corporate_hospitality",
 				"cultivate"
-			]
-		},
-
-		"nebula_talent_management_making_stars": {
-			"name": "Nebula Talent Management",
-			"identity": "nebula_talent_management_making_stars",
-			"description": "A formidable opponent.",
-			"deck": [
-				"embedded_reporting", "embedded_reporting", "embedded_reporting",
-				"next_big_thing", "next_big_thing",
-				"witch_hunt", "witch_hunt", "witch_hunt",
-				"tomorrows_headline",
-				"humanoid_resources", "humanoid_resources",
-				"magistrate_revontulet", "magistrate_revontulet",
-				"public_access_plaza", "public_access_plaza", "public_access_plaza",
-				"regolith_mining_license", "regolith_mining_license", "regolith_mining_license",
-				"spin_doctor", "spin_doctor", "spin_doctor",
-				"flood_the_market", "flood_the_market", "flood_the_market",
-				"hedge_fund", "hedge_fund", "hedge_fund",
-				"petty_cash", "petty_cash", "petty_cash",
-				"predictive_planogram", "predictive_planogram", "predictive_planogram",
-				"retirement_plan",
-				"flagship",
-				"hype_machine",
-				"bran_1_0", "bran_1_0", "bran_1_0",
-				"grubber", "grubber", "grubber",
-				"paywall", "paywall",
-				"n_pot", "n_pot",
-				"doomscroll", "doomscroll"
 			]
 		}
 	},

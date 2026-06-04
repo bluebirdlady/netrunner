@@ -12,12 +12,15 @@ extends CorpTurnAI
 
 var _evaluator:    CorpStateEvaluator
 var _threat_model: RunnerThreatModel
+var _planner:      CorpTurnPlanner
 
 
 func _init(ability_registry: AbilityRegistry) -> void:
 	super._init(ability_registry)
 	_evaluator    = CorpStateEvaluator.new()
 	_threat_model = RunnerThreatModel.new()
+	_planner      = CorpTurnPlanner.new(_evaluator)
+	_planner.beam_width = 5
 
 
 # ── Main override ─────────────────────────────────────────────────────────────
@@ -37,33 +40,13 @@ func choose_action(ctx: GameContext) -> GameAction:
 			ctx.send_log("[Tactical] Scoring line detected — executing: %s" % scoring_action.describe())
 		return scoring_action
 
-	var candidates: Array = _generate_candidates(ctx)
-	if candidates.is_empty():
-		return super.choose_action(ctx)
-
-	var snap:          Dictionary = _evaluator.snapshot(ctx)
-	var threat_server: String     = _threat_model.most_threatened_server(ctx)
-
-	var best_action: GameAction = null
-	var best_score:  float      = -INF
-	var log_entries: Array      = []
-
-	for action in candidates:
-		var s: float = _score_candidate(action as GameAction, snap, threat_server, ctx)
-		if not ctx.simulation_mode:
-			log_entries.append({"action": action as GameAction, "score": s})
-		if s > best_score:
-			best_score  = s
-			best_action = action as GameAction
-
-	if best_action != null:
-		if not ctx.simulation_mode:
-			DecisionLogger.log_scored(ctx, best_action, log_entries, 1)
-		return best_action
-
-	# No candidate beat the baseline — let the heuristic parent decide
-	# (handles new-remote install, asset install, etc.)
-	return super.choose_action(ctx)
+	# Whole-turn beam search (beam_width=5).
+	var snap:   Dictionary = _evaluator.snapshot(ctx)
+	var threat: String     = _threat_model.most_threatened_server(ctx)
+	var action: GameAction = _planner.plan_first_action(snap, threat, ctx)
+	if not ctx.simulation_mode:
+		DecisionLogger.log_scored(ctx, action, [], 1)
+	return action
 
 
 # ── Candidate generation ──────────────────────────────────────────────────────

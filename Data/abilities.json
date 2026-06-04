@@ -1169,6 +1169,7 @@
 	},
 	"anoetic_void": {
 		"before_breach": {
+			"once_per_turn_key": "anoetic_void_end_breach",
 			"effects": [
 				{
 					"type": "corp_may_end_breach",
@@ -7008,9 +7009,10 @@
 	},
 
 	"b_1001": {
-		"_note": "TAI Runner resource (Criminal, Connection, 2cr). Once per turn, during a run: remove 1 tag → end the run. ('Another server' interpreted as any active run.)",
+		"_note": "TAI Runner resource (Criminal, Connection, 2cr). Once per turn, during a run against another server: remove 1 tag → end the run. remote_only enforces 'another server' (not a central).",
 		"run_paid_ability": {
 			"once_per_turn_key": "b1001_etr",
+			"remote_only": true,
 			"label": "B-1001: Remove 1 tag to end the run?",
 			"condition": {"type": "runner_is_tagged"},
 			"cost": {"remove_tag": 1},

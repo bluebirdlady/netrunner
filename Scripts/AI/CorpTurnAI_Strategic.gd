@@ -56,30 +56,13 @@ func choose_action(ctx: GameContext) -> GameAction:
 			ctx.send_log("[Strategic] Scoring line detected — executing: %s" % scoring_action.describe())
 		return scoring_action
 
-	var candidates: Array = _generate_candidates(ctx)
-	if candidates.is_empty():
-		return super.choose_action(ctx)
-
-	var snap: Dictionary = _evaluator.snapshot(ctx)
-
-	var best_action: GameAction = null
-	var best_ev:     float      = -INF
-	var log_entries: Array      = []
-
-	for action in candidates:
-		var ev: float = _expected_value(action as GameAction, snap, ctx)
-		if not ctx.simulation_mode:
-			log_entries.append({"action": action as GameAction, "score": ev})
-		if ev > best_ev:
-			best_ev     = ev
-			best_action = action as GameAction
-
-	if best_action != null:
-		if not ctx.simulation_mode:
-			DecisionLogger.log_scored(ctx, best_action, log_entries, 2)
-		return best_action
-
-	return super.choose_action(ctx)
+	# Whole-turn beam search (beam_width=5, k-weighted runner responses).
+	var snap:      Dictionary = _evaluator.snapshot(ctx)
+	var responses: Array      = _bayes.k_likely_runner_responses(BEAM_RUNNER_RESPONSES, ctx)
+	var action:    GameAction = _planner.plan_first_action_weighted(snap, responses, ctx)
+	if not ctx.simulation_mode:
+		DecisionLogger.log_scored(ctx, action, [], 2)
+	return action
 
 
 # ── Expected value (2-ply lookahead) ─────────────────────────────────────────
@@ -145,9 +128,18 @@ func _best_corp_counter_ev(state: Dictionary, _ctx: GameContext) -> float:
 	if runner_grip <= 2 and corp_dmg >= 1:
 		base_ev += 150.0
 
-	# 1-ply search: project each snapshot-inferred candidate and take the best.
-	# project_corp_action handles symbolic null-card ice installs from Stage 4.
-	for action in _snapshot_candidates(state):
+	# 1-ply search: project each candidate and take the best EV.
+	# Uses SnapshotCandidateGenerator (full candidate set from extended schema)
+	# when corp_hand_cards is populated; falls back to _snapshot_candidates
+	# for snapshots that pre-date the SCG schema extension.
+	# "corp_hand_cards" key presence indicates an SCG-aware extended snapshot.
+	# An empty array is valid (hand is empty) — check the key, not the contents.
+	var ply3_candidates: Array
+	if state.has("corp_hand_cards"):
+		ply3_candidates = SnapshotCandidateGenerator.generate(state)
+	else:
+		ply3_candidates = _snapshot_candidates(state)
+	for action in ply3_candidates:
 		var projected: Dictionary = _evaluator.project_corp_action(state, action, null)
 		var ev: float = _evaluator.evaluate(projected)
 		if ev > base_ev:

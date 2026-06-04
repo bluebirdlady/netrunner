@@ -56,6 +56,22 @@ static func play_from_archives(card_id: String) -> GameAction:
 static func activate_from_hq(card_id: String) -> GameAction:
 	return _make("activate_from_hq", {"card_id": card_id})
 
+# ── Basic actions (rules §10) ─────────────────────────────────────────────────
+
+# 10.5.4  Runner spends [click] + 2cr to remove 1 tag.
+static func remove_tag() -> GameAction:
+	return _make("remove_tag", {})
+
+# 10.5.3  Corp spends [click] + 2cr to trash one of the Runner's resources
+#         (only legal while Runner is tagged).
+static func trash_runner_resource(instance_id: String, card_id: String) -> GameAction:
+	return _make("trash_runner_resource",
+		{"card_instance_id": instance_id, "card_id": card_id})
+
+# 10.1.2  Corp spends [click][click][click] to purge all virus counters.
+static func purge_virus() -> GameAction:
+	return _make("purge_virus", {})
+
 # Corp activates an ice's trash ability during the encounter window (e.g. M.I.C.).
 # Trashes the ice, then resolves the ability's effects (e.g. Runner clicks or run ends).
 static func use_ice_trash_ability(instance_id: String, card_id: String) -> GameAction:
@@ -84,6 +100,9 @@ func describe() -> String:
 		"rez_card":          return "Rez %s" % params.get("card_id", "?")
 		"use_installed_card": return "Use %s" % params.get("card_id", "?")
 		"play_from_archives":  return "Play %s from Archives" % params.get("card_id", "?")
+		"remove_tag":           return "Remove 1 tag (2cr)"
+		"trash_runner_resource": return "Trash %s" % params.get("card_id", "?")
+		"purge_virus":          return "Purge virus counters (3 clicks)"
 		"activate_from_hq":    return "Activate %s from HQ" % params.get("card_id", "?")
 		_:
 			return type

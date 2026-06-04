@@ -1,0 +1,26 @@
+BROADCAST
+by Circuito Saudade
+
+The technician had been running Synapse Global's São Paulo broadcast feeds for two years, and she had never seen a data pipeline with the routing permissions she was looking at now.
+
+It wasn't the size of it, though the size was impressive: fourteen months of content, aggregated from polling firms and social analytics vendors and a media strategy consultancy she had never heard of called Epiphany Analytica. It wasn't the destination, though the destination was unusual: a single consolidated feed to every licensed screen in the São Paulo metropolitan area, three holostream channels simultaneously, sustained for six hours beginning when the legislative session opened.
+
+It was the routing permissions. The pipeline had access to every broadcast channel Synapse Global operated in South America. Not a feed — a takeover. The kind of system access that meant if someone intercepted the pipeline and put something else into it, it would go out on every channel at once, to every screen, before any kill-switch protocol could respond.
+
+She had mentioned this to her supervisor.
+
+Her supervisor had told her it was authorised at the highest level and that her job was to keep the feed running.
+
+Today was the day the Automata Initiative came to the floor. The Synapse Global broadcast would run the official signing ceremony live from the Palácio da Alvorada, framing it as a bipartisan achievement for public safety and corporate responsibility.
+
+She checked the pipeline one more time. The routing permissions were still there.
+
+She thought about mentioning it again.
+
+She didn't.
+
+—
+
+TARGET: Synapse Global: Faster Than Thought
+FACILITY: Synapse Global São Paulo Broadcast Tower, Centro, São Paulo
+OBJECTIVE: Take the channel. Everything you've pulled — the ledger, the firmware specs, the location maps, the logistics manifests — goes out on every screen in the city. Eleven minutes before they cut the feed. Make them count.

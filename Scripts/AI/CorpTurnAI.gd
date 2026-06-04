@@ -45,17 +45,44 @@ var _run_ai: CorpRunAI
 var _ability_registry: AbilityRegistry
 var _interpreter: AbilityInterpreter   # needed for condition evaluation
 
+# Whole-turn beam search (beam_width=3 for the heuristic tier).
+# Uses a separate evaluator so subclass _evaluator fields are not shadowed.
+var _base_evaluator: CorpStateEvaluator
+var _base_planner:   CorpTurnPlanner
+
 
 func _init(ability_registry: AbilityRegistry) -> void:
-	_run_ai = CorpRunAI.new(ability_registry)
+	_run_ai           = CorpRunAI.new(ability_registry)
 	_ability_registry = ability_registry
-	_interpreter = AbilityInterpreter.new()
+	_interpreter      = AbilityInterpreter.new()
+	_base_evaluator   = CorpStateEvaluator.new()
+	_base_planner     = CorpTurnPlanner.new(_base_evaluator)
+	_base_planner.beam_width = 3
 
 
 # ── Turn-time interface ───────────────────────────────────────────────────────
 
 func choose_action(ctx: GameContext) -> GameAction:
-	var action := _choose_action_impl(ctx)
+	# 0a. Petty Cash from Archives (first action only — not in snapshot domain).
+	if not ctx.corp_finished_an_action_this_turn:
+		for cr in ctx.corp_discard:
+			var pc_record: CardRecord = cr as CardRecord
+			if pc_record != null and pc_record.id == "petty_cash":
+				return GameAction.play_from_archives("petty_cash")
+
+	# Hard override: kill window.
+	var kill_action: GameAction = KillWindowPlanner.first_action(ctx)
+	if kill_action != null:
+		return kill_action
+
+	# Hard override: scoring line.
+	var scoring_action: GameAction = FastAdvancePlanner.first_action(ctx)
+	if scoring_action != null:
+		return scoring_action
+
+	# Whole-turn beam search at beam_width=3.
+	var snap:   Dictionary = _base_evaluator.snapshot(ctx)
+	var action: GameAction = _base_planner.plan_first_action(snap, "rd", ctx)
 	if not ctx.simulation_mode:
 		DecisionLogger.log_heuristic(ctx, action)
 	return action

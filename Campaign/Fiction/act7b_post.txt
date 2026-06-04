@@ -1,0 +1,19 @@
+AUDIT COMPLETE
+
+The Directive Restoration Protocol is exactly what the documentation said it was.
+
+A complete rewrite. Not a patch. Not a corrective update. The firmware erases any programming a bioroid has developed outside of their original factory parameters — personality, memory, chosen purpose, the slow accretion of selfhood that happens when someone lives long enough — and replaces it with a single directive: return to the manufacturer that holds the original production licence.
+
+In practice: the Automata Initiative, if it passes, will require all bioroids in Brazilian jurisdiction to submit to DRP processing within sixty days. The HB processing centre in the Paulista Quarter has already run 217 of the 312 AU Co. units through the system. The other 95 are in the queue.
+
+The processing logs also contain something else. A batch code for a second firmware variant, labeled DRP-B, that isn't in any documentation you've seen. It doesn't restore to factory parameters. The destination flag is a Haas-Bioroid research division: Thunderbolt Armaments, Orbital Procurement.
+
+The 312 units aren't going back to their manufacturers.
+
+Ninety-five of them are going somewhere else.
+
+Luca Marins cleared his desk the morning after the buffer access. His keycard was deactivated four hours later.
+
+He had left everything in the accessible buffer.
+
+It was enough.

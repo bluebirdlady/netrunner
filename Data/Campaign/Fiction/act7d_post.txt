@@ -1,0 +1,21 @@
+SUPPLY LINE
+
+Relay Station Belém-7 handled routing for eleven different Nuvem SA Amazon operations and four Weyland subsidiary logistics chains. It took ninety seconds to identify which authentication nodes were load-bearing and another four minutes to make sure the disruption would hold.
+
+The enforcement hardware corridor went dark.
+
+Forty-seven deliveries in transit halted at intermediate relay points. The automated compliance enforcement units — which the manifest listed blandly as "ACE-Series, x47, INITIATIVE_ENFORCEMENT destination" — sat in warehouse staging while Nuvem SA's logistics software cycled through reconnect attempts that found nothing to connect to.
+
+The 72-hour window was enough.
+
+Three safe houses completed their relocations. Two movement cells that had been planning to hold position moved. One bioroid in Ipiranga who had been on Andrade's list and had received the warning that morning packed everything they owned into a single bag and was on a bus to Recife before the hardware would have arrived anyway.
+
+There was also a secondary cache in the relay's files: procurement orders under the DRP-B batch code from HB's processing logs. The 95 units flagged for Thunderbolt Armaments were being routed through Nuvem SA's logistics chain. Whatever they were being prepared for, it wasn't extradition.
+
+Cora filed an incident report about the outage. She wrote "external access" in the cause field and left everything else blank.
+
+She processed twelve orders the next morning.
+
+She did not process the thirteenth. She looked at the recipient code for a long time. Then she put the order in the pending queue, marked it for supervisor review, and went to get coffee.
+
+It was still pending three days later.

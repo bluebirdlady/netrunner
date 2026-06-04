@@ -957,32 +957,50 @@ func get_credits(subject: String) -> int:
 	push_error("GameContext: unknown subject '%s'" % subject)
 	return 0
 
-# Total credits available to the runner including any Overclock pool
+# Total credits available to the runner including Overclock and bad publicity funds.
 func runner_available_credits() -> int:
-	return runner_credits + run_modifiers.get("overclock_credits", 0)
+	return runner_credits \
+		+ run_modifiers.get("overclock_credits", 0) \
+		+ run_modifiers.get("bad_pub_credits", 0)
 
-# Spend runner credits, drawing from Overclock pool first, then own pool.
+# Spend runner credits, drawing from Overclock → bad pub → own pool in order.
+# Both Overclock and bad pub are "outside the credit pool" for Shackleton Grid.
 # Returns false if insufficient total credits.
 func runner_spend_credits(amount: int) -> bool:
 	var overclock: int = run_modifiers.get("overclock_credits", 0)
-	var total: int     = runner_credits + overclock
+	var bad_pub:   int = run_modifiers.get("bad_pub_credits",   0)
+	var total: int     = runner_credits + overclock + bad_pub
 	if total < amount:
 		return false
-	var from_overclock: int = min(amount, overclock)
-	var from_own: int       = amount - from_overclock
+
+	var remaining: int = amount
+
+	# 1. Drain Overclock first
+	var from_overclock: int = min(remaining, overclock)
 	run_modifiers["overclock_credits"] = overclock - from_overclock
-	runner_credits -= from_own
-	# VP65 Shackleton Grid: Overclock is "outside the credit pool"
+	remaining -= from_overclock
 	if from_overclock > 0 and run_active:
 		runner_outside_credits_spent_pending += from_overclock
+
+	# 2. Drain bad publicity fund
+	var from_bad_pub: int = min(remaining, bad_pub)
+	run_modifiers["bad_pub_credits"] = bad_pub - from_bad_pub
+	remaining -= from_bad_pub
+	if from_bad_pub > 0 and run_active:
+		runner_outside_credits_spent_pending += from_bad_pub
+
+	# 3. Drain own credit pool
+	runner_credits -= remaining
 	return true
 
 
 # ── Recurring credit helpers ──────────────────────────────────────────────────
 
-# Total credits available for trash costs: regular pool + Overclock + Azimat recurring credits.
+# Total credits available for trash costs: own pool + Overclock + bad pub + Azimat recurring.
 func runner_trash_credits_available() -> int:
-	var total: int = runner_credits + run_modifiers.get("overclock_credits", 0)
+	var total: int = runner_credits \
+		+ run_modifiers.get("overclock_credits", 0) \
+		+ run_modifiers.get("bad_pub_credits", 0)
 	for mod in _state_modifiers.get("runner_trash_recurring_credits", []):
 		var d := mod as Dictionary
 		var iid: String = d.get("card_instance_id", "")
