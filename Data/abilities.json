@@ -451,16 +451,16 @@
 		"runner_turn_start": {
 			"effects": [
 				{
+					"type": "remove_self_counter",
+					"counter": "power",
+					"amount": 1
+				},
+				{
 					"type": "draw_cards",
 					"params": {
 						"subject": "runner",
 						"amount": 2
 					}
-				},
-				{
-					"type": "remove_self_counter",
-					"counter": "power",
-					"amount": 1
 				},
 				{
 					"type": "self_trash_if_empty",
@@ -4551,18 +4551,14 @@
 		"rez_cost_reduction_if_agenda_scored_stolen": 6
 	},
 	"tailgate": {
-		"_note": "Runner event VP12. Play cost is reduced by 1 per piece of ice protecting HQ. On play: gain 7 credits.",
+		"_note": "Runner event VP12. Play cost is reduced by 1 per piece of ice protecting HQ. Run HQ. If successful, access 2 additional cards when you breach HQ.",
 		"play_cost_reduction_per_ice_on_server": {
 			"server": "hq"
 		},
 		"on_play": {
 			"effects": [
 				{
-					"type": "gain_credits",
-					"params": {
-						"subject": "runner",
-						"amount": 7
-					}
+					"type": "tailgate_hq_run"
 				}
 			]
 		}

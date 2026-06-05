@@ -215,8 +215,14 @@ static func _snap_archives_ops(ctx: GameContext, ab_reg: AbilityRegistry) -> Arr
 		if not is_playable and ab_reg != null:
 			is_playable = (ab_reg._abilities.get(dc.id, {}) as Dictionary
 				).get("play_from_archives", false) as bool
-		if is_playable:
-			result.append(dc)
+		if not is_playable:
+			continue
+		# Exclude ops that require the first action this turn once that window has passed.
+		if ctx.corp_finished_an_action_this_turn and ab_reg != null:
+			var op_def: Dictionary = ab_reg._abilities.get(dc.id, {}) as Dictionary
+			if op_def.get("requires_first_action_this_turn", false):
+				continue
+		result.append(dc)
 	return result
 
 

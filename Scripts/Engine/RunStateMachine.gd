@@ -692,6 +692,10 @@ func _phase_success() -> void:
 			"hq":
 				ctx.runner_hq_successful_run_this_turn = true
 
+		# Parhelion mark: record that the Runner successfully breached their mark server.
+		if ctx.runner_mark_server != "" and _target_server.server_id == ctx.runner_mark_server:
+			ctx.runner_breached_mark_this_turn = true
+
 		# Global announcement triggers
 		await ctx.notify_event("successful_run", {"server_id": _target_server.server_id}, interpreter)
 

@@ -282,6 +282,27 @@ func choose_top_or_bottom(_card: CardRecord, _context_label: String, _ctx: GameC
 	return "bottom"  # AI: always hide it at the bottom
 
 
+# ── Parhelion: Charge ─────────────────────────────────────────────────────────
+
+# Heuristic: charge the card that would benefit most from an extra power counter.
+# Priority: WAKE Implant (more R&D accesses) > card nearest depletion > first candidate.
+func choose_card_to_charge(candidates: Array, _ctx: GameContext) -> InstalledCard:
+	if candidates.is_empty():
+		return null
+	# Prefer WAKE Implant (each counter = 1 extra R&D access)
+	for c in candidates:
+		var ic: InstalledCard = c as InstalledCard
+		if ic != null and ic.card_id == "wake_implant_v2a_jrj":
+			return ic
+	# Prefer the card with the most counters (compounding value)
+	var best: InstalledCard = candidates[0] as InstalledCard
+	for c in candidates:
+		var ic: InstalledCard = c as InstalledCard
+		if ic != null and ic.get_counter("power") > best.get_counter("power"):
+			best = ic
+	return best
+
+
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 func _find_run_target(ctx: GameContext) -> String:

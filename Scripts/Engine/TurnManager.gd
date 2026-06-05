@@ -127,6 +127,8 @@ func _corp_turn() -> void:
 	# Active Policing / Bring Them Home pre-play condition reads this.
 	ctx.runner_stole_or_trashed_last_runner_turn = \
 		ctx.runner_stole_agenda_this_turn or ctx.runner_trashed_during_breach_this_turn
+	# Parhelion Distributed Tracing: finer-grained "stole specifically" flag.
+	ctx.runner_stole_agenda_last_runner_turn = ctx.runner_stole_agenda_this_turn
 	ctx.runner_stole_agenda_this_turn  = false          # reset each turn (Hype Machine)
 	# Capture whether the runner ran successfully last turn before this turn's reset.
 	# Used by Public Trail ("Play only if the Runner made a successful run during their last turn").
@@ -366,8 +368,18 @@ func _runner_discard_to_hand_limit() -> void:
 func _runner_turn() -> void:
 	ctx.active_player  = "runner"
 	var runner_penalty: int = ctx.pending_click_penalties.get("runner", 0)
-	ctx.runner_clicks = max(0, RUNNER_CLICKS_PER_TURN - runner_penalty)
+	var runner_bonus: int   = ctx.pending_click_bonuses.get("runner", 0)
+	# Basilar Synthgland 2KVJ (Parhelion): each installed copy grants +1 allotted click.
+	for _bsg_c in ctx.runner_rig:
+		var _bsg_ic: InstalledCard = _bsg_c as InstalledCard
+		if _bsg_ic != null and _bsg_ic.card_id == "basilar_synthgland_2kvj":
+			runner_bonus += 1
+	ctx.runner_clicks = max(0, RUNNER_CLICKS_PER_TURN - runner_penalty) + runner_bonus
 	ctx.pending_click_penalties["runner"] = 0
+	ctx.pending_click_bonuses["runner"]   = 0
+	if runner_bonus > 0:
+		ctx.send_log("%s gets +%d click(s) this turn (Basilar Synthgland / bonus)." % [
+			ctx.runner_name(), runner_bonus])
 	ctx.runner_made_successful_run_this_turn = false   # reset each turn
 	ctx.runner_centrals_run_this_turn = []             # reset each turn
 	ctx.runner_click_draws_this_turn  = 0              # reset each turn
@@ -383,6 +395,9 @@ func _runner_turn() -> void:
 	ctx.runner_successful_run_on_rd_this_turn       = false  # reset each turn (VP1 Chain Reaction)
 	ctx.runner_successful_run_on_archives_this_turn = false  # reset each turn (VP1 Chain Reaction)
 	ctx.once_per_turn_triggered.clear()                      # reset per-turn trigger guards
+	# Parhelion resets
+	ctx.runner_mark_server             = ""     # mark expires each turn
+	ctx.runner_breached_mark_this_turn = false  # breach flag expires each turn
 	# Clear turn-scoped strength bonuses (e.g. Living Mural Threat 4 install: +3 str this turn).
 	for _ts_card in ctx.runner_rig:
 		var _ts_ic: InstalledCard = _ts_card as InstalledCard
@@ -1284,6 +1299,18 @@ func _do_play_operation(player: String, action: GameAction) -> void:
 			ctx.send_log("%s: cannot play — Runner did not steal or trash a Corp card last turn." % record.title)
 			return
 
+	# Distributed Tracing (Parhelion): play only if Runner stole an agenda last turn.
+	if op_card_def.get("pre_play_condition", "") == "runner_stole_agenda_last_runner_turn" and player == "corp":
+		if not ctx.runner_stole_agenda_last_runner_turn:
+			ctx.send_log("%s: cannot play — Runner did not steal an agenda last turn." % record.title)
+			return
+
+	# Hypoxia (Parhelion) and similar tagged-only Corp operations.
+	if op_card_def.get("pre_play_condition", "") == "runner_is_tagged" and player == "corp":
+		if not ctx.runner_is_tagged():
+			ctx.send_log("%s: cannot play — Runner is not tagged." % record.title)
+			return
+
 	_spend_click(player)
 
 	# Base play cost, with optional dynamic reduction (VP12 Tailgate: −1 per ice on a server).
@@ -1369,6 +1396,28 @@ func _do_play_operation(player: String, action: GameAction) -> void:
 			await ctx.notify_event("hardware_trashed", {
 				"card_id": op_tc_target.card_id, "source": "runner"
 			}, interpreter)
+
+	# Parhelion — End of the Line: Corp removes 1 Runner tag as additional cost.
+	if op_card_def.get("additional_cost_remove_runner_tag", false) and player == "corp":
+		if ctx.runner_tags <= 0:
+			ctx.send_log("%s: cannot play — Runner has no tags to remove." % record.title)
+			# Refund click and credits
+			ctx.corp_clicks += 1 + op_extra_clicks
+			ctx.corp_credits += cost
+			return
+		ctx.runner_tags -= 1
+		ctx.send_log("[%s] Runner loses 1 tag as additional cost (%d remaining)." % [
+			record.title, ctx.runner_tags])
+
+	# Parhelion — Finality: Runner suffers N core damage as additional cost before the run.
+	var add_core_dmg: int = op_card_def.get("additional_cost_core_damage", 0)
+	if add_core_dmg > 0 and player == "runner":
+		await interpreter.execute_trigger({
+			"effects": [{"type": "deal_damage",
+				"params": {"damage_type": "core", "amount": add_core_dmg}}]
+		}, ctx)
+		if ctx.game_over:
+			return   # Runner flatlined paying the cost; don't resolve the event
 
 	# Remove from hand
 	_remove_from_hand(player, record)
@@ -1917,7 +1966,8 @@ func _check_win_conditions() -> void:
 		return
 
 	# Agenda point victory
-	if ctx.corp_agenda_points() >= agenda_points_to_win:
+	# Corp threshold is dynamic: Issuaq Adaptics reduces it by 1 per power counter.
+	if ctx.corp_agenda_points() >= ctx.corp_points_to_win():
 		_end_game("corp", "%s scored %d agenda points" % [ctx.corp_name(), ctx.corp_agenda_points()])
 		return
 	if ctx.runner_agenda_points() >= agenda_points_to_win:

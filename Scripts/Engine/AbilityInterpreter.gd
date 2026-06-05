@@ -576,6 +576,31 @@ func _evaluate_condition(condition: Dictionary, ctx: GameContext) -> bool:
 			# Virtual Service Agent fires a tag when this is true.
 			return not ctx.current_event_data.get("broken_with_decoder", false)
 
+		# ── Parhelion conditions ──────────────────────────────────────────────────
+
+		"run_target_is_mark":
+			# True when the current run's target server is the Runner's identified mark.
+			# Used by: Tunnel Vision (break only on mark ice), Info Bounty (gain on mark run end).
+			return ctx.runner_mark_server != "" \
+				and ctx.run_target_server == ctx.runner_mark_server
+
+		"runner_breached_mark_this_turn":
+			# True after the Runner successfully breached their mark server this turn.
+			# Used by: Info Bounty (gain 2cr condition).
+			return ctx.runner_breached_mark_this_turn
+
+		"agenda_scored_from_self_server":
+			# True when the agenda that just fired corp_scores_agenda was scored from the
+			# same server as the owning card.  event_data carries "server_id".
+			# Used by: Djupstad Grid (do 1 core damage when agenda scored from this server).
+			var asfs_server: String = ctx.current_event_data.get("server_id", "")
+			if asfs_server == "":
+				return false
+			var asfs_self := _get_self_card(ctx)
+			if asfs_self == null or not asfs_self.is_rezzed:
+				return false
+			return asfs_self.server_id == asfs_server
+
 		_:
 			push_error("AbilityInterpreter: unknown condition type '%s'" % ctype)
 			return false
@@ -2302,6 +2327,23 @@ func _execute_effect(effect: Dictionary, ctx: GameContext, chosen_target: Varian
 					continue
 				ctx.send_log("[Bahia Bands] Resolving: %s." % (rwcn_mode as Dictionary).get("label", "?"))
 				await _execute_effect(rwcn_sub_effect, ctx, chosen_target)
+
+		"tailgate_hq_run":
+			# Tailgate (VP12): Grant +2 bonus HQ accesses, then run HQ.
+			# The bonus only matters during the breach (which only occurs on success),
+			# so no cleanup is needed on failure — run_modifiers are wiped at run end.
+			ctx.run_modifiers["bonus_access"] = ctx.run_modifiers.get("bonus_access", 0) + 2
+			ctx.run_modifiers["run_event_active"] = 1
+			if ctx.has_meta("on_run_started"):
+				(ctx.get_meta("on_run_started") as Callable).call("hq")
+				if not ctx.simulation_mode:
+					await Engine.get_main_loop().process_frame
+			var tg_rsm: Object = ctx.get_meta("run_state_machine") if ctx.has_meta("run_state_machine") else null
+			if tg_rsm == null:
+				push_error("AbilityInterpreter: tailgate_hq_run — no run_state_machine on ctx")
+				ctx.run_modifiers["bonus_access"] = maxi(0, ctx.run_modifiers.get("bonus_access", 2) - 2)
+				return
+			await tg_rsm.execute("hq")
 
 		"install_from_grip_discount":
 			# Bahia Bands sub-effect: Runner installs 1 card from grip at a credit discount.
@@ -4992,6 +5034,110 @@ func _execute_effect(effect: Dictionary, ctx: GameContext, chosen_target: Varian
 			# Signal RunStateMachine to update its _ice_positions snapshot at the
 			# current index so the runner now approaches the swapped-in ice.
 			ctx.set_meta("run_ice_swapped", saic_chosen)
+
+		# ── Parhelion: Charge ─────────────────────────────────────────────────────
+
+		"charge_card":
+			# Add 1 power counter to an installed Runner card that already has ≥1 power counter.
+			# If no valid targets exist, the charge has no effect.
+			var charge_candidates: Array = []
+			for rig_c in ctx.runner_rig:
+				var charge_ic: InstalledCard = rig_c as InstalledCard
+				if charge_ic != null and charge_ic.get_counter("power") >= 1:
+					charge_candidates.append(charge_ic)
+			if charge_candidates.is_empty():
+				ctx.send_log("[Charge] No installed cards with power counters — charge has no effect.")
+				return
+			var charge_target: InstalledCard = null
+			if ctx.runner_decision_maker != null and \
+					ctx.runner_decision_maker.has_method("choose_card_to_charge"):
+				charge_target = await ctx.runner_decision_maker.choose_card_to_charge(
+					charge_candidates, ctx)
+			if charge_target == null:
+				charge_target = charge_candidates[0] as InstalledCard
+			if charge_target == null:
+				return
+			charge_target.add_counter("power", 1)
+			ctx.send_log("[Charge] %s gains 1 power counter (%d total)." % [
+				charge_target.card_record.title if charge_target.card_record else charge_target.card_id,
+				charge_target.get_counter("power")
+			])
+
+		# ── Parhelion: Mark ───────────────────────────────────────────────────────
+
+		"identify_mark":
+			# If no mark has been identified this turn, pick a random central server.
+			# Subsequent calls (from a second copy of Info Bounty, etc.) are no-ops.
+			if ctx.runner_mark_server != "":
+				ctx.send_log("[Mark] Mark already identified this turn: %s." % \
+					ctx.runner_mark_server.to_upper())
+				return
+			var mark_centrals := ["hq", "rd", "archives"]
+			ctx.runner_mark_server = mark_centrals[randi() % mark_centrals.size()]
+			ctx.send_log("[Mark] %s identifies mark: %s." % [
+				ctx.runner_name(), ctx.runner_mark_server.to_upper()])
+
+		# ── Parhelion: Win condition ───────────────────────────────────────────────
+
+		"win_game":
+			# Immediately end the game with the specified winner.
+			# Used by Superdeep Borehole when all bad-publicity counters are removed.
+			var wg_winner: String = params.get("winner", "corp")
+			ctx.game_over = true
+			ctx.winner    = wg_winner
+			ctx.send_log("Game over — %s wins!" % ctx.player_name(wg_winner))
+
+		# ── Parhelion: Nightmare Archive ──────────────────────────────────────────
+
+		"nightmare_archive_on_access":
+			# When the Runner accesses Nightmare Archive:
+			# • Runner may add it to their score area as an agenda worth −1 point.
+			# • If they decline: 1 core damage + remove from the game.
+			var na_add: bool = false
+			if ctx.runner_decision_maker != null and \
+					ctx.runner_decision_maker.has_method("choose_optional_ability"):
+				na_add = await ctx.runner_decision_maker.choose_optional_ability(
+					"Add Nightmare Archive to score area as −1 agenda point? (No = 1 core damage + RFG)",
+					ctx)
+			# AI default: decline (−1 points hurts the runner's score and win condition)
+
+			if na_add:
+				ctx.runner_nightmare_archive_count += 1
+				ctx.send_log("[Nightmare Archive] %s adds it to score area (−1 point; total: %d pts)." % [
+					ctx.runner_name(), ctx.runner_agenda_points()])
+				# RFG the physical card so it doesn't also end up in the Corp's discard.
+				var na_self := _get_self_card(ctx)
+				if na_self != null:
+					for na_srv in ctx.servers.values():
+						var na_s: Server = na_srv as Server
+						if na_s.remove_from_root(na_self):
+							break
+					ctx.corp_rfg.append(na_self.card_record if na_self.card_record else CardRecord.new())
+				else:
+					# Accessed from R&D — card is still in corp_deck; RFG it there.
+					var na_cr: CardRecord = ctx.current_event_data.get("card_record", null) as CardRecord
+					if na_cr != null:
+						ctx.corp_deck.erase(na_cr)
+						ctx.corp_rfg.append(na_cr)
+			else:
+				# Decline: 1 core damage
+				await _deal_damage("core", 1, ctx)
+				if not ctx.game_over:
+					# RFG the card
+					var na_self_rfg := _get_self_card(ctx)
+					if na_self_rfg != null:
+						for na_srv_rfg in ctx.servers.values():
+							var na_s_rfg: Server = na_srv_rfg as Server
+							if na_s_rfg.remove_from_root(na_self_rfg):
+								break
+						if na_self_rfg.card_record != null:
+							ctx.corp_rfg.append(na_self_rfg.card_record)
+					else:
+						var na_cr_rfg: CardRecord = ctx.current_event_data.get("card_record", null) as CardRecord
+						if na_cr_rfg != null:
+							ctx.corp_deck.erase(na_cr_rfg)
+							ctx.corp_rfg.append(na_cr_rfg)
+					ctx.send_log("[Nightmare Archive] Removed from the game.")
 
 		# ── Sabotage ──────────────────────────────────────────────────────────────
 

@@ -333,6 +333,21 @@ var runner_hand_size_bonus: int = 0   # added to base of 5
 # Core damage permanently reduces the runner's maximum hand size by 1 per point.
 # Flatline occurs if runner_max_hand_size() drops below 0.
 var runner_core_damage_taken: int = 0
+
+# ── Parhelion fields ──────────────────────────────────────────────────────────
+# Mark mechanic: central server the Runner identified as their mark this turn.
+# Empty string = no mark identified yet. Reset at the start of each Runner turn.
+var runner_mark_server: String = ""
+# True after the Runner successfully breaches their mark server this turn.
+# Set by RunStateMachine; reset at Runner turn start.
+var runner_breached_mark_this_turn: bool = false
+# Nightmare Archive: counts how many copies the Runner has added to their score
+# area as -1 point agendas. Subtracts from runner_agenda_points().
+var runner_nightmare_archive_count: int = 0
+# Distributed Tracing play condition: true if Runner stole an agenda last turn.
+# Captured at the start of the Corp turn; reset at the start of the Corp turn.
+var runner_stole_agenda_last_runner_turn: bool = false
+
 var active_player:   String = "corp"
 var game_over:       bool   = false
 var winner:          String = ""
@@ -846,7 +861,18 @@ func runner_agenda_points() -> int:
 	var total := 0
 	for card in runner_score_area:
 		total += (card as CardRecord).agenda_points
+	# Nightmare Archive (Parhelion): each copy in the Runner's score area is worth -1 point.
+	total -= runner_nightmare_archive_count
 	return total
+
+
+# Parhelion Issuaq Adaptics: each power counter on the identity reduces the Corp's
+# win threshold by 1 (minimum 1).  All win-condition checks go through this.
+func corp_points_to_win() -> int:
+	var base: int = agenda_points_to_win
+	if corp_identity != null and corp_identity.id == "issuaq_adaptics_sustaining_diversity":
+		base -= corp_identity_counters.get("power", 0)
+	return max(1, base)
 
 # ── Threat ────────────────────────────────────────────────────────────────────
 # "Threat level" is the runner's current agenda point total.
@@ -932,7 +958,32 @@ func corp_max_hand_size() -> int:
 	return 5 + corp_hand_size_bonus
 
 func runner_max_hand_size() -> int:
-	return 5 + runner_hand_size_bonus - runner_core_damage_taken + query_hackerspace_hand_size_bonus()
+	return 5 + runner_hand_size_bonus - runner_core_damage_taken \
+		+ query_hackerspace_hand_size_bonus() \
+		+ query_hippocampic_hand_size_bonus() \
+		- query_keeling_hand_size_penalty()
+
+
+# Hippocampic Mechanocytes (Parhelion): +1 max hand size per power counter on each installed copy.
+func query_hippocampic_hand_size_bonus() -> int:
+	var bonus := 0
+	for rig_c in runner_rig:
+		var ic: InstalledCard = rig_c as InstalledCard
+		if ic != null and ic.card_id == "hippocampic_mechanocytes":
+			bonus += ic.get_counter("power")
+	return bonus
+
+
+# Dr. Vientiane Keeling (Parhelion): −1 max hand size per power counter on each rezzed copy.
+func query_keeling_hand_size_penalty() -> int:
+	var penalty := 0
+	for srv in servers.values():
+		var s: Server = srv as Server
+		for root_c in s.root:
+			var ic: InstalledCard = root_c as InstalledCard
+			if ic != null and ic.is_rezzed and ic.card_id == "dr_vientiane_keeling":
+				penalty += ic.get_counter("power")
+	return penalty
 
 
 # Hackerspace (VP6): +2 max hand size while it hosts at least one companion AND one connection.
@@ -1348,6 +1399,12 @@ func clone_for_sim() -> GameContext:
 	c.winner                   = winner
 	c.agenda_points_to_win     = agenda_points_to_win
 	c.once_per_turn_triggered  = once_per_turn_triggered.duplicate()
+
+	# Parhelion fields
+	c.runner_mark_server                = runner_mark_server
+	c.runner_breached_mark_this_turn    = runner_breached_mark_this_turn
+	c.runner_nightmare_archive_count    = runner_nightmare_archive_count
+	c.runner_stole_agenda_last_runner_turn = runner_stole_agenda_last_runner_turn
 
 	# Transient execution fields — always reset for sim
 	c.current_event_data              = {}

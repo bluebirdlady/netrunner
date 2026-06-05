@@ -12,4 +12,5 @@ Corp Cards
 Runner Cards
 
     Banned
+        Earthrise Hotel
         Cleaver

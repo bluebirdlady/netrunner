@@ -1,0 +1,1337 @@
+PARHELION — IMPLEMENTATION PLANNING
+=====================================
+Date: 2026-06-04
+Set: Parhelion (63 cards)
+Source: Sets/parhelion.csv
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CARD INDEX (from parhelion.csv)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+01  abaasy                     — Runner program, icebreaker (decoder). Full-break → trash grip card to draw 1. Interface: 1cr/sub code gate; 2cr +2 str.
+02  ampere_cybernetics_for_anyone — Corp identity (neutral). 1-copy deck rule; may include up to 2 different cross-faction agenda cards.
+03  anvil                      — Corp ice (Weyland, sentry). On encounter: may trash 1 own installed card → runner cannot break printed subs this encounter. Subs: gain 1cr/runner loses 1cr; runner trashes 1 installed.
+04  asmund_pudlat              — Runner resource (Anarch). On install: search stack for ≤2 virus or weapon cards with different names, host faceup (not installed). Turn begin: may add 1 hosted card to grip; trash when empty.
+05  basilar_synthgland_2kvj    — Runner hardware (Shaper, Cybernetic). On install: suffer 2 core damage. Ongoing: +1 allotted click per turn.
+06  bloop                      — Corp ice (Weyland, barrier, harmonic). Additional rez cost: derez another harmonic ice. Subs: 1 core damage; trash 1 installed program (×2).
+07  concerto                   — Runner event (Criminal). Reveal top stack card, place credits = its printed play/install cost on this event. Add that card to grip. Run any server; may spend hosted credits during that run.
+08  distributed_tracing        — Corp operation (NBN). Additional cost: spend [click]. Play only if Runner stole an agenda last turn. Give Runner 1 tag.
+09  djupstad_grid              — Corp upgrade (HB, region). Whenever Corp scores an agenda from root of this server: do 1 core damage. Limit 1 region per server.
+10  dr_nuka_vrolyck            — Runner resource (Shaper). On install: load 2 power counters; trash when empty. [click] + hosted power counter: draw 3 cards.
+11  dr_vientiane_keeling       — Corp asset (Jinteki). On rez and turn begin: place 1 power counter. Runner gets −1 maximum hand size per hosted power counter. BANNED Standard.
+12  end_of_the_line            — Corp operation (NBN). Additional cost: remove 1 tag. Do 4 meat damage.
+13  finality                   — Runner event (Anarch). Additional cost: suffer 1 core damage. Run R&D. If successful, access 3 additional cards when breaching R&D.
+14  flux_capacitor             — Runner hardware (Shaper). Install only on a piece of ice (trojan-style). First time Runner breaks a sub during each encounter with host ice: may charge 1 installed card.
+15  freedom_of_information     — Corp agenda (NBN, 3/2 base). Gets −1 advancement requirement per Runner tag.
+16  gaslight                   — Corp asset (Jinteki). On Corp turn begin: may trash this asset; if you do, search R&D for an operation, reveal it, add it to HQ. Shuffle R&D.
+17  hafrun                     — Corp ice (HB, code gate). On rez during a run on this server: may trash 1 card from HQ; if you do, choose 1 installed Runner card — that card's abilities cannot break subs for the remainder of that run. Sub: end the run.
+18  hippocampic_mechanocytes   — Runner hardware (Shaper, Cybernetic). On install: place 2 power counters; suffer 1 meat damage. Ongoing: +1 maximum hand size per hosted power counter.
+19  hostile_architecture       — Corp asset (Weyland). The first time each turn the Runner trashes any of your installed cards (including this asset): do 2 meat damage.
+20  hush                       — Runner program (Shaper). Install only on ice (trojan). Host ice cannot gain abilities and loses all non-printed-subroutine abilities. [click]: move to another installed ice.
+21  hybrid_release             — Corp agenda (Weyland, 3/2). On score: may install 1 facedown card from Archives.
+22  hypoxia                    — Corp operation (Jinteki). Play only if Runner is tagged. Do 1 core damage. Runner gets −1 allotted click next turn. Remove this operation from the game.
+23  info_bounty                — Runner resource (Criminal, mark). On turn begin: identify mark (if no mark, a random central becomes mark for this turn). First time each turn a run on mark ends: gain 2cr if you breached that server.
+24  issuaq_adaptics_sustaining_diversity — Corp identity (HB). Whenever Corp scores an agenda not installed or advanced this turn: place 1 power counter on this identity. For each hosted power counter, need 1 fewer agenda point to win.
+25  k2cp_turbine               — Runner hardware (Criminal). Each installed non-AI icebreaker gets +2 strength. ALREADY IMPLEMENTED. BANNED Standard.
+26  katorga_breakout           — Runner event (Criminal). Run any server. If successful, add 1 card from heap to grip.
+27  kimberlite_field           — Corp agenda (Weyland, 3/2). On score: may trash 1 of your rezzed cards; if so, trash 1 installed Runner card with printed install cost ≤ rez cost of the trashed Corp card.
+28  klevetnik                  — Corp ice (HB, code gate). On rez during run: may have Runner gain 2cr; if so, during each encounter with this ice for the rest of that run, the chosen resource loses all abilities until Corp turn ends. Sub: end the run.
+29  matryoshka                 — Runner program (Anarch). Turn begin: turn each hosted card faceup. [click]: host a copy from grip faceup (not installed). Interface: X credits + turn 1 hosted copy facedown → break X subs. 1cr: +1 str. Limit 6 per deck. BANNED Standard.
+30  mr_hendrik                 — Corp upgrade (Jinteki). When Runner accesses while installed: Corp may pay 2cr to do 1 core damage. If Runner has clicks remaining, they may lose all their clicks to prevent this damage.
+31  nanisivik_grid             — Corp upgrade (HB, region). Whenever Runner approaches this server: may turn 1 facedown Archives ice faceup; if so, resolve 1 subroutine on that ice. Limit 1 region per server. BANNED Standard.
+32  nanuq                      — Runner program (Criminal, icebreaker). On uninstall: RFG. When agenda scored/stolen: RFG. Interface: 2cr break up to 2 subs. 1cr: +1 str.
+33  nga                        — Runner program (Anarch, virus). On install: load 3 power counters; trash when empty. First time each turn on successful run: may remove 1 counter to sabotage 1.
+34  nightmare_archive          — Corp asset (Jinteki). While accessed in R&D, must be revealed. On access: Runner may add as an agenda worth −1 agenda point to their score area. If they don't: do 1 core damage and RFG.
+35  nonequivalent_exchange     — Corp operation (HB). Gain 5cr. You may have each player gain 2cr.
+36  nova_initiumia_catalyst_impetus — Runner identity (neutral). Deck cannot include more than 1 copy of any card.
+37  num                        — Runner program (Criminal, icebreaker, killer). Interface: 2cr break 1 sentry sub.
+38  ontological_dependence     — Corp agenda (Jinteki, 5/3 base). Gets −1 advancement requirement per core damage Runner has taken this game.
+39  orca                       — Runner program (Criminal, icebreaker, killer). First time fully breaks ice each turn: may charge 1 installed card. Interface: 2cr break any number of sentry subs. 2cr: +3 str.
+40  poison_vial                — Runner hardware (Anarch). On install: load 3 power counters; trash when empty. Hosted power counter: break up to 2 subs — use only if you have already broken a sub this encounter.
+41  post_truth_dividend        — Corp agenda (NBN, 3/2). On score: may draw 1 card.
+42  pulse                      — Corp ice (HB, barrier, harmonic). On rez during run: Runner loses [click]. Sub 1: Runner loses 1cr per rezzed harmonic ice. Sub 2: end the run unless Runner spends [click].
+43  raindrops_cut_stone        — Runner event (Criminal). Run any server. Whenever a subroutine resolves during that run (including ETR subs): place 1 power counter on this event. When run ends: draw 1 card per hosted counter; gain 3cr.
+44  reaper_function            — Corp asset (Weyland). When Corp turn begins: may trash this asset to do 2 net damage.
+45  regulatory_capture         — Corp agenda (Weyland, 3/2 base). For each bad publicity you have (up to 4), gets −1 advancement requirement.
+46  reprise                    — Runner event (Criminal). Play only if you stole an agenda this turn. Add 1 installed Corp card to HQ. You may run any server.
+47  shipment_from_vladisibirsk — Corp operation (Weyland). Play only if Runner has at least 2 tags. Place a total of 4 advancement counters on installed cards you can advance.
+48  simulation_reset           — Corp operation (Jinteki). Trash up to 5 cards from HQ. Shuffle that many cards from Archives into R&D. Draw that many cards. Remove from game.
+49  spark_of_inspiration       — Runner event (Shaper). Set aside cards from top of stack faceup until a program is set aside. May install that program paying 10cr less. Shuffle all set-aside cards into stack.
+50  superdeep_borehole         — Corp asset (Weyland). On rez: load 6 bad publicity counters. When empty: Corp wins. On Corp turn begin: take 1 bad publicity from this asset.
+51  thule_subsea_safety_below  — Corp identity (Weyland). Whenever Runner steals an agenda: do 1 core damage unless Runner spends [click] and 2cr.
+52  time_bomb                  — Runner hardware (Anarch). Install only if made successful run on a central this turn. On install: place 1 power counter. On turn begin: if 3+ counters → trash and sabotage 3; else place 1 counter.
+53  tremolo                    — Runner program (Shaper, icebreaker, fracter). Interface: 3cr (minus 1cr per installed cybernetic hardware) break up to 2 barrier subs. 2cr: +2 str.
+54  tsakhia_bankhar_gantulga   — Runner resource (Criminal, connection). Turn begin: may choose a server. During first encounter each turn with ice protecting chosen server: whenever Corp would resolve a sub, instead resolve "do 1 net damage." BANNED Standard.
+55  tunnel_vision              — Runner program (Criminal, icebreaker). Identify mark on turn begin (see info_bounty). Interface: 2cr break up to 2 subs on ice protecting mark. 2cr: +2 str.
+56  unsmiling_tsarevna         — Corp ice (NBN, sentry). On rez during run: may have Runner gain 2cr; if so, during each encounter with this ice for the rest of that run, Runner cannot break more than 1 printed sub per encounter. Subs: give Runner 1 tag; do 2 net damage; Corp may draw 2 cards.
+57  vampyronassa               — Corp ice (Jinteki, sentry). Subs: Runner loses 2cr; Corp gains 2cr; do 2 net damage; Corp may draw 1 or 2 cards.
+58  vera_ivanovna_shuyskaya    — Corp upgrade (Jinteki). Whenever agenda scored/stolen: may reveal grip; if so, trash 1 card revealed this way.
+59  wake_implant_v2a_jrj       — Runner hardware (Shaper, Cybernetic). ALREADY IMPLEMENTED (from RWR).
+60  world_tree                 — Runner resource (Shaper). First time each turn on successful run: may trash 1 installed card to search stack for 1 card of same type, install paying 3cr less. Shuffle stack. BANNED Standard.
+61  yakov_erikovich_avdakov    — Corp upgrade (Weyland). Whenever any player trashes a card from root of or protecting this server (except installation): gain 2cr.
+62  zato_city_grid             — Corp upgrade (Weyland, region, remote only). Each ice protecting this server gains: "When Runner encounters this ice, choose 1 sub on it. You may trash this ice to resolve that sub." Limit 1 region per server.
+63  zenit_chip_jz_2mj          — Runner hardware (Shaper, Cybernetic). On install: suffer 1 core damage. First time each turn on successful run on a central: draw 1 card.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ALREADY IMPLEMENTED
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+k2cp_turbine            Already in abilities.json (passive_modifiers: breaker_strength +2). Banned in Standard 26.05.
+wake_implant_v2a_jrj    Already in abilities.json (from RWR implementation). Confirmed fully implemented.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 1 — ENGINE INFRASTRUCTURE (GDScript changes)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+These require changes to GameContext.gd, TurnManager.gd, AbilityInterpreter.gd,
+RunStateMachine.gd, EncounterProcessor.gd, and/or CorpTurnAI.gd.
+New decision-maker methods may be needed in HumanDecisionMaker.gd and SimRunnerAI.gd.
+Each item notes the affected files.
+
+─────────────────────────────────────────────────────────────────────────────
+1A. CHARGE MECHANIC
+─────────────────────────────────────────────────────────────────────────────
+Used by: orca, flux_capacitor, (and possibly future cards)
+
+Charge = "Add 1 power counter to a card that already has one."
+
+Changes required:
+• AbilityInterpreter: new effect type `charge_card`
+  - Collect all installed runner cards (runner_rig) that currently have at
+    least 1 power counter.
+  - Ask runner_decision_maker.choose_card_to_charge(candidates, ctx) to pick one.
+  - Add 1 power counter to the chosen card.
+  - If no candidates exist, log "No installed cards with power counters — charge has no effect."
+• HumanDecisionMaker: new method `choose_card_to_charge(candidates, ctx) -> InstalledCard`
+  - Present the candidate list for player to pick.
+• SimRunnerAI: new method `choose_card_to_charge(candidates, ctx) -> InstalledCard`
+  - Heuristic: prefer the card with the most power counters; or the one that
+    benefits most from additional counters (e.g., WAKE Implant for R&D access).
+
+The `charge_card` effect dict:
+  { "type": "charge_card" }
+  (no params — always charges exactly 1 card, mandatory if any valid targets)
+
+─────────────────────────────────────────────────────────────────────────────
+1B. MARK MECHANIC
+─────────────────────────────────────────────────────────────────────────────
+Used by: info_bounty, tunnel_vision (icebreaker), tsakhia_bankhar_gantulga
+
+The Runner may identify a mark — a randomly chosen central server — at turn
+start. Once identified for the turn, it is locked in. Some cards trigger on
+runs against the mark; tunnel_vision also breaks ice protecting the mark.
+
+Changes required:
+• GameContext:
+  - New field `runner_mark_server: String = ""`   (empty = no mark this turn)
+  - New field `runner_ran_on_mark_this_turn: bool = false`
+  - New field `runner_breached_mark_this_turn: bool = false`
+  - Reset all three at start of each Runner turn.
+• TurnManager._runner_turn(): clear mark fields at turn start.
+• AbilityInterpreter: new effect type `identify_mark`
+  - If runner_mark_server is already set this turn, do nothing.
+  - Otherwise, pick a random central ("hq", "rd", "archives") and set
+    runner_mark_server.
+  - Log: "Runner identifies mark: [server name]."
+• New condition type `run_target_is_mark`
+  - True when ctx.run_target_server == ctx.runner_mark_server (and mark != "").
+• New condition type `runner_breached_mark_this_turn`
+  - True when ctx.runner_breached_mark_this_turn.
+• RunStateMachine / TurnManager: when a run on the mark server ends
+  successfully (i.e., runner breached), set runner_breached_mark_this_turn = true.
+• Info Bounty (resource) registers on `run_ends` event; checks conditions.
+• Tunnel Vision (icebreaker): uses `run_target_is_mark` condition to gate
+  break ability so it only works against ice protecting the mark server.
+
+Effect dict for identify_mark:
+  { "type": "identify_mark" }
+
+─────────────────────────────────────────────────────────────────────────────
+1C. RUNNER ALLOTTED CLICK BONUS
+─────────────────────────────────────────────────────────────────────────────
+Used by: basilar_synthgland_2kvj (+1 click per turn)
+
+Changes required:
+• GameContext: new field `runner_allotted_click_bonus: int = 0`
+• TurnManager._runner_turn(): change click allocation to:
+    ctx.runner_clicks = max(0, RUNNER_CLICKS_PER_TURN + runner_allotted_click_bonus - runner_penalty)
+  where runner_allotted_click_bonus is computed by scanning runner_rig for
+  installed Basilar Synthgland (and any future +click hardware).
+  Alternatively, compute it inline: scan runner_rig for `card_id == "basilar_synthgland_2kvj"`.
+  Each installed copy adds +1. (Only 1 copy allowed in standard; but handle N copies.)
+• Copy runner_allotted_click_bonus in GameContext.clone() for simulation.
+
+─────────────────────────────────────────────────────────────────────────────
+1D. ADDITIONAL OPERATION COSTS
+─────────────────────────────────────────────────────────────────────────────
+Used by: end_of_the_line (remove 1 tag), distributed_tracing (spend [click]),
+         finality (suffer 1 core damage), hypoxia (tagged-only pre-condition)
+
+The engine already handles operation play-conditions (e.g. pre_play_condition).
+We need to extend TurnManager where Corp plays operations to check and pay
+additional costs before resolving the effect.
+
+Changes required (TurnManager, Corp operation path):
+• Support `additional_cost_remove_tag` key in on_play dict:
+  - Before resolving effects: if runner_tags > 0, remove 1 tag. Else, refuse.
+• Support `additional_cost_spend_click` key in on_play dict:
+  - Before resolving effects: if corp_clicks > 0, spend 1 corp click. Else, refuse.
+
+For Runner events with additional costs (finality — core damage):
+• Support `additional_cost_core_damage` key in on_play dict:
+  - Before resolving effects: deal 1 core damage to Runner. This is mandatory;
+    if it kills the runner, the event still resolves but runner is flatlined.
+
+These additional costs should be checked/paid in TurnManager._do_play_runner_event()
+and TurnManager._do_play_corp_operation() before the main ability fires.
+The JSON representation can use top-level keys on the ability definition dict
+or a dedicated `additional_costs` array.
+
+─────────────────────────────────────────────────────────────────────────────
+1E. DEREZ EFFECTS
+─────────────────────────────────────────────────────────────────────────────
+Used by: bloop (derez another harmonic ice as additional rez cost)
+
+The engine already has `derez_self` for Lycian Multi-Munition and Stegodon.
+We need:
+• AbilityInterpreter: new effect type `derez_ice_by_subtype`
+  - params: { "subtype": "harmonic", "exclude_self": true, "chooser": "corp" }
+  - Corp chooses any rezzed ice with the given subtype (excluding self if flag set).
+  - That ice is derezzed.
+• For Bloop specifically: this functions as an ADDITIONAL REZ COST, not a
+  post-rez effect. The rez validation logic in TurnManager must check that the
+  Corp can pay this cost (has another rezzed harmonic ice) before allowing the
+  rez. If valid, prompt Corp to choose which harmonic ice to derez, derez it,
+  then proceed with Bloop's rez.
+  Implementation: add a special `additional_rez_cost` key to Bloop's ability
+  definition, handled in the ice rez flow.
+
+A general `derez_installed_card` effect type (Corp chooses any rezzed card)
+would also be useful for future expansions.
+
+─────────────────────────────────────────────────────────────────────────────
+1F. SUPERDEEP BOREHOLE WIN CONDITION
+─────────────────────────────────────────────────────────────────────────────
+Used by: superdeep_borehole
+
+This is a unique win condition: asset loads 6 "bad_publicity" counters on rez;
+each Corp turn start, remove 1 from the asset (not from the Corp's bad publicity
+pool — this is a new isolated counter on the card itself); when zero remain,
+Corp wins immediately.
+
+Changes required:
+• This can be handled entirely in JSON via existing counter mechanics, EXCEPT
+  for the "win the game" trigger.
+• AbilityInterpreter: new effect type `win_game`
+  - params: { "winner": "corp" }
+  - Sets ctx.game_over = true, ctx.winner = "corp".
+• Borehole's on_rez loads `counter: "bad_publicity"` (6 counters on the card).
+• Borehole's corp_turn_begin trigger removes 1 "bad_publicity" counter from self,
+  then checks if counter == 0: if so, fires `win_game`.
+• The `self_trash_if_empty` effect already handles trashing when empty; we need
+  a `win_game_if_self_counter_empty` effect or similar conditional.
+  Simplest: after removing counter, check `if self.get_counter("bad_publicity") == 0: win`.
+
+─────────────────────────────────────────────────────────────────────────────
+1G. NIGHTMARE ARCHIVE: NEGATIVE AGENDA POINT
+─────────────────────────────────────────────────────────────────────────────
+Used by: nightmare_archive
+
+On access, Runner may choose to add this to their score area as an agenda
+worth −1 agenda point. If they decline: 1 core damage + RFG.
+
+Changes required:
+• The score area and agenda point system currently only handles positive points.
+  We need to allow −1 point agendas in runner_score_area.
+• GameContext: runner_score should support subtraction from negative-point agendas.
+  The runner_score is likely summed from cards in runner_score_area. Check that
+  negative point values are handled correctly in scoring and win-condition checks.
+• AbilityInterpreter: new effect type `nightmare_archive_on_access`
+  - Offer Runner the choice: add to score area (−1 point) or decline.
+  - If added: move asset to runner_score_area (with agenda_points = −1).
+    Note: this means the Runner's score may go below their previous total.
+  - If declined: deal 1 core damage, then RFG self.
+• Also: "While accessed in R&D, must be revealed" — this is a passive reveal
+  flag. Add `reveal_when_accessed_in_rd: true` to the ability definition.
+  In the R&D breach loop, check for this flag and reveal the card before
+  deciding whether Runner accesses it.
+• HumanDecisionMaker: `choose_nightmare_archive(ctx) -> bool`
+  (true = add to score area as −1, false = decline and take damage)
+
+─────────────────────────────────────────────────────────────────────────────
+1H. ISSUAQ IDENTITY: REDUCED WIN CONDITION
+─────────────────────────────────────────────────────────────────────────────
+Used by: issuaq_adaptics_sustaining_diversity
+
+Whenever Corp scores an agenda not installed or advanced this turn: place 1
+power counter on this identity. For each counter, need 1 fewer agenda point to win.
+
+Changes required:
+• GameContext: method `corp_points_to_win()` must account for Issuaq counters.
+  Currently corp needs 7 agenda points to win. With Issuaq counters, they need
+  7 − N points. Add a query:
+    func corp_points_to_win() -> int:
+      var base := 7
+      if corp_identity != null and corp_identity.id == "issuaq_adaptics_sustaining_diversity":
+        base -= corp_identity_counters.get("power", 0)
+      return max(1, base)  # can't go below 1 point needed
+• Check win condition: wherever we check `corp_score >= 7`, replace with
+  `corp_score >= corp_points_to_win()`.
+• TurnManager: when Corp scores an agenda, fire `corp_scores_agenda` event
+  with flag `was_installed_or_advanced_this_turn`. Issuaq listens for cases
+  where this flag is false (the agenda was not installed or advanced this turn).
+  This needs tracking in GameContext:
+  - `corp_advanced_or_installed_agenda_this_turn: bool` (reset each turn)
+  - Set to true when Corp installs a card or advances a card during their turn.
+
+─────────────────────────────────────────────────────────────────────────────
+1I. THULE SUBSEA IDENTITY
+─────────────────────────────────────────────────────────────────────────────
+Used by: thule_subsea_safety_below
+
+Whenever Runner steals an agenda: do 1 core damage unless Runner spends
+[click] and 2cr.
+
+Changes required:
+• AbilityInterpreter: new effect type `thule_steal_trigger`
+  - Check if Corp identity is thule_subsea_safety_below.
+  - Offer Runner choice: spend [click] + 2cr to avoid core damage.
+  - If Runner cannot or declines: deal 1 core damage.
+• This triggers on `runner_steals_agenda` event.
+• HumanDecisionMaker: `choose_spend_click_and_credits_to_avoid_damage(cost_clicks, cost_credits, damage_type, amount, ctx) -> bool`
+• SimRunnerAI: AI heuristic (avoid damage if affordable and worth it)
+
+─────────────────────────────────────────────────────────────────────────────
+1J. AMPÈRE AND NOVA INITIUMIA: SINGLETON IDENTITIES
+─────────────────────────────────────────────────────────────────────────────
+Used by: ampere_cybernetics_for_anyone (Corp, neutral),
+         nova_initiumia_catalyst_impetus (Runner, neutral)
+
+Both enforce "deck cannot include more than 1 copy of any card."
+Ampère additionally allows up to 2 different agenda cards from each Corp faction
+(relaxing the standard same-faction-only agenda rule).
+
+Changes required:
+• DeckBuilder.gd (or wherever deck validation lives): check identity.id for
+  these two and apply the 1-copy rule:
+  - reject any deck entry where count > 1
+• For Ampère: also relax agenda validation to allow cross-faction agendas
+  (up to 2 different agenda card titles from each Corp faction).
+• CardRegistry or CardImporter: may need `is_singleton_identity` flag.
+• AI deck construction (SimCorpAI / SimRunnerAI):  mark these as special
+  identities that require single-copy deck lists. Campaign decks for these
+  identities should be hand-crafted.
+
+─────────────────────────────────────────────────────────────────────────────
+1K. DR. VIENTIANE KEELING: ONGOING HAND SIZE PENALTY
+─────────────────────────────────────────────────────────────────────────────
+Used by: dr_vientiane_keeling (BANNED Standard 26.05, still needs implementation)
+
+Ongoing: Runner −1 max hand size per hosted power counter on Keeling.
+
+Changes required:
+• GameContext: new query method `query_keeling_hand_size_penalty() -> int`
+  - Scan corp side installed cards for dr_vientiane_keeling that is rezzed.
+  - For each found, accumulate its "power" counter count.
+  - Return total as the penalty.
+• Modify `runner_max_hand_size()` to subtract this:
+    return 5 + runner_hand_size_bonus - runner_core_damage_taken
+           + query_hackerspace_hand_size_bonus() - query_keeling_hand_size_penalty()
+• Check for hand-size-exceeding at end of Runner turn (existing discard logic).
+
+─────────────────────────────────────────────────────────────────────────────
+1L. HIPPOCAMPIC MECHANOCYTES: ONGOING HAND SIZE BONUS
+─────────────────────────────────────────────────────────────────────────────
+Used by: hippocampic_mechanocytes
+
+Ongoing: Runner +1 max hand size per hosted power counter on this hardware.
+
+Changes required:
+• GameContext: new query method `query_hippocampic_hand_size_bonus() -> int`
+  - Scan runner_rig for hippocampic_mechanocytes (installed).
+  - For each, accumulate power counter count.
+• Modify `runner_max_hand_size()` to add this:
+    ... + query_hippocampic_hand_size_bonus() ...
+• On install: load 2 power counters (in JSON on_rez/on_install). Suffer 1 meat damage.
+• Note: power counters can be removed by Charge (charges another card) —
+  but Hippocampic doesn't add counters back. The counters represent the
+  cybernetic implants' capacity; removing them via Charge would be a
+  meaningful trade-off. This is correct game behavior — the current charge
+  system targets cards with power counters, so Hippocampic is a valid charge target.
+
+─────────────────────────────────────────────────────────────────────────────
+1M. TSAKHIA "BANKHAR" GANTULGA: SUBROUTINE REPLACEMENT
+─────────────────────────────────────────────────────────────────────────────
+Used by: tsakhia_bankhar_gantulga (BANNED Standard 26.05)
+
+On turn begin: may choose a server. During the FIRST encounter each turn with
+ice protecting that server: whenever Corp WOULD resolve a subroutine, instead
+resolve "do 1 net damage."
+
+This is the most invasive engine change in Parhelion. It requires hooking into
+subroutine resolution in EncounterProcessor.
+
+Changes required:
+• GameContext:
+  - `bankhar_chosen_server: String = ""`  (empty = not activated)
+  - `bankhar_encounter_used_this_turn: bool = false`
+  - Reset both at start of each Runner turn.
+• EncounterProcessor (or RunStateMachine):
+  When resolving each unbroken subroutine, check:
+    - Is bankhar_chosen_server set?
+    - Is this the first encounter on that server this turn? (bankhar_encounter_used_this_turn == false)
+    - Is the current ice protecting bankhar_chosen_server?
+  If all true: override subroutine resolution with "do 1 net damage" instead.
+  After the encounter ends (all subs resolved or run ends), set
+  bankhar_encounter_used_this_turn = true.
+• The resource's turn-begin ability offers the Runner a server choice via
+  runner_decision_maker.choose_server(valid_servers, ctx).
+• AI: SimRunnerAI should usually activate Bankhar when there's high-damage
+  ice they want to neuter on the most-run server.
+
+─────────────────────────────────────────────────────────────────────────────
+1N. ZATO CITY GRID: DYNAMIC ABILITY GRANT TO ICE
+─────────────────────────────────────────────────────────────────────────────
+Used by: zato_city_grid (Corp upgrade, region, remote server only)
+
+Each piece of ice protecting this server gains: "When Runner encounters this
+ice, choose 1 subroutine on it. You may trash this ice to resolve that sub."
+
+Changes required:
+• This is a dynamic ability injection into ice during encounters. The most
+  practical implementation:
+  - In RunStateMachine, before resolving subroutines during an encounter,
+    check if the run server has a rezzed ZATO City Grid installed.
+  - If so, offer the Corp a ZATO trigger: "Choose 1 subroutine on this ice.
+    Trash this ice to immediately resolve that subroutine?"
+  - If Corp accepts: select a subroutine (via decision maker), trash the ice,
+    execute that subroutine's effects, then continue the encounter (remaining
+    subs may still be broken/resolved normally, but the ice is now trashed).
+• This effectively gives the Corp a "burst" sub resolution at the cost of the
+  ice itself. The offer should appear at the start of the encounter (approach
+  step or when the encounter fires), before the runner breaks anything.
+• GameContext: no new fields needed; ZATO presence is checked live.
+• New helper in RunStateMachine: `_check_zato_city_grid_trigger(server_id, ice, ctx)`
+
+─────────────────────────────────────────────────────────────────────────────
+1O. NANISIVIK GRID: APPROACH TRIGGER WITH ARCHIVES ICE
+─────────────────────────────────────────────────────────────────────────────
+Used by: nanisivik_grid (BANNED Standard 26.05)
+
+Whenever Runner approaches this server: may turn 1 facedown ice in Archives
+faceup; if so, resolve 1 subroutine on that ice.
+
+Changes required:
+• This fires on the `approach_server` event (which already exists in RSM).
+• Archives ice tracking: GameContext needs to track which ice cards are in
+  Archives and whether they are facedown (currently the discard pile is just
+  a flat array of CardRecords). Need to extend this:
+  - `corp_discard_facedown_ids: Array[String]` — set of card IDs that are
+    facedown in Archives.
+  - By default, all ice sent to Archives is facedown (corp installed ice that
+    was trashed goes facedown per rules).
+• AbilityInterpreter: new effect type `nanisivik_grid_trigger`
+  - Filter corp_discard for ice cards that are facedown.
+  - If none, log "No facedown ice in Archives."
+  - Corp chooses one (via choose_card_from_discard).
+  - Flip it faceup (remove from facedown set).
+  - Corp then chooses 1 subroutine from that ice's subroutine list to resolve.
+  - Execute that subroutine's effects via execute_subroutine().
+
+─────────────────────────────────────────────────────────────────────────────
+1P. DJUPSTAD GRID: SERVER-AWARE AGENDA SCORE TRIGGER
+─────────────────────────────────────────────────────────────────────────────
+Used by: djupstad_grid
+
+Whenever Corp scores an agenda from the ROOT of this server: do 1 core damage.
+(Only fires for agendas scored from this upgrade's server root, not remotes.)
+
+Changes required:
+• The `corp_scores_agenda` event already fires. We need it to carry `server_id`
+  in current_event_data (the server from which the agenda was scored).
+• TurnManager: when scoring an agenda, include the server_id in the notify payload.
+• Djupstad ability condition: `run_target_is_self_server` or a new condition
+  `agenda_scored_from_self_server`:
+  - True when current_event_data["server_id"] == self_card.server_id
+  - AND self_card is a rezzed upgrade in that server's root.
+• Effect: deal 1 core damage (existing `deal_damage` effect with "core" type).
+
+─────────────────────────────────────────────────────────────────────────────
+1Q. HOSTILE ARCHITECTURE: FIRST-TRASH-PER-TURN TRIGGER
+─────────────────────────────────────────────────────────────────────────────
+Used by: hostile_architecture
+
+First time each turn Runner trashes any Corp installed card (including this
+asset): do 2 meat damage.
+
+Changes required:
+• GameContext: new field `runner_trashed_corp_card_this_turn: bool = false`
+  Reset at start of each Runner turn.
+• TurnManager/AbilityInterpreter: wherever a Runner trashes an accessed Corp
+  card (during breach), set this flag to true and fire a
+  `runner_trashes_corp_card` event.
+• Hostile Architecture listens for `runner_trashes_corp_card` event with
+  condition `once_per_turn_key: "hostile_arch"` and fires 2 meat damage.
+• Note: this includes the asset itself being trashed (explicit in card text).
+  The event should fire even when Hostile Architecture is the trashed card,
+  but the damage must resolve immediately (before the asset is fully removed?).
+  Per rules, the ability fires at the moment of trashing, so implement as:
+  fire trigger → deal damage → then complete the trash.
+
+─────────────────────────────────────────────────────────────────────────────
+1R. YAKOV ERIKOVICH AVDAKOV: TRASH-FROM-SERVER TRIGGER
+─────────────────────────────────────────────────────────────────────────────
+Used by: yakov_erikovich_avdakov
+
+Whenever any player trashes a card from root of or protecting this server
+(except during installation): gain 2cr.
+
+Changes required:
+• This is a broad trigger: fires when any Corp card (ice or root card) is
+  trashed from Yakov's server. "Except during installation" means normal
+  Runner-access trashes and Corp-trash-own-card effects all count; only the
+  standard "uninstall to install somewhere else" does not count.
+• New event `card_trashed_from_server` fired by TurnManager whenever a Corp
+  card is trashed from a specific server (with payload: server_id, trashed_by).
+• Yakov listens with condition:
+  - `run_target_is_self_server` (or a custom server-match condition)
+  - Not during installation phase (needs an `is_installation` context flag)
+• Effect: `gain_credits` 2 for corp.
+
+─────────────────────────────────────────────────────────────────────────────
+1S. VERA IVANOVNA SHUYSKAYA: REVEAL GRIP AND TRASH
+─────────────────────────────────────────────────────────────────────────────
+Used by: vera_ivanovna_shuyskaya
+
+Whenever agenda scored/stolen: may reveal the (Runner's) grip; if so, trash
+1 card from those revealed cards.
+
+Changes required:
+• AbilityInterpreter: new effect type `reveal_runner_grip_and_trash`
+  - Corp may opt in via choose_optional_ability.
+  - If opted in: mark runner_hand as "revealed" for this moment (UI flag).
+  - Corp decision_maker picks 1 card from runner_hand to trash.
+  - That card is moved to runner_discard. Fire `_fire_self_trashed_triggers`.
+• HumanDecisionMaker: `choose_card_to_trash_from_revealed_grip(cards, ctx) -> CardRecord`
+• SimCorpAI (CorpTurnAI): smart choice — trash the card with highest value
+  (key breakers, economy cards).
+
+─────────────────────────────────────────────────────────────────────────────
+1T. MR. HENDRIK: ON-ACCESS WHILE INSTALLED / CLICK PREVENTION
+─────────────────────────────────────────────────────────────────────────────
+Used by: mr_hendrik
+
+When Runner accesses this upgrade while it is installed: Corp may pay 2cr to
+do 1 core damage. If Runner has any clicks remaining, they may lose all clicks
+to prevent this damage.
+
+Changes required:
+• The `on_access` trigger already exists, but it fires for both installed and
+  uninstalled access. Add distinction: `on_access_while_installed` trigger key.
+• AbilityInterpreter: new effect type `mr_hendrik_access_trigger`
+  - Corp chooses to pay 2cr (optional). If not, nothing happens.
+  - If Corp pays: offer Runner to spend all remaining clicks to prevent.
+  - If Runner spends clicks (any amount > 0): no damage.
+  - If Runner declines or has 0 clicks: deal 1 core damage.
+• HumanDecisionMaker: extend `choose_optional_ability` for both Corp and Runner
+  prompts; or add specific methods:
+  - Corp: `choose_pay_for_mr_hendrik(ctx) -> bool`
+  - Runner: `choose_spend_all_clicks_to_prevent_damage(ctx) -> bool`
+
+─────────────────────────────────────────────────────────────────────────────
+1U. MATRYOSHKA: FACEUP/FACEDOWN HOSTING ON SELF
+─────────────────────────────────────────────────────────────────────────────
+Used by: matryoshka (BANNED Standard 26.05)
+
+This is the most complex Runner card in the set. Matryoshka hosts copies of
+itself from the grip (not installed; faceup). Each hosted copy can be turned
+facedown to pay 1 credit of the break cost (break X subs for X credits,
+where each of X credits is replaced by turning 1 hosted copy facedown).
+
+At the start of each Runner turn: all hosted copies that are facedown turn faceup.
+
+Mechanism:
+• InstalledCard already has `hosted_cards: Array`. Need to extend to track
+  faceup/facedown state per hosted card. Options:
+  - Add `hosted_card_facedown: Dictionary` mapping hosted card instance_id → bool.
+  - Or give each hosted InstalledCard its own `is_facedown: bool` field.
+  Recommend: add `is_facedown: bool = false` to InstalledCard (for all hosted cards;
+  in-play cards are never "facedown" in this sense but having the field is harmless).
+• AbilityInterpreter: new effect type `matryoshka_host_from_grip`
+  - Find copies of matryoshka in runner_hand.
+  - If found, ask Runner to confirm and create an InstalledCard (not in runner_rig,
+    hosted on the installed Matryoshka's hosted_cards array).
+  - Set is_facedown = false (hosted faceup).
+• Break mechanic (Interface): X credits + turn X hosted copies facedown = break X subs.
+  - This requires a custom break interaction: Runner selects up to X hosted copies
+    to flip facedown, then breaks X subs. Each facedown copy = 1 credit equivalent.
+  - The remaining actual credit cost can be 0 if enough hosted copies are flipped.
+• turn_begin trigger: flip all hosted copies from facedown → faceup.
+• New effect type `flip_hosted_matryoshka_faceup` for turn-begin.
+• New condition/effect for break: `matryoshka_break_interface`.
+
+This will require a dedicated EncounterProcessor path or special-case in
+RunStateMachine for the Matryoshka interface break action.
+
+─────────────────────────────────────────────────────────────────────────────
+1V. ASMUND PUDLAT: SEARCH AND HOST FACEUP
+─────────────────────────────────────────────────────────────────────────────
+Used by: asmund_pudlat
+
+On install: search stack for ≤2 virus or weapon cards with different names,
+host faceup on this resource (not installed). Turn begin: add 1 hosted to grip;
+trash when empty.
+
+Changes required:
+• AbilityInterpreter: new effect type `asmund_search_and_host`
+  - Search runner_deck for virus or weapon subtypes.
+  - Present matching cards for Runner to select up to 2 (with different names).
+  - Host them on this resource as CardRecord references (faceup, not installed).
+  - Shuffle deck.
+• Hosted cards on a resource (runner side) are accessed differently from
+  hosted cards on ice. These are stored as uninstalled CardRecords referenced
+  by the resource card. Suggest using a new field `hosted_runner_cards: Array[CardRecord]`
+  on InstalledCard (separate from hosted_runner_resources which contains installed cards).
+• Turn begin effect: offer Runner to take 1 hosted card to grip. Move it from
+  hosted_runner_cards to runner_hand. If hosted_runner_cards is empty, trash self.
+
+─────────────────────────────────────────────────────────────────────────────
+1W. GASLIGHT: SEARCH R&D FOR OPERATION
+─────────────────────────────────────────────────────────────────────────────
+Used by: gaslight
+
+Corp turn begin: may trash this asset; if so, search R&D for an operation,
+reveal it, add it to HQ. Shuffle R&D.
+
+Changes required:
+• AbilityInterpreter: new effect type `gaslight_search_rd`
+  - Corp is offered the option to trash self (via choose_optional_ability).
+  - If accepted: search corp_deck for an operation (card_type == "operation").
+  - Corp picks one (via choose_card_from_search or similar).
+  - Move it from corp_deck to corp_hand. Shuffle corp_deck.
+  - Log the result.
+• This is similar to existing `search_deck` patterns but Corp-side and for
+  operations only. Can potentially reuse a parameterized `search_deck_corp` effect.
+
+─────────────────────────────────────────────────────────────────────────────
+1X. WORLD TREE: SEARCH STACK BY TYPE
+─────────────────────────────────────────────────────────────────────────────
+Used by: world_tree (BANNED Standard 26.05)
+
+First time each turn on successful run: may trash 1 installed card → search
+stack for 1 card of same type → install paying 3cr less.
+
+Changes required:
+• AbilityInterpreter: new effect type `world_tree_trigger`
+  - Once-per-turn gate.
+  - Runner chooses which installed card to trash.
+  - Record that card's card_type.
+  - Search runner_deck for any card matching that type.
+  - Runner picks 1.
+  - Install it paying 3cr less (requires install_cost_override or discount mechanism).
+  - Shuffle stack.
+
+─────────────────────────────────────────────────────────────────────────────
+1Y. SPARK OF INSPIRATION: REVEAL UNTIL PROGRAM
+─────────────────────────────────────────────────────────────────────────────
+Used by: spark_of_inspiration
+
+Set aside cards from top of stack faceup until a program is set aside.
+May install that program paying 10cr less. Shuffle set-aside cards into stack.
+
+Changes required:
+• AbilityInterpreter: new effect type `spark_of_inspiration_play`
+  - Iteratively reveal top cards from runner_deck until a program is found.
+  - Track the set-aside cards (temporary array).
+  - Offer Runner the option to install the found program (paying 10cr less).
+  - Move all set-aside cards back to runner_deck and shuffle.
+  - If no program is found (deck empty): all set-aside cards shuffle back.
+
+─────────────────────────────────────────────────────────────────────────────
+1Z. RAINDROPS CUT STONE: SUB-RESOLVED COUNTER
+─────────────────────────────────────────────────────────────────────────────
+Used by: raindrops_cut_stone
+
+During the run: whenever any subroutine resolves (including ETR), place 1
+power counter on this event card. At run end: draw 1 per counter, gain 3cr.
+
+Changes required:
+• Events are not "installed" in the normal sense; once played, they typically
+  just execute. Raindrops needs to persist through a run with a counter.
+• Implementation: instead of using a physical InstalledCard, store the counter
+  in a run_modifier during the run:
+  - set_run_modifier "raindrops_counter" → 0
+  - In RunStateMachine: each time any subroutine resolves (fires), increment
+    run_modifiers["raindrops_counter"] by 1.
+  - At run_end (success or failure), check if raindrops_counter > 0:
+    draw that many cards + gain 3cr.
+• RunStateMachine: new hook after each subroutine resolution (already exists
+  conceptually in execute_subroutine paths) to increment any active
+  raindrops counter.
+• AbilityInterpreter: Raindrops on_play fires:
+  1. set_run_modifier("raindrops_counter", 0)
+  2. Register run_end cleanup (draw + gain).
+  3. Initiate run (choose_and_run).
+
+─────────────────────────────────────────────────────────────────────────────
+1AA. CONCERTO: HOSTED CREDITS ON EVENT DURING RUN
+─────────────────────────────────────────────────────────────────────────────
+Used by: concerto
+
+Reveal top stack card, place credits on this event = that card's printed
+play/install cost. Add that card to grip. Run any server; may spend hosted
+credits during that run.
+
+Changes required:
+• AbilityInterpreter: new effect type `concerto_play`
+  - Reveal top card of runner_deck (pop_front, show it).
+  - Place credits equal to max(0, card.cost) into run_modifiers["concerto_credits"].
+  - Add that card to runner_hand.
+  - Initiate run (any server).
+  - During the run, runner may spend from "concerto_credits" pool.
+  - At run end: clear concerto_credits.
+• This is similar to how "Overclock" works (overclock_credits in run_modifiers).
+  Reuse the same pattern — runner_available_credits() already sums run_modifier pools.
+  Just add "concerto_credits" to that sum in GameContext.runner_available_credits().
+
+─────────────────────────────────────────────────────────────────────────────
+1AB. FLUX CAPACITOR: TROJAN — FIRST BREAK DURING ENCOUNTER
+─────────────────────────────────────────────────────────────────────────────
+Used by: flux_capacitor
+
+Install only on a piece of ice (trojan). First time Runner breaks a subroutine
+during each encounter with host ice: may charge 1 installed card.
+
+Changes required:
+• The trojan pattern already exists (install_on_ice, hosted_on_id field).
+  We need a trigger that fires the FIRST time a sub is broken on the host ice
+  during an encounter.
+• EncounterProcessor/RunStateMachine: after a subroutine is marked broken,
+  check if the ice has any hosted trojans with a `first_break_this_encounter`
+  trigger. If so, fire it (once, using a per-encounter flag).
+• Per-encounter flag: `ctx.run_modifiers["flux_cap_used_INSTANCEID"] = true`
+  to track which Flux Capacitor instances have fired this encounter.
+• Effect: `charge_card` (from 1A above).
+
+─────────────────────────────────────────────────────────────────────────────
+1AC. NGA VIRUS: SABOTAGE ON SUCCESSFUL RUN
+─────────────────────────────────────────────────────────────────────────────
+Used by: nga
+
+Load 3 power counters. First time each turn on successful run: may remove 1
+counter to sabotage 1. Trash when empty.
+
+Changes required:
+• Mostly achievable in JSON using existing `sabotage` effect type.
+• Trigger: `successful_run` event, once-per-turn gate.
+• Runner offers to remove 1 counter → sabotage 1.
+• Trash when empty via `self_trash_if_empty`.
+• New condition: `self_has_counters_gte 1` (check InstalledCard counter "power" >= 1).
+  Can reuse existing `self_counter_gte` condition type.
+• New effect type may be needed for "may remove counter and sabotage": combine
+  an optional remove-counter with sabotage. Or: use a `may_spend_counter_to_sabotage`
+  compound effect type.
+
+─────────────────────────────────────────────────────────────────────────────
+1AD. ANVIL ICE: TRASH OWN CARD FOR UNBREAKABLE SUBS
+─────────────────────────────────────────────────────────────────────────────
+Used by: anvil
+
+On encounter: Corp may trash 1 own installed card. If so, Runner cannot break
+this ice's PRINTED subroutines for the rest of the encounter.
+
+Changes required:
+• AbilityInterpreter: new effect type `anvil_encounter_trigger`
+  - Corp is offered: trash 1 installed Corp card? (choose from all_installed).
+  - If yes: set a per-encounter flag `run_modifiers["anvil_subs_unbreakable"] = true`.
+• EncounterProcessor: before allowing a Runner break action on a subroutine,
+  check `run_modifiers.get("anvil_subs_unbreakable", false)`. If true, block
+  the break (Runner cannot break).
+• This fires as an `encounter_ice` trigger (on rez? No — on encounter means
+  when Runner encounters the ice, before subs resolve).
+
+─────────────────────────────────────────────────────────────────────────────
+1AE. HAFRUN: DISABLE BREAKER ABILITY FOR ENCOUNTER
+─────────────────────────────────────────────────────────────────────────────
+Used by: hafrun
+
+On rez during run on this server: Corp may trash 1 card from HQ. If so, choose
+1 installed Runner card — that card's abilities cannot break subroutines for
+the remainder of the run.
+
+Changes required:
+• AbilityInterpreter: new effect type `hafrun_rez_trigger`
+  - Corp may trash 1 HQ card (choose from corp_hand).
+  - If yes: Corp chooses 1 Runner installed card.
+  - Set `run_modifiers["hafrun_disabled_card_INSTANCEID"] = true` for that card.
+• EncounterProcessor: before allowing a Runner break action, check if the
+  breaker's runtime_instance_id has this modifier set. If so, disable it.
+
+─────────────────────────────────────────────────────────────────────────────
+1AF. KLEVETNIK: DISABLE RESOURCE ABILITIES FOR RUN
+─────────────────────────────────────────────────────────────────────────────
+Used by: klevetnik
+
+On rez during run: may have Runner gain 2cr. If so, during each encounter with
+this ice for the rest of that run, the chosen installed resource loses all
+abilities until Corp turn ends.
+
+Changes required:
+• AbilityInterpreter: new effect type `klevetnik_rez_trigger`
+  - Corp offers Runner 2cr.
+  - If Corp chooses to give 2cr (Corp pays, Runner gains): Corp picks 1
+    Runner resource.
+  - Set `run_modifiers["klevetnik_disabled_INSTANCEID"] = true`.
+  - Duration: until Corp turn ends — use `corp_turn_end` cleanup.
+• The disabled resource can't use click abilities or passive effects.
+  This is hard to fully enforce without checking every resource trigger.
+  Practical approach: flag in InstalledCard `is_klevetnik_disabled: bool`,
+  and check this flag in ability dispatch loops.
+
+─────────────────────────────────────────────────────────────────────────────
+1AG. UNSMILING TSAREVNA: LIMIT 1 SUB BREAK PER ENCOUNTER
+─────────────────────────────────────────────────────────────────────────────
+Used by: unsmiling_tsarevna
+
+On rez during run: Corp may have Runner gain 2cr. If so, during each encounter
+with this ice for the rest of that run, Runner cannot break more than 1 printed
+subroutine.
+
+Changes required:
+• AbilityInterpreter: new effect type `tsarevna_rez_trigger`
+  - Corp opts in to give Runner 2cr.
+  - If so: set `run_modifiers["tsarevna_sub_limit"] = 1`.
+• EncounterProcessor: track how many subs Runner has broken on this ice this
+  encounter. If tsarevna_sub_limit is set and count >= limit, prevent further
+  break actions.
+
+─────────────────────────────────────────────────────────────────────────────
+1AH. PULSE: HARMONIC ICE COUNT SUB
+─────────────────────────────────────────────────────────────────────────────
+Used by: pulse
+
+Sub 1: Runner loses 1cr per rezzed harmonic ice.
+
+Changes required:
+• GameContext: new query method `count_rezzed_harmonic_ice() -> int`
+  - Scan all installed Corp ice on all servers.
+  - Count those that are rezzed and have subtype "harmonic".
+• AbilityInterpreter: new effect type `lose_credits_per_harmonic_ice`
+  - amount = count_rezzed_harmonic_ice()
+  - Apply lose_credits to runner.
+
+─────────────────────────────────────────────────────────────────────────────
+1AI. KIMBERLITE FIELD: CHAIN TRASH ON SCORE
+─────────────────────────────────────────────────────────────────────────────
+Used by: kimberlite_field
+
+On score: may trash 1 rezzed Corp card. If so, trash 1 installed Runner card
+with printed install cost ≤ rez cost of the trashed Corp card.
+
+Changes required:
+• AbilityInterpreter: new effect type `kimberlite_field_on_score`
+  - Corp may choose 1 rezzed installed card to trash (all_installed + rezzed filter).
+  - Record its rez_cost.
+  - Then: Runner must trash 1 installed card with printed install_cost ≤ rez_cost.
+  - If no valid Runner cards, skip.
+• Runner's trash here: Corp makes the choice (it's a Corp-controlled effect
+  targeting the Runner). Corp decision_maker picks from valid runner_rig entries.
+
+─────────────────────────────────────────────────────────────────────────────
+1AJ. REPRISE: RETURN INSTALLED CORP CARD TO HQ
+─────────────────────────────────────────────────────────────────────────────
+Used by: reprise
+
+Play only if Runner stole an agenda this turn. Add 1 installed Corp card to HQ.
+You may run any server.
+
+Changes required:
+• New effect type `return_installed_corp_card_to_hq`
+  - Runner picks 1 Corp installed card (ice, asset, upgrade, or agenda).
+  - Remove it from its server, add its CardRecord to corp_hand.
+  - Return it unrezzed.
+• Then optionally: `choose_and_run` (existing effect).
+• Condition: `runner_stole_agenda_this_turn` (already exists in conditions).
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 2 — ABILITIES.JSON ENTRIES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+After engine changes from Phase 1 are in place, write JSON ability definitions
+for all 63 Parhelion cards. Cards are grouped below by complexity tier.
+
+─────────────────────────────────────────────────────────────────────────────
+TIER A — PURE EXISTING EFFECTS (simple JSON only)
+─────────────────────────────────────────────────────────────────────────────
+
+num
+  break: { subtype_restriction: "sentry", cost_per_sub: 2, subs_per_use: 1 }
+  No boost. (Strength comes from K2CP Turbine or stat line.)
+
+post_truth_dividend
+  on_score: { effects: [draw_cards(corp, 1, optional: true)] }
+
+nonequivalent_exchange
+  on_play: { effects: [gain_credits(corp, 5), then optional: give each player 2cr] }
+  New mode/optional: "may have each player gain 2cr" → two gain_credits(2) both.
+
+vampyronassa (4 subroutines using existing effects)
+  Sub 1: lose_credits(runner, 2)
+  Sub 2: gain_credits(corp, 2)
+  Sub 3: deal_damage(net, 2)
+  Sub 4: draw_cards_optional(corp, [1 or 2]) — new "draw 1 or 2" optional variant
+
+nanuq (uses existing RFG mechanism)
+  on_uninstall: rfg_self
+  runner_steals_agenda: rfg_self
+  corp_scores_agenda: rfg_self
+  break: { cost: 2, subs_per_use: 2, subtype_restriction: null }
+  boost: { cost: 1, strength_gained: 1 }
+
+dr_nuka_vrolyck (resource, runner side)
+  on_install: { effects: [add_self_counters(power, 2)] }
+  click_action: {
+    cost_power_counter: 1,
+    effects: [draw_cards(runner, 3)],
+    self_trash_if_empty: true
+  }
+
+─────────────────────────────────────────────────────────────────────────────
+TIER B — NEAR-EXISTING (minor new parameterization needed)
+─────────────────────────────────────────────────────────────────────────────
+
+end_of_the_line
+  additional_cost_remove_tag: true
+  on_play: { effects: [deal_damage(meat, 4)] }
+
+distributed_tracing
+  pre_play_condition: "runner_stole_agenda_last_turn"
+  additional_cost_spend_click: true
+  on_play: { effects: [give_tags(1)] }
+
+hypoxia
+  pre_play_condition: "runner_is_tagged"
+  remove_from_game: true
+  on_play: { effects: [deal_damage(core, 1), lose_clicks_next_turn(runner, 1)] }
+
+shipment_from_vladisibirsk
+  pre_play_condition: tags_compare(gte, 2)
+  on_play: { effects: [place_advancement_counters_distributed(4)] }
+  — new effect: distribute 4 adv counters across Corp-advanceable installed cards
+
+simulation_reset
+  remove_from_game: true
+  on_play: { effects: [simulation_reset_play] }
+  — compound custom effect: trash up to 5 HQ → shuffle same from Archives → draw same
+
+regulatory_capture
+  agenda with dynamic advancement: advancement_reduction_per_bad_pub (max 4)
+  — new agenda ability type: variable advancement based on corp_bad_pub
+
+freedom_of_information
+  agenda: advancement_reduction_per_runner_tag
+  — variable advancement based on runner_tags
+
+ontological_dependence
+  agenda: advancement_reduction_per_core_damage_taken
+  — variable advancement based on runner_core_damage_taken
+
+katorga_breakout
+  on_play: {
+    effects: [choose_and_run(any)],
+    on_successful_run: [add_card_from_heap_to_grip]
+  }
+  — new effect: runner picks 1 card from runner_discard → runner_hand
+
+reprise
+  pre_play_condition: "runner_stole_agenda_this_turn"
+  on_play: { effects: [return_installed_corp_card_to_hq, choose_and_run(optional)] }
+
+zenit_chip_jz_2mj (hardware, cybernetic)
+  on_install: { effects: [deal_damage(core, 1)] }
+  successful_run: {
+    once_per_turn_key: "zenit_chip_draw",
+    condition: run_target_is_central,
+    effects: [draw_cards(runner, 1)]
+  }
+
+hybrid_release
+  on_score: { effects: [install_card_from_archives_facedown_optional] }
+  — new optional effect: Corp may pick any facedown Archives card to install
+
+reaper_function (corp asset)
+  corp_turn_begin: {
+    effects: [may_trash_self_for_deal_damage(net, 2)]
+  }
+  — new optional self-trash-for-effect pattern
+
+abaasy (decoder icebreaker)
+  on_full_break: {
+    once_per_turn_key: "abaasy_full_break",
+    effects: [may_trash_grip_card_to_draw_1]
+  }
+  break: { subtype_restriction: "code_gate", cost_per_sub: 1, subs_per_use: 1 }
+  boost: { cost: 2, strength_gained: 2 }
+  — "on_full_break" is a new trigger: fires when all subs on the encountered ice are broken
+
+orca (killer icebreaker)
+  on_full_break: {
+    once_per_turn_key: "orca_full_break",
+    effects: [charge_card]
+  }
+  break: { subtype_restriction: "sentry", cost_per_sub: 0 (2cr total for any), subs_per_use: all }
+  boost: { cost: 2, strength_gained: 3 }
+  — "break any number of sentry subs" for 2cr total: new break mode where
+    cost_per_use (not per_sub) = 2, subs_per_use: unlimited on sentry
+
+finality (runner event with core damage cost)
+  additional_cost_core_damage: 1
+  on_play: {
+    effects: [choose_and_run(rd, on_successful_breach: bonus_access(3))]
+  }
+
+poison_vial (runner hardware)
+  on_install: { effects: [add_self_counters(power, 3)] }
+  break_ability: {
+    condition: already_broke_sub_this_encounter,
+    cost_power_counter: 1,
+    subs_per_use: 2,
+    subtype_restriction: null
+  }
+  self_trash_if_empty: true (power counter)
+
+time_bomb (runner hardware)
+  install_condition: runner_made_successful_run_on_central_this_turn
+  on_install: { effects: [add_self_counters(power, 1)] }
+  runner_turn_begin: {
+    effects: [
+      time_bomb_turn_begin
+      — if power_counter >= 3: sabotage(3) + trash_self
+      — else: add_self_counters(power, 1)
+    ]
+  }
+
+─────────────────────────────────────────────────────────────────────────────
+TIER C — COMPLEX (require Phase 1 engine work + JSON)
+─────────────────────────────────────────────────────────────────────────────
+
+thule_subsea_safety_below  (identity — needs Phase 1I engine work)
+issuaq_adaptics_sustaining_diversity (identity — needs Phase 1H)
+ampere_cybernetics_for_anyone (identity — needs Phase 1J deck validation)
+nova_initiumia_catalyst_impetus (identity — needs Phase 1J deck validation)
+superdeep_borehole (needs Phase 1F `win_game` effect)
+nightmare_archive (needs Phase 1G negative points)
+djupstad_grid (needs Phase 1P server-aware score event)
+nanisivik_grid (needs Phase 1O Archives facedown tracking)
+zato_city_grid (needs Phase 1N dynamic ice ability injection)
+dr_vientiane_keeling (needs Phase 1K ongoing hand size)
+hippocampic_mechanocytes (needs Phase 1L ongoing hand size)
+basilar_synthgland_2kvj (needs Phase 1C click bonus)
+hostile_architecture (needs Phase 1Q runner-trashes-corp-card event)
+yakov_erikovich_avdakov (needs Phase 1R card-trashed-from-server event)
+vera_ivanovna_shuyskaya (needs Phase 1S reveal-grip-and-trash)
+mr_hendrik (needs Phase 1T on_access_while_installed)
+gaslight (needs Phase 1W search R&D)
+matryoshka (needs Phase 1U hosting faceup/facedown) — BANNED
+asmund_pudlat (needs Phase 1V search and host faceup)
+tsakhia_bankhar_gantulga (needs Phase 1M sub replacement) — BANNED
+world_tree (needs Phase 1X search-by-type) — BANNED
+spark_of_inspiration (needs Phase 1Y reveal-until-program)
+raindrops_cut_stone (needs Phase 1Z sub-resolved counter)
+concerto (needs Phase 1AA hosted credits on event)
+flux_capacitor (needs Phase 1AB trojan first-break trigger + charge)
+nga (needs Phase 1AC may-remove-counter-to-sabotage)
+anvil (needs Phase 1AD unbreakable-subs mechanic)
+hafrun (needs Phase 1AE disable-breaker-for-run)
+klevetnik (needs Phase 1AF disable-resource-for-run)
+unsmiling_tsarevna (needs Phase 1AG limit-1-sub-break)
+pulse (needs Phase 1AH harmonic-count sub)
+kimberlite_field (needs Phase 1AI chain-trash-on-score)
+bloop (needs Phase 1E harmonic derez additional rez cost)
+hush (trojan-on-ice that suppresses ice abilities — variant of existing pattern)
+info_bounty (needs Phase 1B mark mechanic)
+tunnel_vision (needs Phase 1B mark mechanic)
+tremolo (needs cybernetic hardware count for discount)
+
+Special notes on HUSH:
+  Hush: "Install only on ice. Host ice cannot gain abilities and loses all
+  abilities except its printed subroutines. [click]: move to another ice."
+  — The "cannot gain abilities and loses all non-subroutine abilities" effect
+    means on-rez triggers, passive modifiers, etc. on the host ice are all
+    suppressed. This requires a `hush_applied` flag on InstalledCard that
+    suppresses all non-subroutine ability lookups in AbilityRegistry/AbilityInterpreter.
+    Also suppresses approach_server, on_rez, etc. triggers.
+  — The [click] move ability means Hush itself can be relocated.
+  — Implementation: add `is_ability_suppressed: bool` to InstalledCard, set
+    it when Hush is hosted, clear it when Hush moves or is trashed.
+
+Special notes on TREMOLO:
+  "3cr − 1cr per installed cybernetic hardware" break cost.
+  — Need GameContext query: count_installed_cybernetic_hardware() → int
+    (runner_rig cards with subtype "cybernetic" that are hardware).
+  — At time of break, cost = max(0, 3 − count_cybernetic). Apply dynamically.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 3 — AI INTEGRATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+─────────────────────────────────────────────────────────────────────────────
+3A. CorpStateEvaluator.gd updates
+─────────────────────────────────────────────────────────────────────────────
+
+• Add Parhelion damage ops to DAMAGE_OP_IDS:
+    "end_of_the_line"         (meat damage, tag-removal cost)
+    "hypoxia"                 (core damage + click loss)
+
+• Add Parhelion tag-exploit cards to TAG_EXPLOIT_CARD_STRENGTH:
+    "end_of_the_line"        : 1.8  (4 meat damage, game-ending)
+    "distributed_tracing"    : 0.5  (gives 1 tag)
+    "shipment_from_vladisibirsk": 0.7 (2-tag requirement, advancement)
+    "freedom_of_information" : 0.6  (tag-based agenda advancement)
+
+• Issuaq: factor identity counter into pts_to_win calculation in evaluator.
+
+• Thule Subsea: factor ongoing core damage potential into threat assessment.
+  Evaluate a small bonus to corp score for accumulated core damage on Runner.
+
+• Superdeep Borehole: if corp_deck contains superdeep_borehole, add a small
+  win-path score bonus proportional to how many bad pub turns remain.
+
+─────────────────────────────────────────────────────────────────────────────
+3B. CorpTurnAI / CorpTurnAI_Tactical updates
+─────────────────────────────────────────────────────────────────────────────
+
+• Sabotage decision: choose_sabotage_discard — already exists; confirm it
+  handles the expanded use from Nga/Time Bomb runner-side cards.
+
+• Gaslight: at turn start, evaluate whether to trash Gaslight to fetch an
+  operation. AI should check if the operation value exceeds the asset value.
+
+• Hostile Architecture: tracking is passive — no AI decision needed.
+
+• Simulation Reset: evaluate deck composition. AI should use this when
+  HQ is cluttered and Archives has useful cards to recycle.
+
+• Superdeep Borehole: AI should install and protect Borehole aggressively.
+  Prioritise building ice on the Borehole remote.
+
+─────────────────────────────────────────────────────────────────────────────
+3C. SimRunnerAI / CorpRunAI updates
+─────────────────────────────────────────────────────────────────────────────
+
+• choose_card_to_charge(): prefer WAKE Implant (for R&D access) or cards
+  near depletion (maximize counter-drain value).
+
+• choose_sabotage_discard(): already exists, no changes needed.
+
+• Mark mechanic (Info Bounty / Tunnel Vision): Runner AI should identify mark
+  and route runs accordingly each turn if these cards are installed.
+
+• Tsakhia Bankhar: AI should activate when facing high-damage ice on a key server.
+
+• Time Bomb: AI should plan central runs to enable Time Bomb install, then
+  trigger sabotage on corp turn 3 (after 3 turns of counter buildup).
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 4 — CAMPAIGN (6 CORP DECKS + FICTION + campaign.json)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+This follows the established campaign pattern: the Runner faces 6 Corp decks,
+each unlocking Parhelion Runner-side cards, with pre/post fiction per match.
+Cards available: Parhelion + TAI + RWR + Elevation + Vantage Point + System
+Gateway (Standard ban list applies).
+
+─────────────────────────────────────────────────────────────────────────────
+DECK 1 — Thule Subsea Glacier
+Identity: Thule Subsea: Safety Below (Weyland)
+Theme: Deep ice, core damage via identity + Djupstad Grid, win with hard-scored agendas.
+Key cards: Djupstad Grid, Ontological Dependence, Regulatory Capture, Anvil,
+           Bloop (harmonic package), End of the Line, Distributed Tracing.
+Strategy: Build one or two deeply iced remote servers. Each Runner steal is
+           punished with core damage. As core damage accumulates, Ontological
+           Dependence becomes easier to score. Use End of the Line to close
+           games against tagged runners.
+Unlocks: [Runner-side Parhelion cards, batch 1 — TBD based on card unlock list]
+
+─────────────────────────────────────────────────────────────────────────────
+DECK 2 — Issuaq Flash-Score Glacier
+Identity: Issuaq Adaptics: Sustaining Diversity (HB)
+Theme: Score agendas from HQ without installing them first (via Shipment from
+       Vladisibirsk, Seamless Launch-equivalent effects) to trigger Issuaq's
+       power counter and reduce the win condition.
+Key cards: Issuaq identity, Pulse (harmonic), Bloop (harmonic), Nanisivik Grid,
+           Simulation Reset, Nonequivalent Exchange, various 2/1 agendas.
+Strategy: Aggressively use the Issuaq ability to stack power counters, reducing
+           the agenda points needed from 7 to as low as 4. Glacier remote for safety;
+           flash-score with in-hand scoring whenever possible.
+Unlocks: [Runner-side Parhelion cards, batch 2]
+
+─────────────────────────────────────────────────────────────────────────────
+DECK 3 — Ampère Asset Spam
+Identity: Ampère: Cybernetics For Anyone (Neutral Corp)
+Theme: Wide board of cross-faction assets and agendas; leverages Ampère's 1-copy
+       rule to include powerful unique Corp assets and cross-faction agendas.
+Key cards: Freedom of Information, Post-Truth Dividend, Gaslight, Reaper Function,
+           Dr. Vientiane Keeling, Hostile Architecture, Superdeep Borehole,
+           various assets from multiple factions.
+Strategy: Flood the board with threatening assets. Hostile Architecture punishes
+           Runner trashes. Gaslight tutors operations each turn. Dr. Vientiane Keeling
+           slowly shrinks Runner grip. Superdeep Borehole provides an alternate win-con.
+Unlocks: [Runner-side Parhelion cards, batch 3]
+
+─────────────────────────────────────────────────────────────────────────────
+DECK 4 — NBN Kill (Core Damage + Meat)
+Identity: NBN: Reality Plus (NBN) — or another suitable NBN identity
+Theme: Tag the Runner, exploit tags with End of the Line and Distributed Tracing.
+       Mix in core damage pressure (Djupstad Grid, Hypoxia) to threaten alternate kill.
+Key cards: End of the Line, Distributed Tracing, Hypoxia, Mr. Hendrik,
+           Freedom of Information, Unsmiling Tsarevna (tagging ice),
+           Vera Ivanovna Shuyskaya (grip disruption).
+Strategy: Build up tags, then nuke with End of the Line (4 meat damage).
+           Hypoxia reduces Runner's available clicks next turn for a tempo hit.
+           Mr. Hendrik punishes accesses. Vera Shuyskaya disrupts Runner's hand.
+Unlocks: [Runner-side Parhelion cards, batch 4]
+
+─────────────────────────────────────────────────────────────────────────────
+DECK 5 — Superdeep Borehole Combo
+Identity: Weyland Consortium: Builder of Nations (Weyland)
+Theme: Install Superdeep Borehole in a heavily iced remote. Protect it for 6
+       Corp turns while accumulating bad publicity. Win when the counters run out.
+Key cards: Superdeep Borehole, ZATO City Grid, Yakov Erikovich Avdakov, Anvil,
+           Regulatory Capture, Kimberlite Field, Nanisivik Grid.
+Strategy: Borehole is a 6-turn clock. The deck needs to survive 6 turns with
+           Borehole rezzed while keeping the Runner out of the remote. ZATO City Grid
+           makes the remote ice cost-prohibitive to break. Yakov gains credits for
+           each card the Runner trashes during runs. Kimberlite Field punishes scores.
+Unlocks: [Runner-side Parhelion cards, batch 5]
+
+─────────────────────────────────────────────────────────────────────────────
+DECK 6 — Jinteki Net Damage Trap Glacier
+Identity: Jinteki: Replicating Perfection (Jinteki)
+Theme: Force the Runner to run centrals before remotes (RP), then punish with
+       net damage traps, Nightmare Archive, and vampyronassa/karuna-style ice.
+Key cards: Nightmare Archive, Vampyronassa, Djupstad Grid, Ontological Dependence,
+           Mr. Hendrik, Simulation Reset, Hafrun, Reaper Function.
+Strategy: RP forces runs on centrals. R&D has Nightmare Archives as traps
+           (−1 point punishing steals OR 1 core damage). Heavy net damage ice
+           (Vampyronassa, Hafrun) punishes runs. Ontological Dependence becomes
+           easily scorable as core damage accumulates. Djupstad Grid deals more
+           core damage on scores.
+Unlocks: [Runner-side Parhelion cards, batch 6]
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+IMPLEMENTATION ORDER RECOMMENDATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+SPRINT 1 (engine foundations):
+  1. Phase 1A: Charge mechanic
+  2. Phase 1B: Mark mechanic (GameContext fields + identify_mark effect)
+  3. Phase 1C: Runner allotted click bonus (for Basilar Synthgland)
+  4. Phase 1D: Additional operation costs (remove tag, spend click, core damage)
+  5. Phase 1F: Superdeep Borehole win_game effect
+  6. Phase 1G: Nightmare Archive negative agenda points
+  7. Phase 1K/1L: Ongoing hand size modifiers (Keeling, Hippocampic)
+  8. Phase 1Q: Runner-trashes-corp-card event (Hostile Architecture)
+  9. Phase 1P: Server-aware score event (Djupstad Grid)
+
+SPRINT 2 (key card mechanics):
+  10. Phase 1H: Issuaq reduced win condition
+  11. Phase 1I: Thule identity trigger
+  12. Phase 1J: Ampère/Nova singleton identity deck validation
+  13. Phase 1S: Vera Shuyskaya reveal-grip-and-trash
+  14. Phase 1T: Mr. Hendrik on_access_while_installed
+  15. Phase 1R: Yakov card-trashed-from-server
+  16. Phase 1W: Gaslight search R&D for operation
+  17. Phase 1AH: Pulse harmonic count
+  18. Phase 1AI: Kimberlite Field chain trash
+
+SPRINT 3 (icebreakers and run mechanics):
+  19. Phase 1E: Derez effects (Bloop)
+  20. Phase 1AD: Anvil unbreakable subs
+  21. Phase 1AE: Hafrun disable breaker
+  22. Phase 1AF: Klevetnik disable resource
+  23. Phase 1AG: Unsmiling Tsarevna limit 1 sub break
+  24. Phase 1AB: Flux Capacitor first-break trojan trigger
+  25. Phase 1N: ZATO City Grid ice ability injection
+  26. Phase 1O: Nanisivik Grid Archives facedown tracking
+
+SPRINT 4 (complex runner cards):
+  27. Phase 1AA: Concerto hosted credits on event
+  28. Phase 1Z: Raindrops Cut Stone sub-resolved counter
+  29. Phase 1Y: Spark of Inspiration reveal-until-program
+  30. Phase 1V: Asmund Pudlat search-and-host
+  31. Phase 1X: World Tree search-by-type
+  32. Phase 1U: Matryoshka faceup/facedown hosting
+  33. Phase 1M: Tsakhia Bankhar sub replacement
+  34. Phase 1AC: Nga may-remove-counter-to-sabotage
+
+SPRINT 5 (JSON entries, Phase 2):
+  35. Write all Tier A JSON entries (simple cards)
+  36. Write all Tier B JSON entries (medium complexity)
+  37. Write all Tier C JSON entries (complex, using new effect types)
+
+SPRINT 6 (AI + campaign):
+  38. Phase 3: AI updates (evaluator, Corp AI, Runner AI)
+  39. Phase 4: Design 6 Corp campaign decks
+  40. Write campaign fiction (6 act pre/post files)
+  41. Update campaign.json with Parhelion act
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STANDARD BAN LIST NOTES (26.05)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+The following Parhelion cards are BANNED in Standard 26.05 format.
+All must still be implemented (used in campaign, startup, or casual formats),
+but should be flagged as banned in the BanListManager:
+
+  Corp (banned):
+    dr_vientiane_keeling
+    nanisivik_grid
+
+  Runner (banned):
+    k2cp_turbine            (already implemented; ban already enforced)
+    tsakhia_bankhar_gantulga
+    world_tree
+    matryoshka
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+NOTES ON NEW SUBTYPES / KEYWORDS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+• HARMONIC: New ice subtype shared by Pulse and Bloop (both HB). Bloop derezzes
+  another harmonic ice on rez; Pulse deals damage based on count. No other
+  special engine handling needed — the subtype system already supports arbitrary
+  subtype names; just ensure "harmonic" is normalised like other subtypes.
+
+• CYBERNETIC: New hardware subtype (Basilar Synthgland, Hippocampic Mechanocytes,
+  WAKE Implant, Zenit Chip). Tremolo's cost reduction counts installed cybernetics.
+  No engine-level keyword handling needed; cybernetic is just a hardware subtype.
+  The CardRecord.has_subtype("cybernetic") call will work as-is.
+
+• INTERFACE: Existing keyword for icebreaker break/boost abilities.
+  All Parhelion icebreakers use the standard Interface format — no new handling needed.
+
+• WEAPON: New card subtype (referenced by Asmund Pudlat's search). Weapon cards
+  include cards like various Runner programs with attack functions. Verify that
+  "weapon" as a subtype is queryable via CardRecord.has_subtype("weapon").
+  Check existing cards to confirm "weapon" subtype is already in use or needs
+  to be introduced.
+
+• MARK: Not a keyword per se, but the mark mechanic should be documented in the
+  game's help text / card tool-tips as "Your mark is the random central server
+  identified by cards like Info Bounty or Tunnel Vision at the start of your turn."
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SCOPE SUMMARY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Total cards in set:           63
+  Already implemented:           2  (k2cp_turbine, wake_implant_v2a_jrj)
+  Remaining to implement:       61
+  New effect types needed:      ~35
+  New condition types needed:    ~8
+  New GameContext fields:        ~12
+  New decision-maker methods:    ~10
+  Campaign decks to design:       6
+  Fiction files to write:        12 (pre/post for each of 6 matches)
+  Estimated sprints:              6

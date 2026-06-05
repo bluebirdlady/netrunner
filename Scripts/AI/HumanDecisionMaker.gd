@@ -502,3 +502,24 @@ func choose_top_or_bottom(card: CardRecord, context_label: String, _ctx: GameCon
 	if choose_top_or_bottom_proxy.is_valid():
 		return await choose_top_or_bottom_proxy.call(card, context_label)
 	return "bottom"  # AI default: hide it at the bottom
+
+
+# ── Parhelion: Charge ─────────────────────────────────────────────────────────
+
+var choose_card_to_charge_proxy: Callable  # func(candidates: Array[InstalledCard]) -> InstalledCard
+
+# Runner picks one installed card with ≥1 power counter to add 1 power counter to.
+# Returns null to decline (charge is always optional per card text).
+func choose_card_to_charge(candidates: Array, _ctx: GameContext) -> InstalledCard:
+	if choose_card_to_charge_proxy.is_valid():
+		return await choose_card_to_charge_proxy.call(candidates)
+	# Fallback: pick the card with the most power counters (maximise return on charge).
+	if candidates.is_empty():
+		return null
+	var best: InstalledCard = candidates[0] as InstalledCard
+	for c in candidates:
+		var ic: InstalledCard = c as InstalledCard
+		if ic != null and ic.get_counter("power") > best.get_counter("power"):
+			best = ic
+	return best
+
