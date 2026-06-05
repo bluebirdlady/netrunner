@@ -317,6 +317,12 @@ var current_ability_source_card_type: String = ""
 # Enables the JSON "once_per_turn_key" field on event blocks.
 var once_per_turn_triggered: Dictionary = {}
 
+# Counts how many times the Corp has taken each action type this turn.
+# Keys are action type strings ("gain_credits", "draw_card", "install", etc.).
+# Used by Wage Workers: Corp gains 1 click when any type hits exactly 3.
+# Cleared at the start of each Corp turn by TurnManager.
+var corp_action_type_counts: Dictionary = {}
+
 # ── Game state ────────────────────────────────────────────────────────────────
 var turn_number:   int    = 1
 

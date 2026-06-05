@@ -82,7 +82,7 @@ func _load_save() -> void:
 			continue
 		for _unlock in (_mission_def as Dictionary).get("unlocks_cards", []):
 			var _uid: String = _unlock if _unlock is String else (_unlock as Dictionary).get("id", "")
-			var _award: int  = 1 if _unlock is String else (_unlock as Dictionary).get("count", 1) as int
+			var _award: int  = 3 if _unlock is String else (_unlock as Dictionary).get("count", 3) as int
 			if _uid == "":
 				continue
 			var _current: int = int((_save.get("unlocked_cards", {}) as Dictionary).get(_uid, 0))
@@ -168,15 +168,15 @@ func complete_mission(mission_id: String) -> Array:
 			for next_id in mission_def.get("unlocks_missions", []):
 				_unlock_mission(next_id)
 			for unlock in mission_def.get("unlocks_cards", []):
-				# unlock can be a string (card_id, 1 copy) or dict {id, count}
+				# unlock can be a string (card_id, full playset) or dict {id, count}
 				var card_id: String
 				var count:   int
 				if unlock is String:
 					card_id = unlock as String
-					count   = 1
+					count   = 3   # string entries always grant a full playset
 				elif unlock is Dictionary:
 					card_id = (unlock as Dictionary).get("id", "")
-					count   = (unlock as Dictionary).get("count", 1) as int
+					count   = (unlock as Dictionary).get("count", 3) as int
 				else:
 					continue
 				if card_id == "":

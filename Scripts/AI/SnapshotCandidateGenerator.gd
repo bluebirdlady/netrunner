@@ -46,6 +46,7 @@ static func generate(snap: Dictionary) -> Array:
 	_add_advance_actions(candidates, snap)
 	_add_identity_click(candidates, snap)
 	_add_installed_asset_abilities(candidates, snap)
+	_add_basic_corp_actions(candidates, snap)
 
 	# Trim to cap — basic economy actions go first so they are never lost.
 	if candidates.size() > MAX_CANDIDATES:
@@ -226,6 +227,39 @@ static func _add_installed_asset_abilities(out: Array, snap: Dictionary) -> void
 		if inst_id == "" or card_id == "":
 			continue
 		out.append(GameAction.use_installed_card(inst_id, card_id))
+
+
+# §10.1.2 purge + §10.5.3 trash-resource basic Corp actions.
+# Purge only when virus pressure is high (threshold mirrors CorpTurnAI heuristic).
+# Trash-resource only when runner is tagged; generates one action per resource,
+# most expensive first (cap at 2 to keep candidate count bounded).
+static func _add_basic_corp_actions(out: Array, snap: Dictionary) -> void:
+	var corp_cr:    int = snap.get("corp_credits",    0) as int
+	var corp_clicks: int = snap.get("corp_clicks_left", 0) as int
+	var runner_tagged: bool = (snap.get("runner_tags", 0) as int) > 0
+
+	# §10.1.2 — Purge virus counters (costs 3 clicks)
+	if corp_clicks >= 3:
+		var virus_total: int = snap.get("runner_virus_total", 0) as int
+		if virus_total > 4:   # only worthwhile above threat threshold
+			out.append(GameAction.purge_virus())
+
+	# §10.5.3 — Trash a runner resource (costs 1 click + 2cr, runner must be tagged)
+	if runner_tagged and corp_clicks >= 1 and corp_cr >= 2:
+		var resources: Array = snap.get("runner_resources", []) as Array
+		# Sort by cost descending — trash the most valuable resource first
+		var sorted_resources: Array = resources.duplicate()
+		sorted_resources.sort_custom(func(a, b):
+			return (a as Dictionary).get("cost", 0) > (b as Dictionary).get("cost", 0))
+		var added := 0
+		for r in sorted_resources:
+			var rd: Dictionary = r as Dictionary
+			out.append(GameAction.trash_runner_resource(
+				rd.get("instance_id", "") as String,
+				rd.get("card_id", "") as String))
+			added += 1
+			if added >= 2:   # cap: evaluate at most 2 resource targets
+				break
 
 
 # Returns the best remote server_id for an ice install, or "" if none viable.

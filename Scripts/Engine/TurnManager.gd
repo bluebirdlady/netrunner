@@ -118,6 +118,7 @@ func _corp_turn() -> void:
 	ctx.corp_mandates_played_this_turn  = 0              # reset for Sudden Commandment Threat 3
 	ctx.corp_last_scored_agenda_points = 0              # reset for Neurospike
 	ctx.corp_agendas_scored_this_turn  = 0              # reset for first-agenda triggers
+	ctx.corp_action_type_counts.clear()                # reset for Wage Workers
 	ctx.ice_rezzed_this_turn                 = false   # reset for Underdome Irregulars
 	ctx.ice_rezzed_this_turn_instance_ids.clear()      # reset for Cloud Eater / Lightning Lab
 	ctx.doubles_played_this_turn       = 0              # reset for Synchrocyclotron
@@ -181,6 +182,14 @@ func _corp_turn() -> void:
 			# Give the AI another chance rather than looping forever
 			# If it keeps producing invalid actions something is wrong
 			break
+
+		# Track click-action type counts for Wage Workers.
+		# Increment before firing the event so the handler can read the updated count.
+		var _ww_type: String = action.type
+		ctx.corp_action_type_counts[_ww_type] = \
+			(ctx.corp_action_type_counts.get(_ww_type, 0) as int) + 1
+		if not ctx.game_over:
+			await ctx.notify_event("corp_action_taken", {"action_type": _ww_type}, interpreter)
 
 		# Brief pause between Corp actions so the human player can read the log
 		# and the game doesn't feel like it resolved instantaneously.
@@ -860,13 +869,18 @@ func _do_install(player: String, action: GameAction) -> void:
 					ctx.send_log("Hackerspace: %s costs 1cr less to install (now %dcr)." % \
 						[record.title, pay_cost])
 
-		# MU check for programs (hosted-on-ice programs still use MU)
+		# MU check for programs — §3.9.3b.
+		# The install is legal as long as the new program's memory cost does not
+		# exceed the runner's total MU (they can trash existing programs to make room).
+		# If MU is currently insufficient, _enforce_mu_limit() handles the required
+		# trash after the install completes.
+		# Only hard-block when the program is simply too large to ever fit.
 		if record.card_type == "program" and record.memory_cost > 0:
 			var mu_needed: int = record.memory_cost
-			if ctx.runner_mu_available() < mu_needed:
-				ctx.send_log("%s cannot install %s — not enough MU (%d needed, %d available, %d total)." % [
+			if mu_needed > ctx.runner_total_mu():
+				ctx.send_log("%s cannot install %s — program needs %d MU but total memory is only %d." % [
 					ctx.runner_name(), record.title,
-					mu_needed, ctx.runner_mu_available(), ctx.runner_total_mu()
+					mu_needed, ctx.runner_total_mu()
 				])
 				return
 
@@ -1007,6 +1021,13 @@ func _do_install(player: String, action: GameAction) -> void:
 		ctx.send_log("%s installs %s. [MU: %d/%d used]" % [
 			ctx.runner_name(), record.title, ctx.runner_mu_used(), ctx.runner_total_mu()
 		])
+		# §10.3.1d Uniqueness: trash other active copies (same name) and other consoles.
+		if record.is_unique or record.has_subtype("console"):
+			_enforce_unique(installed, "runner")
+		# §3.9.3b / §10.3.1e MU limit: runner may install a program that exceeds current
+		# available MU and must trash existing programs to compensate.
+		if record.card_type == "program" and record.memory_cost > 0:
+			await _enforce_mu_limit()
 		return
 
 	# Get or create server for corp cards and runner ice (future)
@@ -1845,6 +1866,9 @@ func _do_rez_card(player: String, action: GameAction) -> void:
 		ctx.current_event_data = {}
 
 	ctx.send_log("%s rezzes %s for %d cr." % [ctx.player_name(player), installed.display_name(), rez_cost])
+	# §10.1.1 Uniqueness: trash any other rezzed copies of this card.
+	if installed.card_record != null and installed.card_record.is_unique:
+		_enforce_unique(installed, "corp")
 	if not ctx.simulation_mode: emit_signal("card_installed", installed.card_record, installed.server_id)
 	# Notify listeners that a corp card was rezzed.
 	await ctx.notify_event("corp_rezzes_card", {
@@ -2068,6 +2092,160 @@ func _register_identity_listeners(instance_id: String, card_id: String) -> void:
 			mod_dict.get("conditions", {}) as Dictionary,
 			extra
 		)
+
+
+func _enforce_unique(new_card: InstalledCard, player: String) -> void:
+	# §10.3.1d — When a unique card becomes active, trash all other active copies of
+	# the same name.  Also enforce the console limit: a Runner can only have one
+	# console installed at a time regardless of card name.
+	# Cannot be prevented.
+	if new_card == null or new_card.card_record == null:
+		return
+	var card_id:    String = new_card.card_id
+	var is_unique:  bool   = new_card.card_record.is_unique
+	var is_console: bool   = new_card.card_record.has_subtype("console")
+
+	if player == "runner":
+		var to_trash: Array = []
+		# Scan main rig
+		for ic in ctx.runner_rig:
+			var c: InstalledCard = ic as InstalledCard
+			if c == null or c == new_card:
+				continue
+			if c.card_record == null:
+				continue
+			if is_unique and c.card_id == card_id:
+				to_trash.append(c)
+			elif is_console and c.card_record.has_subtype("console"):
+				to_trash.append(c)
+		# Scan trojans hosted on Corp ice
+		for srv in ctx.servers.values():
+			for ice_c in (srv as Server).ice:
+				var ic: InstalledCard = ice_c as InstalledCard
+				if ic == null:
+					continue
+				for hosted in ic.hosted_cards:
+					var hc: InstalledCard = hosted as InstalledCard
+					if hc == null or hc == new_card or hc.card_record == null:
+						continue
+					if is_unique and hc.card_id == card_id:
+						to_trash.append(hc)
+					elif is_console and hc.card_record.has_subtype("console"):
+						to_trash.append(hc)
+		for dup in to_trash:
+			ctx.runner_rig.erase(dup)
+			for srv in ctx.servers.values():
+				for ice_c in (srv as Server).ice:
+					(ice_c as InstalledCard).hosted_cards.erase(dup)
+			ctx.unregister_all_card_effects(dup.runtime_instance_id)
+			if dup.card_record != null:
+				ctx.runner_discard.append(dup.card_record)
+			var reason: String = "◆ console limit" \
+				if (is_console and dup.card_record != null and dup.card_record.has_subtype("console") \
+					and dup.card_id != card_id) \
+				else "◆ unique"
+			ctx.send_log("[%s] %s trashed (cannot be prevented)." % [reason, dup.display_name()])
+
+	elif player == "corp":
+		# Corp has no console equivalent — named unique only.
+		if not is_unique:
+			return
+		var to_trash: Array = []
+		for srv in ctx.servers.values():
+			var s: Server = srv as Server
+			for ic in s.ice:
+				var c: InstalledCard = ic as InstalledCard
+				if c != null and c != new_card and c.card_id == card_id and c.is_rezzed:
+					to_trash.append(c)
+			for rc in s.root:
+				var c: InstalledCard = rc as InstalledCard
+				if c != null and c != new_card and c.card_id == card_id and c.is_rezzed:
+					to_trash.append(c)
+		for dup in to_trash:
+			for srv in ctx.servers.values():
+				(srv as Server).ice.erase(dup)
+				(srv as Server).root.erase(dup)
+			ctx.unregister_all_card_effects(dup.runtime_instance_id)
+			if dup.card_record != null:
+				ctx.corp_discard.append(dup.card_record)
+			ctx.send_log("[◆ Unique] Duplicate %s trashed (cannot be prevented)." % dup.display_name())
+		ctx.remove_empty_remote_servers()
+
+
+func _enforce_mu_limit() -> void:
+	# §10.3.1e — If runner_mu_used > runner_total_mu, the runner must trash programs
+	# until within limit.  Called after any install that might cause a violation and
+	# after any effect that reduces the MU limit.
+	var excess_mu: int = ctx.runner_mu_used() - ctx.runner_total_mu()
+	if excess_mu <= 0:
+		return
+
+	ctx.send_log("[MU] %s exceeds memory limit by %d MU — must trash programs." % [
+		ctx.runner_name(), excess_mu])
+
+	# Build candidate list: programs in rig or hosted on ice.
+	var programs: Array = []
+	for ic in ctx.runner_rig:
+		var c: InstalledCard = ic as InstalledCard
+		if c != null and c.card_record != null and \
+				c.card_record.card_type == "program" and c.card_record.memory_cost > 0:
+			programs.append(c)
+	for srv in ctx.servers.values():
+		for ice_c in (srv as Server).ice:
+			var ic: InstalledCard = ice_c as InstalledCard
+			if ic == null:
+				continue
+			for hosted in ic.hosted_cards:
+				var hc: InstalledCard = hosted as InstalledCard
+				if hc != null and hc.card_record != null and \
+						hc.card_record.card_type == "program" and hc.card_record.memory_cost > 0:
+					programs.append(hc)
+
+	if programs.is_empty():
+		ctx.send_log("[MU] No trashable programs — MU violation unresolvable.")
+		return
+
+	# Ask runner DM to choose which programs to trash.
+	var to_trash: Array = []
+	if ctx.runner_decision_maker != null and \
+			ctx.runner_decision_maker.has_method("choose_programs_to_trash_for_mu"):
+		to_trash = await ctx.runner_decision_maker.choose_programs_to_trash_for_mu(
+			programs, excess_mu, ctx)
+
+	# AI / fallback: trash fewest cards — sort by MU desc, cost asc to break ties.
+	if to_trash.is_empty():
+		var scored: Array = []
+		for p in programs:
+			var c: InstalledCard = p as InstalledCard
+			if c == null or c.card_record == null:
+				continue
+			scored.append({"card": c, "mu": c.card_record.memory_cost,
+				"cost": max(0, c.card_record.cost)})
+		scored.sort_custom(func(a, b):
+			return a.mu > b.mu if a.mu != b.mu else a.cost < b.cost)
+		var freed := 0
+		for s in scored:
+			if freed >= excess_mu:
+				break
+			to_trash.append(s.card)
+			freed += (s.card as InstalledCard).card_record.memory_cost
+
+	# Trash selected programs.
+	for p in to_trash:
+		var c: InstalledCard = p as InstalledCard
+		if c == null:
+			continue
+		ctx.runner_rig.erase(c)
+		for srv in ctx.servers.values():
+			for ice_c in (srv as Server).ice:
+				(ice_c as InstalledCard).hosted_cards.erase(c)
+		ctx.unregister_all_card_effects(c.runtime_instance_id)
+		if c.card_record != null:
+			ctx.runner_discard.append(c.card_record)
+		ctx.send_log("[MU] %s trashes %s (%d MU freed)." % [
+			ctx.runner_name(), c.display_name(), c.card_record.memory_cost if c.card_record else 0])
+	if not ctx.simulation_mode:
+		emit_signal("hand_changed", "runner")
 
 
 func _register_card_listeners(installed: InstalledCard) -> void:

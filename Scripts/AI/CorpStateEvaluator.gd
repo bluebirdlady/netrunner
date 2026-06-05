@@ -254,6 +254,36 @@ static func _snap_click_assets(ctx: GameContext, ab_reg: AbilityRegistry) -> Arr
 	return result
 
 
+# Total virus counters on all installed runner virus programs.
+# Used by SCG to decide whether to generate a purge_virus candidate.
+static func _snap_runner_virus_total(ctx: GameContext) -> int:
+	var total := 0
+	for r in ctx.runner_rig:
+		var ic: InstalledCard = r as InstalledCard
+		if ic == null or ic.card_record == null:
+			continue
+		if ic.card_record.has_subtype("virus"):
+			total += ic.get_counter("virus")
+	return total
+
+
+# Installed runner resources visible to the Corp (all installed resources).
+# Returns Array[{instance_id, card_id, cost}] for SCG trash-resource candidates.
+static func _snap_runner_resources(ctx: GameContext) -> Array:
+	var result: Array = []
+	for r in ctx.runner_rig:
+		var ic: InstalledCard = r as InstalledCard
+		if ic == null or ic.card_record == null:
+			continue
+		if ic.card_record.card_type == "resource":
+			result.append({
+				"instance_id": ic.runtime_instance_id,
+				"card_id":     ic.card_id,
+				"cost":        max(0, ic.card_record.cost),
+			})
+	return result
+
+
 # ── Snapshot ──────────────────────────────────────────────────────────────────
 
 func snapshot(ctx: GameContext) -> Dictionary:
@@ -491,6 +521,8 @@ func snapshot(ctx: GameContext) -> Dictionary:
 		"corp_identity_click_available":  id_click_avail,
 		"corp_archives_ops":              _snap_archives_ops(ctx, snap_ab_reg),
 		"corp_installed_click_assets":    _snap_click_assets(ctx, snap_ab_reg),
+		"runner_virus_total":             _snap_runner_virus_total(ctx),
+		"runner_resources":               _snap_runner_resources(ctx),
 		"remotes":                        remotes,
 	}
 
@@ -600,7 +632,11 @@ func evaluate(s: Dictionary) -> float:
 				if (nhic as CardRecord) != null and (nhic as CardRecord).is_ice():
 					nhic_in_hand = true
 					break
-			score -= 5.0 if nhic_in_hand else 25.0
+			# Scale penalty by advancement: a 2/4 naked agenda is far more dangerous
+			# than a 0/4 one — the runner has every reason to run it immediately.
+			# adv=0 → ×1.0,  adv=1 → ×2.5,  adv=2 → ×4.0,  adv=3 → ×5.5
+			var adv_danger: float = 1.0 + float(adv) * 1.5
+			score -= (5.0 if nhic_in_hand else 25.0) * adv_danger
 
 		# ── Scoring urgency (clicks-aware, pressure-scaled) ────────────────────
 		# Base urgency depends on how many advances remain vs. clicks available;
@@ -623,6 +659,21 @@ func evaluate(s: Dictionary) -> float:
 			base_urgency = 3.0
 
 		score += base_urgency * urgency_mult
+
+		# ── Partial advancement bonus ──────────────────────────────────────────────
+		# Each advancement counter on an installed agenda represents concrete progress
+		# toward scoring.  Without this, the evaluator treats a 0/5 agenda and a 3/5
+		# agenda identically (both just get the base_urgency for "needed > 2").
+		# Multiplied by urgency_mult so the bonus spikes when the runner is close to
+		# winning — matching the urgency of completing the plan quickly.
+		#
+		# Requires ice > 0: advancing a naked agenda has no stable value because the
+		# runner will steal it the next turn regardless of how many counters are on it.
+		# Without this guard the naked-advancement penalty (above) is still outweighed
+		# by the partial bonus once the Corp has ice in hand (−5 × adv_danger vs +bonus).
+		if adv > 0 and req > 0 and ice > 0:
+			var partial_frac: float = float(adv) / float(req)
+			score += 6.0 * partial_frac * urgency_mult
 
 		# Ice protection bonus (up to 2 layers) — scales with runner rig strength.
 		# A second ice layer matters far more against a fully-rigged runner than
@@ -693,6 +744,25 @@ func evaluate(s: Dictionary) -> float:
 		if corp_cr > 10:
 			score -= float(corp_cr - 10) * 0.25
 
+	# ── Near-win idle penalty ──────────────────────────────────────────────────
+	# When the runner is within 2 points of winning AND a protected agenda is on
+	# board with zero advancement, the Corp is wasting time building credits it
+	# cannot convert into a win.  Apply the same stagnation rate on top of the
+	# normal evaluation so "advance" consistently beats "gain 1cr" under pressure.
+	# (When adv > 0, the partial advancement bonus already captures this urgency;
+	# this penalty handles the "agenda exists but nobody is advancing it" case.)
+	elif runner_score >= pts_to_win - 2 and corp_cr > 10:
+		var board_idle := true
+		for si_idle in s.get("remotes", []) as Array:
+			var si_ir: Dictionary = si_idle as Dictionary
+			if si_ir.get("has_agenda", false) and \
+					(si_ir.get("ice_count", 0) as int) > 0 and \
+					(si_ir.get("adv", 0) as int) > 0:
+				board_idle = false
+				break
+		if board_idle:
+			score -= float(corp_cr - 10) * 0.25
+
 	# ── Draw urgency: slot-readiness hand bonus ───────────────────────────────
 	# When a protected empty scoring slot exists and there are cards left to draw,
 	# each additional card held above a floor of 2 is worth more than usual —
@@ -718,13 +788,17 @@ func evaluate(s: Dictionary) -> float:
 	if du_slot_ice > 0:
 		var du_hand:  int   = s.get("corp_hand",       0) as int
 		var du_limit: int   = s.get("corp_hand_limit", 5) as int
-		# Effective extra cards above a floor of 2, capped at 2 (beyond 4 cards
-		# in hand the Corp has almost certainly drawn any agenda already).
-		var du_extra: int = min(max(du_hand - 2, 0), 2)
+		# Cards in hand above a floor of 1, capped at 3.  Floor lowered from 2→1
+		# so drawing from a 2-card hand (the typical state after mandatory draw only)
+		# produces a positive marginal score signal rather than 0.  Cap raised to 3
+		# so the incentive persists across 2→3 and 3→4 card draws.
+		# Coefficient raised to 1.5 so draw beats gain-credit by a clear margin
+		# (~1.3 vs ~0.65 at 7cr) rather than a coin-flip that rollout noise can invert.
+		var du_extra: int = min(max(du_hand - 1, 0), 3)
 		# Only apply when hand is below the limit (can still gain from drawing).
 		if du_hand < du_limit and du_extra >= 0:
 			var du_cr_ready: float = minf(float(corp_cr) / 8.0, 1.0)
-			score += float(du_slot_ice) * float(du_extra) * du_cr_ready * 1.0
+			score += float(du_slot_ice) * float(du_extra) * du_cr_ready * 1.5
 
 	# ── Advancement trap threat ───────────────────────────────────────────────
 	# Trap cards (Clearinghouse, Urtica Cipher, etc.) in iced remotes build
@@ -1124,6 +1198,25 @@ func project_corp_action(s: Dictionary, action: GameAction, _ctx: GameContext) -
 			match pfa_id:
 				"petty_cash":
 					ns["corp_credits"] = (ns.get("corp_credits", 0) as int) + 3
+
+		"purge_virus":
+			# Costs 3 Corp clicks (already decremented × 3 by the caller iterating).
+			# Projected effect: virus counters on runner rig go to zero.
+			ns["runner_virus_total"] = 0
+			# Clear runner_rig virus info (approximation — rig count unchanged)
+
+		"trash_runner_resource":
+			# Costs 1 Corp click (decremented above) + 2cr.
+			ns["corp_credits"] = max(0, (ns.get("corp_credits", 0) as int) - 2)
+			# Remove the target resource from runner_resources snapshot
+			var trr_iid: String = action.params.get("card_instance_id", "") as String
+			var trr_res: Array = (ns.get("runner_resources", []) as Array).duplicate()
+			for trr_i in range(trr_res.size()):
+				if (trr_res[trr_i] as Dictionary).get("instance_id", "") == trr_iid:
+					trr_res.remove_at(trr_i)
+					break
+			ns["runner_resources"] = trr_res
+			ns["runner_rig"] = max(0, (ns.get("runner_rig", 0) as int) - 1)
 
 		"use_installed_card":
 			var uic_card_id: String = action.params.get("card_id", "") as String

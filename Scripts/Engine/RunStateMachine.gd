@@ -869,8 +869,14 @@ func _phase_end() -> void:
 			else:
 				ctx.send_log("[Arissana] %s is a trojan — stays installed." % aris_prog.display_name())
 
-	ctx.run_ended      = false
-	ctx.run_modifiers  = {}   # clear all run-scoped modifiers
+	ctx.run_ended = false
+
+	# §10.6.3b — Return any unspent bad publicity credits to the bank.
+	var bp_remaining: int = ctx.run_modifiers.get("bad_pub_credits", 0) as int
+	if bp_remaining > 0:
+		ctx.send_log("[Bad Pub] %d unspent bad publicity credit(s) returned to the bank." % bp_remaining)
+
+	ctx.run_modifiers = {}   # clear all run-scoped modifiers (including bad_pub_credits)
 
 
 # ── Breach ────────────────────────────────────────────────────────────────────

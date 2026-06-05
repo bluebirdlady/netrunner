@@ -457,6 +457,18 @@ func choose_subs_to_break(candidates: Array, max_count: int,
 	return []
 
 
+var choose_programs_to_trash_for_mu_proxy: Callable
+
+# Runner chooses which programs to trash to bring MU back within the limit.
+# programs  — Array[InstalledCard] of installed programs with memory_cost > 0
+# excess_mu — MU that must be freed (chosen programs must total >= this)
+# Returns   — Array[InstalledCard] to trash
+func choose_programs_to_trash_for_mu(programs: Array, excess_mu: int, _ctx: GameContext) -> Array:
+	if choose_programs_to_trash_for_mu_proxy.is_valid():
+		return await choose_programs_to_trash_for_mu_proxy.call(programs, excess_mu)
+	return []
+
+
 var choose_discard_to_hand_limit_proxy: Callable
 
 # Player (human runner or corp) chooses which cards to discard during their discard phase.

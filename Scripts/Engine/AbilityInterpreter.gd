@@ -1364,13 +1364,19 @@ func _execute_effect(effect: Dictionary, ctx: GameContext, chosen_target: Varian
 		"choose_and_run":
 			# Ask the runner to choose a server from a list, then run it.
 			var allowed: Array = params.get("servers", ["hq", "rd", "archives"]) as Array
-			# Expand "remote" placeholder to actual live remote server IDs.
-			# abilities.json uses "remote" as shorthand; ctx only knows "remote_0" etc.
+			# Expand placeholders to actual live server IDs.
+			#   "remote" → all remote server IDs (remote_0, remote_1, …)
+			#   "iced"   → all servers (centrals + remotes) that have ≥1 ice installed
 			var expanded: Array = []
 			for srv_entry in allowed:
 				if srv_entry == "remote":
 					for remote_srv in ctx.get_remote_servers():
 						expanded.append((remote_srv as Server).server_id)
+				elif srv_entry == "iced":
+					for iced_id in ctx.servers.keys():
+						var iced_srv: Server = ctx.get_server(iced_id as String)
+						if iced_srv != null and iced_srv.ice.size() > 0:
+							expanded.append(iced_id)
 				else:
 					expanded.append(srv_entry)
 			if not expanded.is_empty():
@@ -10935,6 +10941,26 @@ func _execute_effect(effect: Dictionary, ctx: GameContext, chosen_target: Varian
 			ctx.send_log("[Vovô Ozetti] %s moves from %s to %s." % [
 				ctx.corp_name(), vvo_old_id, vvo_new_srv.display_name()])
 
+		# ── Wage Workers: Corp gains 1 click on the 3rd use of any action type ──────
+
+		"wage_workers_click_bonus":
+			# Wage Workers (TAI Corp asset, HB Bioroid/Clone/Industrial):
+			# Whenever the Corp finishes an action, if that action type has been taken
+			# exactly 3 times this turn, Corp gains 1 click.
+			# Fires via corp_action_taken event; action type is in current_event_data.
+			var ww_self: InstalledCard = _get_self_card(ctx)
+			if ww_self == null or not ww_self.is_rezzed:
+				return
+			var ww_type: String = ctx.current_event_data.get("action_type", "") as String
+			if ww_type == "":
+				return
+			var ww_count: int = ctx.corp_action_type_counts.get(ww_type, 0) as int
+			if ww_count != 3:
+				return   # only fires at exactly 3 — not on the 4th, 5th, etc.
+			ctx.corp_clicks += 1
+			ctx.send_log("Wage Workers: %s gains 1 click (took '%s' for the 3rd time this turn — %d clicks remaining)." % [
+				ctx.corp_name(), ww_type, ctx.corp_clicks])
+
 		# ── Hannah "Wheels" Pilintra: two click abilities ─────────────────────────
 
 		"hannah_wheels_choose_ability":
@@ -11331,6 +11357,41 @@ func _execute_effect(effect: Dictionary, ctx: GameContext, chosen_target: Varian
 			# Cancel the breach — RSM checks this flag in _breach_server().
 			ctx.run_modifiers["breach_cancelled"] = true
 			ctx.send_log("Anoetic Void: Breach ended before access.")
+
+		"b1001_end_run_for_tag":
+			# B-1001 (TAI Corp asset, Neutral Bioroid Enforcer):
+			# Rezzed, once per turn: during a run against a remote server, if the runner
+			# is tagged, Corp may remove 1 runner tag to end the run before any access.
+			# Fires via before_breach; once_per_turn_key handled by GameContext.
+			var b1_self: InstalledCard = _get_self_card(ctx)
+			if b1_self == null or not b1_self.is_rezzed:
+				return
+			# Remote-only: centrals are not valid targets.
+			var b1_server: String = ctx.current_event_data.get("server_id", "") as String
+			if b1_server in ["hq", "rd", "archives"]:
+				return
+			# Runner must be tagged.
+			if ctx.runner_tags <= 0:
+				return
+			# Corp decision.
+			var b1_use := false
+			if ctx.corp_decision_maker != null and \
+					ctx.corp_decision_maker.has_method("choose_optional_ability"):
+				b1_use = await ctx.corp_decision_maker.choose_optional_ability(
+					"B-1001: Remove 1 runner tag to end the run?", ctx)
+			else:
+				b1_use = true   # AI: always use when the runner is tagged
+			if not b1_use:
+				ctx.send_log("B-1001: Corp declines.")
+				return
+			# Remove 1 runner tag.
+			ctx.runner_tags -= 1
+			ctx.send_log("B-1001: %s removes 1 runner tag — run ended before access. (%d tags remaining)" % [
+				ctx.corp_name(), ctx.runner_tags])
+			await ctx.notify_event("tag_removed", {"amount": 1}, self)
+			# Cancel the breach — RSM checks this flag in _breach_server().
+			if not ctx.game_over:
+				ctx.run_modifiers["breach_cancelled"] = true
 
 		_:
 			push_error("AbilityInterpreter: unknown effect type '%s'" % etype)

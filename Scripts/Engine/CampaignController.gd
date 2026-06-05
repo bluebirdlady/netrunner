@@ -42,12 +42,10 @@ func _show_menu() -> void:
 		_menu = CampaignMenu.new()
 		add_child(_menu)
 		_menu.mission_selected.connect(_on_mission_selected)
-		
+		_menu.starter_match_requested.connect(launch_starter_match)
+		_menu.tournament_requested.connect(_show_tournament)
 
 	_menu.setup(_state)
-	_menu.starter_match_requested.connect(launch_starter_match)
-	if not _menu.tournament_requested.is_connected(_show_tournament):
-		_menu.tournament_requested.connect(_show_tournament)
 	_menu.visible = true
 
 

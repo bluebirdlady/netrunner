@@ -295,7 +295,7 @@
 			"opponent_id": "a_teia_reclamation",
 			"unlocks_missions": ["act7b_hb_compliance", "act7c_jinteki_iteration"],
 			"unlocks_cards": [
-				"b_1001", "curupira", "pichacao", "solidarity_badge"
+				"curupira", "pichacao", "solidarity_badge"
 			],
 			"prerequisite_missions": ["act6f_au_co_orbital"]
 		},
@@ -325,7 +325,7 @@
 			"opponent_id": "jinteki_labyrinth",
 			"unlocks_missions": ["act7d_nuvem_amazon", "act7e_epiphany_brasilia"],
 			"unlocks_cards": [
-				"debbie_downtown_moreira", "saci", "tatu_bola", "hermes"
+				"debbie_downtown_moreira", "saci", "hermes"
 			],
 			"prerequisite_missions": ["act7a_a_teia"]
 		},
@@ -340,7 +340,7 @@
 			"opponent_id": "weyland_hammer",
 			"unlocks_missions": ["act7f_synapse_broadcast"],
 			"unlocks_cards": [
-				"strike_fund", "wage_workers", "daniela_jorge_inacio", "bahia_bands"
+				"strike_fund", "bahia_bands"
 			],
 			"prerequisite_missions": ["act7b_hb_compliance", "act7c_jinteki_iteration"]
 		},
@@ -355,7 +355,7 @@
 			"opponent_id": "epiphany_factory",
 			"unlocks_missions": ["act7f_synapse_broadcast"],
 			"unlocks_cards": [
-				"urban_art_vernissage", "vovo_ozetti", "lago_paranoa_shelter", "airbladex_jsrf_ed"
+				"urban_art_vernissage", "lago_paranoa_shelter", "airbladex_jsrf_ed"
 			],
 			"prerequisite_missions": ["act7b_hb_compliance", "act7c_jinteki_iteration"]
 		},
@@ -371,7 +371,7 @@
 			"unlocks_missions": [],
 			"unlocks_cards": [
 				"mercury_chrome_libertador", "arissana_rocha_nahu_street_artist",
-				"joy_ride", "your_digital_life"
+				"joy_ride"
 			],
 			"prerequisite_missions": ["act7d_nuvem_amazon", "act7e_epiphany_brasilia"]
 		}

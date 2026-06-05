@@ -149,6 +149,8 @@ func _wire_proxies_to_game_ui() -> void:
 		return await game_ui.show_psi_bid_prompt(max_bid)
 	runner_brain.choose_discard_to_hand_limit_proxy = func(hand: Array, excess: int) -> Array:
 		return await game_ui.show_discard_to_hand_limit_prompt(hand, excess)
+	runner_brain.choose_programs_to_trash_for_mu_proxy = func(programs: Array, excess_mu: int) -> Array:
+		return await game_ui.show_mu_trash_prompt(programs, excess_mu)
 	runner_brain.choose_subs_to_break_proxy = func(candidates: Array, max_count: int, encounter: EncounterState) -> Array:
 		return await game_ui.show_choose_subs_to_break_prompt(candidates, max_count, encounter)
 	runner_brain.host_ice_proxy = func(candidates: Array, _ctx: GameContext, prompt: String = "") -> InstalledCard:
@@ -184,6 +186,13 @@ func _wire_proxies_to_run_scene(run_scene: RunScene) -> void:
 		return await game_ui.show_host_ice_prompt(candidates, prompt if prompt != "" else "Choose a piece of ice to host this card on:")
 	runner_brain.choose_suffer_damage_or_etr_proxy = func(amount: int, damage_type: String) -> bool:
 		return await run_scene.show_suffer_damage_or_etr_prompt(amount, damage_type)
+	runner_brain.choose_pay_to_avoid_damage_proxy = func(cost: int, damage: int, damage_type: String) -> bool:
+		var modes := [
+			{"label": "Pay %d cr — prevent %d %s damage" % [cost, damage, damage_type.capitalize()]},
+			{"label": "Take %d %s damage" % [damage, damage_type.capitalize()]}
+		]
+		var result: Array = await run_scene.show_modal_prompt(modes, 1)
+		return result.size() > 0 and (result[0] as int) == 0
 	runner_brain.choose_optional_ability_proxy = func(prompt_text: String) -> bool:
 		return await game_ui.show_optional_ability_prompt(prompt_text)
 	runner_brain.spend_click_to_continue_proxy = func() -> bool:

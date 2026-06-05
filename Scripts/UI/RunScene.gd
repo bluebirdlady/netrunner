@@ -603,12 +603,18 @@ func show_encounter_prompt(encounter: EncounterState) -> Dictionary:
 				"✓" if can_reach else "✗ (too weak)"
 			])
 
-			var break_btn := _add_btn("Break all subs  (1¢ each)",
+			var ice_stypes: Array = encounter.ice_card.card_record.subtypes \
+				if encounter.ice_card != null and encounter.ice_card.card_record != null else []
+			ice_stypes = ice_stypes + (encounter.ice_card.extra_subtypes \
+				if encounter.ice_card != null else [])
+			var break_label: String = _break_btn_label(b, ice_stypes)
+			var break_btn := _add_btn(break_label,
 				func(): encounter_action_resolved.emit({"type": "break_all", "card_id": b.card_id}),
 				reach_color)
 			break_btn.disabled = not can_reach
 
-			_add_btn("Boost +str  (1¢ per use)",
+			var boost_label: String = "Boost  (%s)" % _boost_cost_label(b)
+			_add_btn(boost_label,
 				func(): encounter_action_resolved.emit({"type": "boost_strength", "card_id": b.card_id, "times": 1}),
 				Color(0.5, 0.7, 0.9))
 
@@ -1176,5 +1182,77 @@ func _can_afford_encounter_mode(mode: Dictionary, game_ctx: GameContext, card: I
 		return false
 	if counter_type != "" and counter_amt > 0 and card.get_counter(counter_type) < counter_amt:
 		return false
-
 	return true
+
+
+# ── Encounter button cost-label helpers ──────────────────────────────────────
+# Build human-readable cost strings from the ability definition so button labels
+# are accurate regardless of card (not hardcoded to "1¢").
+
+func _break_btn_label(b: InstalledCard, ice_subtypes: Array) -> String:
+	# Returns the full break button text, e.g.:
+	#   "Break 1 sub  (1¢)"          — subs_per_use: 1
+	#   "Break up to 2 subs  (1¢ each)" — subs_per_use: 2
+	#   "Break all subs  (1¢ each)"  — subs_per_use: 0 (uncapped)
+	if ability_registry == null:
+		return "Break subs  (?)"
+	var bd_variant: Variant = ability_registry.get_break_for_ice(b.card_id, ice_subtypes)
+	if bd_variant == null:
+		return "Break subs  (?)"
+	var bd: Dictionary = bd_variant as Dictionary
+	var cap: int = bd.get("subs_per_use", 0)
+
+	# ── Sub-count prefix ─────────────────────────────────────────────────────
+	var prefix: String
+	match cap:
+		0:  prefix = "Break all subs"
+		1:  prefix = "Break 1 sub"
+		_:  prefix = "Break up to %d subs" % cap
+
+	# ── Cost suffix ──────────────────────────────────────────────────────────
+	var cost_str: String
+	if (bd.get("cost_virus_counter", 0) as int) > 0:
+		cost_str = "1 virus each" if cap != 1 else "1 virus"
+	elif (bd.get("cost_virus_counter_flat", 0) as int) > 0:
+		var fc: int = bd.get("cost_virus_counter_flat", 1)
+		cost_str = "%d virus flat" % fc
+	elif (bd.get("cost_power_counter_overhead", 0) as int) > 0:
+		var pc: int = bd.get("cost_power_counter_overhead", 1)
+		var cps: int = bd.get("cost_per_sub", 0)
+		cost_str = "%d pwr + %d¢ each" % [pc, cps] if cps > 0 else "%d pwr counter" % pc
+	elif bd.get("costs_stealth", false):
+		var cost: int = bd.get("cost_per_sub", 1)
+		cost_str = "%d stealth each" % cost if cap != 1 else "%d stealth" % cost
+	else:
+		var cost: int = bd.get("cost_per_sub", 1)
+		if cost == 0:
+			cost_str = "free"
+		elif cap == 1:
+			cost_str = "%d¢" % cost
+		else:
+			cost_str = "%d¢ each" % cost
+
+	return "%s  (%s)" % [prefix, cost_str]
+
+
+func _boost_cost_label(b: InstalledCard) -> String:
+	if ability_registry == null:
+		return "?"
+	var bd_variant: Variant = ability_registry.get_boost(b.card_id)
+	if bd_variant == null:
+		return "?"
+	var bd: Dictionary = bd_variant as Dictionary
+	var gain: int = bd.get("strength_gained", 1)
+
+	if (bd.get("cost_power_counter", 0) as int) > 0:
+		return "1 pwr → +%d str" % gain
+	if (bd.get("cost_trash_grip", 0) as int) > 0:
+		return "trash 1 → +%d str" % gain
+	if bd.get("costs_stealth", false):
+		var cost: int = bd.get("cost", 1)
+		return "%d stealth → +%d str" % [cost, gain]
+	if bd.get("strength_gained_modifier", "") == "installed_icebreaker_count":
+		var cost: int = bd.get("cost", 1)
+		return "%d¢ → +str/icebreaker" % cost
+	var cost: int = bd.get("cost", 1)
+	return "%d¢ → +%d str" % [cost, gain]

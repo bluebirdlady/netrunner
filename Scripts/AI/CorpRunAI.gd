@@ -338,7 +338,7 @@ const DEFER_MARGIN := 1.30   # alternative must be ≥30% better to justify hold
 func _better_rez_opportunity_exists(this_ice: InstalledCard, ctx: GameContext) -> bool:
 	var this_cost:     int   = ctx.query_rez_cost(this_ice)
 	var this_priority: float = _rez_value_per_credit(this_ice, ctx) * \
-	                           _server_threat_estimate(this_ice.server_id, ctx)
+							   _server_threat_estimate(this_ice.server_id, ctx)
 	var floor: int = _dynamic_credit_floor(ctx)
 
 	for server_entry in ctx.servers.values():
@@ -361,7 +361,7 @@ func _better_rez_opportunity_exists(this_ice: InstalledCard, ctx: GameContext) -
 
 			# We cannot afford both.  Compare priority scores.
 			var other_priority: float = _rez_value_per_credit(other, ctx) * \
-			                            _server_threat_estimate(other.server_id, ctx)
+										_server_threat_estimate(other.server_id, ctx)
 
 			if other_priority >= this_priority * DEFER_MARGIN:
 				_log("AI: deferring %s (pri=%.2f) — saving for %s on %s (pri=%.2f)" % [

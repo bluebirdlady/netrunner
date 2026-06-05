@@ -239,6 +239,19 @@ func _choose_action_impl(ctx: GameContext) -> GameAction:
 		if trap != null:
 			return GameAction.advance(trap.card_id)
 
+	# 12.6. §10.5.3 — Trash a runner resource while runner is tagged.
+	# Only fires when runner has a dangerous or high-value resource installed.
+	if ctx.runner_is_tagged() and ctx.corp_credits >= 2 and ctx.corp_clicks >= 1:
+		var resource_target := _find_best_runner_resource_to_trash(ctx)
+		if resource_target != null:
+			return GameAction.trash_runner_resource(
+				resource_target.runtime_instance_id, resource_target.card_id)
+
+	# 12.7. §10.1.2 — Purge virus counters when viral pressure crosses threshold.
+	# Costs 3 clicks — only fires when the threat justifies the investment.
+	if ctx.corp_clicks >= 3 and _should_purge_viruses(ctx):
+		return GameAction.purge_virus()
+
 	# 13. Play a beneficial operation (passing condition)
 	var best_op := _find_best_operation(ctx)
 	if best_op != null:
@@ -1069,6 +1082,46 @@ func _find_playable_operations(ctx: GameContext) -> Array:
 func _server_has_ice(ctx: GameContext, server_id: String) -> bool:
 	var server: Server = ctx.get_server(server_id)
 	return server != null and server.has_ice()
+
+
+# §10.5.3 — Find the most valuable runner resource to trash while runner is tagged.
+# Returns the InstalledCard to target, or null if no resources are installed or
+# the runner has no tags.
+func _find_best_runner_resource_to_trash(ctx: GameContext) -> InstalledCard:
+	if not ctx.runner_is_tagged():
+		return null
+	var best: InstalledCard = null
+	var best_cost: int = -1
+	for r in ctx.runner_rig:
+		var ic: InstalledCard = r as InstalledCard
+		if ic == null or ic.card_record == null:
+			continue
+		if ic.card_record.card_type != "resource":
+			continue
+		# Prefer higher-cost resources (proxy for value)
+		var c: int = max(0, ic.card_record.cost)
+		if c > best_cost:
+			best_cost = c
+			best = ic
+	return best
+
+
+# §10.1.2 — Decide whether to spend 3 clicks to purge virus counters.
+# Threshold: purge when total virus counters across the runner's rig exceed 4,
+# or when any single card has ≥ 3 counters (e.g. Fermenter, Conduit).
+func _should_purge_viruses(ctx: GameContext) -> bool:
+	var total := 0
+	for r in ctx.runner_rig:
+		var ic: InstalledCard = r as InstalledCard
+		if ic == null or ic.card_record == null:
+			continue
+		if not ic.card_record.has_subtype("virus"):
+			continue
+		var v: int = ic.get_counter("virus")
+		if v >= 3:
+			return true   # single dangerous card — purge immediately
+		total += v
+	return total > 4
 
 
 # Returns a GameAction for the Corp identity's click action if it is available

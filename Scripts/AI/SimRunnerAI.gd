@@ -216,6 +216,29 @@ func choose_derez_target(candidates: Array, _ctx: GameContext) -> InstalledCard:
 	return candidates[0] if not candidates.is_empty() else null
 
 
+func choose_programs_to_trash_for_mu(programs: Array, excess_mu: int, _ctx: GameContext) -> Array:
+	# §10.3.1e MU enforcement: trash fewest programs to bring MU back within limit.
+	# Sort by MU cost descending (trash high-MU first to minimise card loss), break
+	# ties by install cost ascending (prefer keeping expensive cards).
+	var scored: Array = []
+	for p in programs:
+		var c: InstalledCard = p as InstalledCard
+		if c == null or c.card_record == null:
+			continue
+		scored.append({"card": c, "mu": c.card_record.memory_cost,
+			"cost": max(0, c.card_record.cost)})
+	scored.sort_custom(func(a, b):
+		return a.mu > b.mu if a.mu != b.mu else a.cost < b.cost)
+	var result: Array = []
+	var freed := 0
+	for s in scored:
+		if freed >= excess_mu:
+			break
+		result.append(s.card)
+		freed += s.mu
+	return result
+
+
 func choose_discard_to_hand_limit(hand: Array, excess: int, _ctx: GameContext) -> Array:
 	# Discard cards of lowest strategic value first.
 	# Priority order (discard cheapest/lowest-type first):

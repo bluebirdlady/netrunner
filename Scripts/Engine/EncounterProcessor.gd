@@ -188,6 +188,21 @@ func _do_boost(action: Dictionary, encounter: EncounterState,
 			breaker.display_name(), encounter.get_breaker_strength(breaker)])
 		return true
 
+	# ── Power-counter boost (e.g. Propeller: 1 power counter → +2 str) ─────────
+	var pwr_boost_cost: int = boost_dict.get("cost_power_counter", 0)
+	if pwr_boost_cost > 0:
+		var needed: int = pwr_boost_cost * times
+		if breaker.get_counter("power") < needed:
+			ctx.send_log("[Encounter] Cannot boost %s — need %d power counter(s), have %d." % [
+				breaker.display_name(), needed, breaker.get_counter("power")])
+			return false
+		breaker.remove_counter("power", needed)
+		encounter.apply_boost(breaker, total_boost)
+		ctx.send_log("[Encounter] %s spends %d power counter(s): +%d str (now %d, %d counters left)." % [
+			breaker.display_name(), needed, total_boost,
+			encounter.get_breaker_strength(breaker), breaker.get_counter("power")])
+		return true
+
 	# ── Standard credit or stealth payment ───────────────────────────────────
 	var total_cost: int     = cost * times
 	var costs_stealth: bool = boost_dict.get("costs_stealth", false)

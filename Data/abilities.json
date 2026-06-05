@@ -1391,7 +1391,7 @@
 		"break": {
 			"subtype_restriction": "barrier",
 			"cost_per_sub": 1,
-			"subs_per_use": 1
+			"subs_per_use": 2
 		},
 		"boost": {
 			"cost": 2,
@@ -1954,9 +1954,9 @@
 	},
 
 	"wage_workers": {
-		"_note": "TAI Runner resource. When the runner has taken the same click-action type exactly 3 times this turn, gain 1 click.",
-		"wage_workers_threshold": {
-			"effects": [{"type": "gain_clicks", "params": {"subject": "runner", "amount": 1}}]
+		"_note": "TAI Corp asset (HB, Bioroid/Clone/Industrial, 2cr, trash 4, unique). Whenever the Corp finishes taking an action, if that action type has been taken exactly 3 times this turn, Corp gains 1 click. Tracked via corp_action_type_counts in GameContext; checked after each Corp action in TurnManager.",
+		"corp_action_taken": {
+			"effects": [{"type": "wage_workers_click_bonus"}]
 		}
 	},
 
@@ -4602,7 +4602,7 @@
 		}
 	},
 	"kompromat": {
-		"_note": "Runner event VP10. Remove from game. Run HQ or R&D. If run successful: Corp must derez 1 ice on the run server or take 1 bad pub.",
+		"_note": "Runner event VP10. Remove from game. Run any server protected by ice. If run successful: Corp must derez 1 ice on the run server or take 1 bad pub.",
 		"remove_from_game": true,
 		"on_play": {
 			"effects": [
@@ -4610,8 +4610,7 @@
 					"type": "choose_and_run",
 					"params": {
 						"servers": [
-							"hq",
-							"rd"
+							"iced"
 						]
 					}
 				},
@@ -5466,7 +5465,8 @@
 		},
 		"break": {
 			"subtype_restriction": "barrier",
-			"cost_power_counter": 1,
+			"cost_power_counter_overhead": 1,
+			"cost_per_sub": 0,
 			"subs_per_use": 2
 		},
 		"boost": {
@@ -6914,7 +6914,7 @@
 	},
 
 	"vovo_ozetti": {
-		"_note": "TAI Corp upgrade (Jinteki, 3/3). Rez discount -2cr for ice on same server (rez_discount_for_ice_on_same_server). Threat 4: -2cr for root cards on same server (rez_discount_for_root_on_same_server). Corp turn end: may move to another server (vovo_move_to_server).",
+		"_note": "TAI Corp upgrade (HB, 1cr, trash 2). Rez discount -2cr for ice on same server (rez_discount_for_ice_on_same_server). Threat 4: -2cr for root cards on same server (rez_discount_for_root_on_same_server). Corp turn end: may move to another server (vovo_move_to_server).",
 		"rez_discount_for_ice_on_same_server": 2,
 		"rez_discount_for_root_on_same_server": {
 			"amount": 2,
@@ -7009,14 +7009,10 @@
 	},
 
 	"b_1001": {
-		"_note": "TAI Runner resource (Criminal, Connection, 2cr). Once per turn, during a run against another server: remove 1 tag → end the run. remote_only enforces 'another server' (not a central).",
-		"run_paid_ability": {
+		"_note": "TAI Corp asset (Neutral, Bioroid Enforcer, 1cr, trash 3). Rezzed, once per turn: during a run against a remote server, Corp may remove 1 runner tag to end the run. Implemented as a before_breach cancel so access is prevented.",
+		"before_breach": {
 			"once_per_turn_key": "b1001_etr",
-			"remote_only": true,
-			"label": "B-1001: Remove 1 tag to end the run?",
-			"condition": {"type": "runner_is_tagged"},
-			"cost": {"remove_tag": 1},
-			"effects": [{"type": "end_run"}]
+			"effects": [{"type": "b1001_end_run_for_tag", "params": {}}]
 		}
 	},
 

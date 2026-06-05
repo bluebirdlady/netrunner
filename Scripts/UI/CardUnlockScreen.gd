@@ -222,7 +222,7 @@ func _show_card(idx: int) -> void:
 		_counter_label.text = "%d  /  %d" % [idx + 1, _cards.size()]
 
 	# Art — CardView handles async loading gracefully
-	_card_view.setup_with_record(record, true)
+	_card_view.setup(record, true)
 
 	# Faction colour
 	var faction_col: Color = FACTION_COLORS.get(record.faction, FACTION_DEFAULT)

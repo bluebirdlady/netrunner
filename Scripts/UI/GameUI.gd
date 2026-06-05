@@ -383,6 +383,13 @@ func _populate_action_menu() -> void:
 		_add_action_btn("Gain 1 Credit  (have %d¢)" % _ctx.runner_credits, GameAction.gain_credits())
 		_add_action_btn("Draw 1 Card  (have %d)" % _ctx.runner_hand.size(), GameAction.draw_card())
 
+		# §10.5.4 — Remove tag: [click] + 2cr, only while tagged and affordable.
+		if _ctx.runner_is_tagged() and _ctx.runner_credits >= 2:
+			_add_action_btn(
+				"Remove 1 Tag  (%d remaining)  [2¢]" % _ctx.runner_tags,
+				GameAction.remove_tag()
+			)
+
 		# Installed card click actions (e.g. Red Team)
 		var has_card_actions := false
 		for card in _ctx.runner_rig:
@@ -1981,7 +1988,7 @@ func show_pay_to_avoid_damage_prompt(cost: int, damage: int, damage_type: String
 	panel.add_child(vbox)
 
 	var lbl := Label.new()
-	lbl.text = "Corp plays Measured Response!\nPay %d cr to prevent %d %s damage?" % [
+	lbl.text = "Pay %d cr to prevent %d %s damage?" % [
 		cost, damage, damage_type.capitalize()
 	]
 	lbl.add_theme_font_size_override("font_size", 13)
@@ -2613,3 +2620,108 @@ func show_top_or_bottom_prompt(card: CardRecord, context_label: String) -> Strin
 
 	backdrop.queue_free()
 	return choice
+
+
+func show_mu_trash_prompt(programs: Array, excess_mu: int) -> Array:
+	# §10.3.1e — Runner must trash installed programs until MU is within limit.
+	# programs   — Array[InstalledCard] with memory_cost > 0
+	# excess_mu  — total MU that must be freed; player must select programs
+	#              whose combined memory_cost >= excess_mu.
+	var backdrop := ColorRect.new()
+	backdrop.color = Color(0, 0, 0, 0.6)
+	backdrop.set_anchors_preset(Control.PRESET_FULL_RECT)
+	backdrop.mouse_filter = Control.MOUSE_FILTER_STOP
+	add_child(backdrop)
+
+	var panel := PanelContainer.new()
+	panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	panel.custom_minimum_size = Vector2(540, 400)
+	backdrop.add_child(panel)
+
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 8)
+	panel.add_child(vbox)
+
+	var title := Label.new()
+	title.text = "Memory limit exceeded by %d MU — trash programs to free space." % excess_mu
+	title.add_theme_font_size_override("font_size", 15)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	vbox.add_child(title)
+
+	var counter_lbl := Label.new()
+	counter_lbl.text = "MU freed: 0 / %d needed" % excess_mu
+	counter_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	vbox.add_child(counter_lbl)
+
+	var scroll := ScrollContainer.new()
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.custom_minimum_size = Vector2(0, 260)
+	vbox.add_child(scroll)
+
+	var card_row := HBoxContainer.new()
+	card_row.add_theme_constant_override("separation", 6)
+	scroll.add_child(card_row)
+
+	var selected: Array = []
+	var freed_mu := 0
+
+	var confirm_btn := Button.new()
+	confirm_btn.text = "Confirm"
+	confirm_btn.disabled = true
+	confirm_btn.add_theme_font_size_override("font_size", 14)
+
+	for p in programs:
+		var prog: InstalledCard = p as InstalledCard
+		if prog == null or prog.card_record == null:
+			continue
+		var mu_cost: int = prog.card_record.memory_cost
+
+		var card_col := VBoxContainer.new()
+		card_col.custom_minimum_size = Vector2(90, 0)
+		card_row.add_child(card_col)
+
+		var cv := CardView.new()
+		if prog.card_record != null:
+			cv.setup(prog.card_record, true)
+		cv.custom_minimum_size = Vector2(80, 112)
+		card_col.add_child(cv)
+
+		var mu_lbl := Label.new()
+		mu_lbl.text = "%d MU" % mu_cost
+		mu_lbl.add_theme_font_size_override("font_size", 10)
+		mu_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		card_col.add_child(mu_lbl)
+
+		var btn := Button.new()
+		btn.text = "Trash"
+		btn.add_theme_font_size_override("font_size", 10)
+		btn.add_theme_color_override("font_color", Color(0.9, 0.3, 0.3))
+		card_col.add_child(btn)
+
+		var captured_prog := prog
+		var captured_mu   := mu_cost
+		btn.pressed.connect(func():
+			if selected.has(captured_prog):
+				selected.erase(captured_prog)
+				freed_mu -= captured_mu
+				btn.text = "Trash"
+				btn.add_theme_color_override("font_color", Color(0.9, 0.3, 0.3))
+			else:
+				selected.append(captured_prog)
+				freed_mu += captured_mu
+				btn.text = "✓ Trash"
+				btn.add_theme_color_override("font_color", Color(0.3, 0.9, 0.3))
+			counter_lbl.text = "MU freed: %d / %d needed" % [freed_mu, excess_mu]
+			confirm_btn.disabled = freed_mu < excess_mu
+		)
+
+	vbox.add_child(confirm_btn)
+	var done := false
+	confirm_btn.pressed.connect(func(): done = true)
+
+	while not done:
+		await get_tree().process_frame
+
+	backdrop.queue_free()
+	return selected
