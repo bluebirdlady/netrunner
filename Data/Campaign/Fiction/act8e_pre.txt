@@ -1,0 +1,24 @@
+SUSTAINING DIVERSITY
+by eniteris
+
+They did not build a machine. They built a framework.
+
+Issuaq Adaptics: Sustaining Diversity exists on paper in three orbital jurisdictions and in practice in none of them. Its registered purpose is environmental compliance consulting. Its actual purpose is the legal architecture that made every element of DEEP WATER possible: the extraction permits, the research licences, the incident-report classifications, the environmental waivers, the non-disclosure frameworks that sealed three crew deaths and a classified signal archive under the weight of legitimate paperwork.
+
+Dr. Keeling is here. Her personnel file lists this station as her current deployment. The signal archive from the Annex was transferred here four months ago under a classification code that does not exist in any public regulatory framework — which is how you know that Issuaq Adaptics created it.
+
+The station's filing system is the most comprehensive you have seen. Not because it is well-organised, but because it contains everything: every permit, every waiver, every memo that preceded a decision. The DEEP WATER authorisation chain runs six hundred documents deep, from the initial geological survey licence to the operational authority for the borehole.
+
+The borehole is listed as active. The depth counter in the operational status file reads 5,894 metres and is still counting.
+
+The filing system connects to a legal archive maintained on Heinlein orbital servers. The archive is accessible through the station relay — Issuaq's security model assumes that anyone who reaches this station has already cleared three prior authentication layers and can be trusted.
+
+You cleared them all.
+
+The relay opens in four minutes. Whatever the authorisation chain was built to hide is filed somewhere in this archive. You intend to find out what Issuaq Adaptics believes it has a licence to do at the bottom of the Atlantic Ocean.
+
+—
+
+TARGET: Issuaq Adaptics: Sustaining Diversity
+FACILITY: Issuaq Adaptics Regulatory Division, Atlantic Orbital Filing Station
+OBJECTIVE: Pull the DEEP WATER authorisation chain. Find what is at the end of it.

@@ -335,6 +335,11 @@ var runner_hand_size_bonus: int = 0   # added to base of 5
 var runner_core_damage_taken: int = 0
 
 # ── Parhelion fields ──────────────────────────────────────────────────────────
+# Issuaq Adaptics: card IDs that received an advancement counter this Corp turn.
+# Used to check whether a scored agenda was "advanced this turn."
+# Reset at the start of each Corp turn.
+var corp_advanced_this_turn: Array = []
+
 # Mark mechanic: central server the Runner identified as their mark this turn.
 # Empty string = no mark identified yet. Reset at the start of each Runner turn.
 var runner_mark_server: String = ""
@@ -347,6 +352,34 @@ var runner_nightmare_archive_count: int = 0
 # Distributed Tracing play condition: true if Runner stole an agenda last turn.
 # Captured at the start of the Corp turn; reset at the start of the Corp turn.
 var runner_stole_agenda_last_runner_turn: bool = false
+# Klevetnik: runtime_instance_ids of Runner resources whose abilities are disabled
+# until the end of the current Corp turn.  Populated by klevetnik_rez_trigger;
+# cleared at the start of each Corp turn.
+var klevetnik_disabled_iids: Array = []
+# Tsakhia "Bankhar" Gantulga: server the Runner has set as Bankhar's target this turn.
+# Empty string = Bankhar not active.  Cleared at the start of each Runner turn.
+var bankhar_chosen_server: String = ""
+# True after the first encounter on the Bankhar server has resolved this turn.
+# Cleared at the start of each Runner turn.
+var bankhar_first_encounter_done: bool = false
+
+# ── Midnight Sun fields ───────────────────────────────────────────────────────
+# Midnight-3 Arcology: when true the Corp skips their discard-to-hand-limit
+# phase this turn.  Set by the skip_corp_discard_step effect; reset each Corp turn.
+var corp_skip_discard_step_this_turn: bool = false
+# Ob Superheavy Logistics: true while TurnManager._do_install is executing so
+# the Ob identity trigger is not fired by trashes that happen during installation.
+var corp_is_installing: bool = false
+# Hákarl 1.0: while true, Runner cannot use paid abilities printed on bioroid ice
+# ([lose click]: break sub).  Set by hakarl_rez_trigger; reset at Corp turn start.
+var runner_bioroid_paid_abilities_suppressed: bool = false
+# Midnight Sun Sprint 4
+# Into the Depths: count of ice passed during the current run.
+# Reset to 0 at each run start by RunStateMachine.execute().
+var run_ice_passed_count: int = 0
+# Mitosis: IIDs of cards installed by Mitosis that cannot be scored or rezzed this turn.
+# Cleared at Corp turn start.
+var mitosis_restricted_instance_ids: Array = []
 
 var active_player:   String = "corp"
 var game_over:       bool   = false
@@ -738,13 +771,29 @@ func unregister_card_effects_except_event(instance_id: String, keep_event: Strin
 func query_rez_cost(card: InstalledCard) -> int:
 	var base_cost: int = card.card_record.cost if card.card_record else 0
 	base_cost = max(0, base_cost)
-	
-	var modifiers: Array = _state_modifiers.get("rez_cost", [])
+
 	var total_mod := 0
-	for mod in modifiers:
+
+	# Standard rez_cost modifiers (numeric, with optional conditions)
+	for mod in _state_modifiers.get("rez_cost", []):
 		if _evaluate_modifier_condition(mod["conditions"] as Dictionary, card):
 			total_mod += mod["value"] as int
-			
+
+	# Midnight Sun Ivik: rez cost reduced by 1 per currently-rezzed code gate ice.
+	# The modifier is registered on Ivik itself; only applies when rezzing Ivik.
+	for mod in _state_modifiers.get("rez_cost_reduction_per_rezzed_code_gate", []):
+		var d := mod as Dictionary
+		if d.get("card_instance_id", "") == card.runtime_instance_id:
+			total_mod -= count_rezzed_code_gate_ice()
+
+	# Midnight Sun Cat's Cradle: each code gate ice costs 1cr more to rez.
+	# The modifier is registered on Cat's Cradle (runner rig); applies globally to code gates.
+	if card.card_record != null and card.card_record.has_subtype("code_gate"):
+		for mod in _state_modifiers.get("corp_ice_rez_cost_increase_by_subtype", []):
+			var d := mod as Dictionary
+			if d.get("subtype", "") == "code_gate":
+				total_mod += d.get("value", 1) as int
+
 	return max(0, base_cost + total_mod)
 
 func _evaluate_modifier_condition(cond: Dictionary, card: InstalledCard) -> bool:
@@ -807,10 +856,26 @@ func _execute_player_trigger_queue(triggers: Array[Dictionary], player: String, 
 				continue   # already fired this turn — skip
 			once_per_turn_triggered[opt_full_key] = true
 
+		# Midnight Sun: Light the Fire — suppress abilities of root cards in the targeted server.
+		var ltf_server: String = run_modifiers.get("light_the_fire_server", "")
+		if ltf_server != "":
+			var ltf_trigger_iid: String = targeting_trigger.get("card_instance_id", "")
+			if ltf_trigger_iid != "":
+				var ltf_trigger_ic: InstalledCard = get_installed_card_by_instance_id(ltf_trigger_iid)
+				if ltf_trigger_ic != null and ltf_trigger_ic.zone == "root" \
+						and ltf_trigger_ic.server_id == ltf_server:
+					continue  # suppressed by Light the Fire
+
+		# Parhelion: Klevetnik — skip this card's abilities if it is currently suppressed.
+		var klev_iid: String = targeting_trigger.get("card_instance_id", "")
+		if klev_iid != "" and klevetnik_disabled_iids.has(klev_iid):
+			send_log("[Klevetnik] %s's abilities are suppressed — skipping trigger." % klev_iid)
+			continue
+
 		# Set transient variable — merge card's own instance_id so self-referencing
 		# effects (add_self_counters, etc.) can find the owning card
 		var merged_data: Dictionary = event_data.duplicate()
-		merged_data["card_instance_id"] = targeting_trigger.get("card_instance_id", "")
+		merged_data["card_instance_id"] = klev_iid
 		self.current_event_data = merged_data
 		await interpreter.execute_trigger(targeting_trigger["ability_def"] as Dictionary, self)
 
@@ -926,6 +991,9 @@ func query_dynamic_breaker_base(breaker: InstalledCard) -> int:
 				# Shibboleth (TAI): printed strength minus 2 at Threat 4.
 				var shib_base: int = breaker.card_record.strength if breaker.card_record != null else 4
 				return shib_base - (2 if threat_level() >= 4 else 0)
+			"core_damage_taken":
+				# Midnight Sun Begemot: strength equals runner's total core damage taken.
+				return runner_core_damage_taken
 	return -1
 
 
@@ -961,6 +1029,7 @@ func runner_max_hand_size() -> int:
 	return 5 + runner_hand_size_bonus - runner_core_damage_taken \
 		+ query_hackerspace_hand_size_bonus() \
 		+ query_hippocampic_hand_size_bonus() \
+		+ query_marrow_hand_size_bonus() \
 		- query_keeling_hand_size_penalty()
 
 
@@ -974,6 +1043,15 @@ func query_hippocampic_hand_size_bonus() -> int:
 	return bonus
 
 
+# Marrow (Midnight Sun): +3 max hand size while Marrow is installed in the rig.
+func query_marrow_hand_size_bonus() -> int:
+	for rig_c in runner_rig:
+		var ic: InstalledCard = rig_c as InstalledCard
+		if ic != null and ic.card_id == "marrow":
+			return 3
+	return 0
+
+
 # Dr. Vientiane Keeling (Parhelion): −1 max hand size per power counter on each rezzed copy.
 func query_keeling_hand_size_penalty() -> int:
 	var penalty := 0
@@ -984,6 +1062,56 @@ func query_keeling_hand_size_penalty() -> int:
 			if ic != null and ic.is_rezzed and ic.card_id == "dr_vientiane_keeling":
 				penalty += ic.get_counter("power")
 	return penalty
+
+
+# Tremolo (Parhelion): counts all installed Runner hardware with the "cybernetic" subtype.
+func count_installed_cybernetic_hardware() -> int:
+	var count := 0
+	for rig_c in runner_rig:
+		var ic: InstalledCard = rig_c as InstalledCard
+		if ic != null and ic.card_record != null \
+				and ic.card_record.card_type == "hardware" \
+				and ic.card_record.has_subtype("cybernetic"):
+			count += 1
+	return count
+
+
+# Pulse (Parhelion): counts all rezzed ice with the "harmonic" subtype across all servers.
+func count_rezzed_harmonic_ice() -> int:
+	var count := 0
+	for srv in servers.values():
+		var s: Server = srv as Server
+		for ice_c in s.ice:
+			var ic: InstalledCard = ice_c as InstalledCard
+			if ic != null and ic.is_rezzed and ic.card_record != null \
+					and ic.card_record.has_subtype("harmonic"):
+				count += 1
+	return count
+
+
+# Midnight Sun Ivik: count rezzed code gate ice across all Corp servers.
+func count_rezzed_code_gate_ice() -> int:
+	var count := 0
+	for srv in servers.values():
+		var s: Server = srv as Server
+		for ice_c in s.ice:
+			var ic: InstalledCard = ice_c as InstalledCard
+			if ic != null and ic.is_rezzed and ic.card_record != null \
+					and ic.card_record.has_subtype("code_gate"):
+				count += 1
+	return count
+
+
+# Midnight Sun Bathynomus: returns server-location-dependent strength bonus for ice.
+# Scans _state_modifiers["server_strength_bonus"] for this ice's instance_id.
+func query_server_strength_bonus(ice: InstalledCard) -> int:
+	var bonus := 0
+	for mod in _state_modifiers.get("server_strength_bonus", []):
+		var d := mod as Dictionary
+		if d.get("card_instance_id", "") == ice.runtime_instance_id \
+				and ice.server_id == d.get("server", "___never___"):
+			bonus += d.get("value", 0) as int
+	return bonus
 
 
 # Hackerspace (VP6): +2 max hand size while it hosts at least one companion AND one connection.
@@ -1014,49 +1142,59 @@ func get_credits(subject: String) -> int:
 	push_error("GameContext: unknown subject '%s'" % subject)
 	return 0
 
-# Total credits available to the runner including Overclock and bad publicity funds.
+# Total credits available to the runner including Overclock, Concerto, and bad publicity funds.
 func runner_available_credits() -> int:
 	return runner_credits \
 		+ run_modifiers.get("overclock_credits", 0) \
+		+ run_modifiers.get("concerto_credits", 0) \
 		+ run_modifiers.get("bad_pub_credits", 0)
 
 # Spend runner credits, drawing from Overclock → bad pub → own pool in order.
 # Both Overclock and bad pub are "outside the credit pool" for Shackleton Grid.
 # Returns false if insufficient total credits.
 func runner_spend_credits(amount: int) -> bool:
-	var overclock: int = run_modifiers.get("overclock_credits", 0)
-	var bad_pub:   int = run_modifiers.get("bad_pub_credits",   0)
-	var total: int     = runner_credits + overclock + bad_pub
+	var overclock:  int = run_modifiers.get("overclock_credits",  0)
+	var concerto:   int = run_modifiers.get("concerto_credits",   0)
+	var bad_pub:    int = run_modifiers.get("bad_pub_credits",    0)
+	var total: int      = runner_credits + overclock + concerto + bad_pub
 	if total < amount:
 		return false
 
 	var remaining: int = amount
 
-	# 1. Drain Overclock first
+	# 1. Drain Overclock first (run-event outside credits)
 	var from_overclock: int = min(remaining, overclock)
 	run_modifiers["overclock_credits"] = overclock - from_overclock
 	remaining -= from_overclock
 	if from_overclock > 0 and run_active:
 		runner_outside_credits_spent_pending += from_overclock
 
-	# 2. Drain bad publicity fund
+	# 2. Drain Concerto credits (run-event outside credits)
+	var from_concerto: int = min(remaining, concerto)
+	run_modifiers["concerto_credits"] = concerto - from_concerto
+	remaining -= from_concerto
+	if from_concerto > 0 and run_active:
+		runner_outside_credits_spent_pending += from_concerto
+
+	# 3. Drain bad publicity fund
 	var from_bad_pub: int = min(remaining, bad_pub)
 	run_modifiers["bad_pub_credits"] = bad_pub - from_bad_pub
 	remaining -= from_bad_pub
 	if from_bad_pub > 0 and run_active:
 		runner_outside_credits_spent_pending += from_bad_pub
 
-	# 3. Drain own credit pool
+	# 4. Drain own credit pool
 	runner_credits -= remaining
 	return true
 
 
 # ── Recurring credit helpers ──────────────────────────────────────────────────
 
-# Total credits available for trash costs: own pool + Overclock + bad pub + Azimat recurring.
+# Total credits available for trash costs: own pool + Overclock + Concerto + bad pub + Azimat recurring.
 func runner_trash_credits_available() -> int:
 	var total: int = runner_credits \
 		+ run_modifiers.get("overclock_credits", 0) \
+		+ run_modifiers.get("concerto_credits", 0) \
 		+ run_modifiers.get("bad_pub_credits", 0)
 	for mod in _state_modifiers.get("runner_trash_recurring_credits", []):
 		var d := mod as Dictionary
@@ -1401,10 +1539,20 @@ func clone_for_sim() -> GameContext:
 	c.once_per_turn_triggered  = once_per_turn_triggered.duplicate()
 
 	# Parhelion fields
+	c.corp_advanced_this_turn           = corp_advanced_this_turn.duplicate()
 	c.runner_mark_server                = runner_mark_server
 	c.runner_breached_mark_this_turn    = runner_breached_mark_this_turn
 	c.runner_nightmare_archive_count    = runner_nightmare_archive_count
 	c.runner_stole_agenda_last_runner_turn = runner_stole_agenda_last_runner_turn
+	c.klevetnik_disabled_iids              = klevetnik_disabled_iids.duplicate()
+	c.bankhar_chosen_server               = bankhar_chosen_server
+	c.bankhar_first_encounter_done        = bankhar_first_encounter_done
+	# Midnight Sun
+	c.corp_skip_discard_step_this_turn          = corp_skip_discard_step_this_turn
+	c.corp_is_installing                        = corp_is_installing
+	c.runner_bioroid_paid_abilities_suppressed  = runner_bioroid_paid_abilities_suppressed
+	c.run_ice_passed_count                      = run_ice_passed_count
+	c.mitosis_restricted_instance_ids           = mitosis_restricted_instance_ids.duplicate()
 
 	# Transient execution fields — always reset for sim
 	c.current_event_data              = {}

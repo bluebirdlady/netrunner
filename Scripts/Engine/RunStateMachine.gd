@@ -70,6 +70,7 @@ func execute(server_id: String) -> void:
 	ctx.run_ended         = false
 	ctx.run_successful    = false
 	ctx.run_target_server = server_id
+	ctx.run_ice_passed_count = 0              # reset for Into the Depths
 	ctx.runner_stole_agenda_this_run = false   # reset for AMAZE Amusements
 	ctx.run_accessed_archives_card_ids = []    # reset for Charm Offensive
 	ctx.run_level_strength_boosts      = {}    # reset for GAMEDRAGON Pro pump persistence
@@ -342,6 +343,20 @@ func _phase_encounter_ice(ice_card: InstalledCard) -> void:
 			for _dyn_i in range(_dyn_n):
 				subroutines.append(_dyn_sub.duplicate(true))
 
+	# Midnight Sun: Echo / Envelopment — prepend N "End the run." subroutines
+	# where N equals the ice's current power counter count.
+	if _dyn_ab.get("dynamic_etr_subs_from_counters", false) and ice_card.is_rezzed:
+		var _etr_count: int = ice_card.get_counter("power")
+		var _etr_sub: Dictionary = {
+			"label": "End the run.",
+			"effects": [{"type": "end_run"}]
+		}
+		for _etr_i in range(_etr_count):
+			subroutines.push_front(_etr_sub.duplicate(true))
+		if _etr_count > 0:
+			ctx.send_log("[Encounter] %s: %d dynamic ETR sub(s) from power counters." % [
+				ice_card.display_name(), _etr_count])
+
 	if subroutines.is_empty():
 		ctx.send_log("[Encounter] %s has no implemented subroutines — treating as blank." % ice_card.display_name())
 		# Still open a PAW even for blank ice
@@ -370,6 +385,22 @@ func _phase_encounter_ice(ice_card: InstalledCard) -> void:
 		if ice_card.runtime_instance_id in _enc_brasilia_boosted:
 			encounter.ice_strength += 3
 			ctx.send_log("[Encounter] %s: +3 str (Brasilia Government Grid)." % ice_card.display_name())
+
+		# Midnight Sun Bathynomus: server-location-dependent strength bonus.
+		if ctx.has_method("query_server_strength_bonus"):
+			var _bath_bonus: int = ctx.query_server_strength_bonus(ice_card)
+			if _bath_bonus != 0:
+				encounter.ice_strength += _bath_bonus
+				ctx.send_log("[Encounter] %s: +%d str (server bonus in %s)." % [
+					ice_card.display_name(), _bath_bonus, ice_card.server_id.to_upper()])
+
+		# Midnight Sun Stavka: if run_modifiers has a stavka str bonus for this ice, apply it.
+		var _stavka_key: String = "stavka_str_" + ice_card.runtime_instance_id
+		var _stavka_bonus: int = ctx.run_modifiers.get(_stavka_key, 0)
+		if _stavka_bonus > 0:
+			encounter.ice_strength += _stavka_bonus
+			ctx.send_log("[Encounter] %s: +%d str (Stavka rez bonus)." % [
+				ice_card.display_name(), _stavka_bonus])
 
 		# Logjam (and similar): ice strength = base + advancement counters on this ice.
 		if ability_registry.get_flag(ice_card.card_id, "str_from_advance_tokens"):
@@ -449,6 +480,19 @@ func _phase_encounter_ice(ice_card: InstalledCard) -> void:
 		if _enc_ice_pab != null:
 			ctx.corp_ice_trash_abilities_available = [{"card": ice_card, "ability": _enc_ice_pab as Dictionary}]
 
+		# Parhelion: ZATO City Grid — grant each ice a trash-to-fire-sub ability.
+		# Check if this server has a rezzed ZATO City Grid in root.
+		for _zato_root in _target_server.root:
+			var _zato_ic: InstalledCard = _zato_root as InstalledCard
+			if _zato_ic == null or not _zato_ic.is_rezzed or _zato_ic.card_id != "zato_city_grid":
+				continue
+			# Dynamically add ZATO's ice-trash ability for this encounter.
+			ctx.corp_ice_trash_abilities_available.append({
+				"card": ice_card,
+				"ability": {"type": "zato_trash_for_sub", "source": "zato_city_grid"}
+			})
+			break
+
 		emit_signal("encounter_started", encounter)
 
 		# NSG 6.5.3.b: symmetric PAW — both players use paid abilities; runner may also break subs
@@ -495,7 +539,23 @@ func _phase_encounter_ice(ice_card: InstalledCard) -> void:
 			# Set event_data so self-referencing subroutine effects (e.g. place_virus_counter_on_self)
 			# can find the ice card by instance_id.
 			ctx.current_event_data = {"card": ice_card, "card_instance_id": ice_card.runtime_instance_id}
-			await interpreter.execute_subroutine(subroutines[i] as Dictionary, ctx)
+
+			# ── Parhelion: Tsakhia Bankhar — replace sub with 1 net damage ────────
+			var _bkh_sub_replaced := false
+			if ctx.bankhar_chosen_server != "" and not ctx.bankhar_first_encounter_done \
+					and ice_card.server_id == ctx.bankhar_chosen_server:
+				_bkh_sub_replaced = true
+				ctx.send_log("[Bankhar] Sub replaced with 1 net damage.")
+				await interpreter.execute_trigger(
+					{"effects": [{"type": "deal_damage", "params": {"damage_type": "net", "amount": 1}}]}, ctx)
+			else:
+				await interpreter.execute_subroutine(subroutines[i] as Dictionary, ctx)
+
+			# Raindrops Cut Stone: count every resolved subroutine (including ETR subs)
+			if ctx.run_modifiers.get("raindrops_active", false):
+				ctx.run_modifiers["raindrops_counter"] = \
+					ctx.run_modifiers.get("raindrops_counter", 0) + 1
+
 			ctx.current_event_data = {}
 
 			if ctx.run_ended:
@@ -516,6 +576,10 @@ func _phase_encounter_ice(ice_card: InstalledCard) -> void:
 				return
 
 		ctx.runner_cannot_spend_credits_during_sub_resolution = false
+
+		# Parhelion: Tsakhia Bankhar — mark the first encounter as done after this encounter.
+		if ctx.bankhar_chosen_server != "" and ice_card.server_id == ctx.bankhar_chosen_server:
+			ctx.bankhar_first_encounter_done = true
 
 		# Determine if all subroutines were broken (for VP23 Sipa pass_ice condition)
 		_all_subs_broken_for_pass = true
@@ -545,6 +609,7 @@ func _phase_movement() -> void:
 	# Notify passing milestone effects; track that runner has cleared at least one ice
 	if _ice_index < _ice_positions.size():
 		_has_passed_ice = true
+		ctx.run_ice_passed_count += 1  # Midnight Sun: Into the Depths — track ice passed count
 		var pass_is_outermost: bool        = (_ice_index == 0)
 		var pass_all_subs_broken: bool     = ctx.run_modifiers.get("last_ice_all_subs_broken", false)
 		var pass_broken_with_decoder: bool = ctx.run_modifiers.get("last_ice_broken_with_decoder", false)
@@ -728,6 +793,32 @@ func _phase_success() -> void:
 		# to pay 0 because the +6 happened after the display refresh).
 		emit_signal("run_succeeded", _target_server.server_id)
 
+	# Midnight Sun: Light the Fire — on successful run, trash all root cards of targeted server.
+	# Fires before breach so that by the time the runner accesses, all root cards are already gone.
+	if ctx.run_successful and ctx.run_modifiers.has("light_the_fire_server"):
+		var ltf_svr: String = ctx.run_modifiers["light_the_fire_server"]
+		ctx.run_modifiers.erase("light_the_fire_server")
+		var ltf_s: Server = ctx.get_server(ltf_svr)
+		if ltf_s != null:
+			for ltf_ic_any in ltf_s.root.duplicate():
+				var ltf_ic: InstalledCard = ltf_ic_any as InstalledCard
+				if ltf_ic == null:
+					continue
+				ltf_s.root.erase(ltf_ic)
+				var ltf_was_rezzed: bool = ltf_ic.is_rezzed
+				var ltf_rez_cost: int    = ltf_ic.card_record.cost if ltf_ic.card_record else 0
+				ctx.unregister_all_card_effects(ltf_ic.runtime_instance_id)
+				if ltf_ic.card_record != null:
+					ctx.corp_discard.append(ltf_ic.card_record)
+				ctx.send_log("[Light the Fire] %s trashed." % ltf_ic.display_name())
+				# Fire Ob trigger if rezzed
+				if ltf_was_rezzed and not ctx.corp_is_installing:
+					await ctx.notify_event("corp_trashes_own_rezzed_card", {
+						"card_id": ltf_ic.card_id,
+						"rez_cost": ltf_rez_cost,
+						"server_id": ltf_svr
+					}, interpreter)
+
 	# Red Team payout: take hosted credits before breach
 	if ctx.has_meta("red_team_pending_payout"):
 		var payout: Dictionary = ctx.get_meta("red_team_pending_payout") as Dictionary
@@ -787,6 +878,15 @@ func _phase_success() -> void:
 			await interpreter._execute_effect({"type": "privileged_access_install", "params": {"threat3": pa_threat3}}, ctx, null)
 		else:
 			await _breach_server()
+	# ── Midnight Sun: Chastushka — substitute breach with sabotage N ─────────────
+	elif ctx.run_modifiers.has("substitute_breach_sabotage"):
+		var chst_amount: int = ctx.run_modifiers.get("substitute_breach_sabotage", 0) as int
+		ctx.run_modifiers.erase("substitute_breach_sabotage")
+		ctx.send_log("[Chastushka] Instead of breaching %s, sabotage %d." % [
+			_target_server.display_name(), chst_amount])
+		await interpreter._execute_effect({
+			"type": "sabotage", "params": {"amount": chst_amount}
+		}, ctx, null)
 	else:
 		await _breach_server()
 
@@ -879,6 +979,26 @@ func _phase_end() -> void:
 	var bp_remaining: int = ctx.run_modifiers.get("bad_pub_credits", 0) as int
 	if bp_remaining > 0:
 		ctx.send_log("[Bad Pub] %d unspent bad publicity credit(s) returned to the bank." % bp_remaining)
+
+	# Parhelion: Concerto — return any unspent Concerto credits to the bank.
+	var concerto_remaining: int = ctx.run_modifiers.get("concerto_credits", 0) as int
+	if concerto_remaining > 0:
+		ctx.send_log("[Concerto] %d unspent Concerto credit(s) returned to the bank." % concerto_remaining)
+
+	# Parhelion: Raindrops Cut Stone — at run end, draw 1 per counter and gain 3cr.
+	if ctx.run_modifiers.get("raindrops_active", false):
+		var rd_count: int = ctx.run_modifiers.get("raindrops_counter", 0) as int
+		if rd_count > 0:
+			ctx.send_log("[Raindrops Cut Stone] Run ended with %d resolved sub(s) — drawing %d card(s) and gaining 3cr." % [
+				rd_count, rd_count])
+			for _rd_i in range(rd_count):
+				if not ctx.runner_deck.is_empty():
+					var rd_card: CardRecord = ctx.runner_deck.pop_front() as CardRecord
+					if rd_card != null:
+						ctx.runner_hand.append({"card_id": rd_card.id, "card_record": rd_card})
+			ctx.runner_credits += 3
+		else:
+			ctx.send_log("[Raindrops Cut Stone] No subroutines resolved this run — no payoff.")
 
 	ctx.run_modifiers = {}   # clear all run-scoped modifiers (including bad_pub_credits)
 
@@ -1149,9 +1269,10 @@ func _access_card(card: Variant) -> void:
 						server.remove_from_root(installed)
 					ctx.corp_discard.append(card_record)
 					ctx.send_log("Carnivore: trashes %s." % card_record.title)
-					# Fire Loup trigger
+					
 					await ctx.notify_event("runner_trashes_during_breach", {
-						"card_id": card_record.id
+						"card_id":   card_record.id,
+						"server_id": (card as InstalledCard).server_id if card is InstalledCard else ""
 					}, interpreter)
 				# Skip normal steal/trash flow for this card
 				var _outcome_c := "accessed"
@@ -1210,7 +1331,8 @@ func _access_card(card: Variant) -> void:
 					else:
 						ctx.send_log("Gourmand: stack is empty — no draw.")
 					await ctx.notify_event("runner_trashes_during_breach", {
-						"card_id": card_record.id
+						"card_id":   card_record.id,
+						"server_id": (card as InstalledCard).server_id if card is InstalledCard else ""
 					}, interpreter)
 					var _outcome_gm := "accessed"
 					emit_signal("card_accessed", card_record, _outcome_gm)
@@ -1260,8 +1382,10 @@ func _access_card(card: Variant) -> void:
 					if not lmp_inst.is_rezzed:
 						ctx.corp_discard_facedown[card_record.title] = true
 				ctx.corp_discard.append(card_record)
-				await ctx.notify_event("runner_trashes_during_breach",
-					{"card_id": card_id}, interpreter)
+				await ctx.notify_event("runner_trashes_during_breach", {
+					"card_id":   card_id,
+					"server_id": (card as InstalledCard).server_id if card is InstalledCard else ""
+				}, interpreter)
 				var _lmp_outcome := "trashed"
 				emit_signal("card_accessed", card_record, _lmp_outcome)
 				if ctx.has_meta("on_card_display_done"):
@@ -1303,7 +1427,10 @@ func _access_card(card: Variant) -> void:
 					ctx.corp_discard_facedown[card_record.title] = true
 			ctx.corp_discard.append(card_record)
 			ctx.send_log("Eye for an Eye: trashes %s." % card_record.title)
-			await ctx.notify_event("runner_trashes_during_breach", {"card_id": card_id}, interpreter)
+			await ctx.notify_event("runner_trashes_during_breach", {
+				"card_id":   card_id,
+				"server_id": (card as InstalledCard).server_id if card is InstalledCard else ""
+			}, interpreter)
 			var _efa_outcome := "accessed"
 			emit_signal("card_accessed", card_record, _efa_outcome)
 			if ctx.has_meta("on_card_display_done"):
@@ -1480,6 +1607,33 @@ func _steal_agenda(card_record: CardRecord, source: Variant = null) -> void:
 		"server_id":  stolen_server_id
 	}, interpreter)
 
+	# Parhelion — Thule Subsea: Safety Below identity.
+	# Whenever the Runner steals an agenda: do 1 core damage unless Runner
+	# spends [click] and 2cr.
+	if not ctx.game_over and ctx.corp_identity != null and \
+			ctx.corp_identity.id == "thule_subsea_safety_below":
+		var thule_prevented := false
+		var thule_has_click: bool  = ctx.runner_clicks >= 1
+		var thule_has_creds: bool  = ctx.runner_credits >= 2
+		if thule_has_click and thule_has_creds:
+			if ctx.runner_decision_maker != null and \
+					ctx.runner_decision_maker.has_method("choose_optional_ability"):
+				thule_prevented = await ctx.runner_decision_maker.choose_optional_ability(
+					"Thule Subsea: spend 1[click] and 2[credit] to prevent 1 core damage?", ctx)
+			else:
+				thule_prevented = true   # AI default: pay to prevent
+		if thule_prevented:
+			ctx.runner_clicks  -= 1
+			ctx.runner_credits -= 2
+			ctx.send_log("[Thule Subsea] %s spends 1[click] and 2cr — core damage prevented." % \
+				ctx.runner_name())
+		else:
+			ctx.send_log("[Thule Subsea] %s takes 1 core damage." % ctx.runner_name())
+			await interpreter.execute_trigger({
+				"effects": [{"type": "deal_damage",
+					"params": {"damage_type": "core", "amount": 1}}]
+			}, ctx)
+
 	# Check if runner has won by stealing this agenda
 	if ctx.runner_agenda_points() >= ctx.agenda_points_to_win:
 		ctx.send_log("Runner wins by stealing agendas!")
@@ -1608,9 +1762,13 @@ func _offer_trash(card: Variant, card_record: CardRecord) -> void:
 			ctx.corp_deck.erase(card)
 		ctx.corp_discard.append(card_record)
 
-		# Fire trash-during-breach event (Loup identity ability)
+		# Fire trash-during-breach event (Loup, Yakov Avdakov, Hostile Architecture, etc.)
+		var _rtb_server_id: String = ""
+		if card is InstalledCard:
+			_rtb_server_id = (card as InstalledCard).server_id
 		await ctx.notify_event("runner_trashes_during_breach", {
-			"card_id": card_record.id
+			"card_id":   card_record.id,
+			"server_id": _rtb_server_id
 		}, interpreter)
 
 
@@ -1725,6 +1883,30 @@ func _rez_card(card: InstalledCard) -> void:
 			else:
 				ctx.send_log("[Rez] %s cannot pay additional rez cost — run out of options." % record.title)
 				return
+
+		elif arc_type == "derez_harmonic_ice":
+			# Bloop: Corp must derez another rezzed harmonic ice to rez Bloop.
+			var arc_harmonic_candidates: Array = []
+			for arc_bsrv in ctx.servers.values():
+				for arc_bice in (arc_bsrv as Server).ice:
+					var arc_bic: InstalledCard = arc_bice as InstalledCard
+					if arc_bic == null or not arc_bic.is_rezzed \
+							or arc_bic.runtime_instance_id == card.runtime_instance_id:
+						continue
+					if arc_bic.card_record != null and arc_bic.card_record.has_subtype("harmonic"):
+						arc_harmonic_candidates.append(arc_bic)
+			if arc_harmonic_candidates.is_empty():
+				ctx.send_log("[Rez] %s requires derezzing another rezzed harmonic ice — none available." % \
+					record.title)
+				return
+			var arc_derez_target: InstalledCard = null
+			if ctx.corp_decision_maker != null and ctx.corp_decision_maker.has_method("choose_derez_target"):
+				arc_derez_target = await ctx.corp_decision_maker.choose_derez_target(
+					arc_harmonic_candidates, ctx)
+			if arc_derez_target == null:
+				arc_derez_target = arc_harmonic_candidates[0] as InstalledCard
+			arc_derez_target.is_rezzed = false
+			ctx.send_log("[Bloop] %s derezzed as additional rez cost." % arc_derez_target.display_name())
 
 	# Corp may supplement corp credits with Mahkota Langit Grid recurring credits on this server
 	var rez_server_id: String = card.server_id
@@ -2060,6 +2242,52 @@ func _shred_check_etr_prevention() -> bool:
 	return false   # Corp paid — ETR stands
 
 
+# ── Parhelion: ZATO City Grid ─────────────────────────────────────────────────
+
+func _process_zato_trash_for_sub(ice_card: InstalledCard) -> void:
+	# Corp activates ZATO City Grid's dynamic ability on the encountered ice:
+	# trash this ice to resolve 1 chosen subroutine on it.
+	if ice_card == null or ice_card.card_record == null:
+		ctx.send_log("[ZATO] No valid ice to trash.")
+		return
+
+	var zato_subs: Array = ability_registry.get_subroutines_for_card(ice_card.card_id, ice_card)
+	if zato_subs.is_empty():
+		ctx.send_log("[ZATO] %s has no subroutines to resolve." % ice_card.display_name())
+		return
+
+	# Corp chooses which subroutine to resolve.
+	var zato_sub_index: int = 0
+	if ctx.corp_decision_maker != null and ctx.corp_decision_maker.has_method("choose_modes"):
+		var zato_choices: Array = []
+		for i in range(zato_subs.size()):
+			var sub_def: Dictionary = zato_subs[i] as Dictionary
+			zato_choices.append({"label": sub_def.get("label", "Sub %d" % i)})
+		var zato_chosen: Array = await ctx.corp_decision_maker.choose_modes(zato_choices, 1, ctx)
+		if not zato_chosen.is_empty():
+			zato_sub_index = clamp(int(zato_chosen[0]), 0, zato_subs.size() - 1)
+
+	var zato_sub_def: Dictionary = zato_subs[zato_sub_index] as Dictionary
+	ctx.send_log("[ZATO City Grid] Corp trashes %s to resolve '%s'." % [
+		ice_card.display_name(), zato_sub_def.get("label", "sub %d" % zato_sub_index)])
+
+	# Trash the ice.
+	var zato_server: Server = ctx.get_server(ice_card.server_id)
+	if zato_server != null:
+		zato_server.ice.erase(ice_card)
+		ctx.remove_empty_remote_servers()
+	ctx.unregister_all_card_effects(ice_card.runtime_instance_id)
+	if ice_card.card_record != null:
+		ctx.corp_discard.append(ice_card.card_record)
+		ctx.corp_discard_facedown[ice_card.card_record.title] = true
+	ctx.corp_ice_trash_abilities_available = []  # consumed
+
+	# Resolve the chosen subroutine.
+	ctx.current_event_data = {"card": ice_card, "card_instance_id": ice_card.runtime_instance_id}
+	await interpreter.execute_subroutine(zato_sub_def, ctx)
+	ctx.current_event_data = {}
+
+
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 func _set_phase(phase: Phase) -> void:
@@ -2230,7 +2458,7 @@ func _execute_encounter_window(encounter: EncounterState) -> void:
 func _process_window_action(action: GameAction, actor: String, can_rez_ice: bool) -> void:
 	match action.type:
 		"use_ice_trash_ability":
-			# Corp activates an ice's trash-self paid ability (e.g. M.I.C.).
+			# Corp activates an ice's trash-self paid ability (e.g. M.I.C., ZATO City Grid).
 			# 1. Remove the ice from its server.
 			# 2. Execute the ability's effects (e.g. runner_click_or_etr).
 			if actor != "corp":
@@ -2243,6 +2471,21 @@ func _process_window_action(action: GameAction, actor: String, can_rez_ice: bool
 			var ita_card_id: String = ita_card.card_id
 			var ita_ability: Dictionary = ability_registry._abilities.get(ita_card_id, {}) \
 				.get("ice_paid_ability", {}) as Dictionary
+
+			# If no ability found in registry, look for a dynamically-injected ability
+			# (e.g., ZATO City Grid grants ice a trash-for-sub ability at runtime).
+			if ita_ability.is_empty():
+				for _ita_av in ctx.corp_ice_trash_abilities_available:
+					var _ita_av_card: InstalledCard = _ita_av.get("card") as InstalledCard
+					if _ita_av_card != null and _ita_av_card.runtime_instance_id == ita_iid:
+						ita_ability = _ita_av.get("ability", {}) as Dictionary
+						break
+
+			# ── Parhelion: ZATO City Grid dynamic ability ──────────────────────────
+			if ita_ability.get("type", "") == "zato_trash_for_sub":
+				await _process_zato_trash_for_sub(ita_card)
+				return
+
 			if ita_ability.is_empty():
 				ctx.send_log("[ice_paid_ability] No ability defined on %s." % ita_card.display_name())
 				return

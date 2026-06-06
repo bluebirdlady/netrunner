@@ -1,0 +1,22 @@
+PRESSURE TEST
+by eniteris
+
+The incident report for Platform Gamma-7 lists three cause-of-death entries: decompression sickness, equipment failure, and acute cardiac event. Each is filed separately. Each is signed by a different Jinteki physician. Each is dated the same week.
+
+The platform sits on the surface, but its data runs deep. The operation logs descend in real time from the drilling head — depth readings, pressure telemetry, drill-string torque — and all of it routes through a secure partition that Thule calls the Pressure Archive. They use the same word for the data and the environment it describes. You do not think this is an accident.
+
+You have spent the last six hours mapping the platform's architecture from the relay data you pulled. The security model is layered the same way the ocean is layered: warm and accessible near the surface, cold and lethal at depth. The upper partitions handle routine operations — crew manifests, logistics, surface communications. Below that, the drilling data. Below that, something the partition labels only as SUBLEVEL.
+
+The crew who logged the SUBLEVEL entries were the three who died.
+
+You are running this from a floating transit hub two hundred kilometres away. The connection is low-latency and the maintenance window is twelve hours out. You have time to be careful.
+
+You have read the depth readings. You know what pressure does at six kilometres. You know what it does to equipment. You know what it does to people.
+
+You pull up the drilling logs and start counting downward.
+
+—
+
+TARGET: Thule Subsea: Safety Below
+FACILITY: Extraction Platform Gamma-7, Atlantic Deep Water
+OBJECTIVE: Access the Pressure Archive. Retrieve the SUBLEVEL data and the full drilling telemetry.

@@ -1,0 +1,24 @@
+SPECIMEN RECOVERY
+by eniteris
+
+The abyssal station has no official name. The routing tables call it NODE-J-7. The Jinteki internal comms call it the Annex. The three dead crew members called it nothing, because they never made it back from the week they spent there.
+
+It was built to monitor. That is the stated purpose — passive acoustic monitoring of geological activity in the mid-Atlantic ridge system, maintained by a Jinteki subsidiary under an environmental research licence. The licence is legitimate. The environmental research has not been conducted.
+
+The station's data partition has seven tiers. The first four are routine: sensor logs, atmospheric data, crew health records. The fifth tier is the DEEP WATER research archive. The sixth tier is labelled SPECIMEN LOG, and the access record shows it has been read four hundred and thirty-seven times in the last three months by a single user ID — a Jinteki physician named Dr. Keeling, whose personnel file you found in the HB medical database with a classification flag that should not exist on a medical record.
+
+The seventh tier has no label.
+
+You have learned not to assume that unlabelled tiers contain nothing of interest. In the cases where they contain nothing, you have lost very little. In the cases where they contain something, you have gained a great deal.
+
+The station network runs through a Jinteki relay in the ridge monitoring grid. Low bandwidth, high latency. But the archive partition runs on a separate uplink — faster, more direct, installed eighteen months ago when the research classification changed.
+
+You connect to the uplink.
+
+You start counting tiers.
+
+—
+
+TARGET: Jinteki: Restoring Humanity
+FACILITY: Jinteki Abyssal Research Station, Atlantic Mid-Ocean Ridge
+OBJECTIVE: Recover the SPECIMEN LOG and breach the seventh tier of the research archive.

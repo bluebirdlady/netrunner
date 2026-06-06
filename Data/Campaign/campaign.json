@@ -368,12 +368,103 @@
 			"fiction_pre": "act7f_pre",
 			"fiction_post": "act7f_post",
 			"opponent_id": "synapse_signal_economy",
-			"unlocks_missions": [],
+			"unlocks_missions": ["act8a_deep_survey"],
 			"unlocks_cards": [
 				"mercury_chrome_libertador", "arissana_rocha_nahu_street_artist",
 				"joy_ride"
 			],
 			"prerequisite_missions": ["act7d_nuvem_amazon", "act7e_epiphany_brasilia"]
+		},
+
+		{
+			"id": "act8a_deep_survey",
+			"title": "Foundation Stones",
+			"subtitle": "Deep Survey Corp. Atlantic Relay Node 7, Mid-Atlantic Surface",
+			"act": 8,
+			"ai_level": 3,
+			"fiction_pre": "act8a_pre",
+			"fiction_post": "act8a_post",
+			"opponent_id": "deep_survey_co",
+			"unlocks_missions": ["act8b_thule_drilling", "act8c_hb_deep_research"],
+			"unlocks_cards": [
+				"num", "nanuq", "katorga_breakout", "info_bounty", "reprise"
+			],
+			"prerequisite_missions": ["act7f_synapse_broadcast"]
+		},
+		{
+			"id": "act8b_thule_drilling",
+			"title": "Pressure Test",
+			"subtitle": "Thule Subsea Extraction Platform Gamma-7, Atlantic Deep Water",
+			"act": 8,
+			"ai_level": 3,
+			"fiction_pre": "act8b_pre",
+			"fiction_post": "act8b_post",
+			"opponent_id": "thule_subsea_drilling",
+			"unlocks_missions": ["act8d_jinteki_abyssal", "act8e_issuaq_regulatory"],
+			"unlocks_cards": [
+				"finality", "hippocampic_mechanocytes", "tremolo", "zenit_chip_jz_2mj"
+			],
+			"prerequisite_missions": ["act8a_deep_survey"]
+		},
+		{
+			"id": "act8c_hb_deep_research",
+			"title": "Clean Processes",
+			"subtitle": "HB Atlantic Processing Hub, Heinlein-Earth Relay 12",
+			"act": 8,
+			"ai_level": 3,
+			"fiction_pre": "act8c_pre",
+			"fiction_post": "act8c_post",
+			"opponent_id": "hb_deep_research",
+			"unlocks_missions": ["act8d_jinteki_abyssal", "act8e_issuaq_regulatory"],
+			"unlocks_cards": [
+				"hush", "flux_capacitor", "abaasy", "concerto"
+			],
+			"prerequisite_missions": ["act8a_deep_survey"]
+		},
+		{
+			"id": "act8d_jinteki_abyssal",
+			"title": "Specimen Recovery",
+			"subtitle": "Jinteki Abyssal Research Station, Atlantic Mid-Ocean Ridge",
+			"act": 8,
+			"ai_level": 3,
+			"fiction_pre": "act8d_pre",
+			"fiction_post": "act8d_post",
+			"opponent_id": "jinteki_abyssal",
+			"unlocks_missions": ["act8f_event_horizon"],
+			"unlocks_cards": [
+				"orca", "nga", "asmund_pudlat", "poison_vial"
+			],
+			"prerequisite_missions": ["act8b_thule_drilling", "act8c_hb_deep_research"]
+		},
+		{
+			"id": "act8e_issuaq_regulatory",
+			"title": "Sustaining Diversity",
+			"subtitle": "Issuaq Adaptics Regulatory Division, Atlantic Orbital Filing Station",
+			"act": 8,
+			"ai_level": 3,
+			"fiction_pre": "act8e_pre",
+			"fiction_post": "act8e_post",
+			"opponent_id": "issuaq_regulatory",
+			"unlocks_missions": ["act8f_event_horizon"],
+			"unlocks_cards": [
+				"tunnel_vision", "spark_of_inspiration", "raindrops_cut_stone", "time_bomb"
+			],
+			"prerequisite_missions": ["act8b_thule_drilling", "act8c_hb_deep_research"]
+		},
+		{
+			"id": "act8f_event_horizon",
+			"title": "Event Horizon",
+			"subtitle": "Thule Subsea: The Borehole, 6km Below the Atlantic",
+			"act": 8,
+			"ai_level": 3,
+			"fiction_pre": "act8f_pre",
+			"fiction_post": "act8f_post",
+			"opponent_id": "thule_subsea_event_horizon",
+			"unlocks_missions": [],
+			"unlocks_cards": [
+				"matryoshka", "tsakhia_bankhar_gantulga", "world_tree", "basilar_synthgland_2kvj"
+			],
+			"prerequisite_missions": ["act8d_jinteki_abyssal", "act8e_issuaq_regulatory"]
 		}
 	],
 
@@ -1114,6 +1205,162 @@
 				"behold", "behold", "behold",
 				"regolith_mining_license", "regolith_mining_license", "regolith_mining_license",
 				"spin_doctor", "spin_doctor"
+			]
+		},
+
+		"deep_survey_co": {
+			"name": "Deep Survey Corp.",
+			"identity": "weyland_consortium_built_to_last",
+			"description": "A Weyland subsidiary contracted to conduct geological surveys of the mid-Atlantic floor. Their data is classified. Their ice is not.",
+			"deck": [
+				"regulatory_capture", "regulatory_capture", "regulatory_capture",
+				"send_a_message", "send_a_message", "send_a_message",
+				"offworld_office", "offworld_office", "offworld_office",
+				"hedge_fund", "hedge_fund", "hedge_fund",
+				"government_subsidy", "government_subsidy",
+				"spin_doctor", "spin_doctor", "spin_doctor",
+				"retribution", "retribution",
+				"measured_response", "measured_response",
+				"shipment_from_vladisibirsk", "shipment_from_vladisibirsk",
+				"end_of_the_line",
+				"regolith_mining_license", "regolith_mining_license", "regolith_mining_license",
+				"hostile_architecture", "hostile_architecture",
+				"reaper_function",
+				"yakov_erikovich_avdakov", "yakov_erikovich_avdakov",
+				"zato_city_grid",
+				"bloop", "bloop",
+				"palisade", "palisade", "palisade",
+				"pharos", "pharos",
+				"pulse", "pulse",
+				"tithe", "tithe", "tithe"
+			]
+		},
+
+		"thule_subsea_drilling": {
+			"name": "Thule Subsea",
+			"identity": "thule_subsea_safety_below",
+			"description": "They drill where no one has drilled before. Their slogan is Safety Below. Their safety record is sealed under a non-disclosure agreement.",
+			"deck": [
+				"ontological_dependence", "ontological_dependence", "ontological_dependence",
+				"send_a_message", "send_a_message", "send_a_message",
+				"offworld_office", "offworld_office", "offworld_office",
+				"hedge_fund", "hedge_fund", "hedge_fund",
+				"government_subsidy", "government_subsidy",
+				"hansei_review", "hansei_review", "hansei_review",
+				"hypoxia", "hypoxia",
+				"simulation_reset", "simulation_reset",
+				"regolith_mining_license", "regolith_mining_license", "regolith_mining_license",
+				"malapert_data_vault", "malapert_data_vault",
+				"djupstad_grid", "djupstad_grid",
+				"superdeep_borehole", "superdeep_borehole",
+				"bloop", "bloop",
+				"vampyronassa", "vampyronassa", "vampyronassa",
+				"unsmiling_tsarevna", "unsmiling_tsarevna", "unsmiling_tsarevna",
+				"palisade", "palisade", "palisade",
+				"pulse", "pulse",
+				"tithe", "tithe"
+			]
+		},
+
+		"hb_deep_research": {
+			"name": "Haas-Bioroid",
+			"identity": "haas_bioroid_precision_design",
+			"description": "Their bioroids run the pumps, seal the tunnels, and log the anomalies. HB calls this 'precision deployment'. The bioroids have a different word for it.",
+			"deck": [
+				"kimberlite_field", "kimberlite_field", "kimberlite_field",
+				"hybrid_release", "hybrid_release", "hybrid_release",
+				"luminal_transubstantiation", "luminal_transubstantiation", "luminal_transubstantiation",
+				"hedge_fund", "hedge_fund", "hedge_fund",
+				"seamless_launch", "seamless_launch", "seamless_launch",
+				"spin_doctor", "spin_doctor", "spin_doctor",
+				"nonequivalent_exchange", "nonequivalent_exchange", "nonequivalent_exchange",
+				"hansei_review", "hansei_review", "hansei_review",
+				"nico_campaign", "nico_campaign", "nico_campaign",
+				"malapert_data_vault", "malapert_data_vault",
+				"gaslight", "gaslight",
+				"djupstad_grid", "djupstad_grid",
+				"anvil", "anvil", "anvil",
+				"hafrun", "hafrun", "hafrun",
+				"bran_1_0", "bran_1_0", "bran_1_0",
+				"whitespace", "whitespace", "whitespace"
+			]
+		},
+
+		"jinteki_abyssal": {
+			"name": "Jinteki",
+			"identity": "jinteki_restoring_humanity",
+			"description": "They were supposed to be monitoring crew health. The crew has a different understanding of what Jinteki was monitoring.",
+			"deck": [
+				"ontological_dependence", "ontological_dependence", "ontological_dependence",
+				"longevity_serum", "longevity_serum", "longevity_serum",
+				"proprionegation", "proprionegation", "proprionegation",
+				"hedge_fund", "hedge_fund", "hedge_fund",
+				"hansei_review", "hansei_review", "hansei_review",
+				"hypoxia", "hypoxia",
+				"simulation_reset", "simulation_reset",
+				"neurospike", "neurospike",
+				"mitra_aman", "mitra_aman",
+				"nightmare_archive", "nightmare_archive", "nightmare_archive",
+				"hostile_architecture", "hostile_architecture",
+				"vera_ivanovna_shuyskaya", "vera_ivanovna_shuyskaya",
+				"mr_hendrik", "mr_hendrik", "mr_hendrik",
+				"klevetnik", "klevetnik", "klevetnik",
+				"unsmiling_tsarevna", "unsmiling_tsarevna", "unsmiling_tsarevna",
+				"vampyronassa", "vampyronassa", "vampyronassa",
+				"empiricist", "empiricist", "empiricist"
+			]
+		},
+
+		"issuaq_regulatory": {
+			"name": "Issuaq Adaptics",
+			"identity": "issuaq_adaptics_sustaining_diversity",
+			"description": "They didn't build the borehole. They built the framework that made it legal. Every permit, every waiver, every environmental exemption — signed, filed, and archived at this station.",
+			"deck": [
+				"freedom_of_information", "freedom_of_information", "freedom_of_information",
+				"post_truth_dividend", "post_truth_dividend", "post_truth_dividend",
+				"send_a_message", "send_a_message", "send_a_message",
+				"hedge_fund", "hedge_fund", "hedge_fund",
+				"government_subsidy", "government_subsidy",
+				"spin_doctor", "spin_doctor", "spin_doctor",
+				"shipment_from_vladisibirsk", "shipment_from_vladisibirsk", "shipment_from_vladisibirsk",
+				"end_of_the_line", "end_of_the_line",
+				"distributed_tracing", "distributed_tracing",
+				"seamless_launch", "seamless_launch", "seamless_launch",
+				"malapert_data_vault", "malapert_data_vault", "malapert_data_vault",
+				"regolith_mining_license", "regolith_mining_license", "regolith_mining_license",
+				"manegarm_skunkworks", "manegarm_skunkworks", "manegarm_skunkworks",
+				"ping", "ping", "ping",
+				"pulse", "pulse",
+				"hafrun", "hafrun", "hafrun",
+				"whitespace", "whitespace", "whitespace"
+			]
+		},
+
+		"thule_subsea_event_horizon": {
+			"name": "Thule Subsea",
+			"identity": "thule_subsea_safety_below",
+			"description": "Six kilometres of ocean above. The borehole is already lit. The countdown has started. Whatever is down there, they intend to reach it before you stop them.",
+			"deck": [
+				"ontological_dependence", "ontological_dependence", "ontological_dependence",
+				"send_a_message", "send_a_message",
+				"kimberlite_field", "kimberlite_field",
+				"post_truth_dividend", "post_truth_dividend",
+				"hedge_fund", "hedge_fund", "hedge_fund",
+				"government_subsidy", "government_subsidy",
+				"hansei_review", "hansei_review", "hansei_review",
+				"hypoxia", "hypoxia",
+				"simulation_reset", "simulation_reset",
+				"superdeep_borehole", "superdeep_borehole", "superdeep_borehole",
+				"djupstad_grid", "djupstad_grid",
+				"hostile_architecture", "hostile_architecture",
+				"vera_ivanovna_shuyskaya", "vera_ivanovna_shuyskaya",
+				"bloop", "bloop",
+				"vampyronassa", "vampyronassa", "vampyronassa",
+				"unsmiling_tsarevna", "unsmiling_tsarevna", "unsmiling_tsarevna",
+				"klevetnik", "klevetnik", "klevetnik",
+				"pulse", "pulse",
+				"palisade", "palisade", "palisade",
+				"tithe", "tithe"
 			]
 		},
 

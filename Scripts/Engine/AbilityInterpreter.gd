@@ -1,4 +1,4 @@
-class_name AbilityInterpreter
+﻿class_name AbilityInterpreter
 extends RefCounted
 
 # ── AbilityInterpreter ────────────────────────────────────────────────────────
@@ -505,6 +505,27 @@ func _evaluate_condition(condition: Dictionary, ctx: GameContext) -> bool:
 			var rti_run_server: String = ctx.current_event_data.get("server_id", ctx.run_target_server)
 			return rti_run_server == rti_server
 
+		"rezzed_ice_has_subtype":
+			# True when the ice that was just rezzed (from corp_rezzes_ice event data)
+			# has the given subtype. Used by Echo: add counter whenever any harmonic ice rezzes.
+			# corp_rezzes_ice event carries: { "ice"|"card": InstalledCard, "card_instance_id": String }
+			var rihs_subtype: String = condition.get("subtype", "")
+			if rihs_subtype == "":
+				return false
+			# Try to find the rezzed ice via card_instance_id from event data
+			var rihs_iid: String = ctx.current_event_data.get("card_instance_id", "")
+			var rihs_ic: InstalledCard = ctx.get_installed_card_by_instance_id(rihs_iid) \
+				if rihs_iid != "" else null
+			# Also try "ice" and "card" keys which may carry the InstalledCard directly
+			if rihs_ic == null:
+				var rihs_direct: Variant = ctx.current_event_data.get("ice",
+					ctx.current_event_data.get("card", null))
+				if rihs_direct != null:
+					rihs_ic = rihs_direct as InstalledCard
+			if rihs_ic != null and rihs_ic.card_record != null:
+				return rihs_ic.card_record.has_subtype(rihs_subtype)
+			return false
+
 		"event_server_is_hq":
 			# True when the current event's server_id is hq.
 			# Used by: The Basalt Spire (before_breach +1 access to HQ only).
@@ -600,6 +621,34 @@ func _evaluate_condition(condition: Dictionary, ctx: GameContext) -> bool:
 			if asfs_self == null or not asfs_self.is_rezzed:
 				return false
 			return asfs_self.server_id == asfs_server
+
+		"trashed_card_server_is_self":
+			# True when the server_id in the current event data matches the owning card's
+			# server.  Works for both runner_trashes_during_breach and corp_card_trashed_from_server.
+			# Used by: Yakov Erikovich Avdakov, Hostile Architecture.
+			var tcsis_server: String = ctx.current_event_data.get("server_id", "")
+			if tcsis_server == "":
+				return false
+			var tcsis_self := _get_self_card(ctx)
+			if tcsis_self == null or not tcsis_self.is_rezzed:
+				return false
+			return tcsis_self.server_id == tcsis_server
+
+		"run_is_active":
+			# True when a run is currently in progress.
+			# Used by: Hafrun, Klevetnik, Unsmiling Tsarevna (on_rez_during_run effects).
+			return ctx.run_active
+
+		"run_target_is_central":
+			# True when the current run's target server is a central (hq, rd, or archives).
+			# Used by: Zenit Chip JZ-2MJ (draw 1 on successful central run).
+			var rtc_server: String = ctx.current_event_data.get("server_id", ctx.run_target_server)
+			return rtc_server in ["hq", "rd", "archives"]
+
+		"run_was_successful":
+			# True when the most recently completed run succeeded.
+			# Used by effects gated on successful_run outcome (e.g. Katorga Breakout).
+			return ctx.run_successful
 
 		_:
 			push_error("AbilityInterpreter: unknown condition type '%s'" % ctype)
@@ -1691,6 +1740,9 @@ func _execute_effect(effect: Dictionary, ctx: GameContext, chosen_target: Varian
 			var counter_type: String = effect.get("counter", params.get("counter", "credits"))
 			var self_card := _get_self_card(ctx)
 			if self_card != null and self_card.get_counter(counter_type) <= 0:
+				var ste_server_id: String = self_card.server_id
+				var ste_is_corp_card: bool = self_card.card_record != null and \
+					self_card.card_record.card_type in ["asset", "upgrade", "ice", "agenda"]
 				# Remove from server
 				var server: Server = ctx.get_server(self_card.server_id)
 				if server:
@@ -1701,6 +1753,12 @@ func _execute_effect(effect: Dictionary, ctx: GameContext, chosen_target: Varian
 				# Unregister all its listeners
 				ctx.unregister_all_card_effects(self_card.runtime_instance_id)
 				ctx.send_log("%s is trashed (empty)." % self_card.display_name())
+				# Parhelion: notify Yakov Erikovich Avdakov and similar listeners
+				if ste_is_corp_card and ste_server_id != "":
+					await ctx.notify_event("corp_card_trashed_from_server", {
+						"server_id": ste_server_id,
+						"card_id":   self_card.card_id
+					}, self)
 				# VP17 Hiram: runner hardware self-trashing triggers look-at-R&D
 				if self_card.card_record != null and self_card.card_record.card_type == "hardware":
 					await ctx.notify_event("hardware_trashed", {
@@ -4147,6 +4205,8 @@ func _execute_effect(effect: Dictionary, ctx: GameContext, chosen_target: Varian
 			else:
 				ctse_do_it = true  # AI: always use it
 			if ctse_do_it:
+				var ctse_was_rezzed: bool = ctse_self.is_rezzed
+				var ctse_rez_cost: int = ctse_self.card_record.cost if ctse_self.card_record else 0
 				var ctse_src: Server = ctx.servers.get(ctse_self.server_id, null) as Server
 				if ctse_src != null:
 					ctse_src.remove_ice(ctse_self)
@@ -4155,6 +4215,13 @@ func _execute_effect(effect: Dictionary, ctx: GameContext, chosen_target: Varian
 					ctx.corp_discard.append(ctse_self.card_record)
 				ctx.run_ended = true
 				ctx.send_log("%s trashes Event Horizon to end the run." % ctx.corp_name())
+				# Midnight Sun: Ob Superheavy — fire event if a rezzed card was trashed.
+				if ctse_was_rezzed and not ctx.corp_is_installing:
+					await ctx.notify_event("corp_trashes_own_rezzed_card", {
+						"card_id": ctse_self.card_id,
+						"rez_cost": ctse_rez_cost,
+						"server_id": ctse_self.server_id
+					}, self)
 
 		"cultivate_top_5":
 			# Look at the top 5 cards of R&D. Trash 1, add 1 to HQ, arrange the rest.
@@ -5110,7 +5177,8 @@ func _execute_effect(effect: Dictionary, ctx: GameContext, chosen_target: Varian
 				if na_self != null:
 					for na_srv in ctx.servers.values():
 						var na_s: Server = na_srv as Server
-						if na_s.remove_from_root(na_self):
+						if na_s.root.has(na_self):
+							na_s.remove_from_root(na_self)
 							break
 					ctx.corp_rfg.append(na_self.card_record if na_self.card_record else CardRecord.new())
 				else:
@@ -5128,7 +5196,8 @@ func _execute_effect(effect: Dictionary, ctx: GameContext, chosen_target: Varian
 					if na_self_rfg != null:
 						for na_srv_rfg in ctx.servers.values():
 							var na_s_rfg: Server = na_srv_rfg as Server
-							if na_s_rfg.remove_from_root(na_self_rfg):
+							if na_s_rfg.root.has(na_self_rfg):
+								na_s_rfg.remove_from_root(na_self_rfg)
 								break
 						if na_self_rfg.card_record != null:
 							ctx.corp_rfg.append(na_self_rfg.card_record)
@@ -5138,6 +5207,2226 @@ func _execute_effect(effect: Dictionary, ctx: GameContext, chosen_target: Varian
 							ctx.corp_deck.erase(na_cr_rfg)
 							ctx.corp_rfg.append(na_cr_rfg)
 					ctx.send_log("[Nightmare Archive] Removed from the game.")
+
+		# ── Parhelion: Vera Ivanovna Shuyskaya ───────────────────────────────────
+
+		"vera_shuyskaya_reveal_grip_trash":
+			# Corp may reveal the Runner's grip; if they do, trash 1 card from it.
+			# Used by: Vera Ivanovna Shuyskaya (upgrade; fires on agenda scored/stolen).
+			if ctx.runner_hand.is_empty():
+				ctx.send_log("[Vera Shuyskaya] Runner's grip is empty — no effect.")
+				return
+			var vera_reveal := false
+			if ctx.corp_decision_maker != null and \
+					ctx.corp_decision_maker.has_method("choose_optional_ability"):
+				vera_reveal = await ctx.corp_decision_maker.choose_optional_ability(
+					"Vera Shuyskaya: reveal the Runner's grip and trash 1 card?", ctx)
+			else:
+				vera_reveal = true   # AI default: always reveal and trash
+			if not vera_reveal:
+				return
+			ctx.send_log("[Vera Shuyskaya] %s reveals the grip (%d card(s))." % [
+				ctx.corp_name(), ctx.runner_hand.size()])
+			# Corp picks which card to trash
+			var vera_target_entry: Variant = null
+			if ctx.corp_decision_maker != null and \
+					ctx.corp_decision_maker.has_method("choose_card_from_hand"):
+				vera_target_entry = await ctx.corp_decision_maker.choose_card_from_hand(
+					ctx.runner_hand.duplicate(), ctx)
+			else:
+				vera_target_entry = ctx.runner_hand[0]
+			if vera_target_entry == null:
+				return
+			var vera_record: CardRecord = (vera_target_entry as Dictionary).get("card_record", null) as CardRecord
+			ctx.runner_hand.erase(vera_target_entry)
+			if vera_record != null:
+				ctx.runner_discard.append(vera_record)
+				ctx.send_log("[Vera Shuyskaya] Trashes %s from the Runner's grip." % vera_record.title)
+
+		# ── Parhelion: Mr. Hendrik ────────────────────────────────────────────────
+
+		"mr_hendrik_access_effect":
+			# When Runner accesses Mr. Hendrik while it is installed (rezzed):
+			# Corp may pay 2cr → do 1 core damage to Runner.
+			# If Runner has clicks remaining, they may lose ALL clicks to prevent the damage.
+			var mh_pay := false
+			if ctx.corp_credits >= 2:
+				if ctx.corp_decision_maker != null and \
+						ctx.corp_decision_maker.has_method("choose_optional_ability"):
+					mh_pay = await ctx.corp_decision_maker.choose_optional_ability(
+						"Mr. Hendrik: pay 2cr to do 1 core damage to the Runner?", ctx)
+				else:
+					mh_pay = true   # AI default: always pay
+			if not mh_pay:
+				return
+			ctx.corp_credits -= 2
+			ctx.send_log("[Mr. Hendrik] %s pays 2cr." % ctx.corp_name())
+			# Runner may spend all remaining clicks to prevent the damage
+			var mh_prevent := false
+			if ctx.runner_clicks > 0:
+				if ctx.runner_decision_maker != null and \
+						ctx.runner_decision_maker.has_method("choose_optional_ability"):
+					mh_prevent = await ctx.runner_decision_maker.choose_optional_ability(
+						"Mr. Hendrik: spend all clicks (%d) to prevent 1 core damage?" % ctx.runner_clicks,
+						ctx)
+				else:
+					mh_prevent = false   # AI default: take the damage (preserve clicks)
+			if mh_prevent:
+				ctx.send_log("[Mr. Hendrik] %s loses all %d click(s) to prevent core damage." % [
+					ctx.runner_name(), ctx.runner_clicks])
+				ctx.runner_clicks = 0
+			else:
+				ctx.send_log("[Mr. Hendrik] Runner takes 1 core damage.")
+				await _deal_damage("core", 1, ctx)
+
+		# ── Parhelion: Gaslight ───────────────────────────────────────────────────
+
+		"gaslight_tutor_operation":
+			# Corp may trash this asset; if so, search R&D for an operation, add it to HQ.
+			# Fires on corp_turn_start.  The self-card must be rezzed for the offer to matter.
+			var gl_self := _get_self_card(ctx)
+			if gl_self == null or not gl_self.is_rezzed:
+				return
+			# Check there is at least one operation in R&D before offering
+			var gl_ops: Array = ctx.corp_deck.filter(func(cr: CardRecord):
+				return cr != null and cr.card_type == "operation")
+			if gl_ops.is_empty():
+				ctx.send_log("[Gaslight] No operations in R&D — trigger skipped.")
+				return
+			var gl_use := false
+			if ctx.corp_decision_maker != null and \
+					ctx.corp_decision_maker.has_method("choose_optional_ability"):
+				gl_use = await ctx.corp_decision_maker.choose_optional_ability(
+					"Gaslight: trash this asset to search R&D for an operation?", ctx)
+			else:
+				gl_use = true   # AI default: always search
+			if not gl_use:
+				return
+			# Self-trash Gaslight
+			var gl_server: Server = ctx.get_server(gl_self.server_id)
+			if gl_server != null:
+				gl_server.remove_from_root(gl_self)
+				ctx.remove_empty_remote_servers()
+			ctx.unregister_all_card_effects(gl_self.runtime_instance_id)
+			if gl_self.card_record != null:
+				ctx.corp_discard.append(gl_self.card_record)
+			ctx.send_log("[Gaslight] %s trashes Gaslight." % ctx.corp_name())
+			# Corp picks an operation from R&D
+			var gl_chosen: CardRecord = null
+			if ctx.corp_decision_maker != null and \
+					ctx.corp_decision_maker.has_method("choose_from_search"):
+				gl_chosen = await ctx.corp_decision_maker.choose_from_search(gl_ops, ctx)
+			if gl_chosen == null:
+				gl_chosen = gl_ops[0] as CardRecord
+			ctx.corp_deck.erase(gl_chosen)
+			# Shuffle R&D
+			ctx.corp_deck.shuffle()
+			ctx.corp_hand.append({"card_id": gl_chosen.id, "card_record": gl_chosen})
+			ctx.send_log("[Gaslight] Searches R&D — adds %s to HQ. R&D shuffled." % gl_chosen.title)
+
+		# ── Parhelion: Pulse harmonic count ──────────────────────────────────────
+
+		"lose_credits_per_harmonic_ice":
+			# Runner loses 1cr per currently rezzed harmonic ice.
+			# Used by: Pulse subroutine 1.
+			var lchi_count: int = ctx.count_rezzed_harmonic_ice()
+			if lchi_count == 0:
+				ctx.send_log("[Pulse] No rezzed harmonic ice — sub has no effect.")
+				return
+			var lchi_current: int = ctx.runner_credits
+			var lchi_lost: int    = min(lchi_count, lchi_current)
+			ctx.runner_credits   -= lchi_lost
+			ctx.send_log("[Pulse] %s loses %d cr (%d rezzed harmonic ice, had %d cr)." % [
+				ctx.runner_name(), lchi_lost, lchi_count, lchi_current])
+
+		# ── Parhelion: Kimberlite Field ───────────────────────────────────────────
+
+		"kimberlite_field_score_effect":
+			# On score: Corp may trash 1 rezzed installed card; if so, trash 1 Runner
+			# installed card with printed install cost ≤ that card's printed rez cost.
+			# Build pool of rezzed Corp installed cards (all servers)
+			var kf_corp_pool: Array = []
+			for kf_srv in ctx.servers.values():
+				var kf_s: Server = kf_srv as Server
+				for kf_root_c in kf_s.root:
+					var kf_ic: InstalledCard = kf_root_c as InstalledCard
+					if kf_ic != null and kf_ic.is_rezzed:
+						kf_corp_pool.append(kf_ic)
+				for kf_ice in kf_s.ice:
+					var kf_iic: InstalledCard = kf_ice as InstalledCard
+					if kf_iic != null and kf_iic.is_rezzed:
+						kf_corp_pool.append(kf_iic)
+			if kf_corp_pool.is_empty():
+				ctx.send_log("[Kimberlite Field] No rezzed Corp cards to trash.")
+				return
+			# Corp decides whether to use the ability
+			var kf_use := false
+			if ctx.corp_decision_maker != null and \
+					ctx.corp_decision_maker.has_method("choose_optional_ability"):
+				kf_use = await ctx.corp_decision_maker.choose_optional_ability(
+					"Kimberlite Field: trash a rezzed Corp card to trash a Runner card?", ctx)
+			else:
+				kf_use = true   # AI default: use it
+			if not kf_use:
+				return
+			# Corp picks which Corp card to trash
+			var kf_corp_target: InstalledCard = null
+			if ctx.corp_decision_maker != null and ctx.corp_decision_maker.has_method("choose_target"):
+				kf_corp_target = await ctx.corp_decision_maker.choose_target(
+					kf_corp_pool, {"reason": "kimberlite_field_self_trash"})
+			else:
+				kf_corp_target = kf_corp_pool[0] as InstalledCard
+			if kf_corp_target == null:
+				return
+			var kf_rez_cost: int = kf_corp_target.card_record.cost if kf_corp_target.card_record != null else 0
+			# Trash the chosen Corp card
+			var kf_corp_srv: Server = ctx.get_server(kf_corp_target.server_id)
+			if kf_corp_srv != null:
+				kf_corp_srv.remove_from_root(kf_corp_target)
+				kf_corp_srv.ice.erase(kf_corp_target)
+				ctx.remove_empty_remote_servers()
+			ctx.unregister_all_card_effects(kf_corp_target.runtime_instance_id)
+			if kf_corp_target.card_record != null:
+				ctx.corp_discard.append(kf_corp_target.card_record)
+			ctx.send_log("[Kimberlite Field] Corp trashes %s (rez cost %d)." % [
+				kf_corp_target.display_name(), kf_rez_cost])
+			# Build pool of Runner cards with install cost ≤ kf_rez_cost
+			var kf_runner_pool: Array = ctx.runner_rig.filter(func(c: InstalledCard):
+				return c.card_record != null and max(0, c.card_record.cost) <= kf_rez_cost
+			)
+			if kf_runner_pool.is_empty():
+				ctx.send_log("[Kimberlite Field] No Runner cards with cost ≤ %d." % kf_rez_cost)
+				return
+			var kf_runner_target: InstalledCard = null
+			if ctx.corp_decision_maker != null and ctx.corp_decision_maker.has_method("choose_target"):
+				kf_runner_target = await ctx.corp_decision_maker.choose_target(
+					kf_runner_pool, {"reason": "kimberlite_field_runner_trash"})
+			else:
+				kf_runner_target = kf_runner_pool[0] as InstalledCard
+			if kf_runner_target == null:
+				return
+			ctx.runner_rig.erase(kf_runner_target)
+			ctx.unregister_all_card_effects(kf_runner_target.runtime_instance_id)
+			if kf_runner_target.card_record != null:
+				ctx.runner_discard.append(kf_runner_target.card_record)
+				ctx.send_log("[Kimberlite Field] Trashes %s (cost %d ≤ %d)." % [
+					kf_runner_target.card_record.title,
+					max(0, kf_runner_target.card_record.cost),
+					kf_rez_cost
+				])
+
+		# ── Parhelion: Yakov Avdakov — fire corp_card_trashed_from_server ─────────
+
+		"fire_corp_card_trashed_from_server_event":
+			# Fire a synthetic event so Yakov Erikovich Avdakov can react when a Corp
+			# card is trashed from its server via a Corp ability (not a breach trash).
+			# params: { "server_id": String, "card_id": String }
+			var fce_server: String = params.get("server_id", "")
+			var fce_card_id: String = params.get("card_id", "")
+			await ctx.notify_event("corp_card_trashed_from_server", {
+				"server_id": fce_server,
+				"card_id":   fce_card_id
+			}, self)
+
+		# ── Parhelion: Anvil encounter trigger ───────────────────────────────────
+
+		"anvil_encounter_trigger":
+			# On encounter with Anvil: Corp may trash 1 installed Corp card.
+			# If they do, Runner cannot break Anvil's printed subs this encounter.
+			# Collect all rezzed Corp installed cards (ice and root cards).
+			var anv_candidates: Array = []
+			for anv_srv in ctx.servers.values():
+				var anv_s: Server = anv_srv as Server
+				for anv_ice in anv_s.ice:
+					var anv_ic: InstalledCard = anv_ice as InstalledCard
+					if anv_ic != null and anv_ic.is_rezzed:
+						anv_candidates.append(anv_ic)
+				for anv_root in anv_s.root:
+					var anv_ric: InstalledCard = anv_root as InstalledCard
+					if anv_ric != null and anv_ric.is_rezzed:
+						anv_candidates.append(anv_ric)
+			if anv_candidates.is_empty():
+				ctx.send_log("[Anvil] No installed Corp cards to trash — ability has no effect.")
+			else:
+				var anv_use := false
+				if ctx.corp_decision_maker != null and ctx.corp_decision_maker.has_method("choose_optional_ability"):
+					anv_use = await ctx.corp_decision_maker.choose_optional_ability(
+						"Anvil: trash 1 installed Corp card to make subs unbreakable?", ctx)
+				else:
+					anv_use = true  # AI: always use — powerful effect
+				if anv_use:
+					var anv_target: InstalledCard = null
+					if ctx.corp_decision_maker != null and ctx.corp_decision_maker.has_method("choose_derez_target"):
+						anv_target = await ctx.corp_decision_maker.choose_derez_target(anv_candidates, ctx)
+					if anv_target == null:
+						anv_target = anv_candidates[0] as InstalledCard
+					# Trash the chosen Corp card.
+					var anv_srv2: Server = ctx.get_server(anv_target.server_id)
+					if anv_srv2 != null:
+						anv_srv2.ice.erase(anv_target)
+						anv_srv2.root.erase(anv_target)
+						ctx.remove_empty_remote_servers()
+					ctx.unregister_all_card_effects(anv_target.runtime_instance_id)
+					if anv_target.card_record != null:
+						ctx.corp_discard.append(anv_target.card_record)
+						ctx.corp_discard_facedown[anv_target.card_record.title] = true
+					ctx.send_log("[Anvil] %s trashes %s — Runner cannot break Anvil's printed subs this encounter." % [
+						ctx.corp_name(), anv_target.display_name()])
+					ctx.run_modifiers["anvil_subs_unbreakable"] = true
+
+		# ── Parhelion: Hafrun rez trigger ─────────────────────────────────────────
+
+		"hafrun_rez_trigger":
+			# On rez during run: Corp may trash 1 HQ card.
+			# If so, choose 1 Runner installed card — that card cannot break subs for
+			# the remainder of this run.
+			if ctx.corp_hand.is_empty():
+				ctx.send_log("[Hafrun] No HQ cards to trash.")
+			else:
+				var haf_use := false
+				if ctx.corp_decision_maker != null and ctx.corp_decision_maker.has_method("choose_optional_ability"):
+					haf_use = await ctx.corp_decision_maker.choose_optional_ability(
+						"Hafrun: trash 1 HQ card to disable a Runner card's break ability?", ctx)
+				else:
+					haf_use = not ctx.runner_rig.is_empty()  # AI: use if runner has breakers
+				if haf_use and not ctx.corp_hand.is_empty():
+					# Corp trashes 1 HQ card (their choice).
+					var haf_hq_entry: Dictionary = ctx.corp_hand.pop_back() as Dictionary
+					var haf_hq_cr: CardRecord = haf_hq_entry.get("card_record", null) as CardRecord
+					if haf_hq_cr != null:
+						ctx.corp_discard.append(haf_hq_cr)
+						ctx.corp_discard_facedown[haf_hq_cr.title] = true
+						ctx.send_log("[Hafrun] %s trashes %s from HQ." % [ctx.corp_name(), haf_hq_cr.title])
+					# Corp picks 1 Runner installed card to disable.
+					var haf_runner_cards: Array = ctx.runner_rig.duplicate()
+					# Also include programs hosted on ice.
+					for haf_srv in ctx.servers.values():
+						for haf_ice in (haf_srv as Server).ice:
+							for haf_hc in (haf_ice as InstalledCard).hosted_cards:
+								var haf_hic: InstalledCard = haf_hc as InstalledCard
+								if haf_hic != null:
+									haf_runner_cards.append(haf_hic)
+					if haf_runner_cards.is_empty():
+						ctx.send_log("[Hafrun] No Runner installed cards to disable.")
+					else:
+						var haf_target: InstalledCard = null
+						if ctx.corp_decision_maker != null and ctx.corp_decision_maker.has_method("choose_trash_from_rig"):
+							haf_target = await ctx.corp_decision_maker.choose_trash_from_rig(haf_runner_cards, ctx)
+						if haf_target == null:
+							haf_target = haf_runner_cards[0] as InstalledCard
+						var haf_key: String = "hafrun_disabled_" + haf_target.runtime_instance_id
+						ctx.run_modifiers[haf_key] = true
+						ctx.send_log("[Hafrun] %s disabled for the remainder of this run (cannot break subs)." % \
+							haf_target.display_name())
+
+		# ── Parhelion: Klevetnik rez trigger ──────────────────────────────────────
+
+		"klevetnik_rez_trigger":
+			# On rez during run: Corp may give Runner 2cr.
+			# If so, choose 1 Runner resource — that resource loses all abilities
+			# until the end of the Corp's next turn.
+			var klev_use := false
+			if ctx.corp_decision_maker != null and ctx.corp_decision_maker.has_method("choose_optional_ability"):
+				klev_use = await ctx.corp_decision_maker.choose_optional_ability(
+					"Klevetnik: give Runner 2cr to disable a resource's abilities?", ctx)
+			else:
+				# AI: use if runner has resources with relevant abilities
+				for klev_rig in ctx.runner_rig:
+					var klev_ic: InstalledCard = klev_rig as InstalledCard
+					if klev_ic != null and klev_ic.card_record != null \
+							and klev_ic.card_record.card_type == "resource":
+						klev_use = true
+						break
+			if klev_use:
+				ctx.runner_credits += 2
+				ctx.send_log("[Klevetnik] %s gains 2 cr (%d total). %s chooses a Runner resource to disable." % [
+					ctx.runner_name(), ctx.runner_credits, ctx.corp_name()])
+				# Corp picks 1 Runner resource.
+				var klev_resources: Array = []
+				for klev_rig in ctx.runner_rig:
+					var klev_ic: InstalledCard = klev_rig as InstalledCard
+					if klev_ic != null and klev_ic.card_record != null \
+							and klev_ic.card_record.card_type == "resource":
+						klev_resources.append(klev_ic)
+				if klev_resources.is_empty():
+					ctx.send_log("[Klevetnik] No Runner resources to disable.")
+				else:
+					var klev_target: InstalledCard = null
+					if ctx.corp_decision_maker != null and ctx.corp_decision_maker.has_method("choose_trash_from_rig"):
+						klev_target = await ctx.corp_decision_maker.choose_trash_from_rig(klev_resources, ctx)
+					if klev_target == null:
+						klev_target = klev_resources[0] as InstalledCard
+					ctx.klevetnik_disabled_iids.append(klev_target.runtime_instance_id)
+					ctx.send_log("[Klevetnik] %s's abilities suppressed until Corp turn ends." % \
+						klev_target.display_name())
+
+		# ── Parhelion: Unsmiling Tsarevna rez trigger ─────────────────────────────
+
+		"tsarevna_rez_trigger":
+			# On rez during run: Corp may give Runner 2cr.
+			# If so, during each encounter with this ice for the rest of the run,
+			# Runner cannot break more than 1 printed subroutine.
+			var tsar_self := _get_self_card(ctx)
+			var tsar_use := false
+			if ctx.corp_decision_maker != null and ctx.corp_decision_maker.has_method("choose_optional_ability"):
+				tsar_use = await ctx.corp_decision_maker.choose_optional_ability(
+					"Unsmiling Tsarevna: give Runner 2cr to limit Runner to breaking 1 sub per encounter?", ctx)
+			else:
+				tsar_use = true  # AI: the 1-sub limit is worth the 2cr cost
+			if tsar_use:
+				ctx.runner_credits += 2
+				ctx.send_log("[Tsarevna] %s gains 2 cr (%d total). Runner can break ≤1 sub per encounter with %s." % [
+					ctx.runner_name(), ctx.runner_credits,
+					tsar_self.display_name() if tsar_self != null else "this ice"])
+				if tsar_self != null:
+					var tsar_key: String = "tsarevna_sub_limit_" + tsar_self.runtime_instance_id
+					ctx.run_modifiers[tsar_key] = 1
+				else:
+					ctx.send_log("[Tsarevna] Warning: self_card not found — sub limit not applied.")
+
+		# ── Parhelion: Concerto ───────────────────────────────────────────────────
+
+		"concerto_play":
+			# Reveal top stack card; place credits = its printed cost on this event.
+			# Add that card to grip; then run any server. Credits available during the run.
+			if ctx.runner_deck.is_empty():
+				ctx.send_log("[Concerto] Stack is empty — no card to reveal.")
+			else:
+				var conc_top: CardRecord = ctx.runner_deck.pop_front() as CardRecord
+				var conc_credits: int = max(0, conc_top.cost if conc_top.cost >= 0 else 0)
+				ctx.run_modifiers["concerto_credits"] = conc_credits
+				ctx.runner_hand.append({"card_id": conc_top.id, "card_record": conc_top})
+				ctx.send_log("[Concerto] Reveals %s (cost %d) — places %d cr on Concerto and adds to grip." % [
+					conc_top.title, conc_top.cost, conc_credits])
+			# Run any server
+			var conc_servers: Array = ["hq", "rd", "archives"]
+			for conc_rsrv in ctx.get_remote_servers():
+				conc_servers.append((conc_rsrv as Server).server_id)
+			var conc_target: String = ""
+			if ctx.runner_decision_maker != null and ctx.runner_decision_maker.has_method("choose_server"):
+				conc_target = await ctx.runner_decision_maker.choose_server(conc_servers, ctx)
+			if conc_target == "" and not conc_servers.is_empty():
+				conc_target = conc_servers[0]
+			if conc_target != "":
+				ctx.send_log("[Concerto] %s runs %s." % [ctx.runner_name(), conc_target])
+				await execute_trigger({"effects": [{"type": "initiate_run",
+					"params": {"server_id": conc_target}}]}, ctx)
+
+		# ── Parhelion: Raindrops Cut Stone ────────────────────────────────────────
+
+		"raindrops_play":
+			# Run any server. Whenever a sub resolves (including ETR): place 1 counter here.
+			# At run end: draw 1 per counter and gain 3cr.
+			# The RSM handles the counter increment and payoff; we just activate the run.
+			ctx.run_modifiers["raindrops_active"]  = true
+			ctx.run_modifiers["raindrops_counter"] = 0
+			ctx.send_log("[Raindrops Cut Stone] Active — counters will track resolved subroutines.")
+			var rd_servers: Array = ["hq", "rd", "archives"]
+			for rd_rsrv in ctx.get_remote_servers():
+				rd_servers.append((rd_rsrv as Server).server_id)
+			var rd_target: String = ""
+			if ctx.runner_decision_maker != null and ctx.runner_decision_maker.has_method("choose_server"):
+				rd_target = await ctx.runner_decision_maker.choose_server(rd_servers, ctx)
+			if rd_target == "" and not rd_servers.is_empty():
+				rd_target = rd_servers[0]
+			if rd_target != "":
+				ctx.send_log("[Raindrops Cut Stone] %s runs %s." % [ctx.runner_name(), rd_target])
+				await execute_trigger({"effects": [{"type": "initiate_run",
+					"params": {"server_id": rd_target}}]}, ctx)
+
+		# ── Parhelion: Spark of Inspiration ──────────────────────────────────────
+
+		"spark_of_inspiration_play":
+			# Set aside cards from top of stack faceup until a program is found.
+			# May install that program paying 10cr less. Then shuffle all set-aside cards in.
+			var soi_aside: Array = []
+			var soi_program: CardRecord = null
+			while not ctx.runner_deck.is_empty():
+				var soi_top: CardRecord = ctx.runner_deck.pop_front() as CardRecord
+				soi_aside.append(soi_top)
+				if soi_top != null and soi_top.card_type == "program":
+					soi_program = soi_top
+					ctx.send_log("[Spark] Found program: %s." % soi_top.title)
+					break
+				elif soi_top != null:
+					ctx.send_log("[Spark] Set aside: %s." % soi_top.title)
+			if soi_program == null:
+				ctx.send_log("[Spark] No program found in stack.")
+			else:
+				# Offer Runner the option to install
+				var soi_do_install := false
+				var soi_install_cost: int = max(0, soi_program.cost - 10)
+				if ctx.runner_decision_maker != null and ctx.runner_decision_maker.has_method("choose_optional_ability"):
+					soi_do_install = await ctx.runner_decision_maker.choose_optional_ability(
+						"Spark of Inspiration: install %s for %d cr?" % [soi_program.title, soi_install_cost], ctx)
+				else:
+					soi_do_install = ctx.runner_available_credits() >= soi_install_cost
+				if soi_do_install:
+					if ctx.runner_available_credits() < soi_install_cost:
+						ctx.send_log("[Spark] Cannot afford to install %s (need %d)." % [
+							soi_program.title, soi_install_cost])
+					else:
+						ctx.runner_spend_credits(soi_install_cost)
+						# Remove the found program from set-aside (it's being installed)
+						soi_aside.erase(soi_program)
+						# Install the program into the rig
+						var soi_installed: InstalledCard = InstalledCard.make_runtime_instance(
+							soi_program, "runner_rig", "program", true)
+						ctx.runner_rig.append(soi_installed)
+						if ctx.has_meta("register_installed_card"):
+							(ctx.get_meta("register_installed_card") as Callable).call(soi_installed)
+						ctx.send_log("[Spark] %s installs %s for %d cr." % [
+							ctx.runner_name(), soi_program.title, soi_install_cost])
+			# Shuffle all set-aside cards back into stack
+			for soi_back in soi_aside:
+				ctx.runner_deck.append(soi_back)
+			ctx.runner_deck.shuffle()
+			ctx.send_log("[Spark] Set-aside card(s) shuffled back into stack.")
+
+		# ── Parhelion: Asmund Pudlat ──────────────────────────────────────────────
+
+		"asmund_search_and_host":
+			# On install: search stack for ≤2 virus or weapon cards with different names.
+			# Host them faceup on this resource (not installed). Shuffle stack.
+			var asp_self := _get_self_card(ctx)
+			if asp_self == null:
+				ctx.send_log("[Asmund] Cannot find self card.")
+			else:
+				# Find all virus or weapon cards in the deck.
+				var asp_candidates: Array = []
+				for asp_cr in ctx.runner_deck:
+					var asp_card: CardRecord = asp_cr as CardRecord
+					if asp_card == null:
+						continue
+					if asp_card.has_subtype("virus") or asp_card.has_subtype("weapon"):
+						# Only include cards whose names aren't already in candidates.
+						var asp_name_dup := false
+						for asp_existing in asp_candidates:
+							if (asp_existing as CardRecord).title == asp_card.title:
+								asp_name_dup = true
+								break
+						if not asp_name_dup:
+							asp_candidates.append(asp_card)
+				if asp_candidates.is_empty():
+					ctx.send_log("[Asmund] No virus or weapon cards in stack.")
+				else:
+					ctx.send_log("[Asmund] Found %d virus/weapon candidate(s) — pick up to 2 with different names." % \
+						asp_candidates.size())
+					var asp_chosen: Array = []
+					# Pick up to 2
+					if ctx.runner_decision_maker != null and ctx.runner_decision_maker.has_method("choose_modes"):
+						# Offer all unique candidates; player picks up to 2
+						var asp_mode_choices: Array = []
+						for asp_cand in asp_candidates:
+							asp_mode_choices.append({"label": (asp_cand as CardRecord).title})
+						var asp_picked: Array = await ctx.runner_decision_maker.choose_modes(
+							asp_mode_choices, 2, ctx)
+						for asp_idx in asp_picked:
+							if asp_idx >= 0 and asp_idx < asp_candidates.size():
+								asp_chosen.append(asp_candidates[asp_idx] as CardRecord)
+					elif asp_candidates.size() >= 2:
+						asp_chosen.append(asp_candidates[0] as CardRecord)
+						asp_chosen.append(asp_candidates[1] as CardRecord)
+					elif not asp_candidates.is_empty():
+						asp_chosen.append(asp_candidates[0] as CardRecord)
+					# Remove chosen cards from deck and host them faceup.
+					for asp_pick in asp_chosen:
+						ctx.runner_deck.erase(asp_pick)
+						asp_self.faceup_hosted_cards.append(asp_pick)
+						ctx.send_log("[Asmund] Hosts %s faceup." % (asp_pick as CardRecord).title)
+					ctx.runner_deck.shuffle()
+					ctx.send_log("[Asmund] Stack shuffled.")
+
+		# ── Parhelion: Nga sabotage trigger ──────────────────────────────────────
+
+		"nga_sabotage_trigger":
+			# First time each turn on successful run: may remove 1 power counter → sabotage 1.
+			# self-trash is handled by self_trash_if_empty in JSON.
+			var nga_self := _get_self_card(ctx)
+			if nga_self == null:
+				ctx.send_log("[Nga] Cannot find self card.")
+			elif nga_self.get_counter("power") <= 0:
+				ctx.send_log("[Nga] No power counters remaining.")
+			else:
+				var nga_use := false
+				if ctx.runner_decision_maker != null and ctx.runner_decision_maker.has_method("choose_optional_ability"):
+					nga_use = await ctx.runner_decision_maker.choose_optional_ability(
+						"Nga: remove 1 power counter to sabotage 1?", ctx)
+				else:
+					nga_use = true  # AI: always sabotage
+				if nga_use:
+					nga_self.remove_counter("power", 1)
+					ctx.send_log("[Nga] Removes 1 power counter (%d remaining) — sabotage 1." % \
+						nga_self.get_counter("power"))
+					await execute_trigger({"effects": [{"type": "sabotage", "params": {"amount": 1}}]}, ctx)
+
+		# ── Parhelion: World Tree ─────────────────────────────────────────────────
+
+		"world_tree_trigger":
+			# First time each turn on successful run: may trash 1 installed card →
+			# search stack for 1 card of same type → install paying 3cr less.
+			# World Tree is BANNED in Standard but still implemented for casual/campaign.
+			if ctx.runner_rig.is_empty():
+				ctx.send_log("[World Tree] No installed cards to trash.")
+			else:
+				var wt_use := false
+				if ctx.runner_decision_maker != null and ctx.runner_decision_maker.has_method("choose_optional_ability"):
+					wt_use = await ctx.runner_decision_maker.choose_optional_ability(
+						"World Tree: trash 1 installed card to search for a card of the same type?", ctx)
+				else:
+					wt_use = true  # AI: use when profitable
+				if wt_use:
+					# Runner picks which installed card to trash.
+					var wt_trash_target: InstalledCard = null
+					if ctx.runner_decision_maker != null and ctx.runner_decision_maker.has_method("choose_trash_from_rig"):
+						wt_trash_target = await ctx.runner_decision_maker.choose_trash_from_rig(
+							ctx.runner_rig.duplicate(), ctx)
+					if wt_trash_target == null and not ctx.runner_rig.is_empty():
+						wt_trash_target = ctx.runner_rig[0] as InstalledCard
+					if wt_trash_target != null:
+						var wt_type: String = wt_trash_target.card_record.card_type if wt_trash_target.card_record != null else ""
+						# Trash the chosen card
+						ctx.runner_rig.erase(wt_trash_target)
+						ctx.unregister_all_card_effects(wt_trash_target.runtime_instance_id)
+						if wt_trash_target.card_record != null:
+							ctx.runner_discard.append(wt_trash_target.card_record)
+						ctx.runner_trashed_own_installed_this_turn = true
+						ctx.send_log("[World Tree] Trashes %s (type: %s)." % [
+							wt_trash_target.display_name(), wt_type])
+						# Search stack for a card of the same type.
+						var wt_search_candidates: Array = []
+						for wt_cr in ctx.runner_deck:
+							var wt_card: CardRecord = wt_cr as CardRecord
+							if wt_card != null and wt_card.card_type == wt_type:
+								wt_search_candidates.append(wt_card)
+						if wt_search_candidates.is_empty():
+							ctx.send_log("[World Tree] No %s cards in stack." % wt_type)
+							ctx.runner_deck.shuffle()
+						else:
+							var wt_chosen_cr: CardRecord = null
+							if ctx.runner_decision_maker != null and \
+									ctx.runner_decision_maker.has_method("choose_from_search"):
+								wt_chosen_cr = await ctx.runner_decision_maker.choose_from_search(
+									wt_search_candidates, ctx)
+							if wt_chosen_cr == null:
+								wt_chosen_cr = wt_search_candidates[0] as CardRecord
+							ctx.runner_deck.erase(wt_chosen_cr)
+							ctx.runner_deck.shuffle()
+							ctx.send_log("[World Tree] Stack shuffled.")
+							# Install paying 3cr less.
+							var wt_install_cost: int = max(0, wt_chosen_cr.cost - 3)
+							if ctx.runner_available_credits() < wt_install_cost:
+								ctx.send_log("[World Tree] Cannot afford to install %s (need %d)." % [
+									wt_chosen_cr.title, wt_install_cost])
+								ctx.runner_hand.append({"card_id": wt_chosen_cr.id, "card_record": wt_chosen_cr})
+							else:
+								ctx.runner_spend_credits(wt_install_cost)
+								var wt_inst: InstalledCard = InstalledCard.make_runtime_instance(
+									wt_chosen_cr, "runner_rig", wt_type, true)
+								ctx.runner_rig.append(wt_inst)
+								if ctx.has_meta("register_installed_card"):
+									(ctx.get_meta("register_installed_card") as Callable).call(wt_inst)
+								ctx.send_log("[World Tree] Installs %s for %d cr." % [
+									wt_chosen_cr.title, wt_install_cost])
+
+		# ── Parhelion: Tsakhia Bankhar ────────────────────────────────────────────
+
+		"bankhar_choose_server":
+			# Runner turn begin: may choose a server. During the first encounter
+			# each turn with ice protecting that server, replace all unbroken subs
+			# with "do 1 net damage" (handled in RunStateMachine).
+			var bkh_servers: Array = ["hq", "rd", "archives"]
+			for bkh_rsrv2 in ctx.get_remote_servers():
+				bkh_servers.append((bkh_rsrv2 as Server).server_id)
+			# Only offer servers that have ice.
+			var bkh_iced: Array = []
+			for bkh_srv_id in bkh_servers:
+				var bkh_srv: Server = ctx.get_server(bkh_srv_id)
+				if bkh_srv != null and not bkh_srv.ice.is_empty():
+					bkh_iced.append(bkh_srv_id)
+			if bkh_iced.is_empty():
+				ctx.send_log("[Bankhar] No iced servers — ability has no effect.")
+			else:
+				var bkh_use := false
+				if ctx.runner_decision_maker != null and ctx.runner_decision_maker.has_method("choose_optional_ability"):
+					bkh_use = await ctx.runner_decision_maker.choose_optional_ability(
+						"Tsakhia Bankhar: choose a server to replace ice subs with net damage?", ctx)
+				else:
+					bkh_use = true  # AI: always activate
+				if bkh_use:
+					var bkh_target: String = ""
+					if ctx.runner_decision_maker != null and ctx.runner_decision_maker.has_method("choose_server"):
+						bkh_target = await ctx.runner_decision_maker.choose_server(bkh_iced, ctx)
+					if bkh_target == "" and not bkh_iced.is_empty():
+						bkh_target = bkh_iced[0]
+					if bkh_target != "":
+						ctx.bankhar_chosen_server = bkh_target
+						ctx.bankhar_first_encounter_done = false
+						ctx.send_log("[Bankhar] Chosen server: %s. First ice encounter this turn → subs replaced with net damage." % \
+							bkh_target)
+
+		# ── Parhelion: Matryoshka ─────────────────────────────────────────────────
+
+		"matryoshka_host_from_grip":
+			# [click]: host a copy of Matryoshka from grip faceup (not installed).
+			var mtr_self := _get_self_card(ctx)
+			if mtr_self == null:
+				ctx.send_log("[Matryoshka] Cannot find self card.")
+			else:
+				# Find a Matryoshka in the grip.
+				var mtr_grip_entry: Dictionary = {}
+				for mtr_entry in ctx.runner_hand:
+					var mtr_e: Dictionary = mtr_entry as Dictionary
+					if mtr_e.get("card_id", "") == "matryoshka":
+						mtr_grip_entry = mtr_e
+						break
+				if mtr_grip_entry.is_empty():
+					ctx.send_log("[Matryoshka] No Matryoshka in grip to host.")
+				else:
+					ctx.runner_hand.erase(mtr_grip_entry)
+					# Create an InstalledCard for the hosted copy.
+					var mtr_cr: CardRecord = mtr_grip_entry.get("card_record", null) as CardRecord
+					if mtr_cr != null:
+						var mtr_hosted: InstalledCard = InstalledCard.make_runtime_instance(
+							mtr_cr, mtr_self.server_id, "hosted", false)
+						mtr_hosted.is_facedown = false
+						mtr_self.hosted_cards.append(mtr_hosted)
+						ctx.send_log("[Matryoshka] %s hosts a copy faceup (%d hosted total)." % [
+							mtr_self.display_name(), mtr_self.hosted_cards.size()])
+
+		"matryoshka_flip_hosted_faceup":
+			# Turn begin: flip all facedown hosted copies back faceup.
+			var mfu_self := _get_self_card(ctx)
+			if mfu_self == null:
+				return
+			var mfu_flipped := 0
+			for mfu_hc in mfu_self.hosted_cards:
+				var mfu_ic: InstalledCard = mfu_hc as InstalledCard
+				if mfu_ic != null and mfu_ic.is_facedown:
+					mfu_ic.is_facedown = false
+					mfu_flipped += 1
+			if mfu_flipped > 0:
+				ctx.send_log("[Matryoshka] %d hosted cop(ies) flipped faceup." % mfu_flipped)
+
+		# ── Remove from game (self) ───────────────────────────────────────────────
+
+		"rfg_self":
+			# Remove this installed Runner card from the game.
+			# Used by: Nanuq (when agenda scored/stolen) and similar.
+			var rfs_self := _get_self_card(ctx)
+			if rfs_self == null:
+				return
+			ctx.runner_rig.erase(rfs_self)
+			ctx.unregister_all_card_effects(rfs_self.runtime_instance_id)
+			if rfs_self.card_record != null:
+				ctx.runner_rfg.append(rfs_self.card_record)
+				ctx.send_log("[%s] Removed from the game." % rfs_self.display_name())
+
+		# ── Generic run modifier setter ──────────────────────────────────────────
+
+		"set_run_modifier":
+			# Sets a key in run_modifiers to a given value before a run starts.
+			# params: { "key": String, "value": Variant }
+			# Used by: Finality (bonus_access: 3 before R&D run).
+			var srm_key: String    = params.get("key", "")
+			var srm_value: Variant = params.get("value", 0)
+			if srm_key != "":
+				ctx.run_modifiers[srm_key] = srm_value
+
+		# ── Parhelion: Nonequivalent Exchange optional bonus ─────────────────────
+
+		"optional_each_player_gain_2cr":
+			# Corp may choose to have each player gain 2cr.
+			# params: { "amount": int }  (default 2)
+			var oepg_amount: int = params.get("amount", 2)
+			var oepg_use := false
+			if ctx.corp_decision_maker != null and ctx.corp_decision_maker.has_method("choose_optional_ability"):
+				oepg_use = await ctx.corp_decision_maker.choose_optional_ability(
+					"Nonequivalent Exchange: have each player gain %d cr?" % oepg_amount, ctx)
+			else:
+				oepg_use = true  # AI: usually worth it unless it puts runner ahead significantly
+			if oepg_use:
+				ctx.corp_credits   += oepg_amount
+				ctx.runner_credits += oepg_amount
+				ctx.send_log("[Nonequivalent Exchange] Each player gains %d cr." % oepg_amount)
+
+		# ── Parhelion: Abaasy full-break trigger ─────────────────────────────────
+
+		"abaasy_full_break":
+			# First time Abaasy fully breaks a code gate each turn: may trash 1 grip card to draw 1.
+			if ctx.runner_hand.is_empty():
+				ctx.send_log("[Abaasy] Grip is empty — no card to trash.")
+			else:
+				var abasy_use := false
+				if ctx.runner_decision_maker != null and ctx.runner_decision_maker.has_method("choose_optional_ability"):
+					abasy_use = await ctx.runner_decision_maker.choose_optional_ability(
+						"Abaasy: trash 1 grip card to draw 1?", ctx)
+				else:
+					abasy_use = not ctx.runner_deck.is_empty()
+				if abasy_use and not ctx.runner_hand.is_empty():
+					# Trash chosen card from grip
+					var abasy_target: Dictionary = {}
+					if ctx.runner_decision_maker != null and ctx.runner_decision_maker.has_method("choose_card_from_hand"):
+						abasy_target = await ctx.runner_decision_maker.choose_card_from_hand(ctx.runner_hand, ctx)
+					if abasy_target.is_empty() and not ctx.runner_hand.is_empty():
+						abasy_target = ctx.runner_hand[0] as Dictionary
+					if not abasy_target.is_empty():
+						var abasy_cr: CardRecord = abasy_target.get("card_record", null) as CardRecord
+						ctx.runner_hand.erase(abasy_target)
+						if abasy_cr != null:
+							ctx.runner_discard.append(abasy_cr)
+						ctx.send_log("[Abaasy] Trashes %s from grip." % (abasy_cr.title if abasy_cr != null else "card"))
+						# Draw 1 card
+						if not ctx.runner_deck.is_empty():
+							var abasy_drawn: CardRecord = ctx.runner_deck.pop_front() as CardRecord
+							if abasy_drawn != null:
+								ctx.runner_hand.append({"card_id": abasy_drawn.id, "card_record": abasy_drawn})
+								ctx.send_log("[Abaasy] %s draws %s." % [ctx.runner_name(), abasy_drawn.title])
+
+		# ── Parhelion: Katorga Breakout ───────────────────────────────────────────
+
+		"add_card_from_heap_to_grip":
+			# Runner picks 1 card from heap (runner_discard) and adds it to grip.
+			# Used by: Katorga Breakout (on successful run).
+			if ctx.runner_discard.is_empty():
+				ctx.send_log("[Katorga Breakout] Heap is empty.")
+			else:
+				var kbr_choice: CardRecord = null
+				if ctx.runner_decision_maker != null and ctx.runner_decision_maker.has_method("choose_from_heap"):
+					kbr_choice = await ctx.runner_decision_maker.choose_from_heap(
+						ctx.runner_discard.duplicate(), ctx)
+				if kbr_choice == null and not ctx.runner_discard.is_empty():
+					kbr_choice = ctx.runner_discard[0] as CardRecord
+				if kbr_choice != null:
+					ctx.runner_discard.erase(kbr_choice)
+					ctx.runner_hand.append({"card_id": kbr_choice.id, "card_record": kbr_choice})
+					ctx.send_log("[Katorga Breakout] %s adds %s from heap to grip." % [
+						ctx.runner_name(), kbr_choice.title])
+
+		# ── Parhelion: Reprise ────────────────────────────────────────────────────
+
+		"return_installed_corp_card_to_hq":
+			# Runner picks 1 installed Corp card, returns it to Corp's hand unrezzed.
+			# Used by: Reprise (after stole agenda this turn).
+			var ricc_all: Array = []
+			for ricc_srv in ctx.servers.values():
+				var ricc_s: Server = ricc_srv as Server
+				for ricc_ice in ricc_s.ice:
+					var ricc_ic: InstalledCard = ricc_ice as InstalledCard
+					if ricc_ic != null:
+						ricc_all.append(ricc_ic)
+				for ricc_root in ricc_s.root:
+					var ricc_ric: InstalledCard = ricc_root as InstalledCard
+					if ricc_ric != null:
+						ricc_all.append(ricc_ric)
+			if ricc_all.is_empty():
+				ctx.send_log("[Reprise] No installed Corp cards to return.")
+			else:
+				var ricc_target: InstalledCard = null
+				if ctx.runner_decision_maker != null and ctx.runner_decision_maker.has_method("choose_trash_from_rig"):
+					ricc_target = await ctx.runner_decision_maker.choose_trash_from_rig(ricc_all, ctx)
+				if ricc_target == null:
+					ricc_target = ricc_all[0] as InstalledCard
+				if ricc_target != null:
+					# Remove from server
+					var ricc_srv: Server = ctx.get_server(ricc_target.server_id)
+					if ricc_srv != null:
+						ricc_srv.ice.erase(ricc_target)
+						ricc_srv.root.erase(ricc_target)
+						ctx.remove_empty_remote_servers()
+					ctx.unregister_all_card_effects(ricc_target.runtime_instance_id)
+					ricc_target.is_rezzed = false
+					if ricc_target.card_record != null:
+						ctx.corp_hand.append({"card_id": ricc_target.card_record.id,
+							"card_record": ricc_target.card_record})
+						ctx.send_log("[Reprise] %s returns %s to %s's hand." % [
+							ctx.runner_name(), ricc_target.display_name(), ctx.corp_name()])
+
+		# ── Parhelion: Hypoxia ────────────────────────────────────────────────────
+
+		"lose_clicks_next_turn":
+			# Runner gets −N allotted clicks next turn via pending_click_penalties.
+			# params: { "amount": int }  (default 1)
+			var lct_amount: int = params.get("amount", 1)
+			ctx.pending_click_penalties["runner"] = \
+				ctx.pending_click_penalties.get("runner", 0) + lct_amount
+			ctx.send_log("[Hypoxia] %s will have %d fewer click(s) next turn." % [
+				ctx.runner_name(), lct_amount])
+
+		# ── Parhelion: Shipment from Vladisibirsk ─────────────────────────────────
+
+		"distribute_advancement_counters":
+			# Corp places a total of N advancement counters across installed advanceable cards.
+			# params: { "amount": int }  (default 4)
+			var dac_total: int = params.get("amount", 4)
+			# Collect all installed advanceable cards
+			var dac_advanceable: Array = []
+			for dac_srv in ctx.servers.values():
+				for dac_card in (dac_srv as Server).root:
+					var dac_ic: InstalledCard = dac_card as InstalledCard
+					if dac_ic != null and dac_ic.can_be_advanced():
+						dac_advanceable.append(dac_ic)
+				for dac_ice in (dac_srv as Server).ice:
+					var dac_iic: InstalledCard = dac_ice as InstalledCard
+					if dac_iic != null and dac_iic.can_be_advanced():
+						dac_advanceable.append(dac_iic)
+			if dac_advanceable.is_empty():
+				ctx.send_log("[Shipment] No advanceable installed cards.")
+			else:
+				ctx.send_log("[Shipment] %s places %d advancement counter(s) across installed cards." % [
+					ctx.corp_name(), dac_total])
+				# Distribute: Corp picks which card gets each counter
+				for _dac_i in range(dac_total):
+					if dac_advanceable.is_empty():
+						break
+					var dac_target: InstalledCard = null
+					if ctx.corp_decision_maker != null and ctx.corp_decision_maker.has_method("choose_trash_from_rig"):
+						dac_target = await ctx.corp_decision_maker.choose_trash_from_rig(dac_advanceable, ctx)
+					if dac_target == null:
+						dac_target = dac_advanceable[0] as InstalledCard
+					dac_target.add_counter("advancement", 1)
+					ctx.send_log("  Placed advancement on %s (%d total)." % [
+						dac_target.display_name(), dac_target.get_counter("advancement")])
+
+		# ── Parhelion: Simulation Reset ───────────────────────────────────────────
+
+		"simulation_reset_play":
+			# Trash up to 5 cards from HQ; shuffle same count from Archives into R&D;
+			# draw same count. Remove from game on play (handled by remove_from_game: true).
+			var sr_max: int = 5
+			# Step 1: Corp chooses up to 5 HQ cards to trash
+			var sr_trashed: int = 0
+			for _sr_i in range(mini(sr_max, ctx.corp_hand.size())):
+				var sr_entry: Dictionary = {}
+				if ctx.corp_decision_maker != null and ctx.corp_decision_maker.has_method("choose_card_from_hand"):
+					sr_entry = await ctx.corp_decision_maker.choose_card_from_hand(ctx.corp_hand, ctx) as Dictionary
+				if sr_entry.is_empty() and not ctx.corp_hand.is_empty():
+					break  # Corp chose not to trash more
+				if not sr_entry.is_empty():
+					var sr_cr: CardRecord = sr_entry.get("card_record", null) as CardRecord
+					ctx.corp_hand.erase(sr_entry)
+					if sr_cr != null:
+						ctx.corp_discard.append(sr_cr)
+						ctx.corp_discard_facedown[sr_cr.title] = true
+					sr_trashed += 1
+			ctx.send_log("[Simulation Reset] Trashed %d card(s) from HQ." % sr_trashed)
+			if sr_trashed > 0:
+				# Step 2: Shuffle same count from Archives into R&D
+				var sr_shuffled: int = 0
+				var sr_archives_cards: Array = ctx.corp_discard.duplicate()
+				sr_archives_cards.shuffle()
+				for _sr_j in range(mini(sr_trashed, sr_archives_cards.size())):
+					var sr_back: CardRecord = sr_archives_cards[_sr_j] as CardRecord
+					if sr_back != null:
+						ctx.corp_discard.erase(sr_back)
+						ctx.corp_discard_facedown.erase(sr_back.title)
+						ctx.corp_deck.append(sr_back)
+						sr_shuffled += 1
+				ctx.corp_deck.shuffle()
+				ctx.send_log("[Simulation Reset] Shuffled %d card(s) from Archives into R&D." % sr_shuffled)
+				# Step 3: Draw same count
+				var sr_drawn: int = 0
+				for _sr_k in range(mini(sr_trashed, ctx.corp_deck.size())):
+					var sr_drawn_card: CardRecord = ctx.corp_deck.pop_front() as CardRecord
+					if sr_drawn_card != null:
+						ctx.corp_hand.append({"card_id": sr_drawn_card.id, "card_record": sr_drawn_card})
+						sr_drawn += 1
+				ctx.send_log("[Simulation Reset] %s draws %d card(s)." % [ctx.corp_name(), sr_drawn])
+
+		# ── Parhelion: Hybrid Release ─────────────────────────────────────────────
+
+		"install_facedown_from_archives_optional":
+			# Corp may install 1 facedown Archives card (unrezzed, face-down per install rules).
+			# Used by: Hybrid Release (on score).
+			if ctx.corp_discard.is_empty():
+				ctx.send_log("[Hybrid Release] Archives is empty.")
+			else:
+				var ifar_use := false
+				if ctx.corp_decision_maker != null and ctx.corp_decision_maker.has_method("choose_optional_ability"):
+					ifar_use = await ctx.corp_decision_maker.choose_optional_ability(
+						"Hybrid Release: install 1 card from Archives facedown?", ctx)
+				else:
+					ifar_use = true  # AI: always use (free install)
+				if ifar_use:
+					var ifar_candidates: Array = ctx.corp_discard.duplicate()
+					var ifar_choice: CardRecord = null
+					if ctx.corp_decision_maker != null and ctx.corp_decision_maker.has_method("choose_from_search"):
+						ifar_choice = await ctx.corp_decision_maker.choose_from_search(ifar_candidates, ctx)
+					if ifar_choice == null and not ifar_candidates.is_empty():
+						ifar_choice = ifar_candidates[0] as CardRecord
+					if ifar_choice != null:
+						ctx.corp_discard.erase(ifar_choice)
+						ctx.corp_discard_facedown.erase(ifar_choice.title)
+						# Install into a remote server (new or existing)
+						var ifar_server: Server = null
+						if ctx.corp_decision_maker != null and ctx.corp_decision_maker.has_method("choose_server"):
+							var ifar_srv_ids: Array = []
+							for srv in ctx.get_remote_servers():
+								ifar_srv_ids.append((srv as Server).server_id)
+							ifar_srv_ids.append("new")
+							var ifar_srv_id: String = await ctx.corp_decision_maker.choose_server(ifar_srv_ids, ctx)
+							if ifar_srv_id == "new" or not ctx.servers.has(ifar_srv_id):
+								ifar_server = ctx.create_remote_server()
+							else:
+								ifar_server = ctx.get_server(ifar_srv_id)
+						if ifar_server == null:
+							ifar_server = ctx.create_remote_server()
+						var ifar_zone: String = "ice" if ifar_choice.is_ice() else "root"
+						var ifar_installed: InstalledCard = InstalledCard.make_runtime_instance(
+							ifar_choice, ifar_server.server_id, ifar_zone, false)
+						if ifar_zone == "ice":
+							ifar_server.ice.append(ifar_installed)
+						else:
+							ifar_server.root.append(ifar_installed)
+						ctx.corp_installed_this_turn.append(ifar_installed.runtime_instance_id)
+						ctx.send_log("[Hybrid Release] Installs %s facedown from Archives in %s." % [
+							ifar_choice.title, ifar_server.display_name()])
+
+		# ── Parhelion: Reaper Function ────────────────────────────────────────────
+
+		"reaper_function_trash_for_damage":
+			# On Corp turn begin: may trash this asset to deal 2 net damage.
+			var rftr_self := _get_self_card(ctx)
+			if rftr_self == null or not rftr_self.is_rezzed:
+				return
+			var rftr_use := false
+			if ctx.corp_decision_maker != null and ctx.corp_decision_maker.has_method("choose_optional_ability"):
+				rftr_use = await ctx.corp_decision_maker.choose_optional_ability(
+					"Reaper Function: trash to deal 2 net damage?", ctx)
+			else:
+				rftr_use = true  # AI: always use (free 2 net damage is strong)
+			if rftr_use:
+				# Trash self
+				var rftr_server: Server = ctx.get_server(rftr_self.server_id)
+				if rftr_server != null:
+					rftr_server.root.erase(rftr_self)
+					ctx.remove_empty_remote_servers()
+				ctx.unregister_all_card_effects(rftr_self.runtime_instance_id)
+				if rftr_self.card_record != null:
+					ctx.corp_discard.append(rftr_self.card_record)
+				ctx.send_log("[Reaper Function] Trashes itself to deal 2 net damage.")
+				await execute_trigger({"effects": [{"type": "deal_damage",
+					"params": {"damage_type": "net", "amount": 2}}]}, ctx)
+
+		# ── Parhelion: Superdeep Borehole win condition ──────────────────────────
+
+		"win_game_if_counter_empty":
+			# If the specified counter on the owning card is 0 (or less), trigger win_game.
+			# params: { "winner": "corp"|"runner", "counter": String }
+			var wgice_counter: String = effect.get("counter", params.get("counter", "bad_publicity"))
+			var wgice_winner: String  = params.get("winner", "corp")
+			var wgice_self := _get_self_card(ctx)
+			if wgice_self != null and wgice_self.get_counter(wgice_counter) <= 0:
+				await execute_trigger({"effects": [{"type": "win_game", "params": {"winner": wgice_winner}}]}, ctx)
+
+		# ── Parhelion: Katorga Breakout ───────────────────────────────────────────
+
+		"katorga_breakout_play":
+			# Run any server; if successful, add 1 card from heap to grip.
+			var kbp_servers: Array = ["hq", "rd", "archives"]
+			for kbp_rsrv in ctx.get_remote_servers():
+				kbp_servers.append((kbp_rsrv as Server).server_id)
+			var kbp_target: String = kbp_servers[0]
+			if ctx.runner_decision_maker != null and ctx.runner_decision_maker.has_method("choose_server"):
+				kbp_target = await ctx.runner_decision_maker.choose_server(kbp_servers, ctx)
+			ctx.send_log("[Katorga Breakout] %s runs %s." % [ctx.runner_name(), kbp_target])
+			await execute_trigger({"effects": [{"type": "initiate_run",
+				"params": {"server_id": kbp_target}}]}, ctx)
+			if ctx.run_successful and not ctx.runner_discard.is_empty():
+				await execute_trigger({"effects": [{"type": "add_card_from_heap_to_grip"}]}, ctx)
+
+		# ── Parhelion: Asmund Pudlat hosted card management ───────────────────────
+
+		"asmund_take_hosted_to_grip":
+			# Runner may pick 1 faceup hosted card and add it to grip.
+			var athtg_self := _get_self_card(ctx)
+			if athtg_self == null or athtg_self.faceup_hosted_cards.is_empty():
+				ctx.send_log("[Asmund] No hosted cards to take.")
+			else:
+				var athtg_use := false
+				if ctx.runner_decision_maker != null and ctx.runner_decision_maker.has_method("choose_optional_ability"):
+					athtg_use = await ctx.runner_decision_maker.choose_optional_ability(
+						"Asmund Pudlat: add 1 hosted card to grip?", ctx)
+				else:
+					athtg_use = true
+				if athtg_use:
+					# Pick a card from faceup_hosted_cards
+					var athtg_choice: CardRecord = null
+					if ctx.runner_decision_maker != null and ctx.runner_decision_maker.has_method("choose_from_search"):
+						athtg_choice = await ctx.runner_decision_maker.choose_from_search(
+							athtg_self.faceup_hosted_cards.duplicate(), ctx)
+					if athtg_choice == null and not athtg_self.faceup_hosted_cards.is_empty():
+						athtg_choice = athtg_self.faceup_hosted_cards[0] as CardRecord
+					if athtg_choice != null:
+						athtg_self.faceup_hosted_cards.erase(athtg_choice)
+						ctx.runner_hand.append({"card_id": athtg_choice.id, "card_record": athtg_choice})
+						ctx.send_log("[Asmund] Adds %s to grip." % athtg_choice.title)
+
+		"self_trash_if_faceup_hosted_empty":
+			# Trash this card if faceup_hosted_cards is empty.
+			var sthfe_self := _get_self_card(ctx)
+			if sthfe_self != null and sthfe_self.faceup_hosted_cards.is_empty():
+				ctx.runner_rig.erase(sthfe_self)
+				ctx.unregister_all_card_effects(sthfe_self.runtime_instance_id)
+				if sthfe_self.card_record != null:
+					ctx.runner_discard.append(sthfe_self.card_record)
+				ctx.send_log("[Asmund] No more hosted cards — trashed.")
+
+		# ── Parhelion: Hush move trojan ───────────────────────────────────────────
+
+		"move_trojan_to_ice":
+			# [click]: move this trojan from its current host ice to another installed ice.
+			var mti_self := _get_self_card(ctx)
+			if mti_self == null:
+				ctx.send_log("[Hush] Cannot find self card.")
+				return
+			# Collect all installed ice except current host
+			var mti_candidates: Array = []
+			for mti_srv in ctx.servers.values():
+				for mti_ice in (mti_srv as Server).ice:
+					var mti_ic: InstalledCard = mti_ice as InstalledCard
+					if mti_ic != null and mti_ic.runtime_instance_id != mti_self.hosted_on_id:
+						mti_candidates.append(mti_ic)
+			if mti_candidates.is_empty():
+				ctx.send_log("[Hush] No other ice to move to.")
+			else:
+				var mti_dest: InstalledCard = null
+				if ctx.runner_decision_maker != null and ctx.runner_decision_maker.has_method("choose_target_ice"):
+					mti_dest = await ctx.runner_decision_maker.choose_target_ice(mti_candidates, "Hush: move to", ctx)
+				if mti_dest == null:
+					mti_dest = mti_candidates[0] as InstalledCard
+				# Remove from current host
+				for mti_src_srv in ctx.servers.values():
+					for mti_src_ice in (mti_src_srv as Server).ice:
+						var mti_src_ic: InstalledCard = mti_src_ice as InstalledCard
+						if mti_src_ic != null and mti_src_ic.runtime_instance_id == mti_self.hosted_on_id:
+							mti_src_ic.hosted_cards.erase(mti_self)
+							break
+				# Move to new host
+				mti_dest.hosted_cards.append(mti_self)
+				mti_self.hosted_on_id = mti_dest.runtime_instance_id
+				ctx.send_log("[Hush] Moves from host to %s." % mti_dest.display_name())
+
+		# ── Parhelion: Time Bomb ──────────────────────────────────────────────────
+
+		"time_bomb_turn_begin":
+			# Runner turn begin: if power_counter >= 3, trash self and sabotage 3.
+			# Otherwise, place 1 power counter.
+			var tbtb_self := _get_self_card(ctx)
+			if tbtb_self == null:
+				return
+			var tbtb_counters: int = tbtb_self.get_counter("power")
+			if tbtb_counters >= 3:
+				# Trash self first, then sabotage 3
+				ctx.runner_rig.erase(tbtb_self)
+				ctx.unregister_all_card_effects(tbtb_self.runtime_instance_id)
+				if tbtb_self.card_record != null:
+					ctx.runner_discard.append(tbtb_self.card_record)
+				ctx.send_log("[Time Bomb] Detonates — sabotage 3!")
+				await execute_trigger({"effects": [{"type": "sabotage", "params": {"amount": 3}}]}, ctx)
+			else:
+				tbtb_self.add_counter("power", 1)
+				ctx.send_log("[Time Bomb] Places 1 power counter (%d total)." % \
+					tbtb_self.get_counter("power"))
+
+		# ── Parhelion: Nanisivik Grid approach trigger ─────────────────────────────
+
+		"nanisivik_grid_trigger":
+			# Whenever Runner approaches this server: Corp may flip 1 facedown Archives
+			# ice faceup; if so, resolve 1 subroutine on that ice.
+			# Find all facedown ice in Archives.
+			var nan_facedown_ice: Array = []
+			for nan_cr in ctx.corp_discard:
+				var nan_card: CardRecord = nan_cr as CardRecord
+				if nan_card == null or not nan_card.is_ice():
+					continue
+				if ctx.corp_discard_facedown.get(nan_card.title, false):
+					nan_facedown_ice.append(nan_card)
+			if nan_facedown_ice.is_empty():
+				ctx.send_log("[Nanisivik Grid] No facedown ice in Archives.")
+			else:
+				var nan_use := false
+				if ctx.corp_decision_maker != null and ctx.corp_decision_maker.has_method("choose_optional_ability"):
+					nan_use = await ctx.corp_decision_maker.choose_optional_ability(
+						"Nanisivik Grid: flip 1 facedown Archives ice faceup and resolve 1 sub?", ctx)
+				else:
+					nan_use = true  # AI: always use free sub resolution
+				if nan_use:
+					# Corp picks which facedown ice to flip.
+					var nan_ice_choice: CardRecord = null
+					if ctx.corp_decision_maker != null and ctx.corp_decision_maker.has_method("choose_from_search"):
+						nan_ice_choice = await ctx.corp_decision_maker.choose_from_search(nan_facedown_ice, ctx)
+					if nan_ice_choice == null:
+						nan_ice_choice = nan_facedown_ice[0] as CardRecord
+					# Flip faceup (remove from facedown tracking).
+					ctx.corp_discard_facedown.erase(nan_ice_choice.title)
+					ctx.send_log("[Nanisivik Grid] %s flipped faceup in Archives." % nan_ice_choice.title)
+					# Get subroutines for the flipped ice.
+					var nan_ab_reg: AbilityRegistry = ctx.get_meta("ability_registry") as AbilityRegistry \
+						if ctx.has_meta("ability_registry") else null
+					var nan_subs: Array = nan_ab_reg.get_subroutines_for_card(nan_ice_choice.id, null) \
+						if nan_ab_reg != null else []
+					if nan_subs.is_empty():
+						ctx.send_log("[Nanisivik Grid] %s has no implemented subroutines." % nan_ice_choice.title)
+					else:
+						# Corp picks which subroutine to resolve.
+						var nan_sub_idx: int = 0
+						if ctx.corp_decision_maker != null and ctx.corp_decision_maker.has_method("choose_modes"):
+							var nan_sub_choices: Array = []
+							for nan_si in range(nan_subs.size()):
+								var nan_sd: Dictionary = nan_subs[nan_si] as Dictionary
+								nan_sub_choices.append({"label": nan_sd.get("label", "Sub %d" % nan_si)})
+							var nan_chosen: Array = await ctx.corp_decision_maker.choose_modes(
+								nan_sub_choices, 1, ctx)
+							if not nan_chosen.is_empty():
+								nan_sub_idx = clamp(int(nan_chosen[0]), 0, nan_subs.size() - 1)
+						var nan_sub_def: Dictionary = nan_subs[nan_sub_idx] as Dictionary
+						ctx.send_log("[Nanisivik Grid] Resolving '%s' from %s." % [
+							nan_sub_def.get("label", "sub %d" % nan_sub_idx), nan_ice_choice.title])
+						await execute_subroutine(nan_sub_def, ctx)
+
+		# ══════════════════════════════════════════════════════════════════════════
+		# ── Midnight Sun effects ─────────────────────────────────────────────────
+		# ══════════════════════════════════════════════════════════════════════════
+
+		# ── Midnight Sun: runner_gain_clicks ─────────────────────────────────────
+		# Running Hot (gain 3 clicks), Nyusha "Sable" (gain 1 click on mark run),
+		# and Into the Depths (gain click as one of the choices).
+		# params: { "amount": int }
+
+		"runner_gain_clicks":
+			var rgc_amount: int = params.get("amount", 1)
+			ctx.runner_clicks += rgc_amount
+			ctx.send_log("%s gains %d click(s) (now %d)." % [ctx.runner_name(), rgc_amount, ctx.runner_clicks])
+
+		# ── Midnight Sun: deal_damage_equal_to_runner_grip ────────────────────────
+		# Blood in the Water subroutine: do X net damage where X = runner grip size.
+
+		"deal_damage_equal_to_runner_grip":
+			var ddrg_amount: int = ctx.runner_hand.size()
+			if ddrg_amount <= 0:
+				ctx.send_log("[Blood in the Water] Runner grip is empty — sub has no effect.")
+			else:
+				ctx.send_log("[Blood in the Water] Runner has %d card(s) in grip — dealing %d net damage." % [
+					ddrg_amount, ddrg_amount])
+				await _deal_damage("net", ddrg_amount, ctx)
+
+		# ── Midnight Sun: skip_corp_discard_step ──────────────────────────────────
+		# Midnight-3 Arcology (5/3): on score, Corp skips their discard phase this turn.
+
+		"skip_corp_discard_step":
+			ctx.corp_skip_discard_step_this_turn = true
+			ctx.send_log("%s skips the discard phase this turn." % ctx.corp_name())
+
+		# ── Midnight Sun: gain_credits_per_self_adv_counter ──────────────────────
+		# Ubiquitous Vig: Corp turn begin, gain 1cr for each hosted advancement counter.
+
+		"gain_credits_per_self_adv_counter":
+			var gcpac_self: InstalledCard = _get_self_card(ctx)
+			if gcpac_self == null:
+				return
+			var gcpac_count: int = gcpac_self.get_counter("advancement")
+			if gcpac_count <= 0:
+				ctx.send_log("[%s] No advancement counters — no credits gained." % gcpac_self.display_name())
+				return
+			ctx.corp_credits += gcpac_count
+			ctx.send_log("[%s] %s gains %d cr (%d advancement counter(s))." % [
+				gcpac_self.display_name(), ctx.corp_name(), gcpac_count, gcpac_count])
+			if not ctx.simulation_mode:
+				pass  # credits_changed emitted by caller if needed
+
+		# ── Midnight Sun: pay_credits_place_adv_counter ───────────────────────────
+		# Vasilisa (ice): on encounter, Corp may pay N cr to place 1 adv counter on
+		# an advanceable installed card.
+		# params: { "cost": int }
+
+		"pay_credits_place_adv_counter":
+			var cpac_cost: int = params.get("cost", 1)
+			if ctx.corp_credits < cpac_cost:
+				return   # cannot afford — no offer
+			var cpac_use := false
+			if ctx.corp_decision_maker != null and ctx.corp_decision_maker.has_method("choose_optional_ability"):
+				cpac_use = await ctx.corp_decision_maker.choose_optional_ability(
+					"Pay %d[credit] to place 1 advancement counter on an installed card?" % cpac_cost, ctx)
+			else:
+				cpac_use = true   # AI: always use
+			if not cpac_use:
+				return
+			# Collect advanceable targets
+			var cpac_targets: Array = []
+			for cpac_srv in ctx.servers.values():
+				var cpac_s: Server = cpac_srv as Server
+				for cpac_root_c in cpac_s.root:
+					var cpac_ic: InstalledCard = cpac_root_c as InstalledCard
+					if cpac_ic != null and cpac_ic.can_be_advanced():
+						cpac_targets.append(cpac_ic)
+				for cpac_ice_c in cpac_s.ice:
+					var cpac_ic2: InstalledCard = cpac_ice_c as InstalledCard
+					if cpac_ic2 != null and cpac_ic2.can_be_advanced():
+						cpac_targets.append(cpac_ic2)
+			if cpac_targets.is_empty():
+				ctx.send_log("No advanceable installed cards.")
+				return
+			ctx.corp_credits -= cpac_cost
+			var cpac_target: InstalledCard = null
+			if ctx.corp_decision_maker != null and ctx.corp_decision_maker.has_method("choose_trash_from_rig"):
+				cpac_target = await ctx.corp_decision_maker.choose_trash_from_rig(cpac_targets, ctx)
+			else:
+				cpac_target = cpac_targets[0] as InstalledCard
+			if cpac_target == null:
+				ctx.corp_credits += cpac_cost   # refund if somehow no target chosen
+				return
+			cpac_target.add_counter("advancement", 1)
+			ctx.send_log("%s pays %d cr — places 1 advancement counter on %s (%d total)." % [
+				ctx.corp_name(), cpac_cost, cpac_target.display_name(),
+				cpac_target.get_counter("advancement")])
+
+		# ── Midnight Sun: spend_adv_counter_for_effect ────────────────────────────
+		# Mestnichestvo (ice): on encounter, Corp may remove 1 adv counter → Runner
+		# loses 3 credits.
+		# params: { "credits_lost": int }
+
+		"spend_adv_counter_for_effect":
+			var safe_self: InstalledCard = _get_self_card(ctx)
+			if safe_self == null:
+				return
+			var safe_adv: int = safe_self.get_counter("advancement")
+			if safe_adv <= 0:
+				return   # no counters to spend
+			var safe_credits: int = params.get("credits_lost", 3)
+			var safe_use := false
+			if ctx.corp_decision_maker != null and ctx.corp_decision_maker.has_method("choose_optional_ability"):
+				safe_use = await ctx.corp_decision_maker.choose_optional_ability(
+					"Remove 1 advancement counter to make Runner lose %d[credit]?" % safe_credits, ctx)
+			else:
+				safe_use = true   # AI: always use
+			if not safe_use:
+				return
+			safe_self.remove_counter("advancement", 1)
+			var safe_lost: int = min(safe_credits, ctx.runner_credits)
+			ctx.runner_credits -= safe_lost
+			ctx.send_log("[%s] %s removes 1 advancement counter — Runner loses %d cr (%d remaining)." % [
+				safe_self.display_name(), ctx.corp_name(), safe_lost, ctx.runner_credits])
+
+		# ── Midnight Sun: corp_optional_trash_own_for_credits ─────────────────────
+		# Extract: Corp may trash 1 of their installed cards to gain N more credits.
+		# params: { "amount": int }
+
+		"corp_optional_trash_own_for_credits":
+			var cotfc_amount: int = params.get("amount", 3)
+			var cotfc_pool: Array = ctx.all_installed()
+			if cotfc_pool.is_empty():
+				return   # nothing to trash
+			var cotfc_use := false
+			if ctx.corp_decision_maker != null and ctx.corp_decision_maker.has_method("choose_optional_ability"):
+				cotfc_use = await ctx.corp_decision_maker.choose_optional_ability(
+					"Trash 1 installed card to gain %d[credit]?" % cotfc_amount, ctx)
+			else:
+				cotfc_use = true   # AI: always take credits
+			if not cotfc_use:
+				return
+			var cotfc_target: InstalledCard = null
+			if ctx.corp_decision_maker != null and ctx.corp_decision_maker.has_method("choose_trash_from_rig"):
+				cotfc_target = await ctx.corp_decision_maker.choose_trash_from_rig(cotfc_pool, ctx)
+			else:
+				# Fallback: trash an unrezzed non-agenda card, or just the first card
+				for c in cotfc_pool:
+					var cic: InstalledCard = c as InstalledCard
+					if cic != null and not cic.is_rezzed and \
+							(cic.card_record == null or not cic.card_record.is_agenda()):
+						cotfc_target = cic
+						break
+				if cotfc_target == null:
+					cotfc_target = cotfc_pool[0] as InstalledCard
+			if cotfc_target == null:
+				return
+			# Trash the chosen card
+			var cotfc_srv: Server = ctx.get_server(cotfc_target.server_id)
+			if cotfc_srv:
+				cotfc_srv.remove_from_root(cotfc_target)
+				ctx.remove_empty_remote_servers()
+			ctx.unregister_all_card_effects(cotfc_target.runtime_instance_id)
+			if cotfc_target.card_record:
+				ctx.corp_discard.append(cotfc_target.card_record)
+			ctx.send_log("[Extract] %s trashes %s — gains %d cr." % [
+				ctx.corp_name(), cotfc_target.display_name(), cotfc_amount])
+			ctx.corp_credits += cotfc_amount
+			# Midnight Sun: Ob Superheavy — fire event if a rezzed card was trashed.
+			if cotfc_target.is_rezzed and not ctx.corp_is_installing:
+				var cotfc_rez_cost: int = cotfc_target.card_record.cost if cotfc_target.card_record else 0
+				await ctx.notify_event("corp_trashes_own_rezzed_card", {
+					"card_id": cotfc_target.card_id,
+					"rez_cost": cotfc_rez_cost,
+					"server_id": cotfc_target.server_id
+				}, self)
+
+		# ── Midnight Sun: runner_optional_trash_own_installed_for_credits ─────────
+		# Svyatogor Excavator: Runner turn begin, may trash 1 other installed card
+		# to gain N credits.
+		# params: { "amount": int }
+
+		"runner_optional_trash_own_installed_for_credits":
+			var rotifc_self: InstalledCard = _get_self_card(ctx)
+			var rotifc_amount: int = params.get("amount", 3)
+			# Pool: all runner installed cards except Svyatogor itself
+			var rotifc_pool: Array = ctx.runner_rig.filter(
+				func(c: InstalledCard): return c != rotifc_self
+			)
+			if rotifc_pool.is_empty():
+				return   # nothing to trash
+			var rotifc_use := false
+			if ctx.runner_decision_maker != null and ctx.runner_decision_maker.has_method("choose_optional_ability"):
+				rotifc_use = await ctx.runner_decision_maker.choose_optional_ability(
+					"Trash 1 installed card to gain %d[credit]?" % rotifc_amount, ctx)
+			else:
+				rotifc_use = true   # AI: take credits if useful
+			if not rotifc_use:
+				return
+			var rotifc_target: InstalledCard = null
+			if ctx.runner_decision_maker != null and ctx.runner_decision_maker.has_method("choose_trash_from_rig"):
+				rotifc_target = await ctx.runner_decision_maker.choose_trash_from_rig(rotifc_pool, ctx)
+			else:
+				# Fallback: trash the card with the fewest counters / lowest cost
+				var best: InstalledCard = rotifc_pool[0] as InstalledCard
+				for c in rotifc_pool:
+					var cic: InstalledCard = c as InstalledCard
+					if cic == null or cic.card_record == null:
+						continue
+					var prev: InstalledCard = best
+					if prev == null or prev.card_record == null:
+						best = cic
+						continue
+					if cic.card_record.cost < prev.card_record.cost:
+						best = cic
+				rotifc_target = best
+			if rotifc_target == null:
+				return
+			_trash_installed_card(rotifc_target, ctx)
+			if rotifc_target.card_record:
+				ctx.runner_discard.append(rotifc_target.card_record)
+			ctx.runner_credits += rotifc_amount
+			ctx.send_log("[Svyatogor Excavator] %s trashes %s — gains %d cr." % [
+				ctx.runner_name(), rotifc_target.display_name(), rotifc_amount])
+
+		# ── Midnight Sun: corp_optional_derez_any_rezzed ─────────────────────────
+		# Élivágar Bifurcation (3/2 agenda): on score, Corp may derez any 1 rezzed
+		# installed card (ice, asset, or upgrade).  More general than corp_derez_chosen_ice.
+
+		"corp_optional_derez_any_rezzed":
+			var coda_pool: Array = []
+			for coda_srv in ctx.servers.values():
+				var coda_s: Server = coda_srv as Server
+				for coda_c in coda_s.root:
+					var coda_ic: InstalledCard = coda_c as InstalledCard
+					if coda_ic != null and coda_ic.is_rezzed:
+						coda_pool.append(coda_ic)
+				for coda_i in coda_s.ice:
+					var coda_ic2: InstalledCard = coda_i as InstalledCard
+					if coda_ic2 != null and coda_ic2.is_rezzed:
+						coda_pool.append(coda_ic2)
+			if coda_pool.is_empty():
+				ctx.send_log("No rezzed installed cards to derez.")
+				return
+			var coda_use := false
+			if ctx.corp_decision_maker != null and ctx.corp_decision_maker.has_method("choose_optional_ability"):
+				coda_use = await ctx.corp_decision_maker.choose_optional_ability(
+					"Derez 1 installed card?", ctx)
+			else:
+				coda_use = false   # AI: usually not worth derezzing own cards
+			if not coda_use:
+				return
+			var coda_target: InstalledCard = null
+			if ctx.corp_decision_maker != null and ctx.corp_decision_maker.has_method("choose_derez_target"):
+				coda_target = await ctx.corp_decision_maker.choose_derez_target(coda_pool, ctx)
+			else:
+				coda_target = coda_pool[0] as InstalledCard
+			if coda_target != null:
+				await _derez_card(coda_target, ctx)
+
+		# ── Midnight Sun: esa_trigger ────────────────────────────────────────────
+		# Esâ Afontov: the first time each turn the Runner suffers core damage,
+		# they may draw 1 card and sabotage 2.  Both effects are a package.
+
+		"esa_trigger":
+			var esa_use := false
+			if ctx.runner_decision_maker != null and ctx.runner_decision_maker.has_method("choose_optional_ability"):
+				esa_use = await ctx.runner_decision_maker.choose_optional_ability(
+					"Draw 1 card and sabotage 2? (Esâ Afontov)", ctx)
+			else:
+				esa_use = true   # AI: always use — draw + sabotage 2 is strong
+			if esa_use:
+				# Draw 1 card
+				if not ctx.runner_deck.is_empty():
+					var esa_card: CardRecord = ctx.runner_deck.pop_back()
+					ctx.runner_hand.append({"card_id": esa_card.id, "card_record": esa_card})
+					ctx.send_log("[Esâ Afontov] %s draws 1 card." % ctx.runner_name())
+				else:
+					ctx.send_log("[Esâ Afontov] Stack is empty — no card drawn.")
+				# Sabotage 2
+				await execute_trigger({
+					"effects": [{"type": "sabotage", "params": {"amount": 2}}]
+				}, ctx)
+
+		# ── Midnight Sun: ob_superheavy_trigger ──────────────────────────────────
+		# Ob Superheavy Logistics: when Corp trashes a rezzed card (except during
+		# install), search R&D for a card with printed rez cost exactly 1 less than
+		# the trashed card.  Install it in any server and rez it, ignoring all costs.
+		# Once per turn (guarded by once_per_turn_key in JSON).
+		# Event payload: { "rez_cost": int, "card_id": String, "server_id": String }
+
+		"ob_superheavy_trigger":
+			var ob_trashed_cost: int = ctx.current_event_data.get("rez_cost", -1)
+			if ob_trashed_cost < 0:
+				ctx.send_log("[Ob] No rez cost in event data — cannot trigger.")
+				return
+			var ob_target_cost: int = ob_trashed_cost - 1
+			if ob_target_cost < 0:
+				ctx.send_log("[Ob] Trashed card had rez cost 0 — no cheaper card to search for.")
+				ctx.corp_deck.shuffle()
+				return
+			# Search R&D for candidates.
+			# Ruling: agendas cannot be installed with Ob (they have no rez cost).
+			# Ruling: identities and operations cannot be installed.
+			# Valid types: ice, asset, upgrade.
+			var ob_candidates: Array = []
+			for ob_cr_any in ctx.corp_deck:
+				var ob_cr: CardRecord = ob_cr_any as CardRecord
+				if ob_cr != null and ob_cr.cost == ob_target_cost \
+						and not ob_cr.is_agenda() \
+						and ob_cr.card_type != "identity" \
+						and ob_cr.card_type != "operation":
+					ob_candidates.append(ob_cr)
+			if ob_candidates.is_empty():
+				ctx.send_log("[Ob] No cards with rez cost %d found in R&D." % ob_target_cost)
+				ctx.corp_deck.shuffle()
+				return
+			# Corp chooses which to install
+			var ob_chosen: CardRecord = null
+			if ctx.corp_decision_maker != null and ctx.corp_decision_maker.has_method("choose_card_from_hand"):
+				# Reuse choose_card_from_hand with the candidates list
+				var ob_chosen_entry = await ctx.corp_decision_maker.choose_card_from_hand(
+					ob_candidates.map(func(cr): return {"card_id": (cr as CardRecord).id, "card_record": cr}),
+					{"reason": "ob_search"}, ctx)
+				if ob_chosen_entry != null:
+					ob_chosen = (ob_chosen_entry as Dictionary).get("card_record", null)
+			if ob_chosen == null:
+				ob_chosen = ob_candidates[0] as CardRecord
+			# Remove from R&D and shuffle
+			ctx.corp_deck.erase(ob_chosen)
+			ctx.corp_deck.shuffle()
+			# Create InstalledCard and install in a new remote server
+			var ob_server: Server = ctx.create_remote_server()
+			var ob_zone: String = "ice" if (ob_chosen.card_type == "ice") else "root"
+			var ob_installed: InstalledCard = InstalledCard.make_runtime_instance(
+				ob_chosen, ob_server.id, ob_zone, true)
+			if ob_zone == "ice":
+				ob_server.ice.append(ob_installed)
+			else:
+				ob_server.root.append(ob_installed)
+			# Register listeners
+			if ctx.has_meta("register_installed_card"):
+				var ob_reg: Callable = ctx.get_meta("register_installed_card") as Callable
+				ob_reg.call(ob_installed)
+			ctx.corp_installed_this_turn.append(ob_installed.runtime_instance_id)
+			ctx.ice_rezzed_this_turn = true
+			if ob_installed.runtime_instance_id != "":
+				ctx.ice_rezzed_this_turn_instance_ids.append(ob_installed.runtime_instance_id)
+			ctx.send_log("[Ob Superheavy] %s searches R&D — installs and rezzes %s (cost %d) for free." % [
+				ctx.corp_name(), ob_chosen.title, ob_target_cost])
+			if not ctx.simulation_mode:
+				emit_signal("card_installed", ob_chosen, ob_server.id)
+			# Fire on_rez ability for the installed card
+			if ctx.has_meta("ability_registry"):
+				var ob_ab_reg: AbilityRegistry = ctx.get_meta("ability_registry") as AbilityRegistry
+				var ob_on_rez = ob_ab_reg.get_on_rez(ob_chosen.id)
+				if ob_on_rez != null:
+					ctx.current_event_data = {"card_instance_id": ob_installed.runtime_instance_id}
+					await execute_trigger(ob_on_rez as Dictionary, ctx)
+					ctx.current_event_data = {}
+
+		# ── Midnight Sun Sprint 3 effects ────────────────────────────────────────
+
+		# ── trash_self ────────────────────────────────────────────────────────────
+		# Used by Envelopment's subroutine "Trash this ice."
+		# Removes the self card from its server, sends it to Corp Archives,
+		# unregisters its listeners, and fires corp_trashes_own_rezzed_card for Ob.
+
+		"trash_self":
+			var ts_self: InstalledCard = _get_self_card(ctx)
+			if ts_self == null:
+				ctx.send_log("[trash_self] Could not identify self card — no effect.")
+				return
+			var ts_was_rezzed: bool = ts_self.is_rezzed
+			var ts_rez_cost: int    = ts_self.card_record.cost if ts_self.card_record else 0
+			var ts_server_id: String = ts_self.server_id
+			var ts_srv: Server = ctx.get_server(ts_server_id)
+			if ts_srv != null:
+				ts_srv.ice.erase(ts_self)
+			ctx.unregister_all_card_effects(ts_self.runtime_instance_id)
+			if ts_self.card_record != null:
+				ctx.corp_discard.append(ts_self.card_record)
+			ctx.send_log("[%s] Subroutine fires: trash this ice." % ts_self.display_name())
+			# Midnight Sun: Ob Superheavy — fire event if this rezzed card was trashed.
+			if ts_was_rezzed and not ctx.corp_is_installing:
+				await ctx.notify_event("corp_trashes_own_rezzed_card", {
+					"card_id": ts_self.card_id,
+					"rez_cost": ts_rez_cost,
+					"server_id": ts_server_id
+				}, self)
+
+		# ── remove_self_counter ───────────────────────────────────────────────────
+		# Envelopment: Corp turn begin, remove 1 power counter (reducing ETR sub count).
+		# params: { "counter": String, "amount": int }
+
+		"remove_self_counter":
+			var rsc_self: InstalledCard = _get_self_card(ctx)
+			if rsc_self == null:
+				return
+			var rsc_counter: String = params.get("counter", "power")
+			var rsc_amount: int     = params.get("amount", 1)
+			rsc_self.remove_counter(rsc_counter, rsc_amount)
+			ctx.send_log("[%s] Removes %d %s counter(s) (%d remaining)." % [
+				rsc_self.display_name(), rsc_amount, rsc_counter,
+				rsc_self.get_counter(rsc_counter)])
+
+		# ── hakarl_rez_trigger ────────────────────────────────────────────────────
+		# Hákarl 1.0 (bioroid ice): on rez during run, Corp may derez 1 other installed
+		# card. If they do, Runner cannot use paid abilities on bioroid ice this turn.
+
+		"hakarl_rez_trigger":
+			var hakarl_pool: Array = []
+			for hakarl_srv in ctx.servers.values():
+				var hakarl_s: Server = hakarl_srv as Server
+				var hakarl_self := _get_self_card(ctx)
+				for hakarl_c in hakarl_s.root:
+					var hakarl_ic: InstalledCard = hakarl_c as InstalledCard
+					if hakarl_ic != null and hakarl_ic != hakarl_self:
+						hakarl_pool.append(hakarl_ic)
+				for hakarl_i in hakarl_s.ice:
+					var hakarl_ic2: InstalledCard = hakarl_i as InstalledCard
+					if hakarl_ic2 != null and hakarl_ic2 != hakarl_self:
+						hakarl_pool.append(hakarl_ic2)
+			if hakarl_pool.is_empty():
+				return   # nothing to derez
+			var hakarl_use := false
+			if ctx.corp_decision_maker != null and ctx.corp_decision_maker.has_method("choose_optional_ability"):
+				hakarl_use = await ctx.corp_decision_maker.choose_optional_ability(
+					"Hákarl 1.0: derez 1 installed card and suppress Runner bioroid abilities?", ctx)
+			else:
+				hakarl_use = false   # AI: rarely worth it to lose a rezzed card
+			if not hakarl_use:
+				return
+			var hakarl_target: InstalledCard = null
+			if ctx.corp_decision_maker != null and ctx.corp_decision_maker.has_method("choose_derez_target"):
+				hakarl_target = await ctx.corp_decision_maker.choose_derez_target(hakarl_pool, ctx)
+			else:
+				hakarl_target = hakarl_pool[0] as InstalledCard
+			if hakarl_target == null:
+				return
+			await _derez_card(hakarl_target, ctx)
+			ctx.runner_bioroid_paid_abilities_suppressed = true
+			ctx.send_log("[Hákarl 1.0] Runner cannot use paid abilities on bioroid ice for the rest of this turn.")
+
+		# ── stavka_rez_trigger ────────────────────────────────────────────────────
+		# Stavka (sentry ice): on rez during run, Corp may trash 1 other installed card.
+		# If they do, Stavka gains +5 strength for the remainder of this run.
+
+		"stavka_rez_trigger":
+			var stavka_self: InstalledCard = _get_self_card(ctx)
+			var stavka_pool: Array = []
+			for stavka_srv in ctx.servers.values():
+				var stavka_s: Server = stavka_srv as Server
+				for stavka_c in stavka_s.root:
+					var stavka_ic: InstalledCard = stavka_c as InstalledCard
+					if stavka_ic != null and stavka_ic != stavka_self and stavka_ic.card_record != null:
+						stavka_pool.append(stavka_ic)
+				for stavka_i in stavka_s.ice:
+					var stavka_ic2: InstalledCard = stavka_i as InstalledCard
+					if stavka_ic2 != null and stavka_ic2 != stavka_self and stavka_ic2.card_record != null:
+						stavka_pool.append(stavka_ic2)
+			if stavka_pool.is_empty():
+				return   # nothing to trash
+			var stavka_use := false
+			if ctx.corp_decision_maker != null and ctx.corp_decision_maker.has_method("choose_optional_ability"):
+				stavka_use = await ctx.corp_decision_maker.choose_optional_ability(
+					"Stavka: trash 1 other installed card for +5 strength this run?", ctx)
+			else:
+				stavka_use = false   # AI: conservative default
+			if not stavka_use:
+				return
+			var stavka_target: InstalledCard = null
+			if ctx.corp_decision_maker != null and ctx.corp_decision_maker.has_method("choose_trash_from_rig"):
+				stavka_target = await ctx.corp_decision_maker.choose_trash_from_rig(stavka_pool, ctx)
+			else:
+				# AI: prefer unrezzed cards
+				for st_c in stavka_pool:
+					var st_ic: InstalledCard = st_c as InstalledCard
+					if st_ic != null and not st_ic.is_rezzed:
+						stavka_target = st_ic
+						break
+				if stavka_target == null:
+					stavka_target = stavka_pool[0] as InstalledCard
+			if stavka_target == null:
+				return
+			# Trash the chosen card
+			var stavka_srv2: Server = ctx.get_server(stavka_target.server_id)
+			if stavka_srv2:
+				stavka_srv2.remove_from_root(stavka_target)
+				if stavka_target.card_record != null and stavka_target.card_record.card_type == "ice":
+					stavka_srv2.ice.erase(stavka_target)
+				ctx.remove_empty_remote_servers()
+			ctx.unregister_all_card_effects(stavka_target.runtime_instance_id)
+			if stavka_target.card_record:
+				ctx.corp_discard.append(stavka_target.card_record)
+			ctx.send_log("[Stavka] %s trashes %s — Stavka gains +5 strength this run." % [
+				ctx.corp_name(), stavka_target.display_name()])
+			# Set run modifier keyed by Stavka's instance_id
+			if stavka_self != null:
+				ctx.run_modifiers["stavka_str_" + stavka_self.runtime_instance_id] = 5
+			# Fire corp_trashes_own_rezzed_card for Ob (if the trashed card was rezzed)
+			if stavka_target.is_rezzed and not ctx.corp_is_installing:
+				await ctx.notify_event("corp_trashes_own_rezzed_card", {
+					"card_id": stavka_target.card_id,
+					"rez_cost": stavka_target.card_record.cost if stavka_target.card_record else 0,
+					"server_id": stavka_target.server_id
+				}, self)
+
+		# ── search_rd_for_ice_add_to_hq ──────────────────────────────────────────
+		# Wave (harmonic barrier): on rez during run, Corp may search R&D for any
+		# piece of ice, reveal it, and add it to HQ. R&D is then shuffled.
+
+		"search_rd_for_ice_add_to_hq":
+			var srih_ice_cards: Array = ctx.corp_deck.filter(
+				func(cr: CardRecord): return cr != null and cr.card_type == "ice"
+			)
+			if srih_ice_cards.is_empty():
+				ctx.send_log("[Wave] No ice in R&D to search for.")
+				ctx.corp_deck.shuffle()
+				return
+			var srih_use := false
+			if ctx.corp_decision_maker != null and ctx.corp_decision_maker.has_method("choose_optional_ability"):
+				srih_use = await ctx.corp_decision_maker.choose_optional_ability(
+					"Search R&D for an ice and add it to HQ?", ctx)
+			else:
+				srih_use = true   # AI: always search
+			if not srih_use:
+				ctx.corp_deck.shuffle()
+				return
+			var srih_chosen: CardRecord = null
+			if ctx.corp_decision_maker != null and ctx.corp_decision_maker.has_method("choose_card_from_hand"):
+				var srih_entries: Array = srih_ice_cards.map(
+					func(cr): return {"card_id": (cr as CardRecord).id, "card_record": cr})
+				var srih_entry = await ctx.corp_decision_maker.choose_card_from_hand(
+					srih_entries, {"reason": "wave_search"}, ctx)
+				if srih_entry != null:
+					srih_chosen = (srih_entry as Dictionary).get("card_record", null)
+			if srih_chosen == null:
+				srih_chosen = srih_ice_cards[0] as CardRecord
+			ctx.corp_deck.erase(srih_chosen)
+			ctx.corp_deck.shuffle()
+			ctx.corp_hand.append({"card_id": srih_chosen.id, "card_record": srih_chosen})
+			ctx.send_log("[Wave] %s searches R&D — reveals %s and adds it to HQ." % [
+				ctx.corp_name(), srih_chosen.title])
+
+		# ── gain_credits_per_rezzed_harmonic_ice ──────────────────────────────────
+		# Wave sub: Corp gains 1cr for each rezzed harmonic ice on the board.
+
+		"gain_credits_per_rezzed_harmonic_ice":
+			var gphi_count: int = ctx.count_rezzed_harmonic_ice()
+			if gphi_count <= 0:
+				ctx.send_log("[Wave] No rezzed harmonic ice — gains 0 cr.")
+				return
+			ctx.corp_credits += gphi_count
+			ctx.send_log("[Wave] %s gains %d cr (%d rezzed harmonic ice)." % [
+				ctx.corp_name(), gphi_count, gphi_count])
+
+		# ══════════════════════════════════════════════════════════════════════════
+		# ── Midnight Sun Sprint 4 effects ────────────────────────────────────────
+		# ══════════════════════════════════════════════════════════════════════════
+
+		# ── run_mark_server ───────────────────────────────────────────────────────
+		# Carpe Diem: optional run on the identified mark server.
+		# If no mark has been identified this turn, the run is skipped.
+
+		"run_mark_server":
+			if ctx.runner_mark_server == "":
+				ctx.send_log("[Carpe Diem] No mark identified — cannot run.")
+				return
+			var rms_use := false
+			if ctx.runner_decision_maker != null and ctx.runner_decision_maker.has_method("choose_optional_ability"):
+				rms_use = await ctx.runner_decision_maker.choose_optional_ability(
+					"Run %s (your mark)?" % ctx.runner_mark_server.to_upper(), ctx)
+			else:
+				rms_use = true   # AI: always run the mark (Carpe Diem already gained 4cr)
+			if not rms_use:
+				return
+			ctx.run_modifiers["run_event_active"] = 1
+			if ctx.has_meta("on_run_started"):
+				(ctx.get_meta("on_run_started") as Callable).call(ctx.runner_mark_server)
+				await Engine.get_main_loop().process_frame
+			var rms_rsm: Object = ctx.get_meta("run_state_machine") if ctx.has_meta("run_state_machine") else null
+			if rms_rsm != null:
+				await rms_rsm.execute(ctx.runner_mark_server)
+			else:
+				push_error("AbilityInterpreter: run_mark_server — no run_state_machine on ctx")
+
+		# ── chastushka_run ────────────────────────────────────────────────────────
+		# Chastushka: Run HQ. If successful, instead of breaching HQ, sabotage 4.
+		# Sets the substitute_breach_sabotage modifier before the run; RSM checks it
+		# at the breach point and replaces _breach_server() with sabotage 4.
+
+		"chastushka_run":
+			ctx.run_modifiers["substitute_breach_sabotage"] = 4
+			ctx.run_modifiers["run_event_active"] = 1
+			if ctx.has_meta("on_run_started"):
+				(ctx.get_meta("on_run_started") as Callable).call("hq")
+				await Engine.get_main_loop().process_frame
+			var chst_rsm: Object = ctx.get_meta("run_state_machine") if ctx.has_meta("run_state_machine") else null
+			if chst_rsm != null:
+				await chst_rsm.execute("hq")
+			else:
+				push_error("AbilityInterpreter: chastushka_run — no run_state_machine on ctx")
+
+		# ── deep_dive_play ────────────────────────────────────────────────────────
+		# Deep Dive: Corp sets aside top 8 R&D faceup. Runner accesses 1 card.
+		# Runner may spend [click] to access 1 more card (repeatable while clicks remain).
+		# Corp shuffles all remaining set-aside cards back into R&D.
+		# Play condition: runner_ran_all_three_centrals_this_turn (in JSON).
+
+		"deep_dive_play":
+			var dd_count: int = mini(8, ctx.corp_deck.size())
+			if dd_count == 0:
+				ctx.send_log("[Deep Dive] R&D is empty — no cards to set aside.")
+				return
+			# dd_available: not yet accessed. dd_to_return: accessed but not stolen/trashed.
+			var dd_available: Array = []
+			var dd_to_return: Array = []
+			for _ddi in range(dd_count):
+				dd_available.append(ctx.corp_deck.pop_back())
+			ctx.send_log("[Deep Dive] %s sets aside %d R&D cards faceup: %s" % [
+				ctx.corp_name(), dd_count,
+				", ".join(dd_available.map(func(cr: CardRecord): return cr.title))
+			])
+			# First access is free; each additional access costs [click].
+			var dd_first: bool = true
+			while not dd_available.is_empty():
+				if not dd_first:
+					if ctx.runner_clicks <= 0:
+						break
+					var dd_spend := false
+					if ctx.runner_decision_maker != null and ctx.runner_decision_maker.has_method("choose_optional_ability"):
+						dd_spend = await ctx.runner_decision_maker.choose_optional_ability(
+							"[Deep Dive] Spend [click] to access 1 more card?", ctx)
+					else:
+						dd_spend = dd_available.any(func(cr: CardRecord): return cr.is_agenda())
+					if not dd_spend:
+						break
+					ctx.runner_clicks -= 1
+					ctx.send_log("[Deep Dive] %s spends [click] for another access." % ctx.runner_name())
+				dd_first = false
+				var dd_chosen_cr: CardRecord = null
+				if ctx.runner_decision_maker != null and ctx.runner_decision_maker.has_method("choose_card_from_hand"):
+					var dd_entries: Array = dd_available.map(
+						func(cr: CardRecord): return {"card_id": cr.id, "card_record": cr})
+					var dd_chosen_entry = await ctx.runner_decision_maker.choose_card_from_hand(
+						dd_entries, {"reason": "deep_dive_access"}, ctx)
+					if dd_chosen_entry != null:
+						dd_chosen_cr = (dd_chosen_entry as Dictionary).get("card_record", null)
+				if dd_chosen_cr == null:
+					for cr_any in dd_available:
+						var cr: CardRecord = cr_any as CardRecord
+						if cr != null and cr.is_agenda():
+							dd_chosen_cr = cr
+							break
+					if dd_chosen_cr == null and not dd_available.is_empty():
+						dd_chosen_cr = dd_available[0] as CardRecord
+				if dd_chosen_cr == null:
+					break
+				dd_available.erase(dd_chosen_cr)
+				ctx.send_log("[Deep Dive] %s accesses %s." % [ctx.runner_name(), dd_chosen_cr.title])
+				ctx.accessed_card_id = dd_chosen_cr.id
+				await ctx.notify_event("access_card", {"card_id": dd_chosen_cr.id, "runtime_instance_id": ""}, self)
+				if dd_chosen_cr.is_agenda():
+					ctx.runner_score_area.append(dd_chosen_cr)
+					ctx.runner_score += dd_chosen_cr.agenda_points
+					ctx.send_log("[Deep Dive] %s STEALS %s! (%d agenda points)" % [
+						ctx.runner_name(), dd_chosen_cr.title, dd_chosen_cr.agenda_points])
+					await ctx.notify_event("runner_steals_agenda", {
+						"card_id": dd_chosen_cr.id, "agenda_points": dd_chosen_cr.agenda_points
+					}, self)
+					if ctx.game_over:
+						break
+				else:
+					var dd_was_trashed: bool = false
+					if dd_chosen_cr.trash_cost >= 0 and ctx.runner_credits >= dd_chosen_cr.trash_cost:
+						var dd_do_trash := false
+						if ctx.runner_decision_maker != null and ctx.runner_decision_maker.has_method("choose_optional_ability"):
+							dd_do_trash = await ctx.runner_decision_maker.choose_optional_ability(
+								"Trash %s for %d¢?" % [dd_chosen_cr.title, dd_chosen_cr.trash_cost], ctx)
+						else:
+							dd_do_trash = (dd_chosen_cr.trash_cost == 0)
+						if dd_do_trash:
+							ctx.runner_credits -= dd_chosen_cr.trash_cost
+							ctx.corp_discard.append(dd_chosen_cr)
+							dd_was_trashed = true
+							ctx.send_log("[Deep Dive] %s trashes %s for %d¢." % [
+								ctx.runner_name(), dd_chosen_cr.title, dd_chosen_cr.trash_cost])
+					if not dd_was_trashed:
+						dd_to_return.append(dd_chosen_cr)
+			# Shuffle all unaccessed + returned cards back into R&D
+			var dd_shuffle_back: Array = dd_available + dd_to_return
+			for dd_ret_any in dd_shuffle_back:
+				var dd_ret: CardRecord = dd_ret_any as CardRecord
+				if dd_ret != null:
+					ctx.corp_deck.append(dd_ret)
+			ctx.corp_deck.shuffle()
+			ctx.send_log("[Deep Dive] %s shuffles %d card(s) back into R&D." % [
+				ctx.corp_name(), dd_shuffle_back.size()])
+
+		#   (1) gain 4cr   (2) search stack for a program and install it   (3) charge 1 card
+
+		"into_the_depths_play":
+			# Runner chooses a server to run
+			var itd_server: String = ""
+			if ctx.runner_decision_maker != null and ctx.runner_decision_maker.has_method("choose_run_target"):
+				itd_server = await ctx.runner_decision_maker.choose_run_target(
+					ctx.servers.keys(), ctx)
+			if itd_server == "" or not ctx.servers.has(itd_server):
+				# AI fallback: pick any server with ice, preferring R&D
+				for itd_srv_id in ["rd", "hq", "archives"]:
+					if ctx.servers.has(itd_srv_id):
+						itd_server = itd_srv_id
+						break
+				if itd_server == "":
+					itd_server = (ctx.servers.keys()[0] as String)
+			ctx.run_modifiers["run_event_active"] = 1
+			if ctx.has_meta("on_run_started"):
+				(ctx.get_meta("on_run_started") as Callable).call(itd_server)
+				await Engine.get_main_loop().process_frame
+			var itd_rsm: Object = ctx.get_meta("run_state_machine") if ctx.has_meta("run_state_machine") else null
+			if itd_rsm != null:
+				await itd_rsm.execute(itd_server)
+			else:
+				push_error("AbilityInterpreter: into_the_depths_play — no run_state_machine on ctx")
+				return
+			if not ctx.run_successful:
+				ctx.send_log("[Into the Depths] Run unsuccessful — no bonus choices.")
+				return
+			var itd_n: int = ctx.run_ice_passed_count
+			if itd_n <= 0:
+				ctx.send_log("[Into the Depths] No ice was passed — no bonus choices.")
+				return
+			ctx.send_log("[Into the Depths] %s passed %d ice — gains %d choice(s)." % [
+				ctx.runner_name(), itd_n, itd_n])
+			# Available choices (each usable at most once)
+			var itd_choices: Array = ["gain_4cr", "search_install_program", "charge_card"]
+			var itd_choice_labels: Dictionary = {
+				"gain_4cr":                "Gain 4¢",
+				"search_install_program":  "Search stack for a program and install it",
+				"charge_card":             "Charge 1 installed card"
+			}
+			for _itd_i in range(itd_n):
+				if itd_choices.is_empty():
+					break
+				var itd_pick: String = ""
+				if ctx.runner_decision_maker != null and ctx.runner_decision_maker.has_method("choose_from_options"):
+					var itd_opts: Array = itd_choices.map(func(k: String): return itd_choice_labels[k])
+					var itd_idx: int = await ctx.runner_decision_maker.choose_from_options(itd_opts, ctx)
+					if itd_idx >= 0 and itd_idx < itd_choices.size():
+						itd_pick = itd_choices[itd_idx]
+				if itd_pick == "":
+					# AI fallback priority: search > gain cr > charge
+					if itd_choices.has("search_install_program"):
+						itd_pick = "search_install_program"
+					elif itd_choices.has("gain_4cr"):
+						itd_pick = "gain_4cr"
+					else:
+						itd_pick = itd_choices[0]
+				itd_choices.erase(itd_pick)
+				match itd_pick:
+					"gain_4cr":
+						ctx.runner_credits += 4
+						ctx.send_log("[Into the Depths] %s gains 4¢ (%d total)." % [
+							ctx.runner_name(), ctx.runner_credits])
+					"search_install_program":
+						# Search stack for any program; install it
+						var itd_progs: Array = ctx.runner_deck.filter(
+							func(cr: CardRecord): return cr != null and cr.card_type == "program")
+						if itd_progs.is_empty():
+							ctx.send_log("[Into the Depths] No programs in stack.")
+						else:
+							var itd_prog: CardRecord = null
+							if ctx.runner_decision_maker != null and ctx.runner_decision_maker.has_method("choose_card_from_hand"):
+								var itd_prog_entries: Array = itd_progs.map(
+									func(cr: CardRecord): return {"card_id": cr.id, "card_record": cr})
+								var itd_prog_entry = await ctx.runner_decision_maker.choose_card_from_hand(
+									itd_prog_entries, {"reason": "into_the_depths_search"}, ctx)
+								if itd_prog_entry != null:
+									itd_prog = (itd_prog_entry as Dictionary).get("card_record", null)
+							if itd_prog == null:
+								itd_prog = itd_progs[0] as CardRecord
+							if itd_prog != null:
+								ctx.runner_deck.erase(itd_prog)
+								ctx.runner_deck.shuffle()
+								# Install for free (Into the Depths ignores install cost)
+								var itd_ic: InstalledCard = InstalledCard.make_runtime_instance(
+									itd_prog, "runner_rig", "program", true)
+								ctx.runner_rig.append(itd_ic)
+								if ctx.has_meta("register_installed_card"):
+									(ctx.get_meta("register_installed_card") as Callable).call(itd_ic)
+								ctx.send_log("[Into the Depths] %s installs %s from stack (free)." % [
+									ctx.runner_name(), itd_prog.title])
+								await ctx.notify_event("runner_installs_program", {
+									"card_id": itd_prog.id
+								}, self)
+					"charge_card":
+						await execute_trigger({"effects": [{"type": "charge_card"}]}, ctx)
+
+		# ── light_the_fire_run ────────────────────────────────────────────────────
+		# Light the Fire: Run a remote server. During run, root cards of attacked
+		# server lose all abilities. When successful, trash all root cards.
+		# Additional costs (additional_cost_clicks:1, additional_cost_core_damage:1)
+		# are handled by TurnManager before on_play fires.
+		# The "light_the_fire_server" run modifier enables ability suppression in
+		# GameContext.notify_event() and triggers root-trash in RSM._phase_success().
+
+		"light_the_fire_run":
+			# Runner chooses a remote server to run
+			var ltf_remotes: Array = []
+			for ltf_srv_any in ctx.servers.values():
+				var ltf_srv: Server = ltf_srv_any as Server
+				if ltf_srv != null and ltf_srv.server_id.begins_with("remote"):
+					ltf_remotes.append(ltf_srv.server_id)
+			if ltf_remotes.is_empty():
+				ctx.send_log("[Light the Fire] No remote servers exist — cannot run.")
+				return
+			var ltf_target: String = ""
+			if ctx.runner_decision_maker != null and ctx.runner_decision_maker.has_method("choose_run_target"):
+				ltf_target = await ctx.runner_decision_maker.choose_run_target(ltf_remotes, ctx)
+			if ltf_target == "" or not ctx.servers.has(ltf_target):
+				ltf_target = ltf_remotes[0]   # AI fallback: first remote
+			# Set run modifier BEFORE the run so ability suppression is active from initiation
+			ctx.run_modifiers["light_the_fire_server"] = ltf_target
+			ctx.run_modifiers["run_event_active"] = 1
+			if ctx.has_meta("on_run_started"):
+				(ctx.get_meta("on_run_started") as Callable).call(ltf_target)
+				await Engine.get_main_loop().process_frame
+			var ltf_rsm: Object = ctx.get_meta("run_state_machine") if ctx.has_meta("run_state_machine") else null
+			if ltf_rsm != null:
+				await ltf_rsm.execute(ltf_target)
+			else:
+				push_error("AbilityInterpreter: light_the_fire_run — no run_state_machine on ctx")
+
+		# ── mitosis_play ──────────────────────────────────────────────────────────
+		# Mitosis: Corp installs up to 2 cards from HQ, each in a new remote server,
+		# then places 2 advancement counters on each. Those cards cannot be scored
+		# or rezzed for the remainder of this Corp turn.
+		# Additional click cost (additional_cost_clicks:1) handled by TurnManager.
+
+		"mitosis_play":
+			var mit_installed: int = 0
+			for _mit_i in range(2):
+				if ctx.corp_hand.is_empty():
+					break
+				# Corp chooses a card from HQ to install
+				var mit_chosen_entry: Variant = null
+				if ctx.corp_decision_maker != null and ctx.corp_decision_maker.has_method("choose_card_from_hand"):
+					mit_chosen_entry = await ctx.corp_decision_maker.choose_card_from_hand(
+						ctx.corp_hand, {"reason": "mitosis_install"}, ctx)
+				else:
+					# AI: prefer to install agendas (to be close to scoring), else first card
+					for mit_h_any in ctx.corp_hand:
+						var mit_h: Dictionary = mit_h_any as Dictionary
+						if mit_h != null:
+							var mit_cr: CardRecord = mit_h.get("card_record", null) as CardRecord
+							if mit_cr != null and mit_cr.is_agenda():
+								mit_chosen_entry = mit_h
+								break
+					if mit_chosen_entry == null and not ctx.corp_hand.is_empty():
+						mit_chosen_entry = ctx.corp_hand[0]
+				if mit_chosen_entry == null:
+					break
+				var mit_record: CardRecord = (mit_chosen_entry as Dictionary).get("card_record", null)
+				if mit_record == null:
+					break
+				# Remove from HQ
+				ctx.corp_hand.erase(mit_chosen_entry)
+				# Install in a new remote server
+				var mit_zone: String = "ice" if mit_record.is_ice() else "root"
+				var mit_srv: Server = ctx.create_remote_server()
+				var mit_ic: InstalledCard = InstalledCard.make_runtime_instance(
+					mit_record, mit_srv.server_id, mit_zone, false)
+				if mit_zone == "ice":
+					mit_srv.install_ice(mit_ic)
+				else:
+					mit_srv.install_in_root(mit_ic)
+				if ctx.has_meta("register_installed_card"):
+					(ctx.get_meta("register_installed_card") as Callable).call(mit_ic)
+				# Place 2 advancement counters
+				mit_ic.add_counter("advancement", 2)
+				# Mark as restricted (cannot score or rez this turn)
+				ctx.mitosis_restricted_instance_ids.append(mit_ic.runtime_instance_id)
+				mit_installed += 1
+				ctx.send_log("[Mitosis] %s installs %s in %s with 2 adv counters (cannot score/rez this turn)." % [
+					ctx.corp_name(), mit_record.title, mit_srv.display_name()])
+				if not ctx.simulation_mode:
+					emit_signal("card_installed", mit_record, mit_srv.server_id)
+			if mit_installed == 0:
+				ctx.send_log("[Mitosis] No cards installed.")
+
+		# ── mutually_assured_destruction_play ─────────────────────────────────────
+		# M.A.D.: Corp trashes any number of their rezzed cards.
+		# Runner gains 1 tag for each card trashed.
+		# Each rezzed-card trash fires corp_trashes_own_rezzed_card for Ob.
+		# Additional 2-click cost (additional_cost_clicks:2) handled by TurnManager.
+
+		"mutually_assured_destruction_play":
+			var mad_trashed: int = 0
+			while true:
+				# Build pool of rezzed installed Corp cards
+				var mad_pool: Array = []
+				for mad_srv_any in ctx.servers.values():
+					var mad_srv: Server = mad_srv_any as Server
+					if mad_srv == null:
+						continue
+					for mad_c_any in mad_srv.root:
+						var mad_c: InstalledCard = mad_c_any as InstalledCard
+						if mad_c != null and mad_c.is_rezzed:
+							mad_pool.append(mad_c)
+					for mad_i_any in mad_srv.ice:
+						var mad_i: InstalledCard = mad_i_any as InstalledCard
+						if mad_i != null and mad_i.is_rezzed:
+							mad_pool.append(mad_i)
+				if mad_pool.is_empty():
+					ctx.send_log("[M.A.D.] No rezzed cards remaining to trash.")
+					break
+				# Corp chooses one card to trash (or stops)
+				var mad_target: InstalledCard = null
+				var mad_continue := false
+				if ctx.corp_decision_maker != null and ctx.corp_decision_maker.has_method("choose_optional_ability"):
+					mad_continue = await ctx.corp_decision_maker.choose_optional_ability(
+						"M.A.D.: Trash 1 more rezzed card? (%d trashed so far)" % mad_trashed, ctx)
+				else:
+					# AI: always trash — M.A.D. is a combo card; AI plays it only to combo
+					mad_continue = true
+				if not mad_continue:
+					break
+				if ctx.corp_decision_maker != null and ctx.corp_decision_maker.has_method("choose_corp_installed_to_trash_for_benefit"):
+					mad_target = await ctx.corp_decision_maker.choose_corp_installed_to_trash_for_benefit(mad_pool, ctx)
+				else:
+					# AI fallback: trash lowest-rez-cost rezzed card
+					var mad_min_cost: int = 999
+					for mad_cand_any in mad_pool:
+						var mad_cand: InstalledCard = mad_cand_any as InstalledCard
+						if mad_cand != null:
+							var mad_cost: int = mad_cand.card_record.cost if mad_cand.card_record else 0
+							if mad_cost < mad_min_cost:
+								mad_min_cost = mad_cost
+								mad_target = mad_cand
+				if mad_target == null:
+					break
+				# Trash the card
+				var mad_srv2: Server = ctx.get_server(mad_target.server_id)
+				if mad_srv2 != null:
+					mad_srv2.ice.erase(mad_target)
+					mad_srv2.root.erase(mad_target)
+				var mad_was_rezzed: bool = mad_target.is_rezzed
+				var mad_rez_cost: int    = mad_target.card_record.cost if mad_target.card_record else 0
+				var mad_server_id: String = mad_target.server_id
+				ctx.unregister_all_card_effects(mad_target.runtime_instance_id)
+				if mad_target.card_record != null:
+					ctx.corp_discard.append(mad_target.card_record)
+				mad_trashed += 1
+				ctx.send_log("[M.A.D.] %s trashes %s — Runner gains 1 tag (%d trashed total)." % [
+					ctx.corp_name(), mad_target.display_name(), mad_trashed])
+				# Give Runner 1 tag
+				var mad_was_zero: bool = (ctx.runner_tags == 0)
+				ctx.runner_tags += 1
+				await ctx.notify_event("runner_takes_tags", {"amount": 1, "from_zero": mad_was_zero}, self)
+				if ctx.game_over:
+					return
+				# Fire Ob trigger
+				if mad_was_rezzed and not ctx.corp_is_installing:
+					await ctx.notify_event("corp_trashes_own_rezzed_card", {
+						"card_id": mad_target.card_id,
+						"rez_cost": mad_rez_cost,
+						"server_id": mad_server_id
+					}, self)
+				if ctx.game_over:
+					return
+
+		# ── trust_operation_play ──────────────────────────────────────────────────
+		# Trust Operation: Play only if Runner is tagged.
+		# Trash 1 installed Runner resource. Install and rez 1 card from Archives,
+		# ignoring all costs.
+
+		"trust_operation_play":
+			# Trash 1 installed Runner resource
+			var to_resources: Array = ctx.runner_rig.filter(
+				func(c: InstalledCard): return c.card_record != null \
+					and c.card_record.card_type == "resource")
+			if to_resources.is_empty():
+				ctx.send_log("[Trust Operation] No Runner resources to trash — operation fizzles.")
+				return
+			var to_trash_target: InstalledCard = null
+			if ctx.corp_decision_maker != null and ctx.corp_decision_maker.has_method("choose_corp_installed_to_trash_for_benefit"):
+				to_trash_target = await ctx.corp_decision_maker.choose_corp_installed_to_trash_for_benefit(
+					to_resources, ctx)
+			else:
+				to_trash_target = to_resources[0] as InstalledCard
+			if to_trash_target == null:
+				return
+			ctx.runner_rig.erase(to_trash_target)
+			ctx.unregister_all_card_effects(to_trash_target.runtime_instance_id)
+			if to_trash_target.card_record != null:
+				ctx.runner_discard.append(to_trash_target.card_record)
+			ctx.send_log("[Trust Operation] %s trashes Runner's %s." % [
+				ctx.corp_name(), to_trash_target.display_name()])
+			# Install and rez 1 card from Archives (corp_discard)
+			# Exclude agendas (can't be rezzed), identities, operations (can't be installed)
+			var to_candidates: Array = ctx.corp_discard.filter(
+				func(cr: CardRecord): return cr != null \
+					and not cr.is_agenda() \
+					and cr.card_type != "identity" \
+					and cr.card_type != "operation")
+			if to_candidates.is_empty():
+				ctx.send_log("[Trust Operation] No valid cards in Archives to install.")
+				return
+			var to_chosen: CardRecord = null
+			if ctx.corp_decision_maker != null and ctx.corp_decision_maker.has_method("choose_card_from_hand"):
+				var to_entries: Array = to_candidates.map(
+					func(cr: CardRecord): return {"card_id": cr.id, "card_record": cr})
+				var to_entry = await ctx.corp_decision_maker.choose_card_from_hand(
+					to_entries, {"reason": "trust_operation_install"}, ctx)
+				if to_entry != null:
+					to_chosen = (to_entry as Dictionary).get("card_record", null)
+			if to_chosen == null:
+				to_chosen = to_candidates[0] as CardRecord
+			# Remove from Archives and install in a new remote (free)
+			ctx.corp_discard.erase(to_chosen)
+			var to_zone: String = "ice" if to_chosen.is_ice() else "root"
+			var to_srv: Server = ctx.create_remote_server()
+			var to_ic: InstalledCard = InstalledCard.make_runtime_instance(
+				to_chosen, to_srv.server_id, to_zone, true)
+			if to_zone == "ice":
+				to_srv.install_ice(to_ic)
+			else:
+				to_srv.install_in_root(to_ic)
+			if ctx.has_meta("register_installed_card"):
+				(ctx.get_meta("register_installed_card") as Callable).call(to_ic)
+			ctx.corp_installed_this_turn.append(to_ic.runtime_instance_id)
+			ctx.send_log("[Trust Operation] %s installs and rezzes %s for free." % [
+				ctx.corp_name(), to_chosen.title])
+			if not ctx.simulation_mode:
+				emit_signal("card_installed", to_chosen, to_srv.server_id)
+			# Fire on_rez ability
+			if ctx.has_meta("ability_registry"):
+				var to_ab_reg: AbilityRegistry = ctx.get_meta("ability_registry") as AbilityRegistry
+				var to_on_rez = to_ab_reg.get_on_rez(to_chosen.id)
+				if to_on_rez != null:
+					ctx.current_event_data = {"card_instance_id": to_ic.runtime_instance_id}
+					await execute_trigger(to_on_rez as Dictionary, ctx)
+					ctx.current_event_data = {}
 
 		# ── Sabotage ──────────────────────────────────────────────────────────────
 
@@ -11675,6 +13964,9 @@ func _deal_damage(damage_type: String, amount: int, ctx: GameContext) -> Array:
 			ctx.send_log("%s is flatlined! (maximum hand size below 0 from core damage)" % ctx.runner_name())
 			ctx.game_over = true
 			ctx.winner    = "corp"
+		# Midnight Sun: Esâ Afontov — fire event for "first time each turn you suffer core damage".
+		if not ctx.game_over:
+			await ctx.notify_event("runner_suffers_core_damage", {"amount": trashed}, self)
 	# Strike Fund and similar: fire on_self_trashed_from_grip_or_stack triggers.
 	# Ruling: cards trashed from grip by damage trigger this (not discard to hand size).
 	if not trashed_cards.is_empty() and not ctx.game_over:

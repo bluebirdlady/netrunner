@@ -32,12 +32,13 @@ var _fetcher: TournamentFetcher
 var _ai_level: int = 3   # tournament always uses MCTS
 
 # UI references
-var _status_label:   Label
+var _status_label:      Label
 var _bracket_container: VBoxContainer
-var _action_btn:     Button
-var _back_btn:       Button
-var _record_label:   Label
-var _rating_panel:   Control
+var _action_btn:        Button
+var _refresh_btn:       Button
+var _back_btn:          Button
+var _record_label:      Label
+var _rating_panel:      Control
 
 
 func _ready() -> void:
@@ -152,6 +153,14 @@ func _build_ui() -> void:
 	_action_btn.add_theme_color_override("font_color", COLOR_ACCENT)
 	_action_btn.pressed.connect(_on_action_pressed)
 	ctrl_vbox.add_child(_action_btn)
+
+	_refresh_btn = Button.new()
+	_refresh_btn.text = "↺  REFRESH POOL"
+	_refresh_btn.add_theme_font_size_override("font_size", 11)
+	_refresh_btn.add_theme_color_override("font_color", COLOR_INACTIVE)
+	_refresh_btn.pressed.connect(func(): _do_fetch(true))
+	_refresh_btn.visible = false
+	ctrl_vbox.add_child(_refresh_btn)
 
 	_back_btn = Button.new()
 	_back_btn.text = "← RETURN TO CAMPAIGN"
@@ -340,19 +349,23 @@ func _refresh_record() -> void:
 
 func _refresh_action_btn() -> void:
 	if _state == null:
-		_action_btn.text    = "▶  FETCH OPPONENTS"
+		_action_btn.text     = "▶  FETCH OPPONENTS"
 		_action_btn.disabled = false
+		_refresh_btn.visible = false
 		return
 
 	if _state.is_complete():
 		_action_btn.text     = "↺  NEW TOURNAMENT"
 		_action_btn.disabled = false
+		_refresh_btn.visible = true
 	elif _state.has_active_tournament():
 		_action_btn.text     = "▶  PLAY ROUND %d" % (_state.current_round() + 1)
 		_action_btn.disabled = false
+		_refresh_btn.visible = false
 	else:
 		_action_btn.text     = "▶  FETCH OPPONENTS"
 		_action_btn.disabled = false
+		_refresh_btn.visible = true
 
 
 func _show_rating() -> void:
@@ -407,16 +420,18 @@ func _on_action_pressed() -> void:
 		_do_fetch()
 
 
-func _do_fetch() -> void:
-	_action_btn.disabled = true
-	_status_label.text   = "Connecting to NetrunnerDB…"
+func _do_fetch(force_refresh: bool = false) -> void:
+	_action_btn.disabled  = true
+	_refresh_btn.disabled = true
+	_status_label.text    = "Connecting to NetrunnerDB…"
 	_rebuild_bracket()
 
 	_fetcher = TournamentFetcher.new()
 	_fetcher.fetch_progress.connect(func(msg): _status_label.text = msg)
 
-	var result: Dictionary = await _fetcher.fetch()
+	var result: Dictionary = await _fetcher.fetch(force_refresh)
 
+	_refresh_btn.disabled = false
 	if not result.get("ok", false):
 		_status_label.text   = "⚠  " + str(result.get("error", "Fetch failed"))
 		_action_btn.disabled = false

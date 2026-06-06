@@ -39,6 +39,11 @@ var hosted_runner_resources: Array = []
 # Used by Cupellation: spending 1cr during access stores the accessed corp card here instead
 # of accessing it normally. Cleared when this program is trashed.
 var hosted_corp_cards: Array = []   # Array[CardRecord]
+# Parhelion: Matryoshka — when this InstalledCard is hosted on another card,
+# tracks whether this copy is face-down (spent as a break payment) or face-up.
+# Only meaningful for Matryoshka copies hosted on an installed Matryoshka.
+# Reset to false (faceup) at the start of each Runner turn.
+var is_facedown: bool = false
 
 static func make_runtime_instance(record: CardRecord, srv_id: String, srv_zone: String, rezzed: bool = false) -> InstalledCard:
 	var c = InstalledCard.make(record, srv_id, srv_zone, rezzed)

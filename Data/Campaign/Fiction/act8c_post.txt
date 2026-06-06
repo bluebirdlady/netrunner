@@ -1,0 +1,19 @@
+The supply manifests are thorough.
+
+You expected them to be redacted. Instead they are complete — because whoever classified this operation assumed that no one would reach them, and that assuming was cheaper than redacting.
+
+Site Seven received thirty-one separate equipment shipments over the past fourteen months. Standard drilling components. Atmospheric processors. One item appears in six of the manifests and is logged as "instrument package — biological monitoring." The instrument package has no model number, no manufacturer code, and a unit cost that does not exist in any HB catalogue.
+
+The bioroid deployment logs list twelve units assigned to Site Seven on a permanent rotation. Standard Haas-Bioroid 1.0 series. The logs also list a firmware partition labelled DEEP WATER PROTOCOL, last updated eleven days ago. The partition is not in any standard HB firmware specification. It does not appear in the maintenance documentation.
+
+You pull the deployment records for the bioroids that were at Platform Gamma-7 the week of the three deaths.
+
+Three of the twelve. The same three ran the supply route from the surface to Site Seven on the day the final drilling telemetry was logged. They have been at Site Seven since.
+
+The firmware partition on their units was updated two days after the deaths.
+
+You look at the "biological monitoring" line items. You look at the resonance logs from the Pressure Archive. You look at the Jinteki medical files and the word they used, quietly, in one internal memo that they did not think would be recovered: subject.
+
+You have enough to find Jinteki's installation. The abyssal station coordinates are in the logistics routing table, attached to a delivery order for what the manifest calls "research equipment."
+
+You note the coordinates. You note the date of the last delivery: four days ago.

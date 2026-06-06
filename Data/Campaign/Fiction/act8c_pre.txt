@@ -1,0 +1,22 @@
+CLEAN PROCESSES
+by eniteris
+
+The bioroids run the shifts in four-hour rotations. They do not get tired. They do not ask questions about what they are carrying. They do not notice the difference between a logistics manifest that says "geological equipment" and one that says nothing at all.
+
+HB Atlantic Processing Hub is the logistical backbone of the deep-water operation: supply routing, workforce deployment, data relay between the surface and the drilling operations. The bioroids process the paperwork. The paperwork processes the anomalies. Nothing reaches Site Seven that HB has not first catalogued, cleared, and delivered.
+
+Their security architecture is precise in the way that HB systems are always precise: every process monitored, every access logged, every deviation from protocol flagged for review. It is clean. It is efficient. It is, as far as the audit trail is concerned, entirely routine.
+
+The hub uplinks to Heinlein-Earth Relay 12 once every four hours, syncing the operational archive to the corporate servers. The sync window is seventeen minutes. The partition holding the Site Seven manifests is accessible from the relay tier — not deliberately, but because someone built the relay integration before the Site Seven classification was added, and updating the partition hierarchy was not listed in any maintenance ticket.
+
+Precision has its limits.
+
+You schedule your approach for the sync window. Seventeen minutes is enough time if you do not waste any of it.
+
+The bioroids will not notice. They never do.
+
+—
+
+TARGET: Haas-Bioroid: Precision Design
+FACILITY: HB Atlantic Processing Hub, Heinlein-Earth Relay 12
+OBJECTIVE: Pull the Site Seven supply manifests and bioroid deployment logs.

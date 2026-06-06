@@ -1,0 +1,466 @@
+MIDNIGHT SUN — DEFERRED IMPLEMENTATION LIMITATIONS
+====================================================
+Written after Sprints 1–3 were completed (2026-06-06).
+This document describes known approximations and gaps in the Midnight Sun
+implementation that were deferred for later correction. Each entry states
+what the limitation is, which card is affected, what the correct behaviour
+should be, and exactly what code to add or change to fix it.
+
+Cards whose entire implementation is deferred to a later sprint are NOT
+listed here — see midnight_sun_implementation_planning.txt for the Sprint
+roadmap. This document covers only cards that ARE implemented but with a
+known approximation.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+MS-L001 — Ob Superheavy: always installs in a new remote server
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+CARD
+  ob_superheavy_logistics_extract_export_excel (Corp identity, Weyland)
+
+LIMITATION
+  The card text says "Install it in any server." Our implementation always
+  calls ctx.create_remote_server() and installs into that new remote,
+  regardless of what the Corp (or AI) would optimally prefer.
+
+  The Corp cannot use Ob to:
+    - Reinforce existing ice stacks with new ice
+    - Add an asset to an existing remote with room
+    - Install ice protecting HQ, R&D, or Archives
+
+IMPACT
+  High for AI-vs-AI games if the Corp is playing an Ob deck: corp servers
+  are always fully reinforced at the innermost position on a fresh remote
+  rather than where they would strategically go. The Stavka+Hafrún combo
+  in particular often wants to install the Hafrún on the currently-attacked
+  server, which this approximation prevents.
+
+CORRECT BEHAVIOUR
+  Corp should be presented with (or AI should compute) any valid server:
+  existing remotes, centrals, or a new remote.
+
+ROOT CAUSE
+  ob_superheavy_trigger in AbilityInterpreter.gd always calls:
+    var ob_server: Server = ctx.create_remote_server()
+  and then appends the card to ob_server.ice or ob_server.root.
+
+SOLUTION
+
+  AbilityInterpreter.gd — ob_superheavy_trigger block (around line 6708):
+
+  1. Build the set of valid servers: all existing servers + a sentinel for
+     "new remote". For ice: all servers are valid. For assets/upgrades: all
+     servers with at most one card in root (excluding regions).
+
+  2. Corp decision maker chooses:
+     if ctx.corp_decision_maker.has_method("choose_install_server"):
+         ob_server_id = await ctx.corp_decision_maker.choose_install_server(
+             ob_chosen, ctx)
+     else:
+         # AI: prefer existing remote with an agenda (to protect it), else
+         # new remote.
+         ob_server_id = _ai_ob_choose_server(ob_chosen, ctx)
+
+  3. Resolve the install into the chosen server (existing or new).
+
+  For ice: call srv.install_ice(ob_installed) which prepends to the ice
+  array (placing it outermost, which is correct for mid-run installs too
+  since the runner has already passed inner positions).
+
+FILES TO CHANGE
+  Scripts/Engine/AbilityInterpreter.gd — ob_superheavy_trigger
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+MS-L002 — Ob Superheavy: on_rez_during_run not fired for Ob-installed cards
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+CARD
+  ob_superheavy_logistics_extract_export_excel (Corp identity, Weyland)
+
+LIMITATION
+  When Ob installs a card mid-run (e.g. triggered by Stavka's trash during
+  a run), the Ob-installed card's on_rez_during_run abilities do not fire.
+  Only on_rez fires.
+
+  This breaks the most famous Ob combo: Stavka + Hafrún.
+    Stavka rezzes → trashes 1 installed card → fires corp_trashes_own_rezzed_card
+    → Ob trigger → Corp searches R&D for Hafrún (cost = Stavka's trash cost − 1)
+    → Ob installs Hafrún on the same server → Hafrún should fire its
+      on_rez_during_run ability (derez one card, suppress Runner killer-breaker use)
+    → Runner now faces Stavka's program-trash subs with no killer available.
+
+  Currently, the Ob trigger fires get_on_rez(ob_chosen.id) only, missing
+  get_on_rez_during_run(ob_chosen.id).
+
+IMPACT
+  High. The Stavka+Hafrún combo is explicitly mentioned by expert players as
+  one of the defining Ob lines. Anemone, Ping, Bumi 1.0 installs via Ob
+  during a run also do not fire their on_rez_during_run abilities.
+
+CORRECT BEHAVIOUR
+  If ctx.run_active is true when the Ob trigger fires (i.e. the trash happened
+  during a run), also fire the on_rez_during_run ability of the installed card,
+  in addition to on_rez.
+
+ROOT CAUSE
+  ob_superheavy_trigger in AbilityInterpreter.gd (around line 6728):
+    var ob_on_rez = ob_ab_reg.get_on_rez(ob_chosen.id)
+    if ob_on_rez != null:
+        await execute_trigger(ob_on_rez, ctx)
+  No check for ctx.run_active; get_on_rez_during_run is never called.
+
+SOLUTION
+
+  AbilityInterpreter.gd — ob_superheavy_trigger block, after on_rez fires:
+
+    # Fire on_rez_during_run if Ob triggered during a run.
+    if ctx.run_active:
+        var ob_on_rez_run = ob_ab_reg.get_on_rez_during_run(ob_chosen.id)
+        if ob_on_rez_run != null:
+            ctx.current_event_data = {"card_instance_id": ob_installed.runtime_instance_id}
+            await execute_trigger(ob_on_rez_run as Dictionary, ctx)
+            ctx.current_event_data = {}
+
+  Also ensure AbilityRegistry.get_on_rez_during_run(card_id) exists (it
+  probably does already — check AbilityRegistry.gd for the method or key
+  "on_rez_during_run").
+
+FILES TO CHANGE
+  Scripts/Engine/AbilityInterpreter.gd — ob_superheavy_trigger
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+MS-L003 — Ob Superheavy: corp_trashes_own_rezzed_card missing fire points
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+CARD
+  ob_superheavy_logistics_extract_export_excel (Corp identity, Weyland)
+
+LIMITATION
+  Ob's trigger fires from corp_trashes_own_rezzed_card. Currently that event
+  is fired from these locations only:
+    ✅  Extract operation (corp_optional_trash_own_for_credits)
+    ✅  Stavka on-rez trigger (stavka_rez_trigger)
+    ✅  Event Horizon paid ability (corp_trash_self_to_end_run)
+    ✅  Envelopment "Trash this ice." sub (trash_self effect)
+
+  The following cards that should fire the event have not yet been implemented:
+
+  MISSING FIRE POINTS (by future sprint):
+
+  Sprint 4:
+    M.A.D. (mutually_assured_destruction) — Corp plays M.A.D., trashes any
+      number of their rezzed cards. Each rezzed card trashed should fire
+      corp_trashes_own_rezzed_card. Because Ob is once-per-turn, only the
+      first qualifying trash in a given turn creates a tutor trigger.
+
+  Sprint 5:
+    Azef Protocol — Trash 1 installed card as an additional cost to score.
+      The trash fires corp_trashes_own_rezzed_card before the score resolves
+      (Azef's trash happens as an additional cost, so Ob can tutor a card
+      that still "sees" the score — e.g. Tucana, Powers That Be, Phật).
+
+  Future sets (Ashes cycle and later):
+    ZATO City Grid — Corp paid ability trashes a Corp ice, firing Ob.
+    Mavirus — Corp [trash] paid ability purges viruses, firing Ob.
+    Border Control — Corp [trash] ETR paid ability, firing Ob.
+    Lamplighter — Self-trashes when Runner steals agenda from its server.
+    Otto Campaign / Nico Campaign — Self-trash when credit pool empties.
+    Anthill Excavation Contract / Regolith Mining License — Same pattern.
+    Bass CH1R180G4 — [trash]: gain 1 click. Fires Ob.
+    Kimberlite Field — Trash-on-score. Note: fires AFTER score (unlike Azef),
+      so Tucana/Powers do NOT benefit from the Ob tutor.
+    Svyatogor Excavator — Banned (26.03), but engine should still fire the
+      event for historical correctness if the card is included.
+
+IMPACT
+  Variable by card. M.A.D. and Azef are the highest-priority missing sources
+  because they are central to known Ob combo lines in competitive play.
+
+ROOT CAUSE
+  Each missing fire point requires the relevant card's implementation to call:
+    await ctx.notify_event("corp_trashes_own_rezzed_card", {
+        "card_id": trashed_card.card_id,
+        "rez_cost": trashed_card.card_record.cost if trashed_card.card_record else 0,
+        "server_id": trashed_card.server_id
+    }, interpreter)
+  after confirming the card was rezzed and ctx.corp_is_installing is false.
+
+SOLUTION
+  Add the fire point to each card's implementation as it is built.
+  Template code (paste into each card's trash handler, after the trash itself):
+    if trashed_card.is_rezzed and not ctx.corp_is_installing:
+        await ctx.notify_event("corp_trashes_own_rezzed_card", {
+            "card_id": trashed_card.card_id,
+            "rez_cost": trashed_card.card_record.cost if trashed_card.card_record else 0,
+            "server_id": trashed_card.server_id
+        }, self)
+
+FILES TO CHANGE
+  Scripts/Engine/AbilityInterpreter.gd — each card's effect handler as built
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+MS-L004 — Endurance: break ability not surfaced in encounter menu
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+CARD
+  endurance (Runner hardware, console, Shaper)
+
+LIMITATION
+  EncounterProcessor has a complete hardware_break action handler that:
+    - Finds hardware with hardware_break_ability in runner_rig
+    - Spends 2 power counters per use
+    - Breaks up to 2 subroutines on the encountered ice (any subtype)
+  However, neither SimRunnerAI nor HumanDecisionMaker generates
+  "hardware_break" encounter actions, so the break ability is never offered
+  or used in practice.
+
+IMPACT
+  High. Endurance is a significant console. Without the break ability, it
+  only functions as a +2 MU / counter-gaining card. The break ability is
+  typically used as a fallback when programs cannot break remaining subs.
+
+CORRECT BEHAVIOUR
+  During an encounter, when subroutines remain unbroken:
+    - If Runner has Endurance in rig with ≥2 power counters:
+      offer "Use Endurance (2 power counters): break up to 2 subs"
+      (may be offered multiple times per encounter, spending 2 counters each time)
+    - Human: show as a break option alongside program breaks.
+    - AI: use Endurance if no program can break the remaining subs.
+
+ROOT CAUSE
+  EncounterProcessor.process() builds a list of available actions from the
+  runner's programs (interface_break, interface_boost entries). The hardware
+  scan is only done inside the "hardware_break" handler once the action is
+  already submitted — the action is never generated upstream.
+
+SOLUTION
+
+  SimRunnerAI.gd — _choose_encounter_action() (or equivalent):
+    For each unbroken sub, check runner_rig for hardware with
+    hardware_break_ability. If found and has ≥2 power counters:
+    add action { "type": "hardware_break", "card_id": hw.card_id,
+                 "sub_indices": [indices_to_break] } to the candidate list.
+
+  HumanDecisionMaker.gd — encounter action builder:
+    Scan runner_rig for hardware_break_ability cards with ≥2 counters.
+    Add them to the break-option list shown to the player, labelled e.g.
+    "Endurance (2 power counters): break up to 2 subs".
+
+FILES TO CHANGE
+  Scripts/AI/SimRunnerAI.gd
+  Scripts/UI/HumanDecisionMaker.gd (or equivalent encounter menu file)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+MS-L005 — Begemot: flat-cost break may not be handled distinctly from per-sub
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+CARD
+  begemot (Runner program, fracter, Anarch)
+
+LIMITATION
+  Begemot's interface reads: "1[credit]: Break any number of barrier
+  subroutines." — this is a flat 1cr cost to break ALL barrier subs at once,
+  not 1cr per sub.
+
+  The JSON entry uses:
+    "interface_break": { "subtype_restriction": "barrier", "flat_break_cost": 1 }
+
+  EncounterProcessor may interpret flat_break_cost incorrectly if it does
+  not have a distinct handler for flat-cost-all-subs versus cost-per-sub.
+  If flat_break_cost is treated like cost_per_sub, breaking 3 subs would
+  cost 3cr instead of 1cr.
+
+IMPACT
+  Medium. Begemot would be significantly weaker than intended if the flat
+  cost is not respected. In typical encounters (2 barrier subs) the error
+  would cause a 2cr overcharge.
+
+CORRECT BEHAVIOUR
+  One action: Runner pays 1cr, then may break ANY number of barrier
+  subroutines on the current ice. No further credit is spent per additional
+  sub broken.
+
+ROOT CAUSE
+  Uncertain — depends on whether EncounterProcessor._do_break_sub() has a
+  flat_break_cost branch. If it only reads cost_per_sub, flat_break_cost
+  is silently ignored (treated as 0 per sub, which would be equally wrong
+  in the opposite direction: free).
+
+  Requires audit of EncounterProcessor around the interface_break handler to
+  confirm which field is read and how subs are charged.
+
+SOLUTION
+  EncounterProcessor.gd — _do_break_sub() or the interface_break handler:
+    Check for "flat_break_cost" key. If present: for the FIRST sub broken in
+    this action, charge flat_break_cost credits. For subsequent subs broken
+    in the same action invocation (same "use"), charge 0 additional credits.
+
+  Implementation approach: "all subs" flat break should be a single action
+  that charges once and marks all chosen subs broken, rather than calling
+  _do_break_sub() once per sub. Consider a new action type
+  "flat_break_all_subs" that charges flat_break_cost and then accepts a
+  list of sub indices to break in one shot.
+
+  JSON clarification: rename the key to something unambiguous, e.g.:
+    "flat_cost_break_any": 1
+  and add a corresponding handler in EncounterProcessor.
+
+FILES TO CHANGE
+  Scripts/Engine/EncounterProcessor.gd
+  Data/abilities.json — begemot entry (if JSON key is renamed)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+MS-L006 — Captain Padma: charge target is AI's first candidate, not optimal
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+CARD
+  captain_padma_isbister_intrepid_explorer (Runner identity, Shaper)
+
+LIMITATION
+  When the charge_card effect fires (first R&D run per turn), the AI picks
+  the first chargeable card in runner_rig rather than the most valuable
+  target. Optimal targeting would prioritise:
+    1. Endurance (if low on power counters vs. need to break)
+    2. The Twinning (if HQ/R&D breach is imminent and it has few counters)
+    3. Revolver (if encountering sentries soon)
+    4. Other countered cards
+
+IMPACT
+  Low for correctness; moderate for AI play quality. Padma's trigger is
+  optional ("may charge"), so the AI always charges something rather than
+  evaluating whether to pass.
+
+CORRECT BEHAVIOUR
+  AI should rank chargeable cards by strategic value: breakers low on
+  counters, The Twinning if a central breach is upcoming, Endurance if
+  break economy is tight.
+
+SOLUTION
+  SimRunnerAI.gd — wherever charge_card target is selected for Padma:
+    Score each chargeable installed card by type/state. Pick the highest.
+  This is a pure AI improvement; no engine changes needed.
+
+FILES TO CHANGE
+  Scripts/AI/SimRunnerAI.gd
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+MS-L007 — Pravdivost Consulting: advancement target is AI's first candidate
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+CARD
+  pravdivost_consulting_political_solutions (Corp identity, HB)
+
+LIMITATION
+  On the first Runner successful run each turn, Pravdivost may place 1
+  advancement counter on any advanceable installed card. The AI picks the
+  first advanceable card it finds in any server, rather than evaluating
+  which target gets it closest to being scoreable.
+
+IMPACT
+  Low-medium. Incorrect AI target selection wastes Pravdivost's value
+  in games where the Corp is close to scoring an agenda.
+
+CORRECT BEHAVIOUR
+  AI should target the advanceable card that, with this one counter, comes
+  closest to the score threshold (agenda advancement requirement). If
+  multiple cards tie, prefer the one in the most-protected server.
+
+SOLUTION
+  CorpTurnAI.gd or AbilityInterpreter.gd — Pravdivost trigger handler:
+    Build candidate list of advanceable installed cards.
+    Score each by (advancement_requirement - current_counters): prefer
+    lowest positive value (closest to scoreable).
+  This is a pure AI improvement; no engine changes needed.
+
+FILES TO CHANGE
+  Scripts/AI/CorpTurnAI.gd (or equivalent AI file)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+MS-L008 — Envelopment: trash_self does not end the run (correct, but verify)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+CARD
+  envelopment (Corp ice, Jinteki)
+
+LIMITATION / NOTE
+  The trash_self effect (Envelopment's only explicit subroutine) removes
+  the ice from the server but does NOT set ctx.run_ended = true. This is
+  intentional: trashing Envelopment ends the encounter but not the run.
+  The Runner continues past the now-absent ice position.
+
+  However, there is a subtle edge case: if Envelopment is on an inner
+  position and the Runner has not yet passed all ice, RunStateMachine
+  continues iterating the ice stack. After Envelopment is removed from
+  srv.ice, the iteration index could skip or double-count adjacent ice.
+
+  This depends on whether RunStateMachine iterates a snapshot (copy) of
+  the ice array or the live array. If iterating the live array, removing
+  ice during iteration could corrupt the loop.
+
+IMPACT
+  Low in practice (Envelopment is typically on its own or outermost), but
+  could cause silent bugs in edge cases with multiple ice.
+
+CORRECT BEHAVIOUR
+  The run continues normally after Envelopment trashes itself. Adjacent ice
+  should be unaffected.
+
+SOLUTION
+  RunStateMachine.gd — verify that the ice encounter loop takes a snapshot
+  of the ice array before iterating:
+    var ice_stack: Array = srv.ice.duplicate()   # snapshot
+    for ice_card in ice_stack: ...
+  If the live array is iterated directly, change to a snapshot. This
+  ensures that removing Envelopment from srv.ice mid-loop does not skip
+  or repeat adjacent ice cards.
+
+FILES TO CHANGE
+  Scripts/Engine/RunStateMachine.gd — ice iteration loop (verify only)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+MS-L009 — Ob Superheavy: once-per-turn is per-player-turn (verified correct)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+CARD
+  ob_superheavy_logistics_extract_export_excel (Corp identity, Weyland)
+
+NOTE (no action required — behaviour is correct)
+  Expert players confirm that Ob fires "once per turn" meaning once on the
+  Runner's turn AND once on the Corp's turn — two triggers in a full cycle.
+  Our implementation is correct: ctx.once_per_turn_triggered is cleared at
+  the start of BOTH the Corp turn (TurnManager line ~141) and the Runner
+  turn (TurnManager line ~404). The guard key "identity_corp:ob_trigger"
+  therefore resets twice per cycle, enabling the two separate triggers.
+
+  Documented here to prevent a future developer from "fixing" this by only
+  clearing the guard once per full turn cycle.
+
+  Reference: once_per_turn_triggered.clear() in TurnManager._begin_corp_turn()
+             and TurnManager._begin_runner_turn().
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+MS-L010 — Ob Superheavy: install is free including ice stacking cost (correct)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+CARD
+  ob_superheavy_logistics_extract_export_excel (Corp identity, Weyland)
+
+NOTE (no action required — behaviour is correct)
+  Expert ruling: "Ob ignores all credit costs to install and rez, including
+  the ice-stacking surcharge even on a tall server."
+  Our implementation installs by directly appending to ob_server.ice or
+  ob_server.root without calling TurnManager._do_install_corp_card(), so
+  no install cost is ever computed or charged. This is correct.
+
+  Documented to confirm the bypass was intentional and to ensure any future
+  refactor of install paths does not inadvertently introduce a cost call.

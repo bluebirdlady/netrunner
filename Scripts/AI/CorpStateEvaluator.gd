@@ -48,7 +48,8 @@ const WIN_VALUE  :=  10000.0
 const LOSE_VALUE := -10000.0
 
 # Operations that deal direct damage — used when computing corp_net_damage_potential.
-const DAMAGE_OP_IDS := ["neurospike", "measured_response", "punitive_counterstrike", "boom", "scorched_earth"]
+const DAMAGE_OP_IDS := ["neurospike", "measured_response", "punitive_counterstrike", "boom", "scorched_earth",
+	"end_of_the_line"]
 
 # ── Tag exploitation registry ─────────────────────────────────────────────────
 # Cards that the Corp can USE when the runner is tagged.
@@ -60,6 +61,10 @@ const TAG_EXPLOIT_CARD_STRENGTH: Dictionary = {
 	"ip_enforcement":  1.5,   # recover stolen agenda
 	"bigger_picture":  1.2,   # drain 5cr × tags, Corp gains equal
 	"retribution":     1.0,   # trash runner program or hardware
+	# Parhelion
+	"end_of_the_line":            1.2,   # 4 meat damage, removes 1 tag as cost
+	"shipment_from_vladisibirsk": 1.0,   # 4 advancements if runner has 2+ tags
+	"hypoxia":                    0.8,   # 1 core damage + −1 click next turn (tagged)
 }
 const TAG_EXPLOIT_IDENTITY_STRENGTH: Dictionary = {
 	"synapse_global_faster_than_thought": 0.7,   # click + tag → 2cr + free install
@@ -463,6 +468,13 @@ func snapshot(ctx: GameContext) -> Dictionary:
 				snap_met = ctx.corp_scored_agenda_not_installed_this_turn
 			"runner_made_successful_run_last_turn":
 				snap_met = ctx.runner_made_successful_run_last_turn
+			# Parhelion
+			"runner_stole_agenda_last_runner_turn":
+				snap_met = ctx.runner_stole_agenda_last_runner_turn
+			"runner_tags_gte_2":
+				snap_met = ctx.runner_tags >= 2
+			"runner_is_tagged":
+				snap_met = ctx.runner_tags > 0
 			_: snap_met = false   # unknown condition — conservative
 		hand_ppc[snap_hc.id] = snap_met
 
@@ -529,6 +541,8 @@ func snapshot(ctx: GameContext) -> Dictionary:
 		"corp_installed_click_assets":    _snap_click_assets(ctx, snap_ab_reg),
 		"runner_virus_total":             _snap_runner_virus_total(ctx),
 		"runner_resources":               _snap_runner_resources(ctx),
+		"runner_core_damage":             ctx.runner_core_damage_taken,
+		"corp_identity_power_counters":   ctx.corp_identity_counters.get("power", 0),
 		"remotes":                        remotes,
 	}
 
@@ -541,11 +555,19 @@ func evaluate(s: Dictionary) -> float:
 	var runner_score: int = s.get("runner_score", 0) as int
 	var pts_to_win:   int = s.get("pts_to_win",   7) as int
 
-	# Terminal check
-	if corp_score   >= pts_to_win: return WIN_VALUE
-	if runner_score >= pts_to_win: return LOSE_VALUE
-
 	var identity: String = s.get("corp_identity", "") as String
+
+	# ── Issuaq Adaptics: Sustaining Diversity — effective win threshold ────────
+	# Power counters on the identity reduce the agenda points the Corp needs to win.
+	var effective_corp_pts: int = pts_to_win
+	if identity == "issuaq_adaptics_sustaining_diversity":
+		var isq_pw: int = s.get("corp_identity_power_counters", 0) as int
+		effective_corp_pts = max(1, pts_to_win - isq_pw)
+
+	# Terminal check
+	if corp_score   >= effective_corp_pts: return WIN_VALUE
+	if runner_score >= pts_to_win:         return LOSE_VALUE
+
 	var score := 0.0
 
 	# ── Near-loss stall detection ──────────────────────────────────────────────
@@ -895,6 +917,33 @@ func evaluate(s: Dictionary) -> float:
 			var discard_sz: int = s.get("corp_discard_sz", 0) as int
 			if discard_sz > 0:
 				score += 0.7
+
+		# ── Parhelion identities ──────────────────────────────────────────────
+
+		"issuaq_adaptics_sustaining_diversity":
+			# Each power counter reduces the win threshold — enormous strategic value.
+			var isq_pw2: int = s.get("corp_identity_power_counters", 0) as int
+			score += float(isq_pw2) * 8.0
+			# Scoring without advancing this turn triggers the counter.
+			# Reward having installed agendas with 0 advancement (setup for the mechanic).
+			for remote in s.get("remotes", []) as Array:
+				var r: Dictionary = remote as Dictionary
+				if r.get("has_agenda", false) and (r.get("adv", 0) as int) == 0 \
+						and (r.get("ice_count", 0) as int) > 0:
+					score += 1.5   # protected 0-adv agenda = potential free counter
+
+		"thule_subsea_safety_below":
+			# Whenever the runner steals an agenda, they take 1 core damage unless
+			# they spend [click]+2cr.  This makes naked agendas less catastrophic
+			# and each stacked core damage weakens the runner.
+			var thule_core: int = s.get("runner_core_damage", 0) as int
+			if thule_core >= 1:
+				score += float(thule_core) * 2.0   # stacked core damage is dangerous
+			# Partially offset the naked-agenda penalty: runner always pays to steal.
+			for remote in s.get("remotes", []) as Array:
+				var r: Dictionary = remote as Dictionary
+				if r.get("has_agenda", false) and (r.get("ice_count", 0) as int) == 0:
+					score += 6.0   # mitigate −25 → net ≈ −19 still bad but less dire
 
 	return score
 
@@ -1325,6 +1374,55 @@ func project_corp_action(s: Dictionary, action: GameAction, _ctx: GameContext) -
 					# Net damage equal to runner_score (approximate).
 					var pun_dmg: int = s.get("runner_score", 0) as int
 					ns["runner_hand"] = max(0, (ns.get("runner_hand", 0) as int) - pun_dmg)
+				# ── Parhelion operations ──────────────────────────────────────────
+				"end_of_the_line":
+					# Additional cost: remove 1 tag. Do 4 meat damage.
+					var eotl_tags: int = ns.get("runner_tags", 0) as int
+					if eotl_tags > 0:
+						ns["runner_tags"] = eotl_tags - 1
+						ns["runner_hand"] = max(0, (ns.get("runner_hand", 0) as int) - 4)
+				"distributed_tracing":
+					# Additional cost: [click] (model as −2cr opportunity cost already in card.cost).
+					# Gives the runner 1 tag when played.
+					ns["runner_tags"] = (ns.get("runner_tags", 0) as int) + 1
+				"shipment_from_vladisibirsk":
+					# Play only if runner has ≥ 2 tags. Place 4 advancements on installed cards.
+					if (ns.get("runner_tags", 0) as int) >= 2:
+						var svl_remain := 4
+						var svl_remotes: Array = (ns.get("remotes", []) as Array).duplicate(true)
+						for svl_i in range(svl_remotes.size()):
+							if svl_remain <= 0:
+								break
+							var svl_r: Dictionary = (svl_remotes[svl_i] as Dictionary).duplicate()
+							if not svl_r.get("has_agenda", false):
+								continue
+							var svl_cur: int = svl_r.get("adv", 0) as int
+							var svl_req: int = svl_r.get("req",  1) as int
+							var svl_put: int = min(svl_remain, max(0, svl_req - svl_cur) + 1)
+							var svl_new: int = svl_cur + svl_put
+							svl_remain -= svl_put
+							if svl_new >= svl_req:
+								var svl_pts: int = svl_r.get("agenda_points", 2) as int
+								ns["corp_score"] = (ns.get("corp_score", 0) as int) + svl_pts
+								svl_remotes.remove_at(svl_i)
+							else:
+								svl_r["adv"] = svl_new
+								svl_remotes[svl_i] = svl_r
+							break   # concentrate counters on one agenda
+						ns["remotes"] = svl_remotes
+				"hypoxia":
+					# Play only if runner is tagged. 1 core damage + −1 click next turn.
+					# Approximate as reducing runner hand size by 1.
+					if (ns.get("runner_tags", 0) as int) > 0:
+						ns["runner_hand"] = max(0, (ns.get("runner_hand", 0) as int) - 1)
+				"nonequivalent_exchange":
+					# Gain 5cr. Optional: each player gains 2cr (model as always taking it).
+					ns["corp_credits"] = (ns.get("corp_credits", 0) as int) + 5
+				"simulation_reset":
+					# 4cr cost (deducted above). Trashes up to 5 HQ, shuffles Archives→R&D, draws.
+					# Net: hand size roughly unchanged; deck refreshed from Archives.
+					# Approximate as neutral hand effect (cost is the 4cr).
+					pass
 				_:
 					ns["corp_credits"] = (ns.get("corp_credits", 0) as int) + 2
 

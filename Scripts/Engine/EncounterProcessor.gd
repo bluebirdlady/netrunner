@@ -27,11 +27,21 @@ func process(action: Dictionary, encounter: EncounterState,
 			await ctx.check_outside_credits_trigger(interpreter)
 			return boost_ok
 		"break_subroutine":
-			var break_ok: bool = _do_break_sub(action, encounter, ctx, ability_registry)
+			var bs_before: int = encounter.broken_indices.size()
+			var break_ok: bool = await _do_break_sub(action, encounter, ctx, ability_registry)
+			if break_ok and bs_before == 0 and encounter.broken_indices.size() > 0:
+				await _check_flux_capacitor(encounter, ctx, interpreter)
+			if break_ok and encounter.all_broken():
+				await _check_fully_broke_sentry_async(action.get("card_id", ""), encounter, ctx, ability_registry, interpreter)
 			await ctx.check_outside_credits_trigger(interpreter)
 			return break_ok
 		"break_all":
+			var ba_before: int = encounter.broken_indices.size()
 			var break_all_ok: bool = await _do_break_all(action, encounter, ctx, ability_registry)
+			if break_all_ok and ba_before == 0 and encounter.broken_indices.size() > 0:
+				await _check_flux_capacitor(encounter, ctx, interpreter)
+			if break_all_ok and encounter.all_broken():
+				await _check_fully_broke_sentry_async(action.get("card_id", ""), encounter, ctx, ability_registry, interpreter)
 			await ctx.check_outside_credits_trigger(interpreter)
 			return break_all_ok
 		"spend_hosted_credits":
@@ -118,6 +128,57 @@ func process(action: Dictionary, encounter: EncounterState,
 			var uea_card_id: String = action.get("card_id", "")
 			var uea_mode_idx: int   = action.get("mode_index", 0)
 			await interpreter.execute_encounter_card_ability(uea_card_id, uea_mode_idx, encounter, ctx)
+			return true
+		"matryoshka_break":
+			# Parhelion: Matryoshka interface break — X credits + turn 1 hosted copy facedown → break X subs.
+			# action: { "type": "matryoshka_break", "card_id": String, "sub_indices": Array[int] }
+			var mb_ok: bool = await _do_matryoshka_break(action, encounter, ctx)
+			await ctx.check_outside_credits_trigger(interpreter)
+			return mb_ok
+		"hardware_break":
+			# Midnight Sun: Endurance — spend 2 power counters from hardware to break
+			# up to 2 subroutines on the encountered ice (any type).
+			# action: { "type": "hardware_break", "card_id": "endurance", "sub_indices": Array[int] }
+			var hb_card_id: String = action.get("card_id", "")
+			var hb_sub_indices: Array = action.get("sub_indices", [])
+			# Find the hardware in runner_rig
+			var hb_hw: InstalledCard = null
+			for hb_c in ctx.runner_rig:
+				var hb_ic: InstalledCard = hb_c as InstalledCard
+				if hb_ic != null and hb_ic.card_id == hb_card_id:
+					hb_hw = hb_ic
+					break
+			if hb_hw == null:
+				ctx.send_log("[Encounter] Hardware '%s' not found in rig." % hb_card_id)
+				return false
+			# Read the hardware_break_ability definition
+			var hb_card_def: Dictionary = ability_registry._abilities.get(hb_card_id, {}) as Dictionary
+			var hb_ability: Dictionary = hb_card_def.get("hardware_break_ability", {}) as Dictionary
+			if hb_ability.is_empty():
+				ctx.send_log("[Encounter] %s has no hardware break ability." % hb_hw.display_name())
+				return false
+			var hb_counter_cost: int = hb_ability.get("cost_power_counter", 2)
+			var hb_subs_per_use: int = hb_ability.get("subs_per_use", 2)
+			if hb_hw.get_counter("power") < hb_counter_cost:
+				ctx.send_log("[Encounter] %s needs %d power counter(s) — has %d." % [
+					hb_hw.display_name(), hb_counter_cost, hb_hw.get_counter("power")])
+				return false
+			var hb_valid: Array = hb_sub_indices.filter(func(idx):
+				return idx >= 0 and idx < encounter.subroutines.size() and not encounter.is_broken(idx)
+			)
+			if hb_valid.is_empty():
+				ctx.send_log("[Encounter] No valid subroutines to break with %s." % hb_hw.display_name())
+				return false
+			if hb_valid.size() > hb_subs_per_use:
+				hb_valid = hb_valid.slice(0, hb_subs_per_use)
+			hb_hw.remove_counter("power", hb_counter_cost)
+			for hb_idx in hb_valid:
+				encounter.break_subroutine(hb_idx)
+				var hb_label: String = (encounter.subroutines[hb_idx] as Dictionary).get("label", "sub %d" % hb_idx)
+				ctx.send_log("[Encounter] %s spends %d counter(s) to break '%s' (%d remaining)." % [
+					hb_hw.display_name(), hb_counter_cost, hb_label, hb_hw.get_counter("power")])
+			ctx.run_runner_broke_any_subroutine = true
+			await ctx.check_outside_credits_trigger(interpreter)
 			return true
 		"done":
 			return true
@@ -264,6 +325,24 @@ func _do_break_sub(action: Dictionary, encounter: EncounterState,
 		ctx.send_log("[Encounter] Subroutine %d already broken." % sub_index)
 		return true  # not an error, just redundant
 
+	# ── Parhelion: Anvil — all printed subs unbreakable this encounter ─────────
+	if ctx.run_modifiers.get("anvil_subs_unbreakable", false):
+		ctx.send_log("[Encounter] Cannot break — Anvil effect: printed subroutines cannot be broken this encounter.")
+		return false
+
+	# ── Parhelion: Hafrun — specific breaker disabled for this run ─────────────
+	var hafrun_key: String = "hafrun_disabled_" + breaker.runtime_instance_id
+	if ctx.run_modifiers.get(hafrun_key, false):
+		ctx.send_log("[Encounter] Cannot break with %s — Hafrun has disabled it for the remainder of this run." % \
+			breaker.display_name())
+		return false
+
+	# ── Parhelion: Unsmiling Tsarevna — limit 1 break per encounter on this ice ─
+	var tsarevna_ice_key: String = "tsarevna_sub_limit_" + encounter.ice_card.runtime_instance_id
+	if ctx.run_modifiers.has(tsarevna_ice_key) and encounter.broken_indices.size() >= 1:
+		ctx.send_log("[Encounter] Cannot break — Unsmiling Tsarevna limits breaks to 1 per encounter on this ice.")
+		return false
+
 	var ice_subtypes: Array = encounter.ice_card.card_record.subtypes if encounter.ice_card.card_record != null else []
 	ice_subtypes = ice_subtypes + encounter.ice_card.extra_subtypes
 	var break_def: Variant = ability_registry.get_break_for_ice(breaker.card_id, ice_subtypes)
@@ -343,6 +422,55 @@ func _do_break_sub(action: Dictionary, encounter: EncounterState,
 		ctx.send_log("[Encounter] %s spends %d power counter(s) to break barrier." % [
 			breaker.display_name(), overhead_counters])
 
+	# ── Midnight Sun: Revolver — dual-cost break (trash_self OR power_counter) ──
+	# dual_cost_options: Array of { type: "trash_self"|"power_counter", amount: int }
+	# Runner chooses payment per break activation.
+	var dual_cost_opts: Array = break_dict.get("dual_cost_options", []) as Array
+	if not dual_cost_opts.is_empty():
+		# Determine available options
+		var dc_can_trash := false
+		var dc_counter_cost := 1
+		var dc_can_counter := false
+		for dc_opt in dual_cost_opts:
+			var dc_o: Dictionary = dc_opt as Dictionary
+			match dc_o.get("type", ""):
+				"trash_self":
+					dc_can_trash = true
+				"power_counter":
+					dc_counter_cost = dc_o.get("amount", 1)
+					if breaker.get_counter("power") >= dc_counter_cost:
+						dc_can_counter = true
+		if not dc_can_trash and not dc_can_counter:
+			ctx.send_log("[Encounter] %s cannot break — no valid payment available." % breaker.display_name())
+			return false
+		# Choose payment: offer choice if both available; otherwise force the only option
+		var dc_use_trash := false
+		if dc_can_trash and dc_can_counter:
+			if not ctx.simulation_mode and ctx.runner_decision_maker != null \
+					and ctx.runner_decision_maker.has_method("choose_dual_cost_break"):
+				dc_use_trash = await ctx.runner_decision_maker.choose_dual_cost_break(breaker, ctx)
+			else:
+				dc_use_trash = false   # AI: always prefer counter to preserve the card
+		elif dc_can_trash and not dc_can_counter:
+			dc_use_trash = true
+		# Execute the chosen payment
+		var dc_sub_label: String = (encounter.subroutines[sub_index] as Dictionary).get("label", "sub %d" % sub_index)
+		if dc_use_trash:
+			encounter.break_subroutine(sub_index)
+			ctx.send_log("[Encounter] %s trashes itself to break '%s'." % [breaker.display_name(), dc_sub_label])
+			_trash_breaker(breaker, ctx)
+		else:
+			breaker.remove_counter("power", dc_counter_cost)
+			encounter.break_subroutine(sub_index)
+			ctx.send_log("[Encounter] %s spends %d power counter(s) to break '%s' (%d remaining)." % [
+				breaker.display_name(), dc_counter_cost, dc_sub_label, breaker.get_counter("power")])
+		if breaker.card_record != null and breaker.card_record.subtypes.has("decoder"):
+			encounter.broken_with_decoder = true
+		_check_tungsten_tailor(encounter, ctx)
+		_check_fully_broke_code_gate(breaker, encounter, ctx, ability_registry)
+		ctx.run_runner_broke_any_subroutine = true
+		return true
+
 	var cost: int       = break_dict.get("cost_per_sub", 1)
 	var virus_cost: int = break_dict.get("cost_virus_counter", 0)
 
@@ -350,6 +478,10 @@ func _do_break_sub(action: Dictionary, encounter: EncounterState,
 	var break_trashed_discount: int = break_dict.get("discount_if_runner_trashed_own", 0)
 	if break_trashed_discount > 0 and ctx.runner_trashed_own_installed_this_turn:
 		cost = max(0, cost - break_trashed_discount)
+
+	# Parhelion: Tremolo — reduce cost_per_sub by number of installed cybernetic hardware (min 0)
+	if break_dict.get("cybernetic_cost_reduction", false):
+		cost = max(0, cost - ctx.count_installed_cybernetic_hardware())
 
 	if virus_cost > 0:
 		# Botulus spends virus counters.
@@ -411,6 +543,24 @@ func _do_break_all(action: Dictionary, encounter: EncounterState,
 	if break_def == null:
 		return false
 
+	# ── Parhelion: Anvil — all printed subs unbreakable this encounter ─────────
+	if ctx.run_modifiers.get("anvil_subs_unbreakable", false):
+		ctx.send_log("[Encounter] Cannot break — Anvil effect: printed subroutines cannot be broken this encounter.")
+		return false
+
+	# ── Parhelion: Hafrun — specific breaker disabled for this run ─────────────
+	var hafrun_key_all: String = "hafrun_disabled_" + breaker.runtime_instance_id
+	if ctx.run_modifiers.get(hafrun_key_all, false):
+		ctx.send_log("[Encounter] Cannot break with %s — Hafrun has disabled it for the remainder of this run." % \
+			breaker.display_name())
+		return false
+
+	# ── Parhelion: Unsmiling Tsarevna — limit 1 break per encounter on this ice ─
+	var tsarevna_all_key: String = "tsarevna_sub_limit_" + encounter.ice_card.runtime_instance_id
+	if ctx.run_modifiers.has(tsarevna_all_key) and encounter.broken_indices.size() >= 1:
+		ctx.send_log("[Encounter] Cannot break — Unsmiling Tsarevna limits breaks to 1 per encounter on this ice.")
+		return false
+
 	var break_dict: Dictionary = break_def as Dictionary
 
 	# target_only: can only break subs on the chosen target ice (Boomerang).
@@ -451,6 +601,25 @@ func _do_break_all(action: Dictionary, encounter: EncounterState,
 		ctx.send_log("[Encounter] %s spends %d power counter(s) to break barrier." % [
 			breaker.display_name(), overhead_all])
 
+	# Parhelion: Orca — flat cost for entire break activation (not per sub).
+	# "flat_break_cost: N" means Runner pays N credits once to break all unbroken subs.
+	var flat_break_cost: int = break_dict.get("flat_break_cost", 0)
+	if flat_break_cost > 0:
+		if ctx.runner_available_credits() < flat_break_cost:
+			ctx.send_log("[Encounter] Cannot afford to break all subs (need %d cr)." % flat_break_cost)
+			return false
+		ctx.runner_spend_credits(flat_break_cost)
+		for idx in encounter.unbroken_indices():
+			encounter.break_subroutine(idx)
+			var fbl: String = (encounter.subroutines[idx] as Dictionary).get("label", "sub %d" % idx)
+			ctx.send_log("[Encounter] %s breaks '%s'." % [breaker.display_name(), fbl])
+		if breaker.card_record != null and breaker.card_record.subtypes.has("decoder"):
+			encounter.broken_with_decoder = true
+		ctx.send_log("[Encounter] %s: paid %d cr flat to break all subs." % [breaker.display_name(), flat_break_cost])
+		if break_dict.get("trash_self_on_use", false):
+			_trash_breaker(breaker, ctx)
+		return true
+
 	var cost_per_sub: int = break_dict.get("cost_per_sub", 1)
 	var virus_cost: int   = break_dict.get("cost_virus_counter", 0)
 	# Flat virus cost: pay once to break up to subs_per_use subs (Audrey v2 model).
@@ -461,6 +630,10 @@ func _do_break_all(action: Dictionary, encounter: EncounterState,
 	var ball_trashed_discount: int = break_dict.get("discount_if_runner_trashed_own", 0)
 	if ball_trashed_discount > 0 and ctx.runner_trashed_own_installed_this_turn:
 		cost_per_sub = max(0, cost_per_sub - ball_trashed_discount)
+
+	# Parhelion: Tremolo — reduce cost_per_sub by number of installed cybernetic hardware (min 0)
+	if break_dict.get("cybernetic_cost_reduction", false):
+		cost_per_sub = max(0, cost_per_sub - ctx.count_installed_cybernetic_hardware())
 
 	var unbroken: Array   = encounter.unbroken_indices()
 
@@ -544,6 +717,10 @@ func _do_break_all(action: Dictionary, encounter: EncounterState,
 func _do_break_with_click(action: Dictionary, encounter: EncounterState, ctx: GameContext) -> bool:
 	# Runner spends 1 click to break 1 subroutine on a bioroid.
 	# No strength check required — this is the ice's own ability, not an icebreaker.
+	# Midnight Sun: Hákarl 1.0 — block this ability when suppression flag is set.
+	if ctx.runner_bioroid_paid_abilities_suppressed:
+		ctx.send_log("[Encounter] Cannot use bioroid paid abilities this turn (Hákarl 1.0 effect).")
+		return false
 	if ctx.runner_clicks < 1:
 		ctx.send_log("[Encounter] Runner has no clicks to spend.")
 		return false
@@ -921,3 +1098,121 @@ func _trash_breaker(breaker: InstalledCard, ctx: GameContext) -> void:
 	if breaker.card_record != null:
 		ctx.runner_discard.append(breaker.card_record)
 	ctx.send_log("[Encounter] %s is trashed." % breaker.display_name())
+
+
+# ── Parhelion: Orca on_fully_break_sentry trigger ────────────────────────────
+
+func _check_fully_broke_sentry_async(card_id: String, encounter: EncounterState,
+		ctx: GameContext, ability_registry: AbilityRegistry, interpreter: Object) -> void:
+	# Fires when all subroutines on a sentry have been broken this encounter.
+	# Used by: Orca (charge 1 installed card on first full-break per turn).
+	if not encounter.all_broken():
+		return
+	var ice_subtypes: Array = encounter.ice_card.card_record.subtypes \
+		if encounter.ice_card.card_record != null else []
+	ice_subtypes = ice_subtypes + encounter.ice_card.extra_subtypes
+	if not "sentry" in ice_subtypes:
+		return
+	var trigger: Variant = ability_registry.get_on_fully_break_sentry(card_id)
+	if trigger == null:
+		return
+	# Set context so self-referencing effects can find the breaker.
+	var trigger_dict: Dictionary = trigger as Dictionary
+	ctx.current_event_data["card_instance_id"] = \
+		ctx.current_event_data.get("card_instance_id", card_id)
+	await interpreter.execute_trigger(trigger_dict, ctx)
+
+
+# ── Parhelion: Matryoshka break ──────────────────────────────────────────────
+
+func _do_matryoshka_break(action: Dictionary, encounter: EncounterState, ctx: GameContext) -> bool:
+	# Interface: X credits + turn 1 hosted copy facedown → break X subs.
+	# The runner pays X cr AND turns 1 currently-faceup hosted copy facedown.
+	# Each activation breaks up to X unbroken printed subroutines.
+	var card_id: String = action.get("card_id", "")
+	var matryoshka: InstalledCard = _find_card_in_rig(card_id, ctx)
+	if matryoshka == null:
+		push_error("EncounterProcessor: matryoshka_break — '%s' not found in rig" % card_id)
+		return false
+
+	# Count faceup hosted copies.
+	var faceup_hosted: Array = []
+	for hc in matryoshka.hosted_cards:
+		var hc_ic: InstalledCard = hc as InstalledCard
+		if hc_ic != null and not hc_ic.is_facedown:
+			faceup_hosted.append(hc_ic)
+	if faceup_hosted.is_empty():
+		ctx.send_log("[Matryoshka] No faceup hosted copies available to spend.")
+		return false
+
+	# Determine how many subs to break and credit cost.
+	var sub_indices: Array = action.get("sub_indices", []) as Array
+	if sub_indices.is_empty():
+		# Fallback: use all unbroken subs (up to faceup_hosted count * whatever credits allow)
+		var max_x: int = mini(faceup_hosted.size(), encounter.unbroken_indices().size())
+		if max_x == 0:
+			ctx.send_log("[Matryoshka] No unbroken subs to break.")
+			return true
+		max_x = mini(max_x, ctx.runner_available_credits())
+		if max_x == 0:
+			ctx.send_log("[Matryoshka] Cannot afford Matryoshka break (need ≥1 cr).")
+			return false
+		sub_indices = encounter.unbroken_indices().slice(0, max_x)
+
+	var x: int = sub_indices.size()
+	if x == 0:
+		return true
+
+	# Check we have X credits and at least 1 faceup hosted copy.
+	if ctx.runner_available_credits() < x:
+		ctx.send_log("[Matryoshka] Cannot afford to break %d sub(s) — need %d cr." % [x, x])
+		return false
+	if faceup_hosted.is_empty():
+		ctx.send_log("[Matryoshka] No faceup hosted copies to spend.")
+		return false
+
+	# Pay X credits.
+	ctx.runner_spend_credits(x)
+
+	# Turn 1 faceup hosted copy facedown.
+	var spent_copy: InstalledCard = faceup_hosted[0] as InstalledCard
+	spent_copy.is_facedown = true
+	ctx.send_log("[Matryoshka] Spends %d cr + turns 1 hosted copy facedown to break %d sub(s)." % [x, x])
+
+	# Break the chosen subs.
+	for idx in sub_indices:
+		if idx >= 0 and idx < encounter.subroutines.size() and not encounter.is_broken(idx):
+			encounter.break_subroutine(idx)
+			var sub_label: String = (encounter.subroutines[idx] as Dictionary).get("label", "sub %d" % idx)
+			ctx.send_log("[Matryoshka] Breaks '%s'." % sub_label)
+
+	return true
+
+
+# ── Parhelion: Flux Capacitor trojan first-break trigger ─────────────────────
+
+func _check_flux_capacitor(encounter: EncounterState, ctx: GameContext, interpreter: Object) -> void:
+	# Fires the first time the Runner breaks a subroutine during an encounter with
+	# the ice hosting Flux Capacitor.  Each installed Flux Capacitor fires once per
+	# encounter (tracked via run_modifiers["flux_cap_fired_<iid>"]).
+	if encounter.ice_card == null:
+		return
+	for hc in encounter.ice_card.hosted_cards:
+		var hc_ic: InstalledCard = hc as InstalledCard
+		if hc_ic == null or hc_ic.card_id != "flux_capacitor":
+			continue
+		var fc_key: String = "flux_cap_fired_" + hc_ic.runtime_instance_id
+		if ctx.run_modifiers.get(fc_key, false):
+			continue
+		ctx.run_modifiers[fc_key] = true
+		ctx.send_log("[Flux Capacitor] First sub broken this encounter — %s may charge 1 installed card." % \
+			ctx.runner_name())
+		# Optional: Runner may charge 1 installed card
+		var fc_opt := false
+		if ctx.runner_decision_maker != null and ctx.runner_decision_maker.has_method("choose_optional_ability"):
+			fc_opt = await ctx.runner_decision_maker.choose_optional_ability(
+				"Flux Capacitor: charge 1 installed card?", ctx)
+		else:
+			fc_opt = true  # AI: always charge if possible
+		if fc_opt:
+			await interpreter.execute_trigger({"effects": [{"type": "charge_card"}]}, ctx)

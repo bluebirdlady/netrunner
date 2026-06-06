@@ -5658,13 +5658,6 @@
 		}
 	},
 
-	"azef_protocol": {
-		"_note": "RWR Corp agenda 3/2 (HB). Additional cost to score: trash 1 of your other installed cards (engine support needed). On score: do 2 meat damage.",
-		"on_score": {
-			"effects": [{"type": "deal_damage", "params": {"damage_type": "meat", "amount": 2}}]
-		}
-	},
-
 	"remastered_edition": {
 		"_note": "RWR Corp agenda 4/2 (HB). On score: place 1 agenda counter on this card. Click + hosted agenda counter: place 1 advancement counter on an installed card.",
 		"on_score": {
@@ -7111,6 +7104,1340 @@
 			"effects": [
 				{"type": "oppo_research_play"}
 			]
+		}
+	},
+
+	"_parhelion_note": "═══════════════════════════════════════════════════════════════════════",
+
+	"num": {
+		"_note": "Parhelion Runner program (Criminal, Icebreaker, Killer). 1 MU, cost 2. Interface: 2[cr] → break 1 sentry subroutine.",
+		"break": {
+			"subtype_restriction": "sentry",
+			"cost_per_sub": 2,
+			"subs_per_use": 1
+		}
+	},
+
+	"post_truth_dividend": {
+		"_note": "Parhelion Corp agenda (NBN, 3/2). On score: may draw 1 card.",
+		"on_score": {
+			"effects": [
+				{"type": "draw_cards", "params": {"subject": "corp", "amount": 1, "optional": true}}
+			]
+		}
+	},
+
+	"nonequivalent_exchange": {
+		"_note": "Parhelion Corp operation (HB, 0cr). Gain 5[cr]. You may have each player gain 2[cr].",
+		"on_play": {
+			"effects": [
+				{"type": "gain_credits", "params": {"subject": "corp", "amount": 5}},
+				{"type": "optional_each_player_gain_2cr", "params": {"amount": 2}}
+			]
+		}
+	},
+
+	"vampyronassa": {
+		"_note": "Parhelion Corp ice (Jinteki, Sentry, 4/5). Subs: Runner loses 2cr; Corp gains 2cr; do 2 net damage; Corp may draw 1 or 2 cards.",
+		"subroutines": [
+			{
+				"label": "The Runner loses 2[credit].",
+				"effects": [{"type": "lose_credits", "params": {"subject": "runner", "amount": 2}}]
+			},
+			{
+				"label": "Gain 2[credit].",
+				"effects": [{"type": "gain_credits", "params": {"subject": "corp", "amount": 2}}]
+			},
+			{
+				"label": "Do 2 net damage.",
+				"effects": [{"type": "deal_damage", "params": {"damage_type": "net", "amount": 2}}]
+			},
+			{
+				"label": "Draw 1 card, or draw 2 cards.",
+				"effects": [{"type": "draw_cards", "params": {"subject": "corp", "amount": 2, "optional": true}}]
+			}
+		]
+	},
+
+	"nanuq": {
+		"_note": "Parhelion Runner program (Criminal, Icebreaker, 1 MU, cost 2). When agenda scored/stolen: RFG. Interface: 2cr break 2 subs (any type). 1cr +1 str. (On-uninstall RFG not yet wired; main trigger is agenda events.)",
+		"break": {
+			"subtype_restriction": null,
+			"cost_per_sub": 1,
+			"subs_per_use": 2
+		},
+		"boost": {
+			"cost": 1,
+			"strength_gained": 1
+		},
+		"corp_scores_agenda": {
+			"effects": [{"type": "rfg_self"}]
+		},
+		"runner_steals_agenda": {
+			"effects": [{"type": "rfg_self"}]
+		}
+	},
+
+	"dr_nuka_vrolyck": {
+		"_note": "Parhelion Runner resource (Shaper). On install: load 2 power counters. Trash when empty. [click] + hosted power counter: draw 3 cards.",
+		"on_rez": {
+			"effects": [
+				{"type": "add_self_counters", "counter": "power", "amount": 2}
+			]
+		},
+		"click_action": {
+			"condition": {"type": "self_counter_gte", "counter": "power", "threshold": 1},
+			"effects": [
+				{"type": "remove_self_counter", "counter": "power", "amount": 1},
+				{"type": "draw_cards", "params": {"subject": "runner", "amount": 3}},
+				{"type": "self_trash_if_empty", "counter": "power"}
+			]
+		}
+	},
+
+	"end_of_the_line": {
+		"_note": "Parhelion Corp operation (NBN, 3cr). Additional cost: remove 1 Runner tag. Do 4 meat damage.",
+		"additional_cost_remove_runner_tag": true,
+		"on_play": {
+			"effects": [
+				{"type": "deal_damage", "params": {"damage_type": "meat", "amount": 4}}
+			]
+		}
+	},
+
+	"distributed_tracing": {
+		"_note": "Parhelion Corp operation (NBN, 1cr). Additional cost: [click]. Play only if Runner stole an agenda last turn. Give Runner 1 tag.",
+		"pre_play_condition": "runner_stole_agenda_last_runner_turn",
+		"additional_cost_spend_click": true,
+		"on_play": {
+			"effects": [
+				{"type": "give_tags", "params": {"amount": 1}}
+			]
+		}
+	},
+
+	"hypoxia": {
+		"_note": "Parhelion Corp operation (Jinteki, 0cr). Play only if Runner is tagged. Do 1 core damage. Runner gets -1 allotted click next turn. Remove from game.",
+		"pre_play_condition": "runner_is_tagged",
+		"remove_from_game": true,
+		"on_play": {
+			"effects": [
+				{"type": "deal_damage", "params": {"damage_type": "core", "amount": 1}},
+				{"type": "lose_clicks_next_turn", "params": {"amount": 1}}
+			]
+		}
+	},
+
+	"shipment_from_vladisibirsk": {
+		"_note": "Parhelion Corp operation (Weyland, 0cr). Play only if Runner has at least 2 tags. Place a total of 4 advancement counters on installed cards you can advance.",
+		"pre_play_condition": "runner_tags_gte_2",
+		"on_play": {
+			"effects": [
+				{"type": "distribute_advancement_counters", "params": {"amount": 4}}
+			]
+		}
+	},
+
+	"simulation_reset": {
+		"_note": "Parhelion Corp operation (Jinteki, 4cr). Trash up to 5 HQ cards; shuffle that many from Archives into R&D; draw that many cards. Remove from game.",
+		"remove_from_game": true,
+		"on_play": {
+			"effects": [
+				{"type": "simulation_reset_play"}
+			]
+		}
+	},
+
+	"kimberlite_field": {
+		"_note": "Parhelion Corp agenda (Weyland, 3/2). On score: may trash 1 of your rezzed cards; if so, trash 1 installed Runner card with printed install cost ≤ rez cost of the trashed Corp card.",
+		"on_score": {
+			"effects": [
+				{"type": "kimberlite_field_score_effect"}
+			]
+		}
+	},
+
+	"hybrid_release": {
+		"_note": "Parhelion Corp agenda (Weyland, 3/2). On score: may install 1 facedown card from Archives.",
+		"on_score": {
+			"effects": [
+				{"type": "install_facedown_from_archives_optional"}
+			]
+		}
+	},
+
+	"regulatory_capture": {
+		"_note": "Parhelion Corp agenda (Weyland, 3/2 base). For each bad publicity (up to 4): gets -1 advancement requirement.",
+		"advancement_reduction_per_bad_pub": {"max_reduction": 4}
+	},
+
+	"freedom_of_information": {
+		"_note": "Parhelion Corp agenda (NBN, 3/2 base). For each Runner tag: gets -1 advancement requirement.",
+		"advancement_reduction_per_runner_tag": true
+	},
+
+	"ontological_dependence": {
+		"_note": "Parhelion Corp agenda (Jinteki, 5/3 base). Gets -1 advancement requirement per core damage Runner has taken this game.",
+		"advancement_reduction_per_core_damage": true
+	},
+
+	"superdeep_borehole": {
+		"_note": "Parhelion Corp asset (Weyland, rez 12). On rez: place 6 bad_publicity counters on this card (isolated on the card, not Corp bad pub pool). Corp turn begin: remove 1; when empty, Corp wins immediately.",
+		"on_rez": {
+			"effects": [
+				{"type": "add_self_counters", "counter": "bad_publicity", "amount": 6}
+			]
+		},
+		"corp_turn_start": {
+			"condition": {"type": "self_is_rezzed"},
+			"effects": [
+				{"type": "remove_self_counter", "counter": "bad_publicity", "amount": 1},
+				{"type": "win_game_if_counter_empty", "counter": "bad_publicity", "params": {"winner": "corp"}}
+			]
+		}
+	},
+
+	"nightmare_archive": {
+		"_note": "Parhelion Corp asset (Jinteki, rez 0, trash 3). While accessed in R&D, must be revealed. On access: Runner may add to score area as -1 agenda point; if not, do 1 core damage and RFG.",
+		"reveal_when_accessed_in_rd": true,
+		"on_access": {
+			"effects": [
+				{"type": "nightmare_archive_on_access"}
+			]
+		}
+	},
+
+	"dr_vientiane_keeling": {
+		"_note": "Parhelion Corp asset (Jinteki, rez 3, trash 4). On rez and Corp turn begin: place 1 power counter. Runner gets -1 max hand size per hosted power counter. BANNED Standard 26.05.",
+		"on_rez": {
+			"effects": [
+				{"type": "add_self_counters", "counter": "power", "amount": 1}
+			]
+		},
+		"corp_turn_start": {
+			"condition": {"type": "self_is_rezzed"},
+			"effects": [
+				{"type": "add_self_counters", "counter": "power", "amount": 1}
+			]
+		}
+	},
+
+	"hostile_architecture": {
+		"_note": "Parhelion Corp asset (Weyland, rez 2, trash 4). First time each turn Runner trashes any of your installed cards: do 2 meat damage.",
+		"runner_trashes_during_breach": {
+			"once_per_turn_key": "hostile_arch_damage",
+			"condition": {"type": "self_is_rezzed"},
+			"effects": [
+				{"type": "deal_damage", "params": {"damage_type": "meat", "amount": 2}}
+			]
+		}
+	},
+
+	"gaslight": {
+		"_note": "Parhelion Corp asset (Jinteki, rez 2, trash 4). On Corp turn begin: may trash this asset; if so, search R&D for an operation, reveal it, add it to HQ. Shuffle R&D.",
+		"corp_turn_start": {
+			"condition": {"type": "self_is_rezzed"},
+			"effects": [
+				{"type": "gaslight_tutor_operation"}
+			]
+		}
+	},
+
+	"reaper_function": {
+		"_note": "Parhelion Corp asset (Weyland, rez 2, trash 3). Corp turn begin: may trash this asset to do 2 net damage.",
+		"corp_turn_start": {
+			"effects": [
+				{"type": "reaper_function_trash_for_damage"}
+			]
+		}
+	},
+
+	"djupstad_grid": {
+		"_note": "Parhelion Corp upgrade (HB, region, rez 4, trash 5). Whenever Corp scores an agenda from root of this server: do 1 core damage. Limit 1 region per server.",
+		"corp_scores_agenda": {
+			"condition": {
+				"type": "and",
+				"conditions": [
+					{"type": "self_is_rezzed"},
+					{"type": "agenda_scored_from_self_server"}
+				]
+			},
+			"effects": [
+				{"type": "deal_damage", "params": {"damage_type": "core", "amount": 1}}
+			]
+		}
+	},
+
+	"yakov_erikovich_avdakov": {
+		"_note": "Parhelion Corp upgrade (Weyland, rez 3, trash 4). Whenever any player trashes a card from root of or protecting this server (except installation): gain 2cr.",
+		"runner_trashes_during_breach": {
+			"condition": {
+				"type": "and",
+				"conditions": [
+					{"type": "self_is_rezzed"},
+					{"type": "trashed_card_server_is_self"}
+				]
+			},
+			"effects": [
+				{"type": "gain_credits", "params": {"subject": "corp", "amount": 2}}
+			]
+		},
+		"corp_card_trashed_from_server": {
+			"condition": {
+				"type": "and",
+				"conditions": [
+					{"type": "self_is_rezzed"},
+					{"type": "trashed_card_server_is_self"}
+				]
+			},
+			"effects": [
+				{"type": "gain_credits", "params": {"subject": "corp", "amount": 2}}
+			]
+		}
+	},
+
+	"vera_ivanovna_shuyskaya": {
+		"_note": "Parhelion Corp upgrade (Jinteki, rez 3, trash 4). Whenever agenda scored/stolen: may reveal Runner grip; if so, trash 1 card from it.",
+		"corp_scores_agenda": {
+			"condition": {"type": "self_is_rezzed"},
+			"effects": [{"type": "vera_shuyskaya_reveal_grip_trash"}]
+		},
+		"runner_steals_agenda": {
+			"condition": {"type": "self_is_rezzed"},
+			"effects": [{"type": "vera_shuyskaya_reveal_grip_trash"}]
+		}
+	},
+
+	"mr_hendrik": {
+		"_note": "Parhelion Corp upgrade (Jinteki, rez 2, trash 5). When Runner accesses while installed: Corp may pay 2cr to do 1 core damage. Runner may lose all remaining clicks to prevent.",
+		"on_access": {
+			"effects": [{"type": "mr_hendrik_access_effect"}]
+		}
+	},
+
+	"zato_city_grid": {
+		"_note": "Parhelion Corp upgrade (Weyland, region, remote only, rez 3, trash 6). Each ice protecting this server gains: 'When Runner encounters this ice, choose 1 sub on it. You may trash this ice to resolve that sub.' Limit 1 region per server. The ice-trash ability is injected dynamically by RunStateMachine during encounters on this server.",
+		"region": true,
+		"remote_only": true
+	},
+
+	"nanisivik_grid": {
+		"_note": "Parhelion Corp upgrade (HB, region, rez 5, trash 4). Whenever Runner approaches this server: may turn 1 facedown Archives ice faceup; if so, resolve 1 subroutine on that ice. BANNED Standard 26.05.",
+		"approach_server": {
+			"condition": {"type": "self_is_rezzed"},
+			"effects": [{"type": "nanisivik_grid_trigger"}]
+		}
+	},
+
+	"hippocampic_mechanocytes": {
+		"_note": "Parhelion Runner hardware (Shaper, Cybernetic, cost 2). On install: place 2 power counters; suffer 1 meat damage. Ongoing: +1 max hand size per hosted power counter (computed in GameContext.query_hippocampic_hand_size_bonus).",
+		"on_rez": {
+			"effects": [
+				{"type": "add_self_counters", "counter": "power", "amount": 2},
+				{"type": "deal_damage", "params": {"damage_type": "meat", "amount": 1}}
+			]
+		}
+	},
+
+	"basilar_synthgland_2kvj": {
+		"_note": "Parhelion Runner hardware (Shaper, Cybernetic, cost 4). On install: suffer 2 core damage. Ongoing: +1 allotted click per turn (handled in TurnManager._runner_turn by scanning for this card).",
+		"on_rez": {
+			"effects": [
+				{"type": "deal_damage", "params": {"damage_type": "core", "amount": 2}}
+			]
+		}
+	},
+
+	"bloop": {
+		"_note": "Parhelion Corp ice (Weyland, Barrier, Harmonic, 4/3). Additional rez cost: derez another harmonic ice. Subs: 1 core damage; trash 1 installed program; trash 1 installed program.",
+		"additional_rez_cost": {"type": "derez_harmonic_ice"},
+		"subroutines": [
+			{
+				"label": "Do 1 core damage.",
+				"effects": [{"type": "deal_damage", "params": {"damage_type": "core", "amount": 1}}]
+			},
+			{
+				"label": "Trash 1 installed program.",
+				"effects": [{"type": "trash_runner_installed", "params": {"card_types": ["program"]}}]
+			},
+			{
+				"label": "Trash 1 installed program.",
+				"effects": [{"type": "trash_runner_installed", "params": {"card_types": ["program"]}}]
+			}
+		]
+	},
+
+	"pulse": {
+		"_note": "Parhelion Corp ice (HB, Barrier, Harmonic, 3/4). On rez during run: Runner loses [click]. Sub 1: Runner loses 1cr per rezzed harmonic ice. Sub 2: End the run unless Runner spends [click].",
+		"on_rez": {
+			"condition": {"type": "run_is_active"},
+			"effects": [
+				{"type": "runner_loses_click", "params": {"amount": 1}}
+			]
+		},
+		"subroutines": [
+			{
+				"label": "The Runner loses 1[credit] for each rezzed harmonic piece of ice.",
+				"effects": [{"type": "lose_credits_per_harmonic_ice"}]
+			},
+			{
+				"label": "End the run unless the Runner spends [click].",
+				"effects": [{"type": "runner_click_or_etr"}]
+			}
+		]
+	},
+
+	"anvil": {
+		"_note": "Parhelion Corp ice (Weyland, Sentry, 5/5). On encounter: Corp may trash 1 installed Corp card; if so, Runner cannot break printed subs this encounter. Subs: Corp gains 1cr and Runner loses 1cr; Runner trashes 1 installed card.",
+		"on_encounter_self": {
+			"effects": [{"type": "anvil_encounter_trigger"}]
+		},
+		"subroutines": [
+			{
+				"label": "Gain 1[credit]. The Runner loses 1[credit].",
+				"effects": [
+					{"type": "gain_credits", "params": {"subject": "corp", "amount": 1}},
+					{"type": "lose_credits", "params": {"subject": "runner", "amount": 1}}
+				]
+			},
+			{
+				"label": "The Runner trashes 1 installed card.",
+				"effects": [{"type": "trash_runner_installed", "params": {"card_types": [], "chooser": "runner"}}]
+			}
+		]
+	},
+
+	"hafrun": {
+		"_note": "Parhelion Corp ice (HB, Code Gate, 4/4). On rez during run: may trash 1 HQ card; if so, choose 1 Runner installed card — that card cannot break subs this run. Sub: end the run.",
+		"on_rez": {
+			"condition": {"type": "run_is_active"},
+			"effects": [{"type": "hafrun_rez_trigger"}]
+		},
+		"subroutines": [
+			{
+				"label": "End the run.",
+				"effects": [{"type": "end_run"}]
+			}
+		]
+	},
+
+	"klevetnik": {
+		"_note": "Parhelion Corp ice (HB, Code Gate, 3/3). On rez during run: may give Runner 2cr; if so, chosen resource loses all abilities until Corp turn ends. Sub: end the run.",
+		"on_rez": {
+			"condition": {"type": "run_is_active"},
+			"effects": [{"type": "klevetnik_rez_trigger"}]
+		},
+		"subroutines": [
+			{
+				"label": "End the run.",
+				"effects": [{"type": "end_run"}]
+			}
+		]
+	},
+
+	"unsmiling_tsarevna": {
+		"_note": "Parhelion Corp ice (NBN, Sentry, 4/4). On rez during run: may give Runner 2cr; if so, Runner cannot break more than 1 sub per encounter with this ice. Subs: give Runner 1 tag; do 2 net damage; Corp may draw 2 cards.",
+		"on_rez": {
+			"condition": {"type": "run_is_active"},
+			"effects": [{"type": "tsarevna_rez_trigger"}]
+		},
+		"subroutines": [
+			{
+				"label": "Give the Runner 1 tag.",
+				"effects": [{"type": "give_tags", "params": {"amount": 1}}]
+			},
+			{
+				"label": "Do 2 net damage.",
+				"effects": [{"type": "deal_damage", "params": {"damage_type": "net", "amount": 2}}]
+			},
+			{
+				"label": "You may draw 2 cards.",
+				"effects": [{"type": "draw_cards", "params": {"subject": "corp", "amount": 2, "optional": true}}]
+			}
+		]
+	},
+
+	"abaasy": {
+		"_note": "Parhelion Runner program (Anarch, Icebreaker, Decoder, 1 MU, cost 2). Interface: 1cr → break 1 code gate sub. 2cr → +2 str. On fully break code gate: may trash 1 grip card to draw 1.",
+		"break": {
+			"subtype_restriction": "code_gate",
+			"cost_per_sub": 1,
+			"subs_per_use": 1
+		},
+		"boost": {
+			"cost": 2,
+			"strength_gained": 2
+		},
+		"on_fully_break_code_gate": {
+			"once_per_turn_key": "abaasy_full_break",
+			"effects": [{"type": "abaasy_full_break"}]
+		}
+	},
+
+	"orca": {
+		"_note": "Parhelion Runner program (Criminal, Icebreaker, Killer, 1 MU, cost 3). Interface: 2cr → break any number of sentry subs. 2cr → +3 str. First time fully breaks ice each turn: may charge 1 installed card.",
+		"break": {
+			"subtype_restriction": "sentry",
+			"flat_break_cost": 2,
+			"subs_per_use": 0
+		},
+		"boost": {
+			"cost": 2,
+			"strength_gained": 3
+		},
+		"on_fully_break_sentry": {
+			"once_per_turn_key": "orca_full_break",
+			"effects": [{"type": "charge_card"}]
+		}
+	},
+
+	"tunnel_vision": {
+		"_note": "Parhelion Runner program (Criminal, Icebreaker, 1 MU, cost 3). Identify mark on turn begin. Interface: 2cr → break up to 2 subs; 2cr → +2 str. Note: mark-server restriction tracked but requires UI enforcement — currently works as general breaker.",
+		"runner_turn_start": {
+			"effects": [{"type": "identify_mark"}]
+		},
+		"break": {
+			"subtype_restriction": null,
+			"cost_per_sub": 1,
+			"subs_per_use": 2
+		},
+		"boost": {
+			"cost": 2,
+			"strength_gained": 2
+		}
+	},
+
+	"tremolo": {
+		"_note": "Parhelion Runner program (Shaper, Icebreaker, Fracter, 1 MU, cost 2). Interface: (3cr minus 1cr per installed cybernetic hardware) → break up to 2 barrier subs. 2cr → +2 str.",
+		"break": {
+			"subtype_restriction": "barrier",
+			"cost_per_sub": 3,
+			"subs_per_use": 2,
+			"cybernetic_cost_reduction": true
+		},
+		"boost": {
+			"cost": 2,
+			"strength_gained": 2
+		}
+	},
+
+	"flux_capacitor": {
+		"_note": "Parhelion Runner hardware (Shaper, cost 1). Install only on a piece of ice (trojan). First time Runner breaks a subroutine during each encounter with host ice: may charge 1 installed card. (Trigger handled in EncounterProcessor._check_flux_capacitor.)",
+		"install_on_ice": true
+	},
+
+	"hush": {
+		"_note": "Parhelion Runner program (Shaper, Trojan, 1 MU, cost 2). Install only on ice. Host ice cannot gain abilities and loses all non-printed-subroutine abilities. [click]: move to another installed ice. (Full ability suppression requires engine work — currently just registers as trojan.)",
+		"install_on_ice": true,
+		"click_action": {
+			"effects": [{"type": "move_trojan_to_ice"}]
+		}
+	},
+
+	"poison_vial": {
+		"_note": "Parhelion Runner hardware (Anarch, cost 2). On install: 3 power counters. Break up to 2 subs (only if already broke a sub this encounter). Cost: 1 power counter. Trash when empty. Note: 'already-broke-a-sub' restriction tracked by UI only; currently acts as general counter-based breaker.",
+		"on_rez": {
+			"effects": [{"type": "add_self_counters", "counter": "power", "amount": 3}]
+		},
+		"break": {
+			"subtype_restriction": null,
+			"cost_per_sub": 0,
+			"cost_power_counter": 1,
+			"subs_per_use": 2
+		}
+	},
+
+	"matryoshka": {
+		"_note": "Parhelion Runner program (Anarch, Icebreaker, 1 MU, cost 1). BANNED Standard. Turn begin: all hosted copies flip faceup. [click]: host 1 copy from grip faceup. Interface: X cr + 1 faceup hosted copy facedown → break X subs. (Break handled via matryoshka_break encounter action.)",
+		"runner_turn_start": {
+			"effects": [{"type": "matryoshka_flip_hosted_faceup"}]
+		},
+		"click_action": {
+			"effects": [{"type": "matryoshka_host_from_grip"}]
+		}
+	},
+
+	"nga": {
+		"_note": "Parhelion Runner program (Anarch, Virus, 1 MU, cost 1). On install: 3 power counters. Trash when empty. First time each turn on successful run: may remove 1 counter to sabotage 1.",
+		"on_rez": {
+			"effects": [{"type": "add_self_counters", "counter": "power", "amount": 3}]
+		},
+		"successful_run": {
+			"once_per_turn_key": "nga_sabotage",
+			"condition": {"type": "self_counter_gte", "counter": "power", "threshold": 1},
+			"effects": [
+				{"type": "nga_sabotage_trigger"},
+				{"type": "self_trash_if_empty", "counter": "power"}
+			]
+		}
+	},
+
+	"time_bomb": {
+		"_note": "Parhelion Runner hardware (Anarch, cost 2). Install only if made successful run on a central this turn. On install: 1 power counter. Each Runner turn begin: if 3+ counters, trash and sabotage 3; else place 1 counter.",
+		"install_condition": "runner_made_successful_run_on_central_this_turn",
+		"on_rez": {
+			"effects": [{"type": "add_self_counters", "counter": "power", "amount": 1}]
+		},
+		"runner_turn_start": {
+			"effects": [{"type": "time_bomb_turn_begin"}]
+		}
+	},
+
+	"zenit_chip_jz_2mj": {
+		"_note": "Parhelion Runner hardware (Shaper, Cybernetic, cost 2). On install: suffer 1 core damage. First time each turn on successful run on a central: draw 1 card.",
+		"on_rez": {
+			"effects": [{"type": "deal_damage", "params": {"damage_type": "core", "amount": 1}}]
+		},
+		"successful_run": {
+			"once_per_turn_key": "zenit_draw",
+			"condition": {"type": "run_target_is_central"},
+			"effects": [{"type": "draw_cards", "params": {"subject": "runner", "amount": 1}}]
+		}
+	},
+
+	"finality": {
+		"_note": "Parhelion Runner event (Anarch, Run, 2cr). Additional cost: suffer 1 core damage. Run R&D. If successful, access 3 additional cards when breaching R&D.",
+		"additional_cost_core_damage": 1,
+		"on_play": {
+			"effects": [
+				{
+					"type": "set_run_modifier",
+					"params": {"key": "bonus_access", "value": 3}
+				},
+				{
+					"type": "choose_and_run",
+					"params": {"servers": ["rd"]}
+				}
+			]
+		}
+	},
+
+	"concerto": {
+		"_note": "Parhelion Runner event (Criminal, Run, 2cr). Reveal top stack card; place credits equal to its printed play/install cost on this event. Add card to grip. Run any server; may spend hosted Concerto credits during that run.",
+		"on_play": {
+			"effects": [{"type": "concerto_play"}]
+		}
+	},
+
+	"raindrops_cut_stone": {
+		"_note": "Parhelion Runner event (Criminal, Run, 2cr). Run any server. Whenever a subroutine resolves (including ETR): place 1 counter here. When run ends: draw 1 per counter and gain 3cr.",
+		"on_play": {
+			"effects": [{"type": "raindrops_play"}]
+		}
+	},
+
+	"spark_of_inspiration": {
+		"_note": "Parhelion Runner event (Shaper, 1cr). Set aside cards from top of stack faceup until a program is set aside. May install it paying 10cr less. Shuffle all set-aside cards into stack.",
+		"on_play": {
+			"effects": [{"type": "spark_of_inspiration_play"}]
+		}
+	},
+
+	"katorga_breakout": {
+		"_note": "Parhelion Runner event (Criminal, Run, 2cr). Run any server. If successful, add 1 card from heap to grip.",
+		"on_play": {
+			"effects": [
+				{"type": "katorga_breakout_play"}
+			]
+		}
+	},
+
+	"reprise": {
+		"_note": "Parhelion Runner event (Criminal, Run, 2cr). Play only if Runner stole an agenda this turn. Add 1 installed Corp card to HQ. May run any server.",
+		"pre_play_condition": "runner_stole_agenda_this_turn",
+		"on_play": {
+			"effects": [
+				{"type": "return_installed_corp_card_to_hq"},
+				{"type": "choose_and_run", "params": {"servers": ["hq", "rd", "archives", "remote"], "optional": true}}
+			]
+		}
+	},
+
+	"info_bounty": {
+		"_note": "Parhelion Runner resource (Criminal, Mark, cost 1). On turn begin: identify mark. First time each turn a run on mark ends: gain 2cr if you breached that server.",
+		"runner_turn_start": {
+			"effects": [{"type": "identify_mark"}]
+		},
+		"run_end": {
+			"once_per_turn_key": "info_bounty_gain",
+			"condition": {"type": "runner_breached_mark_this_turn"},
+			"effects": [{"type": "gain_credits", "params": {"subject": "runner", "amount": 2}}]
+		}
+	},
+
+	"asmund_pudlat": {
+		"_note": "Parhelion Runner resource (Anarch, cost 1). On install: search stack for up to 2 virus or weapon cards with different names; host faceup (not installed). Turn begin: may add 1 hosted card to grip; trash when empty.",
+		"on_rez": {
+			"effects": [{"type": "asmund_search_and_host"}]
+		},
+		"runner_turn_start": {
+			"condition": {"type": "self_is_rezzed"},
+			"effects": [
+				{"type": "asmund_take_hosted_to_grip"},
+				{"type": "self_trash_if_faceup_hosted_empty"}
+			]
+		}
+	},
+
+	"world_tree": {
+		"_note": "Parhelion Runner resource (Shaper, cost 3). BANNED Standard. First time each turn on successful run: may trash 1 installed card → search stack for 1 card of same type → install paying 3cr less.",
+		"successful_run": {
+			"once_per_turn_key": "world_tree_trigger",
+			"condition": {"type": "self_is_rezzed"},
+			"effects": [{"type": "world_tree_trigger"}]
+		}
+	},
+
+	"tsakhia_bankhar_gantulga": {
+		"_note": "Parhelion Runner resource (Criminal, Connection, cost 1). BANNED Standard. Turn begin: may choose a server. During first encounter this turn with ice protecting chosen server: resolve 1 net damage instead of each subroutine.",
+		"runner_turn_start": {
+			"condition": {"type": "self_is_rezzed"},
+			"effects": [{"type": "bankhar_choose_server"}]
+		}
+	},
+
+	"ampere_cybernetics_for_anyone": {
+		"_note": "Parhelion Corp identity (Neutral, 45/15). 1-copy deck rule; may include up to 2 different cross-faction agenda cards. No gameplay ability — handled by deck validation.",
+		"singleton_deck": true,
+		"cross_faction_agendas_allowed": 2
+	},
+
+	"nova_initiumia_catalyst_impetus": {
+		"_note": "Parhelion Runner identity (Neutral, 40/15). Deck cannot include more than 1 copy of any card. No gameplay ability — handled by deck validation.",
+		"singleton_deck": true
+	},
+
+	"issuaq_adaptics_sustaining_diversity": {
+		"_note": "Parhelion Corp identity (HB). Whenever Corp scores an agenda not installed or advanced this turn: place 1 power counter on this identity. For each hosted power counter, need 1 fewer agenda point to win. Fully hardcoded in TurnManager._score_agenda and GameContext.corp_points_to_win."
+	},
+
+	"thule_subsea_safety_below": {
+		"_note": "Parhelion Corp identity (Weyland). Whenever Runner steals an agenda: do 1 core damage unless Runner spends [click] and 2cr. Fully hardcoded in RunStateMachine._steal_agenda."
+	},
+
+	"_midnight_sun_marker": "___ Midnight Sun — Sprint 1 (Tier A / Tier B) ___",
+
+	"artificial_cryptocrash": {
+		"_note": "Midnight Sun Corp agenda 3/2 (NBN). On score: the Runner loses 7[credit].",
+		"on_score": {
+			"effects": [
+				{
+					"type": "lose_credits",
+					"params": { "subject": "runner", "amount": 7 }
+				}
+			]
+		}
+	},
+
+	"avgustina_ivanovskaya": {
+		"_note": "Midnight Sun Runner resource (Anarch, cost 2). The first time each turn you install a virus program, sabotage 1.",
+		"runner_installs_virus": {
+			"once_per_turn_key": "avgustina_sabotage",
+			"condition": { "type": "self_is_installed" },
+			"effects": [
+				{ "type": "sabotage", "params": { "amount": 1 } }
+			]
+		}
+	},
+
+	"azef_protocol": {
+		"_note": "Midnight Sun / RWR Corp agenda 3/2 (HB). Additional cost to score: trash 1 other installed card (engine: TurnManager._do_advance checks additional_cost_score_trash_installed). On score: do 2 meat damage.",
+		"additional_cost_score_trash_installed": true,
+		"on_score": {
+			"effects": [
+				{
+					"type": "deal_damage",
+					"params": { "damage_type": "meat", "amount": 2 }
+				}
+			]
+		}
+	},
+
+	"backroom_machinations": {
+		"_note": "Midnight Sun Corp operation (NBN, cost 3). Additional cost: remove 1 Runner tag. Add this operation to Corp score area as an agenda worth 1 agenda point.",
+		"additional_cost_remove_runner_tag": true,
+		"on_play": {
+			"effects": [
+				{
+					"type": "add_self_to_score_area",
+					"params": { "points": 1 }
+				}
+			]
+		}
+	},
+
+	"bladderwort": {
+		"_note": "Midnight Sun Corp asset (Jinteki, cost 2, trash 1). When your turn begins: gain 1[credit]. Then, if you have 4[credit] or fewer, do 1 net damage.",
+		"corp_turn_begin": {
+			"condition": { "type": "self_is_rezzed" },
+			"effects": [
+				{
+					"type": "gain_credits",
+					"params": { "subject": "corp", "amount": 1 }
+				},
+				{
+					"type": "deal_damage",
+					"params": { "damage_type": "net", "amount": 1 },
+					"condition": {
+						"type": "credits_compare",
+						"params": { "subject": "corp", "operator": "lte", "value": 4 }
+					}
+				}
+			]
+		}
+	},
+
+	"blood_in_the_water": {
+		"_note": "Midnight Sun Corp ice (Jinteki, sentry, str 0, cost 3). X = number of cards in Runner's grip. [subroutine] Do X net damage.",
+		"subroutines": [
+			{
+				"label": "Do X net damage. X is equal to the number of cards in the Runner's grip.",
+				"effects": [
+					{ "type": "deal_damage_equal_to_runner_grip" }
+				]
+			}
+		]
+	},
+
+	"daeg_first_net_cat": {
+		"_note": "Midnight Sun Runner resource (Shaper, cost 2). Whenever an agenda is scored or stolen, you may charge 1 of your installed cards.",
+		"corp_scores_agenda": {
+			"condition": { "type": "self_is_installed" },
+			"effects": [
+				{ "type": "charge_card" }
+			]
+		},
+		"runner_steals_agenda": {
+			"condition": { "type": "self_is_installed" },
+			"effects": [
+				{ "type": "charge_card" }
+			]
+		}
+	},
+
+	"elivagar_bifurcation": {
+		"_note": "Midnight Sun Corp agenda 3/2 (HB). On score: you may derez 1 installed card.",
+		"on_score": {
+			"effects": [
+				{ "type": "corp_optional_derez_any_rezzed" }
+			]
+		}
+	},
+
+	"extract": {
+		"_note": "Midnight Sun Corp operation (HB, cost 0). Gain 6[credit]. You may trash 1 of your installed cards to gain 3[credit].",
+		"on_play": {
+			"effects": [
+				{
+					"type": "gain_credits",
+					"params": { "subject": "corp", "amount": 6 }
+				},
+				{
+					"type": "corp_optional_trash_own_for_credits",
+					"params": { "amount": 3 }
+				}
+			]
+		}
+	},
+
+	"marrow": {
+		"_note": "Midnight Sun Runner hardware (Anarch, console, cost 3). +1[mu]. You get +3 maximum hand size (computed via query_marrow_hand_size_bonus in GameContext). When you install: suffer 1 core damage. Whenever the Corp scores an agenda: sabotage 1. Limit 1 console per player.",
+		"passive_modifiers": [
+			{ "type": "runner_mu_bonus", "value": 1 }
+		],
+		"on_rez": {
+			"effects": [
+				{ "type": "deal_damage", "params": { "damage_type": "core", "amount": 1 } }
+			]
+		},
+		"corp_scores_agenda": {
+			"condition": { "type": "self_is_installed" },
+			"effects": [
+				{ "type": "sabotage", "params": { "amount": 1 } }
+			]
+		},
+		"console": true
+	},
+
+	"maskirovka": {
+		"_note": "Midnight Sun Corp ice (HB, code gate, str 4, cost 2). [subroutine] Gain 2[credit]. [subroutine] End the run.",
+		"subroutines": [
+			{
+				"label": "Gain 2[credit].",
+				"effects": [
+					{ "type": "gain_credits", "params": { "subject": "corp", "amount": 2 } }
+				]
+			},
+			{
+				"label": "End the run.",
+				"effects": [ { "type": "end_run" } ]
+			}
+		]
+	},
+
+	"mestnichestvo": {
+		"_note": "Midnight Sun Corp ice (HB, code gate, str 3, cost 2). Advanceable. When Runner encounters this ice, Corp may remove 1 hosted advancement counter — Runner loses 3[credit]. [subroutine] Runner loses 3[credit]. [subroutine] End the run.",
+		"advanceable": true,
+		"on_encounter_ice": {
+			"condition": { "type": "self_is_rezzed" },
+			"effects": [
+				{
+					"type": "spend_adv_counter_for_effect",
+					"params": { "credits_lost": 3 }
+				}
+			]
+		},
+		"subroutines": [
+			{
+				"label": "The Runner loses 3[credit].",
+				"effects": [
+					{ "type": "lose_credits", "params": { "subject": "runner", "amount": 3 } }
+				]
+			},
+			{
+				"label": "End the run.",
+				"effects": [ { "type": "end_run" } ]
+			}
+		]
+	},
+
+	"midnight_3_arcology": {
+		"_note": "Midnight Sun Corp agenda 5/3 (HB). When you score: draw 3 cards. Skip your discard step this turn.",
+		"on_score": {
+			"effects": [
+				{ "type": "draw_cards", "params": { "subject": "corp", "amount": 3 } },
+				{ "type": "skip_corp_discard_step" }
+			]
+		}
+	},
+
+	"no_free_lunch": {
+		"_note": "Midnight Sun Runner resource (Criminal, cost 0). [trash]: Gain 3[credit]. [trash]: Remove 1 tag. Implemented as a click+trash runner-turn-start action (click cost is engine approximation; true [trash] paid ability without click cost is a future engine enhancement).",
+		"runner_turn_start": {
+			"effects": [{
+				"type": "click_trash_for_runner_choice",
+				"choices": [
+					{
+						"label": "[click], [trash]: Gain 3[credit].",
+						"effects": [
+							{ "type": "gain_credits", "params": { "subject": "runner", "amount": 3 } }
+						]
+					},
+					{
+						"label": "[click], [trash]: Remove 1 tag.",
+						"condition": { "type": "runner_is_tagged" },
+						"effects": [
+							{ "type": "remove_tags", "params": { "amount": 1 } }
+						]
+					}
+				]
+			}]
+		}
+	},
+
+	"pan_weave": {
+		"_note": "Midnight Sun Runner hardware (Criminal, cost 1). When you install: suffer 1 meat damage. The first time each turn you make a successful run on HQ: the Corp loses 1[credit]. If they do, gain 1[credit].",
+		"on_rez": {
+			"effects": [
+				{ "type": "deal_damage", "params": { "damage_type": "meat", "amount": 1 } }
+			]
+		},
+		"on_successful_run": {
+			"once_per_turn_key": "pan_weave_hq",
+			"condition": { "type": "run_target_is", "server": "hq" },
+			"effects": [
+				{ "type": "lose_credits", "params": { "subject": "corp", "amount": 1 } },
+				{ "type": "gain_credits", "params": { "subject": "runner", "amount": 1 } }
+			]
+		}
+	},
+
+	"refuge_campaign": {
+		"_note": "Midnight Sun Corp asset (HB, cost 2, trash 4). When your turn begins: gain 2[credit].",
+		"corp_turn_begin": {
+			"condition": { "type": "self_is_rezzed" },
+			"effects": [
+				{ "type": "gain_credits", "params": { "subject": "corp", "amount": 2 } }
+			]
+		}
+	},
+
+	"running_hot": {
+		"_note": "Midnight Sun Runner event (Anarch, cost 0). Additional cost: suffer 1 core damage. Gain [click][click][click].",
+		"additional_cost_core_damage": 1,
+		"on_play": {
+			"effects": [
+				{ "type": "runner_gain_clicks", "params": { "amount": 3 } }
+			]
+		}
+	},
+
+	"stoneship_chart_room": {
+		"_note": "Midnight Sun Runner resource (Shaper, cost 1). [trash]: Draw 2 cards. [trash]: Charge 1 of your installed cards. Implemented as a click+trash runner-turn-start action (click cost is engine approximation).",
+		"runner_turn_start": {
+			"effects": [{
+				"type": "click_trash_for_runner_choice",
+				"choices": [
+					{
+						"label": "[click], [trash]: Draw 2 cards.",
+						"effects": [
+							{ "type": "draw_cards", "params": { "subject": "runner", "amount": 2 } }
+						]
+					},
+					{
+						"label": "[click], [trash]: Charge 1 of your installed cards.",
+						"effects": [
+							{ "type": "charge_card" }
+						]
+					}
+				]
+			}]
+		}
+	},
+
+	"svyatogor_excavator": {
+		"_note": "Midnight Sun Runner program (Anarch, 1 MU, cost 3). When your turn begins: you may trash 1 of your other installed cards. If you do, gain 3[credit].",
+		"runner_turn_start": {
+			"condition": { "type": "self_is_installed" },
+			"effects": [
+				{
+					"type": "runner_optional_trash_own_installed_for_credits",
+					"params": { "amount": 3 }
+				}
+			]
+		}
+	},
+
+	"ubiquitous_vig": {
+		"_note": "Midnight Sun Corp asset (HB, cost 1, trash 3). Advanceable. When your turn begins: gain 1[credit] for each hosted advancement counter.",
+		"advanceable": true,
+		"corp_turn_begin": {
+			"condition": { "type": "self_is_rezzed" },
+			"effects": [
+				{ "type": "gain_credits_per_self_adv_counter" }
+			]
+		}
+	},
+
+	"vasilisa": {
+		"_note": "Midnight Sun Corp ice (HB, code gate, str 2, cost 1). When Runner encounters this ice: Corp may pay 1[credit] → place 1 advancement counter on an installed card. [subroutine] Give the Runner 1 tag.",
+		"on_encounter_ice": {
+			"condition": { "type": "self_is_rezzed" },
+			"effects": [
+				{
+					"type": "pay_credits_place_adv_counter",
+					"params": { "cost": 1 }
+				}
+			]
+		},
+		"subroutines": [
+			{
+				"label": "Give the Runner 1 tag.",
+				"effects": [
+					{ "type": "give_tags", "params": { "amount": 1 } }
+				]
+			}
+		]
+	},
+
+	"_midnight_sun_sprint2_marker": "___ Midnight Sun — Sprint 2 (Identities + Key Breakers) ___",
+
+	"esa_afontov_eco_insurrectionist": {
+		"_note": "Midnight Sun Runner identity (Anarch, 45/15, link 0). The first time each turn you suffer core damage: you may draw 1 card and sabotage 2.",
+		"runner_suffers_core_damage": {
+			"once_per_turn_key": "esa_core_trigger",
+			"effects": [{ "type": "esa_trigger" }]
+		}
+	},
+
+	"nyusha_sable_sintashta_symphonic_prodigy": {
+		"_note": "Midnight Sun Runner identity (Criminal, 40/15, link 1). When your turn begins: identify your mark. The first time each turn you make a successful run on your mark: gain [click].",
+		"runner_turn_start": {
+			"effects": [{ "type": "identify_mark" }]
+		},
+		"successful_run": {
+			"once_per_turn_key": "sable_click_gain",
+			"condition": { "type": "run_target_is_mark" },
+			"effects": [{ "type": "runner_gain_clicks", "params": { "amount": 1 } }]
+		}
+	},
+
+	"captain_padma_isbister_intrepid_explorer": {
+		"_note": "Midnight Sun Runner identity (Shaper, 40/15, link 0). The first time each turn a run on R&D begins: you may charge 1 installed card.",
+		"run_start": {
+			"once_per_turn_key": "padma_charge",
+			"condition": { "type": "run_target_is", "server": "rd" },
+			"effects": [{ "type": "charge_card", "params": { "optional": true } }]
+		}
+	},
+
+	"pravdivost_consulting_political_solutions": {
+		"_note": "Midnight Sun Corp identity (HB, 45/15). The first time each turn the Runner makes a successful run: you may place 1 advancement counter on an advanceable installed card.",
+		"successful_run": {
+			"once_per_turn_key": "pravdivost_adv",
+			"effects": [{
+				"type": "place_advancement_on_installed",
+				"params": { "amount": 1, "optional": true }
+			}]
+		}
+	},
+
+	"ob_superheavy_logistics_extract_export_excel": {
+		"_note": "Midnight Sun Corp identity (Weyland, 45/15). Once per turn, when you trash a rezzed card (not during install): search R&D for a card with rez cost 1 less, install and rez it for free.",
+		"corp_trashes_own_rezzed_card": {
+			"once_per_turn_key": "ob_trigger",
+			"effects": [{ "type": "ob_superheavy_trigger" }]
+		}
+	},
+
+	"begemot": {
+		"_note": "Midnight Sun Runner program (Anarch, fracter, 2 MU, cost 2). On install: suffer 1 core damage. Strength = core damage you have taken. Interface: 1[credit]: break any number of barrier subroutines.",
+		"passive_modifiers": [
+			{ "type": "dynamic_base_strength", "value": 0, "card_id": "begemot", "method": "core_damage_taken" }
+		],
+		"on_rez": {
+			"effects": [{ "type": "deal_damage", "params": { "damage_type": "core", "amount": 1 } }]
+		},
+		"interface_break": {
+			"subtype_restriction": "barrier",
+			"flat_break_cost": 1
+		},
+		"interface_boost": {
+			"cost_per_str": 1
+		}
+	},
+
+	"revolver": {
+		"_note": "Midnight Sun Runner program (Anarch, killer, 1 MU, cost 2). On install: place 6 power counters. Interface: [trash] or hosted power counter: break 1 sentry subroutine. 2[credit]: +3 strength.",
+		"on_rez": {
+			"effects": [{ "type": "add_self_counters", "counter": "power", "amount": 6 }]
+		},
+		"interface_break": {
+			"subtype_restriction": "sentry",
+			"subs_per_use": 1,
+			"dual_cost_options": [
+				{ "type": "trash_self" },
+				{ "type": "power_counter", "amount": 1 }
+			]
+		},
+		"interface_boost": {
+			"cost_per_str": 2,
+			"str_per_use": 3
+		}
+	},
+
+	"endurance": {
+		"_note": "Midnight Sun Runner hardware (Shaper, console). +2 MU. On install: place 3 power counters. The first time you make a successful run each turn: place 1 power counter. 2 hosted power counters: break up to 2 subroutines on the encountered ice.",
+		"console": true,
+		"passive_modifiers": [
+			{ "type": "mu_bonus", "value": 2 }
+		],
+		"on_rez": {
+			"effects": [{ "type": "add_self_counters", "counter": "power", "amount": 3 }]
+		},
+		"successful_run": {
+			"once_per_turn_key": "endurance_counter",
+			"effects": [{ "type": "add_self_counters", "counter": "power", "amount": 1 }]
+		},
+		"hardware_break_ability": {
+			"cost_power_counter": 2,
+			"subs_per_use": 2,
+			"subtype_restriction": null
+		}
+	},
+
+	"ghosttongue": {
+		"_note": "Midnight Sun Runner hardware (Anarch, cybernetic). On install: suffer 1 core damage. The play cost of each event is lowered by 1[credit].",
+		"on_rez": {
+			"effects": [{ "type": "deal_damage", "params": { "damage_type": "core", "amount": 1 } }]
+		}
+	},
+
+	"_midnight_sun_sprint3_marker": "___ Midnight Sun — Sprint 3 (Ice Mechanics) ___",
+
+	"bathynomus": {
+		"_note": "Midnight Sun Corp ice (Jinteki, sentry, str 2, cost 3). While protecting Archives: +3 strength. [subroutine] Do 3 net damage.",
+		"passive_modifiers": [
+			{ "type": "server_strength_bonus", "value": 3, "server": "archives" }
+		],
+		"subroutines": [
+			{
+				"label": "Do 3 net damage.",
+				"effects": [{ "type": "deal_damage", "params": { "damage_type": "net", "amount": 3 } }]
+			}
+		]
+	},
+
+	"echo": {
+		"_note": "Midnight Sun Corp ice (HB, code gate, harmonic, str 0, cost 2). Whenever the Corp rezzes a harmonic piece of ice: place 1 power counter on this ice. This ice has 'End the run.' for each hosted power counter.",
+		"corp_rezzes_ice": {
+			"condition": { "type": "rezzed_ice_has_subtype", "subtype": "harmonic" },
+			"effects": [{ "type": "add_self_counters", "counter": "power", "amount": 1 }]
+		},
+		"dynamic_etr_subs_from_counters": true
+	},
+
+	"envelopment": {
+		"_note": "Midnight Sun Corp ice (Jinteki, code gate, str 6, cost 6). On rez: place 4 power counters. Corp turn begins: remove 1 counter. This ice has 'End the run.' before other subroutines for each hosted power counter. [subroutine] Trash this ice.",
+		"on_rez": {
+			"effects": [{ "type": "add_self_counters", "counter": "power", "amount": 4 }]
+		},
+		"corp_turn_begin": {
+			"condition": { "type": "self_is_rezzed" },
+			"effects": [{ "type": "remove_self_counter", "params": { "counter": "power", "amount": 1 } }]
+		},
+		"dynamic_etr_subs_from_counters": true,
+		"subroutines": [
+			{
+				"label": "Trash this ice.",
+				"effects": [{ "type": "trash_self" }]
+			}
+		]
+	},
+
+	"ivik": {
+		"_note": "Midnight Sun Corp ice (Jinteki, code gate, str 3, cost 3). This ice costs 1[credit] less to rez for each rezzed code gate ice. [subroutine] Do 2 net damage. [subroutine] End the run.",
+		"passive_modifiers": [
+			{ "type": "rez_cost_reduction_per_rezzed_code_gate", "value": 0 }
+		],
+		"subroutines": [
+			{
+				"label": "Do 2 net damage.",
+				"effects": [{ "type": "deal_damage", "params": { "damage_type": "net", "amount": 2 } }]
+			},
+			{
+				"label": "End the run.",
+				"effects": [{ "type": "end_run" }]
+			}
+		]
+	},
+
+	"cats_cradle": {
+		"_note": "Midnight Sun Runner program (Shaper, decoder, 1 MU, cost 2). Each code gate costs the Corp 1[credit] more to rez. Interface: 1[credit]: break 1 code gate subroutine. 1[credit]: +1 strength.",
+		"passive_modifiers": [
+			{ "type": "corp_ice_rez_cost_increase_by_subtype", "value": 1, "subtype": "code_gate" }
+		],
+		"interface_break": {
+			"subtype_restriction": "code_gate",
+			"cost_per_sub": 1
+		},
+		"interface_boost": {
+			"cost_per_str": 1
+		}
+	},
+
+	"hakarl_1_0": {
+		"_note": "Midnight Sun Corp ice (HB, bioroid, str 4, cost 5). On rez during run: Corp may derez 1 other installed card. If so, Runner cannot use paid abilities printed on bioroid ice for the rest of this turn. [lose click]: break 1 sub. [subroutine] Do 1 core damage. [subroutine] End the run.",
+		"on_rez_during_run": {
+			"effects": [{ "type": "hakarl_rez_trigger" }]
+		},
+		"subroutines": [
+			{
+				"label": "Do 1 core damage.",
+				"effects": [{ "type": "deal_damage", "params": { "damage_type": "core", "amount": 1 } }]
+			},
+			{
+				"label": "End the run.",
+				"effects": [{ "type": "end_run" }]
+			}
+		]
+	},
+
+	"stavka": {
+		"_note": "Midnight Sun Corp ice (Weyland, sentry, str 6, cost 6). On rez during run: Corp may trash 1 other installed card. If so, +5 strength for the remainder of this run. [subroutine] Trash 1 installed program. [subroutine] Trash 1 installed program.",
+		"on_rez_during_run": {
+			"effects": [{ "type": "stavka_rez_trigger" }]
+		},
+		"subroutines": [
+			{
+				"label": "Trash 1 installed program.",
+				"effects": [{ "type": "trash_runner_installed_program", "params": { "chooser": "corp" } }]
+			},
+			{
+				"label": "Trash 1 installed program.",
+				"effects": [{ "type": "trash_runner_installed_program", "params": { "chooser": "corp" } }]
+			}
+		]
+	},
+
+	"wave": {
+		"_note": "Midnight Sun Corp ice (HB, barrier, harmonic, str 3, cost 4). On rez during run: Corp may search R&D for a piece of ice, reveal it, and add it to HQ. Shuffle R&D. [subroutine] Gain 1[credit] for each rezzed harmonic piece of ice.",
+		"on_rez_during_run": {
+			"effects": [{ "type": "search_rd_for_ice_add_to_hq" }]
+		},
+		"subroutines": [
+			{
+				"label": "Gain 1[credit] for each rezzed harmonic piece of ice.",
+				"effects": [{ "type": "gain_credits_per_rezzed_harmonic_ice" }]
+			}
+		]
+	},
+
+	"_ms_sprint4_marker": "Midnight Sun Sprint 4 — Complex Run Events",
+
+	"carpe_diem": {
+		"_note": "Midnight Sun Runner event (Criminal, mark, cost 0). Identify your mark. Gain 4[credit]. You may run your mark.",
+		"on_play": {
+			"effects": [
+				{ "type": "identify_mark" },
+				{ "type": "gain_credits", "params": { "subject": "runner", "amount": 4 } },
+				{ "type": "run_mark_server" }
+			]
+		}
+	},
+
+	"chastushka": {
+		"_note": "Midnight Sun Runner event (Anarch, cost 2). Run HQ. If successful, instead of breaching HQ, the Corp sabotages 4.",
+		"on_play": {
+			"effects": [{ "type": "chastushka_run" }]
+		}
+	},
+
+	"deep_dive": {
+		"_note": "Midnight Sun Runner event (Criminal, cost 3). Play only if you ran HQ, R&D, and Archives this turn. Corp reveals top 8 R&D. Access 1. Spend [click]: access 1 more. Corp shuffles all back.",
+		"on_play": {
+			"condition": { "type": "runner_ran_all_three_centrals_this_turn" },
+			"effects": [{ "type": "deep_dive_play" }]
+		}
+	},
+
+	"into_the_depths": {
+		"_note": "Midnight Sun Runner event (Shaper, cost 2). Run any server. If successful, for each piece of ice passed during this run, resolve 1 of: gain 4[credit]; search stack for program and install it; or charge 1 installed card (each option once).",
+		"on_play": {
+			"effects": [{ "type": "into_the_depths_play" }]
+		}
+	},
+
+	"light_the_fire": {
+		"_note": "Midnight Sun Runner event (Anarch, cost 1). Additional costs: [click] + 1 core damage. Run a remote server. During that run, cards in the root of the attacked server lose all abilities. When that run is successful, trash all cards in root of that server.",
+		"additional_cost_clicks": 1,
+		"additional_cost_core_damage": 1,
+		"on_play": {
+			"effects": [{ "type": "light_the_fire_run" }]
+		}
+	},
+
+	"mitosis": {
+		"_note": "Midnight Sun Corp operation (HB, cost 1). Additional cost: [click]. Install up to 2 cards from HQ, each in a new remote server. Place 2 advancement counters on each. Cannot score or rez either this turn.",
+		"additional_cost_clicks": 1,
+		"on_play": {
+			"effects": [{ "type": "mitosis_play" }]
+		}
+	},
+
+	"mutually_assured_destruction": {
+		"_note": "Midnight Sun Corp operation (Weyland, cost 0). Additional cost: [click][click]. Trash any number of your rezzed cards. Give the Runner 1 tag for each card trashed.",
+		"additional_cost_clicks": 2,
+		"on_play": {
+			"effects": [{ "type": "mutually_assured_destruction_play" }]
+		}
+	},
+
+	"trust_operation": {
+		"_note": "Midnight Sun Corp operation (NBN, cost 3). Play only if the Runner is tagged. Trash 1 installed Runner resource. Install and rez 1 card from Archives, ignoring all costs.",
+		"pre_play_condition": "runner_is_tagged",
+		"on_play": {
+			"effects": [{ "type": "trust_operation_play" }]
 		}
 	}
 }

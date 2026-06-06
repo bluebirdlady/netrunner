@@ -131,6 +131,17 @@ func get_on_fully_break_code_gate(card_id: String) -> Variant:
 		return null
 	return card_def["on_fully_break_code_gate"]
 
+# Returns the on_fully_break_sentry trigger for an icebreaker, or null if none.
+# Fires when the breaker is used to break the last unbroken subroutine on a sentry.
+# Used by: Orca (charge 1 installed card on first full-break per turn).
+func get_on_fully_break_sentry(card_id: String) -> Variant:
+	if not _abilities.has(card_id):
+		return null
+	var card_def: Dictionary = _abilities[card_id] as Dictionary
+	if not card_def.has("on_fully_break_sentry"):
+		return null
+	return card_def["on_fully_break_sentry"]
+
 # Returns the boost definition for an icebreaker, or null if none.
 func get_boost(card_id: String) -> Variant:
 	if not _abilities.has(card_id):

@@ -1,0 +1,26 @@
+FOUNDATION STONES
+by eniteris
+
+The name on the shipping manifest was Deep Survey Corp., registered in three different jurisdictions and controlled by none of them. You found the registration in the São Paulo data, buried under eighteen layers of holding companies. It took two hours to trace. It took thirty years to build.
+
+They survey the Atlantic floor. That is what the public filings say. Geological mapping. Resource profiling. Routine deep-water assessment under the Atlantic Accords. The permits are legitimate, the licenses are current, and the environmental impact reports are exactly 114 pages long.
+
+You are three thousand metres above sea level, in a transit lounge with a cracked ventilation panel and a direct feed to Relay Node 7. The relay is a surface installation — antennae and data routing, sitting on a converted drilling platform forty kilometres off the Azores. It connects the floor operations to the satellite uplink. It connects the satellite uplink to the financial networks. It connects the financial networks to everything.
+
+The data from the floor passes through here first.
+
+You have seen the logs from São Paulo. You know what kind of data they are moving. You know that whoever built this relay needed it to be quiet, fast, and unmonitored — and they got two out of three.
+
+A notification blinks on your console. The relay's maintenance window opens in eleven minutes. Automated cycling. The security handshake drops for thirty seconds while the system reboots.
+
+You have been on shorter timelines.
+
+You think about the manifest again. About the thirty years. About the fourteen subsidiaries and the three jurisdictions and the 114-page reports that said exactly what they needed to say and no more.
+
+Someone built this very carefully. You intend to find out why.
+
+—
+
+TARGET: Deep Survey Corp.: Built to Last
+FACILITY: Atlantic Relay Node 7, Mid-Atlantic Surface Operations
+OBJECTIVE: Access the survey archive. Find what they are mapping and who is paying for it.

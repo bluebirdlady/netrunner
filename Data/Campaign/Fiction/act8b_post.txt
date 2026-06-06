@@ -1,0 +1,19 @@
+The SUBLEVEL data is not drilling telemetry.
+
+The pressure readings are real. The depth coordinates are real. But the data structure is wrong for geological extraction — it is structured like a sensor array, like something monitoring a signal rather than locating a resource. The drilling head did not go down to pull material up. It went down to get closer to something that was already there.
+
+The signal logs begin at four kilometres and intensify at five-point-eight. The technicians who logged them used the word "resonance" seventeen times in the final three weeks. The Jinteki physicians arrived on the fourth week. The incident reports were filed on the fifth.
+
+You pull the SUBLEVEL manifest. There is a project designation: DEEP WATER, under the operational authority of Thule Subsea and one co-sponsor whose files are locked behind an Issuaq Adaptics encryption key.
+
+You do not have that key yet.
+
+But you have something else: coordinates for a second installation, one that the drilling logs reference but do not name. It sits forty kilometres west of Gamma-7, at the same depth, and it has been there for longer than the platform. The manifest calls it the Annex. The Jinteki medical files call it Site Seven.
+
+The three deaths were not accidents. The incident reports were filed to close the investigation before it reached Site Seven.
+
+You note the Annex coordinates.
+
+You note that the HB processing hub is listed as the logistics controller for Site Seven.
+
+You start building a route.

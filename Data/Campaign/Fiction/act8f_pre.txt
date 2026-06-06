@@ -1,0 +1,30 @@
+EVENT HORIZON
+by eniteris
+
+Six kilometres of ocean above you.
+
+The borehole operation runs on a dedicated server cluster at the base of Platform Gamma-7's data stack — air-gapped from the surface systems, connected only to the drilling control network and the containment apparatus below. Someone designed it to be unreachable from outside the platform. Someone else, who understood that absolute isolation is also absolute blindness, installed a diagnostic relay that connects to the surface monitoring grid.
+
+You are in the diagnostic relay.
+
+The operational display is live. The depth counter stopped at 5,947 metres four hours ago. The drilling log reads: target depth reached. The containment apparatus is deployed. The resonance signal is at maximum recorded amplitude.
+
+There is a status indicator labelled BOREHOLE SYSTEM. It is active and counting down.
+
+You do not know exactly what will happen when the countdown completes. You know what the Phase Three document authorised. You know what the containment apparatus is designed to carry. You know that whatever is generating the resonance signal has been isolated at the bottom of the Atlantic for longer than Haas-Bioroid, Jinteki, Thule Subsea, and Issuaq Adaptics have existed, and that it has spent that time getting stronger.
+
+The server cluster controlling Phase Three is the only thing standing between the current status and completion. If you can reach the operational partition, you can halt the deployment. If you can halt the deployment before the countdown ends, the apparatus stays sealed.
+
+If you cannot, you will find out what thirty years of careful planning and 114-page environmental reports were actually for.
+
+The diagnostic relay is slow. The operational partition is hardened. The ice is the densest you have seen in this entire operation.
+
+The countdown is at twenty-two minutes.
+
+You start running.
+
+—
+
+TARGET: Thule Subsea: Safety Below
+FACILITY: The Borehole Operations Cluster, 6km Below the Atlantic
+OBJECTIVE: Reach the operational partition and halt the Phase Three deployment before the countdown completes.

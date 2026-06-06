@@ -522,4 +522,3 @@ func choose_card_to_charge(candidates: Array, _ctx: GameContext) -> InstalledCar
 		if ic != null and ic.get_counter("power") > best.get_counter("power"):
 			best = ic
 	return best
-

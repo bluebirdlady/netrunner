@@ -123,6 +123,11 @@ func _corp_turn() -> void:
 	ctx.ice_rezzed_this_turn_instance_ids.clear()      # reset for Cloud Eater / Lightning Lab
 	ctx.doubles_played_this_turn       = 0              # reset for Synchrocyclotron
 	ctx.corp_scored_agenda_not_installed_this_turn = false   # reset for Myōshu
+	ctx.corp_advanced_this_turn = []                         # reset for Issuaq Adaptics
+	ctx.klevetnik_disabled_iids = []                         # reset for Klevetnik
+	ctx.corp_skip_discard_step_this_turn = false             # reset for Midnight-3 Arcology
+	ctx.runner_bioroid_paid_abilities_suppressed = false     # reset for Hákarl 1.0
+	ctx.mitosis_restricted_instance_ids.clear()             # reset for Mitosis
 	# Capture whether the runner stole or trashed last runner turn before clearing the flag.
 	# Active Policing / Bring Them Home pre-play condition reads this.
 	ctx.runner_stole_or_trashed_last_runner_turn = \
@@ -200,8 +205,11 @@ func _corp_turn() -> void:
 			if _st2 != null:
 				await _st2.create_timer(CORP_ACTION_PACE_SECS).timeout
 
-	# Discard phase
-	_corp_discard_to_hand_limit()
+	# Discard phase (Midnight-3 Arcology can skip this once per score)
+	if ctx.corp_skip_discard_step_this_turn:
+		ctx.send_log("%s skips the discard phase this turn (Midnight-3 Arcology)." % ctx.corp_name())
+	else:
+		_corp_discard_to_hand_limit()
 	if not ctx.game_over:
 		await ctx.notify_event("corp_discard_phase_ends", {}, interpreter)
 
@@ -398,6 +406,8 @@ func _runner_turn() -> void:
 	# Parhelion resets
 	ctx.runner_mark_server             = ""     # mark expires each turn
 	ctx.runner_breached_mark_this_turn = false  # breach flag expires each turn
+	ctx.bankhar_chosen_server          = ""     # Bankhar target expires each turn
+	ctx.bankhar_first_encounter_done   = false  # Bankhar first-encounter flag expires each turn
 	# Clear turn-scoped strength bonuses (e.g. Living Mural Threat 4 install: +3 str this turn).
 	for _ts_card in ctx.runner_rig:
 		var _ts_ic: InstalledCard = _ts_card as InstalledCard
@@ -623,6 +633,14 @@ func _validate_action(player: String, action: GameAction) -> Dictionary:
 				if not ctx.runner_made_successful_run_last_turn:
 					return {"ok": false,
 						"reason": "%s: Runner did not make a successful run last turn." % record.title}
+			if va_ppc == "runner_tags_gte_2" and player == "corp":
+				if ctx.runner_tags < 2:
+					return {"ok": false,
+						"reason": "%s: Runner does not have at least 2 tags." % record.title}
+			if va_ppc == "runner_stole_agenda_this_turn" and player == "runner":
+				if not ctx.runner_stole_agenda_this_turn:
+					return {"ok": false,
+						"reason": "%s: Runner has not stolen an agenda this turn." % record.title}
 			return {"ok": true, "reason": ""}
 
 		"play_from_archives":
@@ -819,6 +837,16 @@ func _do_install(player: String, action: GameAction) -> void:
 
 		# Conditional install cost reduction (e.g. Carmen: 5 → 3 after successful run)
 		var card_def: Dictionary = ability_registry._abilities.get(record.id, {}) as Dictionary
+
+		# Parhelion: install_condition gate (e.g. Time Bomb: only if successful run on a central this turn)
+		var ic_cond: String = card_def.get("install_condition", "")
+		if ic_cond == "runner_made_successful_run_on_central_this_turn":
+			var ic_ok: bool = ctx.runner_hq_successful_run_this_turn or \
+				ctx.runner_successful_run_on_rd_this_turn or \
+				ctx.runner_successful_run_on_archives_this_turn
+			if not ic_ok:
+				ctx.send_log("%s: cannot install — need a successful run on a central this turn." % record.title)
+				return
 		var conditional_cost: Variant = card_def.get("install_cost_if_successful_run", null)
 		if conditional_cost != null and ctx.runner_made_successful_run_this_turn:
 			pay_cost = int(conditional_cost)
@@ -1264,13 +1292,57 @@ func _do_advance(player: String, action: GameAction) -> void:
 		ctx.player_name(player), card.display_name(), card.get_counter("advancement")
 	])
 
+	# Track advancement for Issuaq Adaptics (Parhelion) "not advanced this turn" check.
+	if not ctx.corp_advanced_this_turn.has(card_id):
+		ctx.corp_advanced_this_turn.append(card_id)
+
 	# Fire on_advance for identity abilities (e.g. Weyland: Built to Last)
 	await ctx.notify_event("on_advance", {"card_id": card_id}, interpreter)
 
-	# Check if agenda can be scored
+	# Check if agenda can be scored (accounting for variable advancement requirements)
 	if card.card_record != null and card.card_record.is_agenda():
-		if card.meets_advancement_requirement():
-			_score_agenda(card)
+		if card.get_counter("advancement") >= _get_effective_advancement_requirement(card):
+			# Midnight Sun: Mitosis — card cannot be scored this turn if restricted.
+			if ctx.mitosis_restricted_instance_ids.has(card.runtime_instance_id):
+				ctx.send_log("[Mitosis] %s cannot be scored this turn." % card.display_name())
+				return
+			# Azef Protocol (and any future agenda with additional scoring cost):
+			# Corp must trash 1 other installed card before scoring.
+			var agenda_def: Dictionary = ability_registry._abilities.get(card.card_id, {}) as Dictionary
+			if agenda_def.get("additional_cost_score_trash_installed", false):
+				var cost_candidates: Array = ctx.all_installed().filter(
+					func(c: InstalledCard): return c != card and c.card_record != null
+				)
+				if cost_candidates.is_empty():
+					ctx.send_log("[%s] No installed cards to trash as additional scoring cost — cannot score yet." % card.display_name())
+				else:
+					var cost_target: InstalledCard = null
+					if ctx.corp_decision_maker != null and ctx.corp_decision_maker.has_method("choose_trash_from_rig"):
+						cost_target = await ctx.corp_decision_maker.choose_trash_from_rig(cost_candidates, ctx)
+					else:
+						# AI / fallback: trash the least valuable card (no rezzed ice if possible)
+						cost_target = cost_candidates[0] as InstalledCard
+						for cc in cost_candidates:
+							var cic: InstalledCard = cc as InstalledCard
+							if cic != null and not cic.is_rezzed:
+								cost_target = cic
+								break
+					if cost_target != null:
+						var cost_server: Server = ctx.get_server(cost_target.server_id)
+						if cost_server:
+							cost_server.remove_from_root(cost_target)
+							ctx.remove_empty_remote_servers()
+						ctx.unregister_all_card_effects(cost_target.runtime_instance_id)
+						if cost_target.card_record:
+							ctx.corp_discard.append(cost_target.card_record)
+						ctx.send_log("[%s] %s trashes %s as additional scoring cost." % [
+							card.display_name(), ctx.corp_name(), cost_target.display_name()])
+						if not ctx.simulation_mode:
+							emit_signal("card_trashed", cost_target.card_id, cost_target.server_id)
+						await _score_agenda(card)
+					# If cost_target == null (Corp declined), skip scoring
+			else:
+				await _score_agenda(card)
 
 
 func _do_play_operation(player: String, action: GameAction) -> void:
@@ -1311,6 +1383,18 @@ func _do_play_operation(player: String, action: GameAction) -> void:
 			ctx.send_log("%s: cannot play — Runner is not tagged." % record.title)
 			return
 
+	# Parhelion: Shipment from Vladisibirsk — play only if Runner has at least 2 tags.
+	if op_card_def.get("pre_play_condition", "") == "runner_tags_gte_2" and player == "corp":
+		if ctx.runner_tags < 2:
+			ctx.send_log("%s: cannot play — Runner has fewer than 2 tags." % record.title)
+			return
+
+	# Parhelion: Reprise — play only if Runner stole an agenda this turn.
+	if op_card_def.get("pre_play_condition", "") == "runner_stole_agenda_this_turn" and player == "runner":
+		if not ctx.runner_stole_agenda_this_turn:
+			ctx.send_log("%s: cannot play — Runner has not stolen an agenda this turn." % record.title)
+			return
+
 	_spend_click(player)
 
 	# Base play cost, with optional dynamic reduction (VP12 Tailgate: −1 per ice on a server).
@@ -1325,6 +1409,12 @@ func _do_play_operation(player: String, action: GameAction) -> void:
 				cost = max(0, cost - pir_count)
 				ctx.send_log("%s: %d ice on %s → play cost reduced to %d¢." % [
 					record.title, pir_count, pir_server.to_upper(), cost])
+		# Midnight Sun: Ghosttongue — each installed copy reduces event play cost by 1 (min 0).
+		for gt_rig in ctx.runner_rig:
+			var gt_ic: InstalledCard = gt_rig as InstalledCard
+			if gt_ic != null and gt_ic.card_id == "ghosttongue":
+				cost = max(0, cost - 1)
+				ctx.send_log("Ghosttongue: event play cost reduced to %d¢." % cost)
 
 	ctx.set_credits(player, ctx.get_credits(player) - cost)
 	if not ctx.simulation_mode: emit_signal("credits_changed", player, ctx.get_credits(player))
@@ -1745,6 +1835,11 @@ func _do_rez_card(player: String, action: GameAction) -> void:
 		ctx.send_log("Rez failed: card not found (%s)" % (instance_id if instance_id != "" else card_id))
 		return
 
+	# Midnight Sun: Mitosis — card cannot be rezzed this turn if restricted.
+	if ctx.mitosis_restricted_instance_ids.has(installed.runtime_instance_id):
+		ctx.send_log("[Mitosis] %s cannot be rezzed this turn." % installed.display_name())
+		return
+
 	# Use query_rez_cost so passive modifiers (e.g. Fransofia Ward +1) are applied.
 	var rez_cost: int = ctx.query_rez_cost(installed)
 
@@ -1859,6 +1954,31 @@ func _do_rez_card(player: String, action: GameAction) -> void:
 				else:
 					ctx.send_log("Rez failed: %s cannot pay additional rez cost." % installed.display_name())
 					return
+
+			# ── Bloop: derez another rezzed harmonic ice ─────────────────────────
+			elif tm_arc_type == "derez_harmonic_ice":
+				# Collect all OTHER rezzed harmonic ice (excluding the card being rezzed).
+				var tm_harmonic_candidates: Array = []
+				for tm_bsrv in ctx.servers.values():
+					for tm_bice in (tm_bsrv as Server).ice:
+						var tm_bic: InstalledCard = tm_bice as InstalledCard
+						if tm_bic == null or not tm_bic.is_rezzed \
+								or tm_bic.runtime_instance_id == installed.runtime_instance_id:
+							continue
+						if tm_bic.card_record != null and tm_bic.card_record.has_subtype("harmonic"):
+							tm_harmonic_candidates.append(tm_bic)
+				if tm_harmonic_candidates.is_empty():
+					ctx.send_log("Rez failed: %s requires derezzing another rezzed harmonic ice — none available." % \
+						installed.display_name())
+					return
+				var tm_derez_target: InstalledCard = null
+				if ctx.corp_decision_maker != null and ctx.corp_decision_maker.has_method("choose_derez_target"):
+					tm_derez_target = await ctx.corp_decision_maker.choose_derez_target(
+						tm_harmonic_candidates, ctx)
+				if tm_derez_target == null:
+					tm_derez_target = tm_harmonic_candidates[0] as InstalledCard
+				tm_derez_target.is_rezzed = false
+				ctx.send_log("[Bloop] %s derezzed as additional rez cost." % tm_derez_target.display_name())
 
 			# ── Valentão: take 1 bad pub OR remove 1 Runner tag ──────────────────
 			elif tm_arc_type == "bad_pub_or_remove_runner_tag":
@@ -2004,7 +2124,7 @@ func _register_scored_agenda_listeners(card: InstalledCard) -> void:
 			"corp_turn_start", "runner_turn_start", "corp_turn_end", "runner_turn_end",
 			"run_start", "successful_run", "breach_complete", "runner_steals_agenda",
 			"runner_takes_tags", "corp_scores_agenda", "runner_trashes_during_breach",
-			"before_breach", "card_accessed_event"]:
+			"before_breach", "card_accessed_event", "corp_card_trashed_from_server"]:
 		var trigger_def = card_def.get(event_type, null)
 		if trigger_def != null:
 			ctx.register_listener(event_type, instance_id, trigger_def as Dictionary)
@@ -2029,6 +2149,21 @@ func _score_agenda(card: InstalledCard) -> void:
 	if not ctx.corp_installed_this_turn.has(record.id):
 		ctx.corp_scored_agenda_not_installed_this_turn = true
 
+	# Issuaq Adaptics: Sustaining Diversity (Parhelion) — whenever Corp scores an agenda
+	# that was not installed OR advanced this turn, place 1 power counter on the identity.
+	if ctx.corp_identity != null and \
+			ctx.corp_identity.id == "issuaq_adaptics_sustaining_diversity":
+		var issuaq_was_installed: bool = ctx.corp_installed_this_turn.has(record.id)
+		var issuaq_was_advanced: bool  = ctx.corp_advanced_this_turn.has(record.id)
+		if not issuaq_was_installed and not issuaq_was_advanced:
+			ctx.corp_identity_counters["power"] = \
+				ctx.corp_identity_counters.get("power", 0) + 1
+			ctx.send_log("[Issuaq] %s scored without installing/advancing this turn — power counter placed (%d total, need %d pts to win)." % [
+				record.title,
+				ctx.corp_identity_counters.get("power", 0),
+				ctx.corp_points_to_win()
+			])
+
 	# Remove from server
 	var server: Server = ctx.get_server(card.server_id)
 	if server:
@@ -2036,8 +2171,8 @@ func _score_agenda(card: InstalledCard) -> void:
 		ctx.remove_empty_remote_servers()
 
 	# Calculate excess advancement counters for the Dividends mechanic.
-	# Excess = counters beyond the printed requirement at the moment of scoring.
-	var excess: int = max(0, card.get_counter("advancement") - record.advancement_requirement)
+	# Excess = counters beyond the EFFECTIVE requirement (accounting for variable discounts).
+	var excess: int = max(0, card.get_counter("advancement") - _get_effective_advancement_requirement(card))
 
 	# Fire on_score ability of the scored agenda.
 	# Set current_event_data so effects like place_dividend_counters can read the
@@ -2071,6 +2206,32 @@ func _score_agenda(card: InstalledCard) -> void:
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
+# Returns the effective advancement requirement for a card, accounting for
+# Parhelion variable-advancement agendas (Regulatory Capture, Freedom of Information,
+# Ontological Dependence) and any other in-set advancement reductions.
+func _get_effective_advancement_requirement(card: InstalledCard) -> int:
+	if card == null or card.card_record == null:
+		return 999
+	var base: int = card.card_record.advancement_requirement
+	var card_def: Dictionary = ability_registry._abilities.get(card.card_id, {}) as Dictionary
+
+	# Regulatory Capture (Weyland): -1 per bad publicity, max 4 reduction.
+	var per_bad_pub_def: Variant = card_def.get("advancement_reduction_per_bad_pub", null)
+	if per_bad_pub_def != null:
+		var max_red: int = (per_bad_pub_def as Dictionary).get("max_reduction", 4)
+		base = max(0, base - mini(ctx.corp_bad_pub, max_red))
+
+	# Freedom of Information (NBN): -1 per Runner tag.
+	if card_def.get("advancement_reduction_per_runner_tag", false):
+		base = max(0, base - ctx.runner_tags)
+
+	# Ontological Dependence (Jinteki): -1 per core damage Runner has taken.
+	if card_def.get("advancement_reduction_per_core_damage", false):
+		base = max(0, base - ctx.runner_core_damage_taken)
+
+	return base
+
 
 func _spend_click(player: String) -> void:
 	if player == "corp":
@@ -2118,7 +2279,9 @@ func _register_identity_listeners(instance_id: String, card_id: String) -> void:
 					"hardware_trashed", "runner_installs_card",
 					"runner_spends_outside_credits", "corp_gains_bad_pub",
 					"runner_action_phase_ends", "melies_u_flipped",
-					"runner_rig_action", "card_accessed_event"]:
+					"runner_rig_action", "card_accessed_event",
+					# Midnight Sun identity events
+					"runner_suffers_core_damage", "corp_trashes_own_rezzed_card"]:
 		var trigger_def = card_def.get(event_type, null)
 		if trigger_def != null:
 			ctx.register_listener(event_type, instance_id, trigger_def as Dictionary)
@@ -2321,7 +2484,10 @@ func _register_card_listeners(installed: InstalledCard) -> void:
 						"corp_rezzes_ice", "runner_takes_tags", "runner_rig_action",
 						"card_accessed_event", "wage_workers_threshold",
 						"runner_bypasses_ice",
-						"runner_installs_program", "corp_installs_in_root"]:
+						"runner_installs_program", "corp_installs_in_root",
+						"corp_card_trashed_from_server",
+						# Midnight Sun events
+						"runner_suffers_core_damage", "corp_trashes_own_rezzed_card"]:
 		var trigger_def = card_def.get(event_type, null)
 		if trigger_def != null:
 			ctx.register_listener(event_type, instance_id, trigger_def as Dictionary)

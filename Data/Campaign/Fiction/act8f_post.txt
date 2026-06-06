@@ -1,0 +1,21 @@
+The BOREHOLE SYSTEM status indicator reads: HALTED.
+
+The drilling operations log registers the shutdown at 04:17 station time. The containment apparatus is sealed at depth. The resonance signal continues — there is nothing you can do about that — but without the extraction system active, the apparatus remains where it is: at the bottom of the Atlantic, six kilometres below the surface, in the dark.
+
+You pull the operational archive before the relay closes. You copy everything: the Phase Three document, the Jinteki research logs, Dr. Keeling's risk assessment, the SPECIMEN LOG, the signal recordings, the bioroid firmware updates, the crew fatality reports, the 600-document authorisation chain, and the four hundred pages of containment apparatus specifications. You do not understand all of it. You do not need to. Others will.
+
+You transmit the package to seven separate dead drops, distributed across four jurisdictions, with a time-release trigger set for thirty-six hours. By the time Issuaq Adaptics' legal team finishes their morning briefing, the archive will be in the hands of every investigative journalist, independent regulator, and oversight body in the Atlantic coverage zone.
+
+Dr. Keeling's risk assessment will be on the front page of something, somewhere. You make sure of that specifically.
+
+The operational display still shows the depth counter: 5,947 metres. Still.
+
+You close the connection.
+
+Somewhere below, the signal continues. Whatever generated it was there before the corporations found it. It will be there long after the legal proceedings conclude, the licences are revoked, and the permits are cancelled.
+
+You do not know what it is.
+
+You know that today, it stays where it is.
+
+For now, that is enough.
