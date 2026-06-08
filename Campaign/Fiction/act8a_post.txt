@@ -1,0 +1,21 @@
+LOGISTICS
+
+The metadata resolved in layers.
+
+Ob's cargo tracking system ran deeper than its public ledger: a secondary tier with routing codes, condition flags, and a handling classification that did not map to any published standard. Classification OBX-CORVUS. Applied to 94 of the 102 unaccounted metric tons across six months.
+
+You traced OBX-CORVUS backwards through three transit hubs.
+
+The material was not construction scrap. It was processed rare-earth composite — refined extraction product from the polar crater array's secondary processing line, the one not listed in the operating licence. The array had been licensed to extract ice and silicate for construction. It had been extracting something else as well, from a geological stratum that should not have been part of the operating footprint.
+
+The destination for OBX-CORVUS was a Weyland Consortium facility in Earth transfer orbit. The facility's registration listed it as a research depot for the Heinlein Belt Infrastructure Programme.
+
+The Heinlein Belt Infrastructure Programme's budget documents, which you pulled from a Weyland subsidiary server, included a line item labelled "Project Midnight Sun." Allocation: classified. Duration: ongoing.
+
+You do not yet know what Project Midnight Sun is building.
+
+But you know what Ob has been quietly feeding it for six months, and you know the name of the person who signed off on every false manifest.
+
+She works for Pravdivost Consulting: Political Solutions.
+
+Two threads. You pull the next one.

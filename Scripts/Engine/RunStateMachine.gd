@@ -810,6 +810,9 @@ func _phase_success() -> void:
 				ctx.unregister_all_card_effects(ltf_ic.runtime_instance_id)
 				if ltf_ic.card_record != null:
 					ctx.corp_discard.append(ltf_ic.card_record)
+					# MS-L013: mark as facedown (Corp-side trash by Light the Fire)
+					ctx.corp_discard_facedown[ltf_ic.card_record.title] = true
+					ctx.corp_cards_added_to_archives_this_turn += 1
 				ctx.send_log("[Light the Fire] %s trashed." % ltf_ic.display_name())
 				# Fire Ob trigger if rezzed
 				if ltf_was_rezzed and not ctx.corp_is_installing:
@@ -935,6 +938,19 @@ func _phase_end() -> void:
 					ctx.current_event_data = {"card": woo_end_ice, "card_instance_id": woo_end_ice.runtime_instance_id}
 					await interpreter.execute_trigger(woo_on_rez as Dictionary, ctx)
 					ctx.current_event_data = {}
+
+	# Midnight Sun: Virtuoso — successful non-HQ mark run also breaches HQ.
+	if ctx.run_successful and ctx.run_modifiers.get("virtuoso_breach_hq", false):
+		ctx.run_modifiers.erase("virtuoso_breach_hq")
+		var virt_hq: Server = ctx.get_server("hq")
+		if virt_hq != null:
+			ctx.send_log("[Virtuoso] Run on mark was successful — also breaching HQ.")
+			var virt_saved: Server = _target_server
+			_target_server = virt_hq
+			ctx.run_target_server = "hq"
+			await _breach_server()
+			_target_server = virt_saved
+			ctx.run_target_server = virt_saved.server_id
 
 	# Final cleanup triggers
 	await ctx.notify_event("run_end", {"server_id": _target_server.server_id, "successful": ctx.run_successful}, interpreter)
@@ -1207,13 +1223,20 @@ func _access_card(card: Variant) -> void:
 	# Universal framework dispatch trigger
 	await ctx.notify_event("access_card", {"card_id": card_id, "runtime_instance_id": instance_id}, interpreter)
 
-	# on_access abilities only fire when the card is accessed while installed (not from Archives/heap)
-	# A card accessed from Archives is a CardRecord or a dict without a live server reference.
+	# on_access abilities fire when the card is accessed while installed,
+	# OR when the card has reveal_when_accessed_in_rd: true (e.g. Mavirus, Nightmare Archive).
 	var is_installed: bool = (card is InstalledCard)
-	if is_installed:
-		var on_access_def = ability_registry.get_on_access(card_id)
-		if on_access_def != null:
+	var on_access_def: Variant = ability_registry.get_on_access(card_id)
+	if on_access_def != null:
+		var _fire_on_access: bool = is_installed
+		if not _fire_on_access and card_id != "":
+			var _oac_card_def: Dictionary = ability_registry._abilities.get(card_id, {}) as Dictionary
+			if _oac_card_def.get("reveal_when_accessed_in_rd", false):
+				_fire_on_access = true
+		if _fire_on_access:
+			ctx.current_event_data = {"card_id": card_id, "runtime_instance_id": instance_id}
 			await interpreter.execute_trigger(on_access_def as Dictionary, ctx)
+			ctx.current_event_data = {}
 
 	# Stop immediately if damage caused a flatline
 	if ctx.game_over:

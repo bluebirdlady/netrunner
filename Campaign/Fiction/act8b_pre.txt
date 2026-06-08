@@ -1,0 +1,22 @@
+POLITICAL SOLUTIONS
+by Circuito Saudade
+
+Pravdivost Consulting maintained offices on three of Heinlein's eight administrative stations, a registered lobbying division in the Heinlein Council chambers, and a reputation for making regulatory problems disappear before they became regulatory problems.
+
+Their business model was not complicated. Corporations with compliance exposure hired Pravdivost to identify the exposure, draft the documentation that reclassified it, and ensure the right people had reviewed and approved the reclassification before any auditor thought to look. It was, technically, legal. The legality was part of the service.
+
+The name on the Ob manifests — Senior Compliance Officer, seventeen signatures, six months of false cargo classification — belonged to a Pravdivost subcontractor who had not answered her messages since the day you had pulled Ob's secondary tracking tier.
+
+She had not quit. Her employee record was current. Her access credentials were still active. She simply was not responding.
+
+Pravdivost's Heinlein Station 4 office handled the Infrastructure Programme accounts. Their server cluster was air-gapped from the corporate network — a precaution the compliance industry called "client confidentiality" and regulators called "evidence management." The only way in was physical.
+
+Station 4 was also the hub through which Midnight Sun's "political solutions" were being processed.
+
+You were going to find out what those solutions were.
+
+—
+
+TARGET: Pravdivost Consulting: Political Solutions
+FACILITY: Pravdivost Consulting Regional Office, Heinlein Station 4, Administrative Quarter
+OBJECTIVE: Find the compliance records for Project Midnight Sun. Identify what infrastructure Pravdivost has been licensing and why it required seventeen layers of false documentation.

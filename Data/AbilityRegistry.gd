@@ -55,6 +55,11 @@ func get_on_access(card_id: String) -> Variant:
 func get_on_rez(card_id: String) -> Variant:
 	return _get_trigger(card_id, "on_rez")
 
+# Returns the on_rez_during_run definition dict, or null if not defined.
+# Used for ice abilities that fire when rezzed during an active run (e.g. Hákarl, Stavka, Wave).
+func get_on_rez_during_run(card_id: String) -> Variant:
+	return _get_trigger(card_id, "on_rez_during_run")
+
 # Returns the on_score definition dict, or null if not defined.
 func get_on_score(card_id: String) -> Variant:
 	return _get_trigger(card_id, "on_score")

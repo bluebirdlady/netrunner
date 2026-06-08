@@ -1,0 +1,27 @@
+MIDNIGHT SUN
+
+The production unit had been running for thirty-one days.
+
+It had processed six hundred and twelve cognitive identity archives, sourced from decommissioned bioroid units across Weyland's Heinlein construction operations. The archives were stored in a partition Weyland called the "continuity library." They were indexed by unit designation, employment history, and a field labelled "assessed value rating."
+
+You read the assessed value ratings for a while and then stopped.
+
+The production unit was not a prototype and it was not a pilot programme. It was the proof-of-concept for a system that, once the autonomous zone was established, was designed to operate at ten thousand archives per month across Weyland's and Jinteki's combined decommissioning schedule.
+
+You pulled everything. The operational logs. The archive indices. The assessed value ratings. The communications between the project office and Pravdivost's compliance team about what the regulatory framework needed to say to make this legal. The internal projections for what "continuity-as-a-service" would generate as a revenue stream once it was scaled.
+
+You sent it to every address you had.
+
+The analyst had already published the first documentation package through three separate channels. Two council members had called for an emergency session. The journalist who had covered the A Teia infrastructure story had a follow-up running in four hours.
+
+Nine days to the vote.
+
+You did not know if it was enough. You had pulled what was there to pull. The rest was what the people who received it chose to do with it.
+
+On your way out of the Kestrel-9 network, you found one more file. A contact log. The production unit had been receiving remote advisory oversight from a single external address.
+
+The address resolved to the same communications protocol as Mercury's contact point. The same one you had found buried in A Teia's authentication layer.
+
+Whoever Mercury was, they had known about Midnight Sun before you did.
+
+And they had been watching it from the inside.

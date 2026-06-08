@@ -8439,5 +8439,163 @@
 		"on_play": {
 			"effects": [{ "type": "trust_operation_play" }]
 		}
+	},
+
+	"_ms_sprint6_marker": "Midnight Sun Sprint 6 — Mavirus",
+
+	"mavirus": {
+		"_note": "Midnight Sun Corp upgrade (HB, cost 3, trash 3). While in R&D: must be revealed when accessed. On access: Corp may purge all virus counters. If rezzed at time of access: also do 1 net damage. [click][trash]: purge all virus counters.",
+		"reveal_when_accessed_in_rd": true,
+		"on_access": {
+			"effects": [{ "type": "mavirus_on_access" }]
+		},
+		"click_action": {
+			"effects": [{ "type": "purge_virus_counters" }]
+		}
+	},
+
+	"_ms_sprint5_marker": "Midnight Sun Sprint 5 — Resources, Upgrades, Assets",
+
+	"backstitching": {
+		"_note": "Midnight Sun Runner resource (Anarch, cost 1). Runner turn begin: identify mark. When encountering ice during run on mark: may trash this resource to bypass that ice.",
+		"runner_turn_start": {
+			"effects": [{ "type": "identify_mark" }]
+		},
+		"on_encounter_ice": {
+			"condition": { "type": "run_target_is_mark" },
+			"effects": [{ "type": "trash_self_bypass_ice" }]
+		}
+	},
+
+	"chekist_scion": {
+		"_note": "Midnight Sun Corp asset (NBN, advanceable, cost 1, trash 2). On access while installed and rezzed: give Runner 1 tag plus 1 per hosted advancement counter.",
+		"advanceable": true,
+		"on_access": {
+			"condition": { "type": "self_is_rezzed" },
+			"effects": [{ "type": "give_tags_base_plus_self_adv_counters", "params": { "base": 1 } }]
+		}
+	},
+
+	"big_deal": {
+		"_note": "Midnight Sun Corp operation (NBN, cost 4, RFG). After this resolves Corp's action phase ends. Place 4 advancement counters on 1 installed card. Corp may score that card if able.",
+		"on_play": {
+			"remove_from_game": true,
+			"effects": [{ "type": "big_deal_play" }]
+		}
+	},
+
+	"trieste_model_bioroids": {
+		"_note": "Midnight Sun Corp asset (HB, cost 2, trash 4). On rez: choose 1 rezzed bioroid ice. Runner card abilities cannot break subs on that ice for as long as Trieste is rezzed.",
+		"on_rez": {
+			"effects": [{ "type": "trieste_choose_lock" }]
+		}
+	},
+
+	"vladisibirsk_city_grid": {
+		"_note": "Midnight Sun Corp upgrade (HB, region, advanceable, cost 2, trash 4). Once per turn → spend 2 adv counters: place 2 adv counters on another advanceable card in this server's root.",
+		"advanceable": true,
+		"region": true,
+		"click_action": {
+			"once_per_turn_key": "vladisibirsk_transfer",
+			"cost_advancement_counters": 2,
+			"effects": [{ "type": "spend_self_adv_counters_to_advance_other", "params": { "spend": 2, "place": 2 } }]
+		}
+	},
+
+	"the_twinning": {
+		"_note": "Midnight Sun Runner resource (Neutral, cost 2). First time each turn you spend credits from an installed card: +1 power counter. When breaching HQ or R&D: may remove up to 2 counters to access that many additional cards.",
+		"runner_spends_outside_credits": {
+			"once_per_turn_key": "twinning_counter",
+			"effects": [{ "type": "add_self_counters", "counter": "power", "amount": 1 }]
+		},
+		"before_breach": {
+			"condition": { "type": "event_server_is_hq_or_rd" },
+			"effects": [{
+				"type": "spend_counters_for_bonus_access",
+				"params": { "server": "hq_or_rd", "counter": "power", "max_spend": 2 }
+			}]
+		}
+	},
+
+	"cezve": {
+		"_note": "Midnight Sun Runner resource (Criminal, cost 1). 2 recurring credits usable during runs on central servers (HQ, R&D, Archives). Refills to 2 at start of each Runner turn.",
+		"passive_modifiers": [
+			{ "type": "runner_central_run_recurring_credits", "value": 2 }
+		],
+		"runner_turn_start": {
+			"effects": [{
+				"type": "refill_recurring_credits",
+				"params": { "counter": "recurring_credits", "max": 2 }
+			}]
+		}
+	},
+
+	"moon_pool": {
+		"_note": "Midnight Sun Corp asset (Jinteki, cost 2, trash 3). [click, RFG]: trash up to 2 HQ cards. Reveal up to 2 facedown Archives cards; shuffle into R&D. For each revealed agenda: place 1 adv counter on an installed card.",
+		"click_action": {
+			"effects": [{ "type": "moon_pool_activate" }]
+		}
+	},
+
+	"regenesis": {
+		"_note": "Midnight Sun Corp agenda (Jinteki, 3/2). On score: if no Corp cards were added to Archives this turn, may reveal 1 facedown agenda in Archives and add to score area.",
+		"on_score": {
+			"effects": [{ "type": "regenesis_score_from_archives" }]
+		}
+	},
+
+	"steelskin_scarring": {
+		"_note": "Midnight Sun Runner event (Anarch, cost 0). Draw 3 cards. When this event is trashed from grip (by damage or discard-to-hand-limit): Runner may draw 2 cards.",
+		"on_play": {
+			"effects": [{ "type": "draw_cards", "params": { "subject": "runner", "amount": 3 } }]
+		},
+		"when_in_grip": {
+			"effects": [{ "type": "draw_cards", "params": { "subject": "runner", "amount": 2 } }]
+		}
+	},
+
+	"virtuoso": {
+		"_note": "Midnight Sun Runner hardware (Criminal, console, +1MU, cost 3). Turn begin: identify mark. First successful run on mark: if HQ, +1 access; else, also breach HQ. Console.",
+		"console": true,
+		"passive_modifiers": [{ "type": "mu_bonus", "value": 1 }],
+		"runner_turn_start": {
+			"effects": [{ "type": "identify_mark" }]
+		},
+		"successful_run": {
+			"once_per_turn_key": "virtuoso_mark_bonus",
+			"condition": { "type": "run_target_is_mark" },
+			"effects": [{ "type": "virtuoso_mark_success_bonus" }]
+		}
+	},
+
+	"rigging_up": {
+		"_note": "Midnight Sun Runner event (Shaper, cost 2). Install 1 program or hardware from grip paying 3cr less. May charge that card if able.",
+		"on_play": {
+			"effects": [{ "type": "rigging_up_install", "params": { "discount": 3, "types": ["program", "hardware"] } }]
+		}
+	},
+
+	"anemone": {
+		"_note": "Midnight Sun Corp ice (Jinteki, sentry, str 1, cost 2). On rez during run: Corp may trash 1 card from HQ to do 2 net damage. [subroutine] Do 1 net damage.",
+		"on_rez_during_run": {
+			"effects": [{ "type": "optional_trash_hq_card_for_damage", "params": { "damage_type": "net", "amount": 2 } }]
+		},
+		"subroutines": [
+			{
+				"label": "Do 1 net damage.",
+				"effects": [{ "type": "deal_damage", "params": { "damage_type": "net", "amount": 1 } }]
+			}
+		]
+	},
+
+	"environmental_testing": {
+		"_note": "Midnight Sun Runner resource (Shaper, cost 1). Whenever you install a program or hardware: +1 power counter. When you have 4+ counters: trash this card and gain 9[credit].",
+		"runner_installs_program": {
+			"effects": [{ "type": "environmental_testing_trigger" }]
+		},
+		"runner_installs_card": {
+			"condition": { "type": "installed_card_type_is", "card_type": "hardware" },
+			"effects": [{ "type": "environmental_testing_trigger" }]
+		}
 	}
 }

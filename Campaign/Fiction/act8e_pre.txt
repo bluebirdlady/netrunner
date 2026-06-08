@@ -1,0 +1,22 @@
+PRECISION DESIGN
+by Circuito Saudade
+
+Haas-Bioroid built things that worked.
+
+This was not marketing. The other corporations optimised for cost, or scale, or regulatory compliance. HB optimised for function. Their manufacturing philosophy — "precision design" — meant that every system they produced operated at the outer edge of what the specification required, with margins that other manufacturers would have considered wasteful. The margins were the point. The margins were where the capability lived.
+
+Project Midnight Sun needed a hardware platform that could run REGENESIS at industrial scale. The candidate spec — extracted from the Pravdivost records, cross-referenced with Jinteki's research parameters — described a substrate processor with requirements that did not match any commercially available HB unit.
+
+The requirements matched a development prototype that HB's Precision Design division had been working on for two years. The prototype was not in any product catalogue. Its development budget was classified at division level. Three engineers who had worked on it had transferred to other facilities in the past six months.
+
+The development facility was on Heinlein Station 11. HB Precision Design maintained it under a standard R&D classification: pre-commercial hardware testing, routine manufacturing development, no unusual exemptions required.
+
+Eighteen days to the vote.
+
+The prototype had to exist somewhere in that facility. If it existed, it could be documented. If it was documented, the autonomous zone framework lost its plausible deniability — because you could show exactly what it had been built to run.
+
+—
+
+TARGET: Haas-Bioroid: Precision Design
+FACILITY: HB Precision Design Development Facility, Heinlein Station 11, Industrial Quarter
+OBJECTIVE: Find and document the REGENESIS hardware platform. Pull the development records. Establish the chain of commission from HB to Midnight Sun.

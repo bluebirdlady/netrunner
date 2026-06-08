@@ -53,8 +53,20 @@ func choose_jack_out(_ctx: GameContext) -> bool:
 	return false
 
 
-func choose_encounter_action(_encounter: EncounterState, _ctx: GameContext) -> Dictionary:
-	# Pass all subroutines — simplest safe behaviour.
+func choose_encounter_action(encounter: EncounterState, ctx: GameContext) -> Dictionary:
+	# MS-L004: Use Endurance to break remaining subs if it has ≥2 power counters
+	# and there are unbroken subroutines. Only as a last resort in simulation rollouts.
+	var unbroken: Array = encounter.unbroken_indices()
+	if not unbroken.is_empty():
+		for rig_card in ctx.runner_rig:
+			var hw: InstalledCard = rig_card as InstalledCard
+			if hw == null or hw.card_id != "endurance":
+				continue
+			if hw.get_counter("power") >= 2:
+				# Break up to 2 unbroken subs per use
+				var to_break: Array = unbroken.slice(0, mini(2, unbroken.size()))
+				return {"type": "hardware_break", "card_id": "endurance", "sub_indices": to_break}
+	# Default: pass all subroutines — simplest safe behaviour.
 	return {"type": "done"}
 
 
@@ -289,16 +301,27 @@ func choose_top_or_bottom(_card: CardRecord, _context_label: String, _ctx: GameC
 func choose_card_to_charge(candidates: Array, _ctx: GameContext) -> InstalledCard:
 	if candidates.is_empty():
 		return null
-	# Prefer WAKE Implant (each counter = 1 extra R&D access)
-	for c in candidates:
-		var ic: InstalledCard = c as InstalledCard
-		if ic != null and ic.card_id == "wake_implant_v2a_jrj":
-			return ic
-	# Prefer the card with the most counters (compounding value)
+	# Priority order (MS-L006 fix):
+	#   1. Endurance — every counter = potential sub break; highly tactically valuable
+	#   2. The Twinning — each counter = +1 central breach access; compounding value
+	#   3. Revolver — delays depletion of the killer's counters
+	#   4. WAKE Implant — more R&D accesses
+	#   5. Environmental Testing — accelerates the 9cr payout
+	#   6. Card nearest depletion (fewest counters) — keep tools alive
+	const PRIORITY_IDS: Array = [
+		"endurance", "the_twinning", "revolver",
+		"wake_implant_v2a_jrj", "environmental_testing"
+	]
+	for priority_id in PRIORITY_IDS:
+		for c in candidates:
+			var ic: InstalledCard = c as InstalledCard
+			if ic != null and ic.card_id == priority_id:
+				return ic
+	# Fallback: card with fewest counters (prevent depletion)
 	var best: InstalledCard = candidates[0] as InstalledCard
 	for c in candidates:
 		var ic: InstalledCard = c as InstalledCard
-		if ic != null and ic.get_counter("power") > best.get_counter("power"):
+		if ic != null and ic.get_counter("power") < best.get_counter("power"):
 			best = ic
 	return best
 

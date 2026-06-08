@@ -651,6 +651,99 @@ func _operation_value(record: CardRecord, ctx: GameContext) -> int:
 				max_ap = ap
 		return -1 if max_ap == 0 else max_ap * 6
 
+	# ── Midnight Sun operations ────────────────────────────────────────────────
+
+	# Big Deal: highest value when Corp has an installed card with 3+ adv counters
+	# (possibly scoreable this click). RFGs, so only play when timing is right.
+	if record.id == "big_deal":
+		var best_adv: int = 0
+		for bd_srv_any in ctx.servers.values():
+			var bd_srv: Server = bd_srv_any as Server
+			if bd_srv == null:
+				continue
+			for bd_c_any in bd_srv.root:
+				var bd_c: InstalledCard = bd_c_any as InstalledCard
+				if bd_c != null and bd_c.card_record != null and bd_c.card_record.is_agenda():
+					best_adv = maxi(best_adv, bd_c.get_counter("advancement"))
+		# Big Deal places 4 counters, so a card at req-4 or fewer can be scored.
+		# Value is very high when a close score is available.
+		if best_adv >= 0:
+			return 15 + best_adv * 2   # high base + bonus for pre-existing counters
+
+	# Mitosis: valuable when HQ has ≥2 installable cards and Corp has clicks to spare.
+	# Costs 2 clicks total. Skip if hand is tiny or credits are low.
+	if record.id == "mitosis":
+		var installable_count: int = 0
+		for mt_e in ctx.corp_hand:
+			var mt_r: CardRecord = (mt_e as Dictionary).get("card_record", null) as CardRecord
+			if mt_r != null and (mt_r.is_agenda() or mt_r.is_ice() or mt_r.card_type == "asset"):
+				installable_count += 1
+		if installable_count < 2 or ctx.corp_clicks < 2:
+			return -1
+		return 8 if installable_count >= 2 else 4
+
+	# Mutually Assured Destruction: costs 3 clicks. High value if runner rig is large
+	# and Corp has rezzed cards to spare (mass-tag + trash for kill setup).
+	if record.id == "mutually_assured_destruction":
+		if ctx.corp_clicks < 3:
+			return -1
+		# Only worth it if runner has enough tags to exploit OR rig is large enough to punish
+		var runner_rig_size: int = ctx.runner_rig.size()
+		if runner_rig_size < 2:
+			return -1
+		return 6 + runner_rig_size * 1   # scales with runner board size
+
+	# Extract: gain 6cr + optionally gain 3cr by trashing a low-value installed card.
+	# Net value roughly similar to government_subsidy in credit-tight games.
+	if record.id == "extract":
+		var base_extract: int = 5   # gaining 6cr is always good
+		# Bonus if Corp has a spent campaign (empty) or low-value asset to trash for +9cr total
+		for ex_srv_any in ctx.servers.values():
+			var ex_srv: Server = ex_srv_any as Server
+			if ex_srv == null:
+				continue
+			for ex_c_any in ex_srv.root:
+				var ex_c: InstalledCard = ex_c_any as InstalledCard
+				if ex_c != null and not ex_c.is_rezzed:
+					base_extract += 3   # can trash an unrezzed card for 9cr total
+					break
+		return base_extract
+
+	# Moon Pool: activating trashes HQ cards and recovers Archives agendas.
+	# Only worth using if facedown Archives has content to recover.
+	# Evaluated here as a click action (it's a Corp click_action on the card,
+	# not a hand operation, but included for completeness).
+
+	# Trust Operation: play when Runner is tagged + Corp has Archives content.
+	if record.id == "trust_operation":
+		if ctx.runner_tags <= 0:
+			return -1
+		var has_runner_resource: bool = false
+		for tr_rig in ctx.runner_rig:
+			var tr_ic: InstalledCard = tr_rig as InstalledCard
+			if tr_ic != null and tr_ic.card_record != null \
+					and tr_ic.card_record.card_type == "resource":
+				has_runner_resource = true
+				break
+		if not has_runner_resource:
+			return -1
+		return 9   # trash key runner resource + free install from Archives
+
+	# Backroom Machinations: gives 1 agenda point at cost of 1 runner tag.
+	# Value scales steeply near win threshold.
+	if record.id == "backroom_machinations":
+		if ctx.runner_tags <= 0:
+			return -1
+		var pts_to_win: int = ctx.agenda_points_to_win - ctx.corp_score
+		if pts_to_win <= 1:
+			return 30   # win condition!
+		if pts_to_win == 2:
+			return 15   # one more agenda closes it
+		return 6   # still a free agenda point
+
+	# Artificial Cryptocrash: usually played on score (on_score effect).
+	# As a standalone op it has no direct effect; return 0.
+
 	# ── Economy value (net credits gained) ────────────────────────────────────
 	const ECONOMY_MAP = {
 		"government_subsidy": 11,   # gain 14 cost 3 -> net +11
@@ -685,15 +778,48 @@ func _is_safe_to_rez_asset(card: InstalledCard) -> bool:
 
 # NEW: Optional abilities – not auto‑accept.
 func choose_optional_ability(prompt: String, ctx: GameContext) -> bool:
+	var p := prompt.to_lower()
+
+	# Midnight Sun card-specific heuristics ────────────────────────────────────
+
+	# Ob Superheavy: always accept the search trigger (free install is always good).
+	if "ob superheavy" in p or "searches r&d" in p:
+		return true
+
+	# Purge virus counters: accept when runner has significant virus pressure.
+	if "purge" in p:
+		var virus_count := 0
+		for rv_card in ctx.runner_rig:
+			var rv_ic: InstalledCard = rv_card as InstalledCard
+			if rv_ic != null:
+				virus_count += rv_ic.get_counter("virus")
+		return virus_count >= 3   # purge when meaningful virus threat exists
+
+	# Stavka: trash a low-value installed card for +5 strength — always worth it
+	# if Corp has a low-value rezzed card and is facing a strong icebreaker.
+	if "stavka" in p:
+		return ctx.runner_rig.size() >= 2   # runner has substantial rig
+
+	# Big Deal: always accept placing counters / scoring (called automatically).
+	if "big deal" in p:
+		return true
+
+	# Regenesis: accept scoring Archives agenda when no other score is available.
+	if "regenesis" in p:
+		return ctx.corp_score < ctx.agenda_points_to_win - 1
+
+	# Mitosis: always install (the AI chose to play Mitosis, so commit to it).
+	if "mitosis" in p:
+		return true
+
 	# Heuristic: if the ability trashes the card, only accept if the card is low value
 	# or if the Corp is desperate for a short‑term gain.
-	if "trash" in prompt.to_lower():
-		# For now, decline trashing abilities unless the Corp is below 5 credits
+	if "trash" in p:
 		return ctx.corp_credits < 5
 	# Otherwise, accept if the prompt mentions credits/draw and we need them
-	if "credit" in prompt.to_lower() and ctx.corp_credits < ECONOMY_THRESHOLD:
+	if "credit" in p and ctx.corp_credits < ECONOMY_THRESHOLD:
 		return true
-	if "draw" in prompt.to_lower() and ctx.corp_hand.size() < MIN_HAND_SIZE:
+	if "draw" in p and ctx.corp_hand.size() < MIN_HAND_SIZE:
 		return true
 	# Default false – be more conservative
 	return false
@@ -1268,9 +1394,30 @@ func choose_runner_card_type(types: Array, ctx: GameContext) -> String:
 	return best_type if best_type != "" else types[0]
 
 
-func choose_target(candidates: Array, _context: Dictionary) -> Variant:
-	# Generic target selection — pick the first available candidate.
-	return candidates[0] if not candidates.is_empty() else null
+func choose_target(candidates: Array, context: Dictionary) -> Variant:
+	if candidates.is_empty():
+		return null
+	# MS-L007: for advancement counter placement (Pravdivost, Vasilisa, etc.),
+	# prefer the agenda closest to its scoring threshold.
+	var reason: String = (context as Dictionary).get("reason", "") if context is Dictionary else ""
+	if reason in ["advance_optional", "advance_required"]:
+		var best: InstalledCard = null
+		var best_gap: int = 999
+		for cand_any in candidates:
+			var cand: InstalledCard = cand_any as InstalledCard
+			if cand == null or cand.card_record == null:
+				continue
+			if cand.card_record.is_agenda():
+				var req: int  = cand.card_record.advancement_requirement
+				var cur: int  = cand.get_counter("advancement")
+				var gap: int  = req - cur
+				if gap > 0 and gap < best_gap:
+					best_gap = gap
+					best = cand
+		if best != null:
+			return best
+	# Generic fallback: pick the first available candidate.
+	return candidates[0]
 
 
 func choose_activate_clearinghouse(card: InstalledCard, ctx: GameContext) -> bool:

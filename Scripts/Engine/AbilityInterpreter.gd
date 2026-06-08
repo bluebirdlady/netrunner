@@ -4684,22 +4684,28 @@ func _execute_effect(effect: Dictionary, ctx: GameContext, chosen_target: Varian
 		"spend_counters_for_bonus_access":
 			# During a breach of the specified server, runner may spend up to N counters
 			# from this card for +N additional accesses. Fires via before_breach trigger.
+			# params: { "server": String|"hq_or_rd", "counter": String, "max_spend": int }
+			# Midnight Sun: The Twinning uses server "hq_or_rd" and max_spend 2.
 			var scba_server: String  = params.get("server", "rd")
 			var scba_counter: String = params.get("counter", "power")
+			var scba_max: int        = params.get("max_spend", 999)
 			var scba_breach: String  = ctx.current_event_data.get("server_id", "")
-			if scba_breach != scba_server:
-				return   # only fires on the target server
+			# Server match: exact name, or "hq_or_rd" for HQ/R&D
+			var scba_server_match: bool = (scba_server == "hq_or_rd" and scba_breach in ["hq", "rd"]) \
+				or (scba_server != "hq_or_rd" and scba_breach == scba_server)
+			if not scba_server_match:
+				return
 
 			var scba_card := _get_self_card(ctx)
 			if scba_card == null:
 				return
 
-			var scba_available: int = scba_card.get_counter(scba_counter)
+			var scba_available: int = mini(scba_card.get_counter(scba_counter), scba_max)
 			if scba_available <= 0:
 				return   # no counters to spend
 
 			# Ask runner how many counters to spend (0 = decline)
-			var scba_spend: int = scba_available   # AI default: spend all
+			var scba_spend: int = scba_available   # AI default: spend all available (up to max)
 			if ctx.runner_decision_maker != null and \
 					ctx.runner_decision_maker.has_method("choose_spend_counter_amount"):
 				scba_spend = await ctx.runner_decision_maker.choose_spend_counter_amount(
@@ -4714,7 +4720,7 @@ func _execute_effect(effect: Dictionary, ctx: GameContext, chosen_target: Varian
 			ctx.run_modifiers["bonus_access"] = scba_current + scba_spend
 			ctx.send_log("%s spends %d %s counter(s) from %s — +%d %s access." % [
 				ctx.runner_name(), scba_spend, scba_counter,
-				scba_card.display_name(), scba_spend, scba_server.to_upper()
+				scba_card.display_name(), scba_spend, scba_breach.to_upper()
 			])
 
 		# ── Biawak: trash a program or end the run ────────────────────────────────
@@ -6548,6 +6554,9 @@ func _execute_effect(effect: Dictionary, ctx: GameContext, chosen_target: Varian
 			ctx.unregister_all_card_effects(cotfc_target.runtime_instance_id)
 			if cotfc_target.card_record:
 				ctx.corp_discard.append(cotfc_target.card_record)
+				# MS-L013: mark as facedown (Corp-side trash)
+				ctx.corp_discard_facedown[cotfc_target.card_record.title] = true
+				ctx.corp_cards_added_to_archives_this_turn += 1
 			ctx.send_log("[Extract] %s trashes %s — gains %d cr." % [
 				ctx.corp_name(), cotfc_target.display_name(), cotfc_amount])
 			ctx.corp_credits += cotfc_amount
@@ -6714,34 +6723,159 @@ func _execute_effect(effect: Dictionary, ctx: GameContext, chosen_target: Varian
 			# Remove from R&D and shuffle
 			ctx.corp_deck.erase(ob_chosen)
 			ctx.corp_deck.shuffle()
-			# Create InstalledCard and install in a new remote server
-			var ob_server: Server = ctx.create_remote_server()
-			var ob_zone: String = "ice" if (ob_chosen.card_type == "ice") else "root"
-			var ob_installed: InstalledCard = InstalledCard.make_runtime_instance(
-				ob_chosen, ob_server.id, ob_zone, true)
-			if ob_zone == "ice":
-				ob_server.ice.append(ob_installed)
+			# ── MS-L001: Server selection — any valid server, not always a new remote ─
+			var ob_zone: String = "ice" if ob_chosen.is_ice() else "root"
+			var ob_server: Server = null
+			# Build candidate server list: all existing + "new" sentinel
+			var ob_server_candidates: Array = []
+			for ob_srv_any in ctx.servers.values():
+				var ob_srv: Server = ob_srv_any as Server
+				if ob_srv == null:
+					continue
+				if ob_zone == "ice":
+					ob_server_candidates.append(ob_srv.server_id)   # ice installs on any server
+				else:
+					# Asset/upgrade: prefer servers with existing root cards but room (< 2 non-regions)
+					ob_server_candidates.append(ob_srv.server_id)
+			ob_server_candidates.append("__new_remote__")  # sentinel for a new server
+			# AI heuristic: if installing during a run, prefer the run server (for Stavka+Hafrún combo).
+			# Otherwise prefer a remote with an agenda (to reinforce it), then new remote.
+			var ob_chosen_server_id: String = "__new_remote__"
+			if ctx.corp_decision_maker != null and ctx.corp_decision_maker.has_method("choose_install_server"):
+				ob_chosen_server_id = await ctx.corp_decision_maker.choose_install_server(ob_chosen, ctx)
 			else:
-				ob_server.root.append(ob_installed)
+				# AI: during a run, install on the run server (enables Stavka+Hafrún combo)
+				if ctx.run_active and ctx.run_target_server != "":
+					ob_chosen_server_id = ctx.run_target_server
+				else:
+					# Find a remote with an agenda to reinforce
+					for ob_srv_id in ob_server_candidates:
+						if ob_srv_id == "__new_remote__":
+							continue
+						var ob_chk: Server = ctx.get_server(ob_srv_id)
+						if ob_chk == null:
+							continue
+						var ob_has_agenda := false
+						for ob_rc_any in ob_chk.root:
+							var ob_rc: InstalledCard = ob_rc_any as InstalledCard
+							if ob_rc != null and ob_rc.card_record != null and ob_rc.card_record.is_agenda():
+								ob_has_agenda = true
+								break
+						if ob_has_agenda:
+							ob_chosen_server_id = ob_srv_id
+							break
+			# Resolve to actual server
+			if ob_chosen_server_id == "__new_remote__" or not ctx.servers.has(ob_chosen_server_id):
+				ob_server = ctx.create_remote_server()
+			else:
+				ob_server = ctx.get_server(ob_chosen_server_id)
+				if ob_server == null:
+					ob_server = ctx.create_remote_server()
+			# Install
+			var ob_installed: InstalledCard = InstalledCard.make_runtime_instance(
+				ob_chosen, ob_server.server_id, ob_zone, true)
+			if ob_zone == "ice":
+				ob_server.install_ice(ob_installed)
+			else:
+				ob_server.install_in_root(ob_installed)
 			# Register listeners
 			if ctx.has_meta("register_installed_card"):
-				var ob_reg: Callable = ctx.get_meta("register_installed_card") as Callable
-				ob_reg.call(ob_installed)
+				(ctx.get_meta("register_installed_card") as Callable).call(ob_installed)
 			ctx.corp_installed_this_turn.append(ob_installed.runtime_instance_id)
 			ctx.ice_rezzed_this_turn = true
 			if ob_installed.runtime_instance_id != "":
 				ctx.ice_rezzed_this_turn_instance_ids.append(ob_installed.runtime_instance_id)
-			ctx.send_log("[Ob Superheavy] %s searches R&D — installs and rezzes %s (cost %d) for free." % [
-				ctx.corp_name(), ob_chosen.title, ob_target_cost])
+			ctx.send_log("[Ob Superheavy] %s searches R&D — installs and rezzes %s (cost %d) in %s for free." % [
+				ctx.corp_name(), ob_chosen.title, ob_target_cost, ob_server.display_name()])
 			if not ctx.simulation_mode:
-				emit_signal("card_installed", ob_chosen, ob_server.id)
-			# Fire on_rez ability for the installed card
+				emit_signal("card_installed", ob_chosen, ob_server.server_id)
+			# Fire on_rez and (if during a run) on_rez_during_run abilities ── MS-L002
 			if ctx.has_meta("ability_registry"):
 				var ob_ab_reg: AbilityRegistry = ctx.get_meta("ability_registry") as AbilityRegistry
+				ctx.current_event_data = {"card_instance_id": ob_installed.runtime_instance_id}
 				var ob_on_rez = ob_ab_reg.get_on_rez(ob_chosen.id)
 				if ob_on_rez != null:
-					ctx.current_event_data = {"card_instance_id": ob_installed.runtime_instance_id}
 					await execute_trigger(ob_on_rez as Dictionary, ctx)
+				# MS-L002: also fire on_rez_during_run if Ob triggered during a run
+				if ctx.run_active:
+					var ob_on_rez_run = ob_ab_reg.get_on_rez_during_run(ob_chosen.id)
+					if ob_on_rez_run != null:
+						await execute_trigger(ob_on_rez_run as Dictionary, ctx)
+				ctx.current_event_data = {}
+
+		# ── search_rd_install_rez_free ───────────────────────────────────────────
+		# Eminent Domain (RWR agenda): on score, Corp may search R&D for any
+		# installable card (ice, asset, or upgrade), install it in a new remote
+		# server, and rez it — all ignoring costs.
+		# params: { "optional": bool }  — if true Corp may decline.
+
+		"search_rd_install_rez_free":
+			# Optional guard
+			var srif_optional: bool = params.get("optional", true) as bool
+			if srif_optional:
+				var srif_use := false
+				if ctx.corp_decision_maker != null and ctx.corp_decision_maker.has_method("choose_optional_ability"):
+					srif_use = await ctx.corp_decision_maker.choose_optional_ability(
+						"Eminent Domain: search R&D for a card to install and rez for free?", ctx)
+				else:
+					srif_use = not ctx.corp_deck.is_empty()
+				if not srif_use:
+					ctx.corp_deck.shuffle()
+					return
+			# Build candidate list: ice, assets, upgrades (not agendas, identities, operations)
+			var srif_candidates: Array = []
+			for srif_cr_any in ctx.corp_deck:
+				var srif_cr: CardRecord = srif_cr_any as CardRecord
+				if srif_cr != null \
+						and not srif_cr.is_agenda() \
+						and srif_cr.card_type != "identity" \
+						and srif_cr.card_type != "operation":
+					srif_candidates.append(srif_cr)
+			if srif_candidates.is_empty():
+				ctx.send_log("[Eminent Domain] No installable cards in R&D.")
+				ctx.corp_deck.shuffle()
+				return
+			# Corp chooses which card
+			var srif_chosen: CardRecord = null
+			if ctx.corp_decision_maker != null and ctx.corp_decision_maker.has_method("choose_card_from_hand"):
+				var srif_entries: Array = srif_candidates.map(
+					func(cr: CardRecord): return {"card_id": cr.id, "card_record": cr})
+				var srif_entry = await ctx.corp_decision_maker.choose_card_from_hand(
+					srif_entries, {"reason": "eminent_domain_search"}, ctx)
+				if srif_entry != null:
+					srif_chosen = (srif_entry as Dictionary).get("card_record", null)
+			if srif_chosen == null:
+				srif_chosen = srif_candidates[0] as CardRecord
+			# Remove from R&D and shuffle
+			ctx.corp_deck.erase(srif_chosen)
+			ctx.corp_deck.shuffle()
+			# Install in a new remote server, rezzed for free
+			var srif_zone: String = "ice" if srif_chosen.is_ice() else "root"
+			var srif_srv: Server = ctx.create_remote_server()
+			var srif_ic: InstalledCard = InstalledCard.make_runtime_instance(
+				srif_chosen, srif_srv.server_id, srif_zone, true)
+			if srif_zone == "ice":
+				srif_srv.ice.append(srif_ic)
+			else:
+				srif_srv.root.append(srif_ic)
+			if ctx.has_meta("register_installed_card"):
+				(ctx.get_meta("register_installed_card") as Callable).call(srif_ic)
+			ctx.corp_installed_this_turn.append(srif_ic.runtime_instance_id)
+			if srif_zone == "ice":
+				ctx.ice_rezzed_this_turn = true
+				if srif_ic.runtime_instance_id != "":
+					ctx.ice_rezzed_this_turn_instance_ids.append(srif_ic.runtime_instance_id)
+			ctx.send_log("[Eminent Domain] %s installs and rezzes %s for free." % [
+				ctx.corp_name(), srif_chosen.title])
+			if not ctx.simulation_mode:
+				emit_signal("card_installed", srif_chosen, srif_srv.server_id)
+			# Fire on_rez ability
+			if ctx.has_meta("ability_registry"):
+				var srif_reg: AbilityRegistry = ctx.get_meta("ability_registry") as AbilityRegistry
+				var srif_on_rez = srif_reg.get_on_rez(srif_chosen.id)
+				if srif_on_rez != null:
+					ctx.current_event_data = {"card_instance_id": srif_ic.runtime_instance_id}
+					await execute_trigger(srif_on_rez as Dictionary, ctx)
 					ctx.current_event_data = {}
 
 		# ── Midnight Sun Sprint 3 effects ────────────────────────────────────────
@@ -6765,6 +6899,9 @@ func _execute_effect(effect: Dictionary, ctx: GameContext, chosen_target: Varian
 			ctx.unregister_all_card_effects(ts_self.runtime_instance_id)
 			if ts_self.card_record != null:
 				ctx.corp_discard.append(ts_self.card_record)
+				# MS-L013: mark as facedown (Corp-side trash via subroutine)
+				ctx.corp_discard_facedown[ts_self.card_record.title] = true
+				ctx.corp_cards_added_to_archives_this_turn += 1
 			ctx.send_log("[%s] Subroutine fires: trash this ice." % ts_self.display_name())
 			# Midnight Sun: Ob Superheavy — fire event if this rezzed card was trashed.
 			if ts_was_rezzed and not ctx.corp_is_installing:
@@ -6878,6 +7015,9 @@ func _execute_effect(effect: Dictionary, ctx: GameContext, chosen_target: Varian
 			ctx.unregister_all_card_effects(stavka_target.runtime_instance_id)
 			if stavka_target.card_record:
 				ctx.corp_discard.append(stavka_target.card_record)
+				# MS-L013: mark as facedown (Corp-side trash)
+				ctx.corp_discard_facedown[stavka_target.card_record.title] = true
+				ctx.corp_cards_added_to_archives_this_turn += 1
 			ctx.send_log("[Stavka] %s trashes %s — Stavka gains +5 strength this run." % [
 				ctx.corp_name(), stavka_target.display_name()])
 			# Set run modifier keyed by Stavka's instance_id
@@ -7336,6 +7476,9 @@ func _execute_effect(effect: Dictionary, ctx: GameContext, chosen_target: Varian
 				ctx.unregister_all_card_effects(mad_target.runtime_instance_id)
 				if mad_target.card_record != null:
 					ctx.corp_discard.append(mad_target.card_record)
+					# MS-L013: mark as facedown (Corp-side trash)
+					ctx.corp_discard_facedown[mad_target.card_record.title] = true
+					ctx.corp_cards_added_to_archives_this_turn += 1
 				mad_trashed += 1
 				ctx.send_log("[M.A.D.] %s trashes %s — Runner gains 1 tag (%d trashed total)." % [
 					ctx.corp_name(), mad_target.display_name(), mad_trashed])
@@ -7427,6 +7570,536 @@ func _execute_effect(effect: Dictionary, ctx: GameContext, chosen_target: Varian
 					ctx.current_event_data = {"card_instance_id": to_ic.runtime_instance_id}
 					await execute_trigger(to_on_rez as Dictionary, ctx)
 					ctx.current_event_data = {}
+
+		# ══════════════════════════════════════════════════════════════════════════
+		# ── Midnight Sun Sprint 5 effects ────────────────────────────────────────
+		# ══════════════════════════════════════════════════════════════════════════
+
+		# ── mavirus_on_access ────────────────────────────────────────────────────
+		# Mavirus: on access (installed or in R&D via reveal_when_accessed_in_rd):
+		#   1. Corp may purge virus counters (optional).
+		#   2. If Mavirus is currently rezzed: deal 1 net damage (unconditional).
+
+		"mavirus_on_access":
+			# Step 1: optional purge
+			var mav_purge_use := false
+			if ctx.corp_decision_maker != null and ctx.corp_decision_maker.has_method("choose_optional_ability"):
+				mav_purge_use = await ctx.corp_decision_maker.choose_optional_ability(
+					"Mavirus: purge all virus counters?", ctx)
+			else:
+				mav_purge_use = true   # AI: always purge when given the chance
+			if mav_purge_use:
+				await execute_trigger({"effects": [{"type": "purge_virus_counters"}]}, ctx)
+			# Step 2: conditional net damage if rezzed
+			var mav_self: InstalledCard = _get_self_card(ctx)
+			if mav_self != null and mav_self.is_rezzed:
+				ctx.send_log("[Mavirus] Rezzed — deals 1 net damage.")
+				await execute_trigger({
+					"effects": [{"type": "deal_damage", "params": {"damage_type": "net", "amount": 1}}]
+				}, ctx)
+
+		# ── trash_self_bypass_ice ─────────────────────────────────────────────────
+		# Backstitching: Runner may trash this resource to bypass the currently
+		# encountered ice (only during a run on the mark server).
+		# The bypass_current_ice run modifier is already checked by EncounterProcessor.
+
+		"trash_self_bypass_ice":
+			var tsbi_self: InstalledCard = _get_self_card(ctx)
+			if tsbi_self == null:
+				push_error("trash_self_bypass_ice: could not find self card")
+				return
+			var tsbi_use := false
+			if ctx.runner_decision_maker != null and ctx.runner_decision_maker.has_method("choose_optional_ability"):
+				tsbi_use = await ctx.runner_decision_maker.choose_optional_ability(
+					"Trash %s to bypass current ice?" % tsbi_self.display_name(), ctx)
+			else:
+				tsbi_use = true   # AI: always bypass
+			if not tsbi_use:
+				return
+			ctx.runner_rig.erase(tsbi_self)
+			ctx.unregister_all_card_effects(tsbi_self.runtime_instance_id)
+			if tsbi_self.card_record != null:
+				ctx.runner_discard.append(tsbi_self.card_record)
+			ctx.run_modifiers["bypass_current_ice"] = true
+			ctx.send_log("[Backstitching] %s trashes %s — current ice bypassed." % [
+				ctx.runner_name(), tsbi_self.display_name()])
+
+		# ── give_tags_base_plus_self_adv_counters ─────────────────────────────────
+		# Chekist Scion: on access, give Runner 1 tag plus 1 per hosted adv counter.
+		# params: { "base": int }
+
+		"give_tags_base_plus_self_adv_counters":
+			var gtbp_base: int = params.get("base", 1)
+			var gtbp_self: InstalledCard = _get_self_card(ctx)
+			var gtbp_adv: int = 0
+			if gtbp_self != null:
+				gtbp_adv = gtbp_self.get_counter("advancement")
+			var gtbp_total: int = gtbp_base + gtbp_adv
+			if gtbp_total <= 0:
+				return
+			var gtbp_was_zero: bool = (ctx.runner_tags == 0)
+			ctx.runner_tags += gtbp_total
+			ctx.send_log("[Chekist Scion] %s gives Runner %d tag(s) (%d base + %d adv counters; %d total)." % [
+				ctx.corp_name(), gtbp_total, gtbp_base, gtbp_adv, ctx.runner_tags])
+			await ctx.notify_event("runner_takes_tags", {"amount": gtbp_total, "from_zero": gtbp_was_zero}, self)
+
+		# ── big_deal_play ─────────────────────────────────────────────────────────
+		# Big Deal: After this resolves, Corp's action phase ends. Place 4 advancement
+		# counters on 1 installed card. Corp may score it if able. RFG.
+		# The RFG is handled by "remove_from_game: true" on the on_play def.
+		# The action-phase-end is handled by corp_action_phase_force_end flag.
+
+		"big_deal_play":
+			# Build pool of advanceable installed Corp cards
+			var bd_advanceable: Array = []
+			for bd_srv_any in ctx.servers.values():
+				var bd_srv: Server = bd_srv_any as Server
+				if bd_srv == null:
+					continue
+				for bd_c_any in (bd_srv.root + bd_srv.ice):
+					var bd_c: InstalledCard = bd_c_any as InstalledCard
+					if bd_c != null and bd_c.card_record != null \
+							and bd_c.can_be_advanced():
+						bd_advanceable.append(bd_c)
+			if bd_advanceable.is_empty():
+				ctx.send_log("[Big Deal] No advanceable installed cards — action phase ends.")
+				ctx.corp_action_phase_force_end = true
+				return
+			# Corp chooses target
+			var bd_target: InstalledCard = null
+			if ctx.corp_decision_maker != null and ctx.corp_decision_maker.has_method("choose_advance_target"):
+				bd_target = await ctx.corp_decision_maker.choose_advance_target(bd_advanceable, ctx)
+			else:
+				# AI: choose the agenda closest to scoring
+				var bd_min_gap: int = 999
+				for bd_cand_any in bd_advanceable:
+					var bd_cand: InstalledCard = bd_cand_any as InstalledCard
+					if bd_cand == null or bd_cand.card_record == null:
+						continue
+					var bd_req: int = bd_cand.card_record.agenda_points * 2 if bd_cand.card_record.is_agenda() else 999
+					var bd_gap: int = bd_req - bd_cand.get_counter("advancement")
+					if bd_gap < bd_min_gap:
+						bd_min_gap = bd_gap
+						bd_target = bd_cand
+				if bd_target == null:
+					bd_target = bd_advanceable[0] as InstalledCard
+			if bd_target == null:
+				ctx.corp_action_phase_force_end = true
+				return
+			# Place 4 advancement counters
+			bd_target.add_counter("advancement", 4)
+			ctx.send_log("[Big Deal] %s places 4 advancement counters on %s (%d total)." % [
+				ctx.corp_name(), bd_target.display_name(), bd_target.get_counter("advancement")])
+			if not ctx.simulation_mode:
+				emit_signal("card_advanced", bd_target.card_id, bd_target.get_counter("advancement"))
+			# Corp may score if able (agenda meeting its advancement requirement)
+			if bd_target.card_record != null and bd_target.card_record.is_agenda() \
+					and bd_target.meets_advancement_requirement():
+				var bd_score_use := false
+				if ctx.corp_decision_maker != null and ctx.corp_decision_maker.has_method("choose_optional_ability"):
+					bd_score_use = await ctx.corp_decision_maker.choose_optional_ability(
+						"[Big Deal] Score %s?" % bd_target.display_name(), ctx)
+				else:
+					bd_score_use = true
+				if bd_score_use:
+					var bd_record: CardRecord = bd_target.card_record
+					var bd_server: Server = ctx.get_server(bd_target.server_id)
+					if bd_server != null:
+						bd_server.remove_from_root(bd_target)
+						if bd_server.is_empty() and bd_server.is_remote():
+							ctx.remove_empty_remote_servers()
+					ctx.corp_score_area.append(bd_record)
+					ctx.corp_score_area_cards.append(bd_target)
+					ctx.corp_score += bd_record.agenda_points
+					ctx.corp_last_scored_agenda_points = bd_record.agenda_points
+					ctx.corp_agendas_scored_this_turn += 1
+					ctx.send_log("[Big Deal] %s scores %s! (%d point(s) — total: %d)" % [
+						ctx.corp_name(), bd_record.title, bd_record.agenda_points, ctx.corp_score])
+					if ctx.has_meta("ability_registry"):
+						var bd_ab_reg: AbilityRegistry = ctx.get_meta("ability_registry") as AbilityRegistry
+						var bd_on_score = bd_ab_reg.get_on_score(bd_record.id)
+						if bd_on_score != null:
+							ctx.current_event_data = {
+								"card": bd_target, "card_instance_id": bd_target.runtime_instance_id,
+								"excess_advancement": maxi(0, bd_target.get_counter("advancement") - bd_record.advancement_requirement)
+							}
+							await execute_trigger(bd_on_score as Dictionary, ctx)
+							ctx.current_event_data = {}
+					await ctx.notify_event("corp_scores_agenda", {
+						"agenda_id": bd_record.id, "agenda_points": bd_record.agenda_points
+					}, self)
+					if ctx.corp_score >= ctx.agenda_points_to_win:
+						ctx.game_over = true
+						ctx.winner = "corp"
+			# End action phase regardless of whether scoring occurred
+			ctx.corp_action_phase_force_end = true
+
+		# ── trieste_choose_lock ───────────────────────────────────────────────────
+		# Trieste Model Bioroids: Corp chooses a rezzed bioroid ice; Runner card
+		# abilities cannot break subroutines on that ice (checked in EncounterProcessor).
+
+		"trieste_choose_lock":
+			var tcl_pool: Array = []
+			for tcl_srv_any in ctx.servers.values():
+				var tcl_srv: Server = tcl_srv_any as Server
+				if tcl_srv == null:
+					continue
+				for tcl_i_any in tcl_srv.ice:
+					var tcl_ic: InstalledCard = tcl_i_any as InstalledCard
+					if tcl_ic != null and tcl_ic.is_rezzed and tcl_ic.card_record != null \
+							and tcl_ic.card_record.has_subtype("bioroid"):
+						tcl_pool.append(tcl_ic)
+			if tcl_pool.is_empty():
+				ctx.send_log("[Trieste] No rezzed bioroid ice to lock — ability has no target.")
+				return
+			var tcl_chosen: InstalledCard = null
+			if ctx.corp_decision_maker != null and ctx.corp_decision_maker.has_method("choose_rez_target"):
+				tcl_chosen = await ctx.corp_decision_maker.choose_rez_target(tcl_pool, ctx)
+			else:
+				tcl_chosen = tcl_pool[0] as InstalledCard
+			if tcl_chosen == null:
+				return
+			ctx.trieste_locked_ice_instance_id = tcl_chosen.runtime_instance_id
+			ctx.send_log("[Trieste Model Bioroids] Runner cannot use card abilities to break subs on %s." % \
+				tcl_chosen.display_name())
+
+		# ── spend_self_adv_counters_to_advance_other ──────────────────────────────
+		# Vladisibirsk City Grid: spend 2 adv counters from self, place 2 adv counters
+		# on another advanceable card in the same server's root.
+		# params: { "spend": int, "place": int }
+
+		"spend_self_adv_counters_to_advance_other":
+			var vsag_spend: int = params.get("spend", 2)
+			var vsag_place: int = params.get("place", 2)
+			var vsag_self: InstalledCard = _get_self_card(ctx)
+			if vsag_self == null:
+				return
+			# Already deducted by TurnManager click-action cost_advancement_counters;
+			# just choose the target and place counters.
+			var vsag_srv: Server = ctx.get_server(vsag_self.server_id)
+			if vsag_srv == null:
+				return
+			var vsag_pool: Array = []
+			for vsag_c_any in vsag_srv.root:
+				var vsag_c: InstalledCard = vsag_c_any as InstalledCard
+				if vsag_c != null and vsag_c != vsag_self and vsag_c.card_record != null \
+						and vsag_c.can_be_advanced():
+					vsag_pool.append(vsag_c)
+			if vsag_pool.is_empty():
+				ctx.send_log("[Vladisibirsk] No other advanceable cards in this server's root.")
+				# Return spent counters since there's no valid target
+				vsag_self.add_counter("advancement", vsag_spend)
+				return
+			var vsag_target: InstalledCard = null
+			if ctx.corp_decision_maker != null and ctx.corp_decision_maker.has_method("choose_advance_target"):
+				vsag_target = await ctx.corp_decision_maker.choose_advance_target(vsag_pool, ctx)
+			else:
+				vsag_target = vsag_pool[0] as InstalledCard
+			if vsag_target == null:
+				vsag_self.add_counter("advancement", vsag_spend)
+				return
+			vsag_target.add_counter("advancement", vsag_place)
+			ctx.send_log("[Vladisibirsk] %s places %d adv counter(s) on %s (%d total)." % [
+				ctx.corp_name(), vsag_place, vsag_target.display_name(),
+				vsag_target.get_counter("advancement")])
+			if not ctx.simulation_mode:
+				emit_signal("card_advanced", vsag_target.card_id, vsag_target.get_counter("advancement"))
+
+		# ── rigging_up_install ────────────────────────────────────────────────────
+		# Rigging Up: Install 1 program or hardware from grip paying 3cr less.
+		# May charge that card if able (it has power counters).
+
+		"rigging_up_install":
+			var ru_disc: int = params.get("discount", 3)
+			var ru_types: Array = params.get("types", ["program", "hardware"]) as Array
+			# Build installable candidates
+			var ru_candidates: Array = []
+			for ru_entry in ctx.runner_hand:
+				var ru_e: Dictionary = ru_entry as Dictionary
+				var ru_r: CardRecord = ru_e.get("card_record", null) as CardRecord
+				if ru_r == null or ru_r.card_type not in ru_types:
+					continue
+				var ru_cost: int = max(0, ru_r.cost - ru_disc)
+				if ctx.runner_credits < ru_cost:
+					continue
+				if ru_r.card_type == "program" and ru_r.memory_cost > 0:
+					if ctx.runner_mu_available() < ru_r.memory_cost:
+						continue
+				ru_candidates.append(ru_entry)
+			if ru_candidates.is_empty():
+				ctx.send_log("[Rigging Up] No affordable programs or hardware to install.")
+				return
+			var ru_chosen_entry: Variant = null
+			if ctx.runner_decision_maker != null and ctx.runner_decision_maker.has_method("choose_card_from_hand"):
+				ru_chosen_entry = await ctx.runner_decision_maker.choose_card_from_hand(
+					ru_candidates, {"reason": "rigging_up"}, ctx)
+			else:
+				ru_chosen_entry = ru_candidates[0]
+			if ru_chosen_entry == null:
+				return
+			var ru_record: CardRecord = (ru_chosen_entry as Dictionary).get("card_record", null) as CardRecord
+			if ru_record == null:
+				return
+			var ru_pay: int = max(0, ru_record.cost - ru_disc)
+			ctx.runner_credits -= ru_pay
+			ctx.runner_hand.erase(ru_chosen_entry)
+			var ru_installed: InstalledCard = InstalledCard.make_runtime_instance(
+				ru_record, "runner_rig", "root", true)
+			ctx.runner_rig.append(ru_installed)
+			if ctx.has_meta("register_installed_card"):
+				(ctx.get_meta("register_installed_card") as Callable).call(ru_installed)
+			if ctx.has_meta("ability_registry"):
+				var ru_ab_reg: AbilityRegistry = ctx.get_meta("ability_registry") as AbilityRegistry
+				var ru_on_rez = ru_ab_reg.get_on_rez(ru_record.id)
+				if ru_on_rez != null:
+					ctx.current_event_data = {"card": ru_installed, "card_instance_id": ru_installed.runtime_instance_id}
+					await execute_trigger(ru_on_rez as Dictionary, ctx)
+					ctx.current_event_data = {}
+			ctx.send_log("[Rigging Up] %s installs %s for %d¢ (%d less)." % [
+				ctx.runner_name(), ru_record.title, ru_pay, ru_disc])
+			await ctx.notify_event("runner_installs_program", {
+				"card_id": ru_record.id, "card": ru_installed,
+				"card_instance_id": ru_installed.runtime_instance_id
+			}, self) if ru_record.card_type == "program" else null
+			# May charge the installed card if it has power counters
+			if ru_installed.get_counter("power") > 0:
+				var ru_charge_use := false
+				if ctx.runner_decision_maker != null and ctx.runner_decision_maker.has_method("choose_optional_ability"):
+					ru_charge_use = await ctx.runner_decision_maker.choose_optional_ability(
+						"[Rigging Up] Charge %s?" % ru_installed.display_name(), ctx)
+				else:
+					ru_charge_use = true
+				if ru_charge_use:
+					ru_installed.add_counter("power", 1)
+					ctx.send_log("[Rigging Up] Charges %s (+1 power counter, %d total)." % [
+						ru_installed.display_name(), ru_installed.get_counter("power")])
+
+		# ── virtuoso_mark_success_bonus ───────────────────────────────────────────
+		# Virtuoso: First successful run on mark each turn:
+		#   - If mark == "hq": grant 1 bonus access during this breach.
+		#   - Otherwise: set run_modifiers["virtuoso_breach_hq"] = true so RSM
+		#     also breaches HQ at run end.
+
+		"virtuoso_mark_success_bonus":
+			var vmb_mark: String = ctx.runner_mark_server
+			if vmb_mark == "hq":
+				var vmb_current: int = ctx.run_modifiers.get("bonus_access", 0)
+				ctx.run_modifiers["bonus_access"] = vmb_current + 1
+				ctx.send_log("[Virtuoso] Mark is HQ — +1 card accessed during this breach.")
+			else:
+				ctx.run_modifiers["virtuoso_breach_hq"] = true
+				ctx.send_log("[Virtuoso] Mark is %s — will also breach HQ when run ends." % \
+					vmb_mark.to_upper())
+
+		# ── bladderwort_turn_begin ────────────────────────────────────────────────
+		# Bladderwort: Corp turn begin, gain 1cr. Then if Corp has ≤4cr: 1 net damage.
+
+		"bladderwort_turn_begin":
+			ctx.corp_credits += 1
+			ctx.send_log("[Bladderwort] %s gains 1¢ (%d total)." % [ctx.corp_name(), ctx.corp_credits])
+			if ctx.corp_credits <= 4:
+				ctx.send_log("[Bladderwort] %s has ≤4¢ — deals 1 net damage." % ctx.corp_name())
+				await execute_trigger({
+					"effects": [{"type": "deal_damage", "params": {"damage_type": "net", "amount": 1}}]
+				}, ctx)
+
+		# ── optional_trash_hq_card_for_damage ────────────────────────────────────
+		# Anemone: on rez during run, Corp may trash 1 card from HQ to do 2 net damage.
+
+		"optional_trash_hq_card_for_damage":
+			if ctx.corp_hand.is_empty():
+				ctx.send_log("[Anemone] HQ is empty — no card to trash.")
+				return
+			var anem_damage: int = params.get("amount", 2)
+			var anem_damage_type: String = params.get("damage_type", "net")
+			var anem_use := false
+			if ctx.corp_decision_maker != null and ctx.corp_decision_maker.has_method("choose_optional_ability"):
+				anem_use = await ctx.corp_decision_maker.choose_optional_ability(
+					"Anemone: trash 1 HQ card to deal %d %s damage?" % [anem_damage, anem_damage_type], ctx)
+			else:
+				anem_use = true
+			if not anem_use:
+				return
+			# Corp chooses which HQ card to trash
+			var anem_target_entry: Variant = null
+			if ctx.corp_decision_maker != null and ctx.corp_decision_maker.has_method("choose_card_from_hand"):
+				anem_target_entry = await ctx.corp_decision_maker.choose_card_from_hand(
+					ctx.corp_hand, {"reason": "anemone_trash"}, ctx)
+			else:
+				anem_target_entry = ctx.corp_hand[0]
+			if anem_target_entry == null:
+				return
+			var anem_cr: CardRecord = (anem_target_entry as Dictionary).get("card_record", null)
+			ctx.corp_hand.erase(anem_target_entry)
+			if anem_cr != null:
+				ctx.corp_discard.append(anem_cr)
+				ctx.corp_cards_added_to_archives_this_turn += 1
+			ctx.send_log("[Anemone] %s trashes %s from HQ — deals %d %s damage." % [
+				ctx.corp_name(), anem_cr.title if anem_cr else "?",
+				anem_damage, anem_damage_type])
+			await execute_trigger({
+				"effects": [{"type": "deal_damage", "params": {"damage_type": anem_damage_type, "amount": anem_damage}}]
+			}, ctx)
+
+		# ── environmental_testing_trigger ─────────────────────────────────────────
+		# Environmental Testing: add 1 power counter; if ≥4, trash self and gain 9cr.
+
+		"environmental_testing_trigger":
+			var ett_self: InstalledCard = _get_self_card(ctx)
+			if ett_self == null:
+				return
+			ett_self.add_counter("power", 1)
+			var ett_count: int = ett_self.get_counter("power")
+			ctx.send_log("[Environmental Testing] %d counter(s)." % ett_count)
+			if ett_count >= 4:
+				ctx.runner_rig.erase(ett_self)
+				ctx.unregister_all_card_effects(ett_self.runtime_instance_id)
+				if ett_self.card_record != null:
+					ctx.runner_discard.append(ett_self.card_record)
+				ctx.runner_credits += 9
+				ctx.send_log("[Environmental Testing] Threshold reached — trashed. %s gains 9¢ (%d total)." % [
+					ctx.runner_name(), ctx.runner_credits])
+
+		# ── moon_pool_activate ────────────────────────────────────────────────────
+		# Moon Pool (simplified): remove self from game, trash up to 2 HQ cards,
+		# reveal up to 2 facedown Archives cards and shuffle into R&D.
+		# For each revealed agenda: Corp may place 1 adv counter on an installed card.
+		# Note: facedown Archives tracking is approximate — uses corp_discard_facedown.
+
+		"moon_pool_activate":
+			var mp_self: InstalledCard = _get_self_card(ctx)
+			if mp_self == null:
+				return
+			# Remove self from game (RFG)
+			var mp_srv: Server = ctx.get_server(mp_self.server_id)
+			if mp_srv != null:
+				mp_srv.root.erase(mp_self)
+			ctx.unregister_all_card_effects(mp_self.runtime_instance_id)
+			if mp_self.card_record != null:
+				ctx.runner_rfg.append(mp_self.card_record)   # RFG (using runner_rfg as catch-all)
+			ctx.send_log("[Moon Pool] %s removes itself from the game." % mp_self.display_name())
+			# Trash up to 2 HQ cards
+			for _mp_i in range(2):
+				if ctx.corp_hand.is_empty():
+					break
+				var mp_trash_use := false
+				if ctx.corp_decision_maker != null and ctx.corp_decision_maker.has_method("choose_optional_ability"):
+					mp_trash_use = await ctx.corp_decision_maker.choose_optional_ability(
+						"[Moon Pool] Trash 1 more HQ card?", ctx)
+				else:
+					mp_trash_use = not ctx.corp_hand.is_empty()
+				if not mp_trash_use:
+					break
+				var mp_hq_entry: Variant = null
+				if ctx.corp_decision_maker != null and ctx.corp_decision_maker.has_method("choose_card_from_hand"):
+					mp_hq_entry = await ctx.corp_decision_maker.choose_card_from_hand(
+						ctx.corp_hand, {"reason": "moon_pool_trash"}, ctx)
+				else:
+					mp_hq_entry = ctx.corp_hand[0]
+				if mp_hq_entry == null:
+					break
+				var mp_hq_cr: CardRecord = (mp_hq_entry as Dictionary).get("card_record", null)
+				ctx.corp_hand.erase(mp_hq_entry)
+				if mp_hq_cr != null:
+					ctx.corp_discard.append(mp_hq_cr)
+					ctx.corp_discard_facedown[mp_hq_cr.title] = true
+					ctx.corp_cards_added_to_archives_this_turn += 1
+				ctx.send_log("[Moon Pool] %s trashes %s from HQ." % [ctx.corp_name(), mp_hq_cr.title if mp_hq_cr else "?"])
+			# Reveal up to 2 facedown Archives cards and shuffle into R&D
+			var mp_agenda_count: int = 0
+			for _mp_j in range(2):
+				# Build facedown Archives pool
+				var mp_facedown: Array = []
+				for mp_cr_any in ctx.corp_discard:
+					var mp_cr: CardRecord = mp_cr_any as CardRecord
+					if mp_cr != null and ctx.corp_discard_facedown.get(mp_cr.title, false):
+						mp_facedown.append(mp_cr)
+				if mp_facedown.is_empty():
+					break
+				var mp_reveal_use := false
+				if ctx.corp_decision_maker != null and ctx.corp_decision_maker.has_method("choose_optional_ability"):
+					mp_reveal_use = await ctx.corp_decision_maker.choose_optional_ability(
+						"[Moon Pool] Reveal 1 more facedown Archives card and shuffle into R&D?", ctx)
+				else:
+					mp_reveal_use = not mp_facedown.is_empty()
+				if not mp_reveal_use:
+					break
+				var mp_revealed: CardRecord = null
+				if ctx.corp_decision_maker != null and ctx.corp_decision_maker.has_method("choose_card_from_hand"):
+					var mp_reveal_entries: Array = mp_facedown.map(
+						func(cr: CardRecord): return {"card_id": cr.id, "card_record": cr})
+					var mp_entry = await ctx.corp_decision_maker.choose_card_from_hand(
+						mp_reveal_entries, {"reason": "moon_pool_reveal"}, ctx)
+					if mp_entry != null:
+						mp_revealed = (mp_entry as Dictionary).get("card_record", null)
+				if mp_revealed == null:
+					mp_revealed = mp_facedown[0] as CardRecord
+				ctx.corp_discard.erase(mp_revealed)
+				ctx.corp_discard_facedown.erase(mp_revealed.title)
+				ctx.corp_deck.append(mp_revealed)
+				ctx.send_log("[Moon Pool] %s reveals %s from Archives — shuffles into R&D." % [
+					ctx.corp_name(), mp_revealed.title])
+				if mp_revealed.is_agenda():
+					mp_agenda_count += 1
+			ctx.corp_deck.shuffle()
+			# For each revealed agenda: place 1 adv counter on an installed card
+			for _mp_k in range(mp_agenda_count):
+				await execute_trigger({
+					"effects": [{"type": "place_advancement_on_installed", "params": {"amount": 1, "optional": true}}]
+				}, ctx)
+
+		# ── regenesis_score_from_archives ─────────────────────────────────────────
+		# Regenesis: on score, if no Corp cards were added to Archives this turn,
+		# Corp may reveal 1 agenda from Archives and add it to Corp score area.
+		# Uses corp_discard_facedown to identify facedown Archives cards.
+
+		"regenesis_score_from_archives":
+			if ctx.corp_cards_added_to_archives_this_turn > 0:
+				ctx.send_log("[Regenesis] %d Corp card(s) were added to Archives this turn — cannot trigger." % \
+					ctx.corp_cards_added_to_archives_this_turn)
+				return
+			# Find facedown agendas in Archives
+			var rsa_agendas: Array = []
+			for rsa_cr_any in ctx.corp_discard:
+				var rsa_cr: CardRecord = rsa_cr_any as CardRecord
+				if rsa_cr != null and rsa_cr.is_agenda() \
+						and ctx.corp_discard_facedown.get(rsa_cr.title, false):
+					rsa_agendas.append(rsa_cr)
+			if rsa_agendas.is_empty():
+				ctx.send_log("[Regenesis] No facedown agendas in Archives.")
+				return
+			# Optional: Corp may choose to trigger
+			var rsa_use := false
+			if ctx.corp_decision_maker != null and ctx.corp_decision_maker.has_method("choose_optional_ability"):
+				rsa_use = await ctx.corp_decision_maker.choose_optional_ability(
+					"[Regenesis] Score 1 facedown agenda from Archives?", ctx)
+			else:
+				rsa_use = not rsa_agendas.is_empty()
+			if not rsa_use:
+				return
+			# Corp chooses which agenda to score
+			var rsa_chosen: CardRecord = null
+			if ctx.corp_decision_maker != null and ctx.corp_decision_maker.has_method("choose_card_from_hand"):
+				var rsa_entries: Array = rsa_agendas.map(
+					func(cr: CardRecord): return {"card_id": cr.id, "card_record": cr})
+				var rsa_entry = await ctx.corp_decision_maker.choose_card_from_hand(
+					rsa_entries, {"reason": "regenesis_score"}, ctx)
+				if rsa_entry != null:
+					rsa_chosen = (rsa_entry as Dictionary).get("card_record", null)
+			if rsa_chosen == null:
+				rsa_chosen = rsa_agendas[0] as CardRecord
+			# Score it
+			ctx.corp_discard.erase(rsa_chosen)
+			ctx.corp_discard_facedown.erase(rsa_chosen.title)
+			var rsa_pts: int = rsa_chosen.agenda_points
+			ctx.corp_score += rsa_pts
+			var rsa_scored_ic: InstalledCard = InstalledCard.make_runtime_instance(
+				rsa_chosen, "score_area", "root", true)
+			ctx.corp_score_area_cards.append(rsa_scored_ic)
+			ctx.corp_agendas_scored_this_turn += 1
+			ctx.send_log("[Regenesis] %s scores %s from Archives! (%d points — Corp total: %d)" % [
+				ctx.corp_name(), rsa_chosen.title, rsa_pts, ctx.corp_score])
+			await ctx.notify_event("corp_scores_agenda", {"card_id": rsa_chosen.id, "agenda_points": rsa_pts}, self)
 
 		# ── Sabotage ──────────────────────────────────────────────────────────────
 
@@ -13989,11 +14662,25 @@ func _fire_self_trashed_triggers(records: Array, ctx: GameContext) -> void:
 		if record == null:
 			continue
 		var card_def: Dictionary = ab_reg._abilities.get(record.id, {}) as Dictionary
+		# Existing on_self_trashed_from_grip_or_stack triggers (Strike Fund, etc.)
 		var trigger_def: Variant = card_def.get("on_self_trashed_from_grip_or_stack", null)
-		if trigger_def == null:
-			continue
-		ctx.current_event_data = {"card_id": record.id}
-		await execute_trigger(trigger_def as Dictionary, ctx)
+		if trigger_def != null:
+			ctx.current_event_data = {"card_id": record.id}
+			await execute_trigger(trigger_def as Dictionary, ctx)
+		# MS-L011: when_in_grip triggers (Steelskin Scarring — trashed from grip by damage)
+		var grip_trigger: Dictionary = card_def.get("when_in_grip", {}) as Dictionary
+		if not grip_trigger.is_empty():
+			ctx.send_log("[%s] Trashed from grip by damage — trigger fires." % record.title)
+			var use_it := false
+			if ctx.runner_decision_maker != null and \
+					ctx.runner_decision_maker.has_method("choose_optional_ability"):
+				use_it = await ctx.runner_decision_maker.choose_optional_ability(
+					"%s: trashed from grip — draw 2?" % record.title, ctx)
+			else:
+				use_it = true
+			if use_it:
+				ctx.current_event_data = {"card_id": record.id}
+				await execute_trigger(grip_trigger, ctx)
 		ctx.current_event_data = {}
 
 

@@ -49,7 +49,9 @@ const LOSE_VALUE := -10000.0
 
 # Operations that deal direct damage — used when computing corp_net_damage_potential.
 const DAMAGE_OP_IDS := ["neurospike", "measured_response", "punitive_counterstrike", "boom", "scorched_earth",
-	"end_of_the_line"]
+	"end_of_the_line",
+	# Midnight Sun
+	"mutually_assured_destruction"]   # creates tags that enable kill lines
 
 # ── Tag exploitation registry ─────────────────────────────────────────────────
 # Cards that the Corp can USE when the runner is tagged.
@@ -65,9 +67,17 @@ const TAG_EXPLOIT_CARD_STRENGTH: Dictionary = {
 	"end_of_the_line":            1.2,   # 4 meat damage, removes 1 tag as cost
 	"shipment_from_vladisibirsk": 1.0,   # 4 advancements if runner has 2+ tags
 	"hypoxia":                    0.8,   # 1 core damage + −1 click next turn (tagged)
+	# Midnight Sun
+	"backroom_machinations":      0.8,   # costs 1 runner tag → Corp gains 1 agenda point
+	"trust_operation":            0.7,   # install+rez from Archives + trash runner resource
+	"artificial_cryptocrash":     0.9,   # on score: runner loses 7cr — devastating credit swing
+	"mutually_assured_destruction": 0.6, # iterative rezzed-card trash gives runner tags; feeds kill lines
 }
 const TAG_EXPLOIT_IDENTITY_STRENGTH: Dictionary = {
-	"synapse_global_faster_than_thought": 0.7,   # click + tag → 2cr + free install
+	"synapse_global_faster_than_thought":       0.7,   # click + tag → 2cr + free install
+	# Midnight Sun
+	"ob_superheavy_logistics_extract_export_excel": 0.3, # Ob enables fast board recovery; minor tag synergy via MAD
+	"pravdivost_consulting_political_solutions":     0.2, # advancement identity; minor tag relevance
 }
 
 # ── Tag-producing ice registry ────────────────────────────────────────────────
@@ -98,6 +108,8 @@ const TAG_ICE_YIELD: Dictionary = {
 	"lethe":                 {"base_yield": 0.8, "breaker_type": "",        "mechanism": "passive"},  # tag when bypassed OR fully broken — fires for skilled runners
 	# On-rez ───────────────────────────────────────────────────────────────────
 	"ping":                  {"base_yield": 1.0, "breaker_type": "",        "mechanism": "on_rez"},   # tag fires immediately on rez, unbreakable
+	# Midnight Sun
+	"vasilisa":              {"base_yield": 1.0, "breaker_type": "decoder", "mechanism": "sub"},      # sub: give Runner 1 tag; advanceable for extra counter income
 }
 
 # When the runner has the relevant breaker type, scale yield down by this factor.

@@ -368,12 +368,120 @@
 			"fiction_pre": "act7f_pre",
 			"fiction_post": "act7f_post",
 			"opponent_id": "synapse_signal_economy",
-			"unlocks_missions": [],
+			"unlocks_missions": ["act8a_ob_weyland"],
 			"unlocks_cards": [
 				"mercury_chrome_libertador", "arissana_rocha_nahu_street_artist",
 				"joy_ride"
 			],
 			"prerequisite_missions": ["act7d_nuvem_amazon", "act7e_epiphany_brasilia"]
+		},
+
+		{
+			"id": "act8a_ob_weyland",
+			"title": "Extract. Export. Excel.",
+			"subtitle": "Ob Orbital Operations Hub, Heinlein Equatorial Transfer Station",
+			"act": 8,
+			"ai_level": 4,
+			"fiction_pre": "act8a_pre",
+			"fiction_post": "act8a_post",
+			"opponent_id": "ob_weyland_fast_advance",
+			"unlocks_missions": ["act8b_pravdivost_hb", "act8c_nbn_reality"],
+			"unlocks_cards": [
+				"esa_afontov_eco_insurrectionist",
+				"begemot", "revolver", "running_hot", "ghosttongue",
+				"svyatogor_excavator", "avgustina_ivanovskaya"
+			],
+			"prerequisite_missions": ["act7f_synapse_broadcast"]
+		},
+
+		{
+			"id": "act8b_pravdivost_hb",
+			"title": "Political Solutions",
+			"subtitle": "Pravdivost Consulting Regional Office, Heinlein Station 4",
+			"act": 8,
+			"ai_level": 4,
+			"fiction_pre": "act8b_pre",
+			"fiction_post": "act8b_post",
+			"opponent_id": "pravdivost_hb_advancement",
+			"unlocks_missions": ["act8d_jinteki_regenesis", "act8e_hb_glacier"],
+			"unlocks_cards": [
+				"captain_padma_isbister_intrepid_explorer",
+				"endurance", "rigging_up", "virtuoso",
+				"the_twinning", "stoneship_chart_room", "daeg_first_net_cat"
+			],
+			"prerequisite_missions": ["act8a_ob_weyland"]
+		},
+
+		{
+			"id": "act8c_nbn_reality",
+			"title": "Reality, Plus",
+			"subtitle": "Reality Plus Production Hub, Heinlein Station 7, Media Quarter",
+			"act": 8,
+			"ai_level": 4,
+			"fiction_pre": "act8c_pre",
+			"fiction_post": "act8c_post",
+			"opponent_id": "nbn_reality_plus_tags",
+			"unlocks_missions": ["act8d_jinteki_regenesis", "act8e_hb_glacier"],
+			"unlocks_cards": [
+				"nyusha_sable_sintashta_symphonic_prodigy",
+				"cezve", "no_free_lunch", "pan_weave",
+				"deep_dive", "chastushka"
+			],
+			"prerequisite_missions": ["act8a_ob_weyland"]
+		},
+
+		{
+			"id": "act8d_jinteki_regenesis",
+			"title": "Recombination",
+			"subtitle": "Jinteki Research Annex 9, Heinlein Station 9, Biomedical Quarter",
+			"act": 8,
+			"ai_level": 4,
+			"fiction_pre": "act8d_pre",
+			"fiction_post": "act8d_post",
+			"opponent_id": "jinteki_regenesis",
+			"unlocks_missions": ["act8f_weyland_final"],
+			"unlocks_cards": [
+				"environmental_testing", "backstitching",
+				"marrow", "steelskin_scarring", "into_the_depths"
+			],
+			"prerequisite_missions": ["act8b_pravdivost_hb", "act8c_nbn_reality"]
+		},
+
+		{
+			"id": "act8e_hb_glacier",
+			"title": "Precision Design",
+			"subtitle": "HB Precision Design Development Facility, Heinlein Station 11",
+			"act": 8,
+			"ai_level": 4,
+			"fiction_pre": "act8e_pre",
+			"fiction_post": "act8e_post",
+			"opponent_id": "hb_midnight_glacier",
+			"unlocks_missions": ["act8f_weyland_final"],
+			"unlocks_cards": [
+				"light_the_fire", "carpe_diem",
+				"revolver", "cats_cradle",
+				"hakarl_1_0"
+			],
+			"prerequisite_missions": ["act8b_pravdivost_hb", "act8c_nbn_reality"]
+		},
+
+		{
+			"id": "act8f_weyland_final",
+			"title": "Built to Last",
+			"subtitle": "Weyland Consortium Midnight Sun Project Office, Earth Transfer Orbit Station Kestrel-9",
+			"act": 8,
+			"ai_level": 4,
+			"fiction_pre": "act8f_pre",
+			"fiction_post": "act8f_post",
+			"opponent_id": "weyland_big_rig",
+			"unlocks_missions": [],
+			"unlocks_cards": [
+				"ob_superheavy_logistics_extract_export_excel",
+				"pravdivost_consulting_political_solutions",
+				"wave", "stavka", "envelopment", "echo",
+				"big_deal", "mutually_assured_destruction", "moon_pool", "regenesis"
+			],
+			"prerequisite_missions": ["act8d_jinteki_regenesis", "act8e_hb_glacier"]
 		}
 	],
 
@@ -1114,6 +1222,147 @@
 				"behold", "behold", "behold",
 				"regolith_mining_license", "regolith_mining_license", "regolith_mining_license",
 				"spin_doctor", "spin_doctor"
+			]
+		},
+
+		"ob_weyland_fast_advance": {
+			"name": "Ob Superheavy Logistics",
+			"identity": "ob_superheavy_logistics_extract_export_excel",
+			"description": "They extract, they export, and they excel at making things disappear from ledgers. Their ice is efficient, their operations lethal, and their R&D is an endless chain of surprises.",
+			"deck": [
+				"artificial_cryptocrash", "artificial_cryptocrash", "artificial_cryptocrash",
+				"send_a_message", "send_a_message",
+				"big_deal", "big_deal",
+				"mutually_assured_destruction", "mutually_assured_destruction",
+				"extract", "extract", "extract",
+				"spin_doctor", "spin_doctor", "spin_doctor",
+				"vladisibirsk_city_grid", "vladisibirsk_city_grid",
+				"hedge_fund", "hedge_fund", "hedge_fund",
+				"government_subsidy", "government_subsidy",
+				"regolith_mining_license", "regolith_mining_license",
+				"anthill_excavation_contract", "anthill_excavation_contract",
+				"stavka", "stavka", "stavka",
+				"maskirovka", "maskirovka", "maskirovka",
+				"palisade", "palisade",
+				"pharos", "pharos",
+				"ballista", "ballista"
+			]
+		},
+
+		"pravdivost_hb_advancement": {
+			"name": "Pravdivost Consulting",
+			"identity": "pravdivost_consulting_political_solutions",
+			"description": "Every Runner run becomes an advancement opportunity. They have turned political solutions into a science of attrition — your runs feed their agenda.",
+			"deck": [
+				"midnight_3_arcology", "midnight_3_arcology",
+				"elivagar_bifurcation", "elivagar_bifurcation", "elivagar_bifurcation",
+				"send_a_message", "send_a_message",
+				"spin_doctor", "spin_doctor", "spin_doctor",
+				"vladisibirsk_city_grid", "vladisibirsk_city_grid", "vladisibirsk_city_grid",
+				"trieste_model_bioroids", "trieste_model_bioroids",
+				"ubiquitous_vig", "ubiquitous_vig", "ubiquitous_vig",
+				"hedge_fund", "hedge_fund", "hedge_fund",
+				"government_subsidy", "government_subsidy",
+				"vasilisa", "vasilisa", "vasilisa",
+				"echo", "echo", "echo",
+				"envelopment", "envelopment",
+				"mestnichestvo", "mestnichestvo",
+				"hakarl_1_0", "hakarl_1_0",
+				"ivik", "ivik"
+			]
+		},
+
+		"nbn_reality_plus_tags": {
+			"name": "NBN: Reality Plus",
+			"identity": "nbn_reality_plus",
+			"description": "They decide when. Tag accumulation is their economy, Blood in the Water their endgame, and Trust Operation their insurance against whatever you thought was safe.",
+			"deck": [
+				"artificial_cryptocrash", "artificial_cryptocrash", "artificial_cryptocrash",
+				"backroom_machinations", "backroom_machinations", "backroom_machinations",
+				"chekist_scion", "chekist_scion", "chekist_scion",
+				"trust_operation", "trust_operation",
+				"spin_doctor", "spin_doctor", "spin_doctor",
+				"drago_ivanov", "drago_ivanov",
+				"hedge_fund", "hedge_fund", "hedge_fund",
+				"regolith_mining_license", "regolith_mining_license",
+				"ip_enforcement", "ip_enforcement",
+				"retribution", "retribution",
+				"blood_in_the_water", "blood_in_the_water", "blood_in_the_water",
+				"ivik", "ivik",
+				"vasilisa", "vasilisa",
+				"doomscroll", "doomscroll",
+				"funhouse", "funhouse"
+			]
+		},
+
+		"jinteki_regenesis": {
+			"name": "Jinteki: Replicating Perfection",
+			"identity": "jinteki_replicating_perfection",
+			"description": "Patience and net damage. They protect Archives with Bathynomus, recycle agendas through Moon Pool, and chain scores with Regenesis. Every run costs more than you expect.",
+			"deck": [
+				"regenesis", "regenesis", "regenesis",
+				"longevity_serum", "longevity_serum",
+				"send_a_message", "send_a_message",
+				"moon_pool", "moon_pool", "moon_pool",
+				"bladderwort", "bladderwort", "bladderwort",
+				"anemone", "anemone",
+				"mavirus", "mavirus",
+				"mitosis", "mitosis",
+				"spin_doctor", "spin_doctor", "spin_doctor",
+				"hedge_fund", "hedge_fund", "hedge_fund",
+				"anoetic_void", "anoetic_void",
+				"bathynomus", "bathynomus", "bathynomus",
+				"blood_in_the_water", "blood_in_the_water",
+				"envelopment", "envelopment",
+				"ivik", "ivik",
+				"karuna", "karuna"
+			]
+		},
+
+		"hb_midnight_glacier": {
+			"name": "Haas-Bioroid: Precision Design",
+			"identity": "haas_bioroid_precision_design",
+			"description": "Deep glacier, bioroid locks, precision engineering. Trieste holds your breakers at bay while Echo grows stronger every time they rez a harmonic. Extract keeps them rich.",
+			"deck": [
+				"midnight_3_arcology", "midnight_3_arcology",
+				"elivagar_bifurcation", "elivagar_bifurcation", "elivagar_bifurcation",
+				"extract", "extract", "extract",
+				"spin_doctor", "spin_doctor", "spin_doctor",
+				"trieste_model_bioroids", "trieste_model_bioroids",
+				"mavirus", "mavirus",
+				"hedge_fund", "hedge_fund", "hedge_fund",
+				"government_subsidy", "government_subsidy",
+				"regolith_mining_license", "regolith_mining_license",
+				"hakarl_1_0", "hakarl_1_0", "hakarl_1_0",
+				"echo", "echo", "echo",
+				"envelopment", "envelopment",
+				"maskirovka", "maskirovka", "maskirovka",
+				"ivik", "ivik",
+				"ansel_1_0", "ansel_1_0"
+			]
+		},
+
+		"weyland_big_rig": {
+			"name": "Weyland Consortium: Built to Last",
+			"identity": "weyland_consortium_built_to_last",
+			"description": "Maximum credits, maximum ice, maximum finality. Stavka trashes spent assets for raw strength. Mutually Assured Destruction creates a tag storm. Artificial Cryptocrash closes the game.",
+			"deck": [
+				"artificial_cryptocrash", "artificial_cryptocrash", "artificial_cryptocrash",
+				"above_the_law",
+				"send_a_message", "send_a_message", "send_a_message",
+				"big_deal", "big_deal",
+				"mutually_assured_destruction", "mutually_assured_destruction",
+				"extract", "extract", "extract",
+				"spin_doctor", "spin_doctor", "spin_doctor",
+				"hedge_fund", "hedge_fund", "hedge_fund",
+				"government_subsidy", "government_subsidy", "government_subsidy",
+				"regolith_mining_license", "regolith_mining_license",
+				"stavka", "stavka", "stavka",
+				"wave", "wave",
+				"maskirovka", "maskirovka",
+				"pharos", "pharos",
+				"palisade", "palisade",
+				"ballista", "ballista"
 			]
 		},
 

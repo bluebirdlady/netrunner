@@ -380,6 +380,15 @@ var run_ice_passed_count: int = 0
 # Mitosis: IIDs of cards installed by Mitosis that cannot be scored or rezzed this turn.
 # Cleared at Corp turn start.
 var mitosis_restricted_instance_ids: Array = []
+# Trieste Model Bioroids: IID of the bioroid ice Runner cannot break with card abilities.
+# Cleared when Trieste is trashed/derezzed; reset each Corp turn start as safety.
+var trieste_locked_ice_instance_id: String = ""
+# Big Deal: Corp action phase ends immediately after current action resolves.
+# Reset at Corp turn start.
+var corp_action_phase_force_end: bool = false
+# Regenesis: Corp cards added to Archives this Corp turn (trashes, discards to Archives).
+# Reset at Corp turn start.
+var corp_cards_added_to_archives_this_turn: int = 0
 
 var active_player:   String = "corp"
 var game_over:       bool   = false
@@ -1142,12 +1151,22 @@ func get_credits(subject: String) -> int:
 	push_error("GameContext: unknown subject '%s'" % subject)
 	return 0
 
-# Total credits available to the runner including Overclock, Concerto, and bad publicity funds.
+# Total credits available to the runner including Overclock, Concerto, bad publicity, and
+# central-run recurring credits (Cezve: spendable only on HQ/R&D/Archives runs).
 func runner_available_credits() -> int:
-	return runner_credits \
+	var total: int = runner_credits \
 		+ run_modifiers.get("overclock_credits", 0) \
 		+ run_modifiers.get("concerto_credits", 0) \
 		+ run_modifiers.get("bad_pub_credits", 0)
+	# MS-L012 Cezve: add central-run recurring credits only during central runs
+	if run_active and run_target_server in ["hq", "rd", "archives"]:
+		for mod in _state_modifiers.get("runner_central_run_recurring_credits", []):
+			var d := mod as Dictionary
+			var iid: String = d.get("card_instance_id", "")
+			var card := get_installed_card_by_instance_id(iid)
+			if card != null:
+				total += card.get_counter("recurring_credits")
+	return total
 
 # Spend runner credits, drawing from Overclock → bad pub → own pool in order.
 # Both Overclock and bad pub are "outside the credit pool" for Shackleton Grid.
@@ -1183,7 +1202,25 @@ func runner_spend_credits(amount: int) -> bool:
 	if from_bad_pub > 0 and run_active:
 		runner_outside_credits_spent_pending += from_bad_pub
 
-	# 4. Drain own credit pool
+	# 4. MS-L012 Cezve: drain central-run recurring credits before own pool
+	if run_active and run_target_server in ["hq", "rd", "archives"]:
+		for mod in _state_modifiers.get("runner_central_run_recurring_credits", []):
+			if remaining <= 0:
+				break
+			var d := mod as Dictionary
+			var iid: String = d.get("card_instance_id", "")
+			var card := get_installed_card_by_instance_id(iid)
+			if card != null:
+				var avail: int = card.get_counter("recurring_credits")
+				var spend: int = min(avail, remaining)
+				if spend > 0:
+					card.remove_counter("recurring_credits", spend)
+					send_log("%s: spends %d Cezve recurring credit(s) (%d remaining)." % [
+						card.display_name(), spend, card.get_counter("recurring_credits")])
+					remaining -= spend
+					runner_outside_credits_spent_pending += spend
+
+	# 5. Drain own credit pool
 	runner_credits -= remaining
 	return true
 
@@ -1553,6 +1590,9 @@ func clone_for_sim() -> GameContext:
 	c.runner_bioroid_paid_abilities_suppressed  = runner_bioroid_paid_abilities_suppressed
 	c.run_ice_passed_count                      = run_ice_passed_count
 	c.mitosis_restricted_instance_ids           = mitosis_restricted_instance_ids.duplicate()
+	c.trieste_locked_ice_instance_id            = trieste_locked_ice_instance_id
+	c.corp_action_phase_force_end               = corp_action_phase_force_end
+	c.corp_cards_added_to_archives_this_turn    = corp_cards_added_to_archives_this_turn
 
 	# Transient execution fields — always reset for sim
 	c.current_event_data              = {}

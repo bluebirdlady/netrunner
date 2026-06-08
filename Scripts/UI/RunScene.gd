@@ -1021,7 +1021,7 @@ func show_discard_to_hand_limit_prompt(hand: Array, excess: int) -> Array:
 		var cr: CardRecord = ed.get("card_record", null) as CardRecord
 		if cr == null:
 			continue
-		var card_name: String = cr.display_name()
+		var card_name: String = cr.title
 		var tog := Button.new()
 		tog.text = "[ ]  %s" % card_name
 		tog.size_flags_horizontal = Control.SIZE_EXPAND_FILL

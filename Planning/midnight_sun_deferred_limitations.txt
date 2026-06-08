@@ -1,3 +1,5 @@
+NOTE: FIXES FOR ALL OF THESE WERE IMPLEMENTED ON 2026-06-06.
+
 MIDNIGHT SUN — DEFERRED IMPLEMENTATION LIMITATIONS
 ====================================================
 Written after Sprints 1–3 were completed (2026-06-06).
@@ -464,3 +466,266 @@ NOTE (no action required — behaviour is correct)
 
   Documented to confirm the bypass was intentional and to ensure any future
   refactor of install paths does not inadvertently introduce a cost call.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SPRINT 5 DEFERRED LIMITATIONS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+MS-L011 — Steelskin Scarring: "when trashed from grip" trigger not implemented
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+CARD
+  steelskin_scarring (Runner event, Anarch)
+
+LIMITATION
+  The card text reads "Draw 3 cards. When this event is trashed from grip or
+  stack: you may draw 2 cards." Only the on-play effect (draw 3) is
+  implemented. The "when trashed from grip" trigger is omitted entirely.
+
+IMPACT
+  Medium. The trigger fires when the card is discarded during the discard-
+  to-hand-limit phase, or when a Corp ability mills cards from the Runner's
+  grip. In competitive play it commonly fires when the Runner is forced to
+  discard and Steelskin is in hand.
+
+CORRECT BEHAVIOUR
+  When any effect causes Steelskin Scarring to be removed from the Runner's
+  grip (not via playing it), the Runner may draw 2 cards.
+
+ROOT CAUSE
+  This requires a "grip listener" pattern: a card in hand must have its
+  ability registered before it is played. Current architecture only
+  registers abilities for cards that are installed in the rig or on the
+  table. There is no pre-play listener system.
+
+SOLUTION
+  1. GameContext: add `runner_hand_listeners: Dictionary = {}` mapping
+     card_id → trigger_def for cards that have "when_in_grip" triggers.
+  2. TurnManager / AbilityInterpreter: wherever a card is removed from
+     runner_hand by an effect (damage, discard), check runner_hand_listeners
+     for that card_id and fire the matching trigger.
+  3. At game start and when the Runner draws Steelskin Scarring, register
+     its grip listener. When Steelskin is played normally, unregister the
+     grip listener (it was played, not trashed).
+  4. Steelskin JSON: add "when_in_grip" trigger:
+       "when_in_grip": {
+         "effects": [{ "type": "optional_draw_cards",
+                       "params": { "subject": "runner", "amount": 2 } }]
+       }
+
+FILES TO CHANGE
+  Scripts/Engine/GameContext.gd — runner_hand_listeners: Dictionary
+  Scripts/Engine/TurnManager.gd — fire grip listeners when discarding
+  Scripts/Engine/AbilityInterpreter.gd — fire grip listeners when damage
+    removes cards from grip
+  Data/abilities.json — steelskin_scarring "when_in_grip" trigger
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+MS-L012 — Cezve: central-server restriction not enforced on recurring credits
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+CARD
+  cezve (Runner resource, Criminal)
+
+LIMITATION
+  Cezve's 2 recurring credits are currently spendable during any run, not
+  just runs on central servers (HQ, R&D, Archives). The JSON entry uses
+  the standard `runner_recurring_credits` passive modifier type, which has
+  no server-type restriction.
+
+IMPACT
+  Low-medium. In most games Cezve is used during central runs anyway; the
+  erroneous remote-run spending is a minor rules accuracy issue.
+
+CORRECT BEHAVIOUR
+  The 2 credits may only be spent during runs where ctx.run_target_server
+  is in ["hq", "rd", "archives"]. Attempting to spend them on a remote run
+  should silently skip the Cezve credit pool.
+
+ROOT CAUSE
+  The recurring credit spending code in GameContext.spend_runner_credits()
+  does not check run_target_server against a restriction list attached to
+  the credit source.
+
+SOLUTION
+  1. InstalledCard or passive modifier: add optional field
+     `recurring_server_restriction: Array` (e.g. ["hq", "rd", "archives"]).
+  2. GameContext.spend_runner_credits(): when drawing from a recurring
+     credit source with a restriction, skip that source if run_active is
+     false or ctx.run_target_server is not in the restriction list.
+  3. Cezve JSON passive modifier:
+       { "type": "runner_recurring_credits", "value": 2,
+         "server_restriction": ["hq", "rd", "archives"] }
+
+FILES TO CHANGE
+  Scripts/Engine/GameContext.gd — spend_runner_credits() restriction check
+  Data/abilities.json — cezve passive_modifiers entry
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+MS-L013 — Moon Pool / Regenesis: facedown Archives tracking is incomplete
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+CARDS
+  moon_pool (Corp asset, Jinteki)
+  regenesis (Corp agenda, Jinteki)
+
+LIMITATION
+  Both cards rely on `corp_discard_facedown` to identify cards that entered
+  Archives facedown (i.e., not yet accessed by the Runner). The dictionary
+  is populated in two places: the Corp discard-to-hand-limit path, and
+  Anemone's on-rez HQ-trash effect. Most other paths that send Corp cards
+  to Archives (access-trash, Ob trash, M.A.D. trash, Extract trash, etc.)
+  do NOT set corp_discard_facedown, meaning those cards are treated as
+  faceup.
+
+IMPACT
+  Medium. Moon Pool can only reveal cards that entered Archives via
+  discard-to-hand-limit or Anemone. Regenesis's condition ("no Corp cards
+  added to Archives this turn") is tracked via
+  corp_cards_added_to_archives_this_turn, which also only increments in
+  those two places — so the condition under-counts cards trashed via other
+  paths. Both effects are therefore more generous to the Corp than they
+  should be.
+
+CORRECT BEHAVIOUR
+  Any Corp card that moves to Archives NOT as a result of the Runner
+  accessing and paying the trash cost should enter facedown. Cards trashed
+  or discarded by Corp-side effects should be marked facedown.
+  corp_cards_added_to_archives_this_turn must be incremented whenever any
+  Corp card is moved to ctx.corp_discard during the Corp turn.
+
+SOLUTION
+  Add corp_discard_facedown[cr.title] = true and increment
+  corp_cards_added_to_archives_this_turn in every location where Corp cards
+  go to ctx.corp_discard other than Runner access-trash (which is faceup):
+    - AbilityInterpreter: trash_self effect (ice)
+    - AbilityInterpreter: corp_optional_trash_own_for_credits (Extract)
+    - AbilityInterpreter: mutually_assured_destruction_play
+    - AbilityInterpreter: stavka_rez_trigger (when it trashes)
+    - AbilityInterpreter: moon_pool_activate (done ✅)
+    - AbilityInterpreter: optional_trash_hq_card_for_damage (done ✅)
+    - TurnManager: corp discard to hand limit (done ✅)
+    - RunStateMachine: Light the Fire root-trash
+    - Any future card that performs Corp-side trashes
+
+FILES TO CHANGE
+  Multiple locations in Scripts/Engine/AbilityInterpreter.gd and
+  Scripts/Engine/RunStateMachine.gd (audit all ctx.corp_discard.append
+  call sites and add facedown marking where appropriate).
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+MS-L014 — Big Deal: advanceable target pool uses JSON flag not card type
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+CARD
+  big_deal (Corp operation, NBN)
+
+LIMITATION
+  The `big_deal_play` effect builds its target pool using:
+    card_record.is_agenda() OR card_record.get("advanceable", false)
+  Non-agenda advanceable cards (assets and ice with the `advanceable: true`
+  JSON key) will appear in the pool correctly. However, any card whose
+  CardRecord does not have an `advanceable` field set will be excluded even
+  if it can in fact be advanced in the game (e.g. some older RWR/TAI cards
+  that pre-date the `advanceable: true` key convention).
+
+IMPACT
+  Very low. Big Deal places counters on whatever the Corp wants to advance
+  anyway, and Corp-controlled non-agenda advanceable cards all have the
+  `advanceable: true` key in practice. This is primarily a data-hygiene
+  note rather than a gameplay issue.
+
+CORRECT BEHAVIOUR
+  The target pool should include any Corp-installed card that can
+  legitimately be advanced (all agendas + all cards with advanceable: true).
+
+SOLUTION
+  Audit all MS / RWR / TAI corp card JSON entries to ensure advanceable
+  assets and ice have `"advanceable": true` set. No engine change required.
+
+FILES TO CHANGE
+  Data/abilities.json — audit advanceable cards for missing flag
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+MS-L015 — Vladisibirsk City Grid: counter refund on no valid target
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+CARD
+  vladisibirsk_city_grid (Corp upgrade, HB)
+
+LIMITATION
+  The `spend_self_adv_counters_to_advance_other` effect refunds the 2
+  advancement counters to Vladisibirsk if no valid target exists in the
+  server root. However, the once_per_turn guard in TurnManager is already
+  set (and consumed) before the effect fires — so even if the refund
+  happens and the Corp gains the counters back, the once_per_turn guard
+  prevents the ability from being used again that turn.
+
+IMPACT
+  Very low. This edge case (activating Vladisibirsk when there is nothing
+  else in the root) would be an error by the Corp player. The once-per-turn
+  consumption is arguably correct (the ability was "used" even if it had no
+  effect), but the counter refund is misleading since those counters cannot
+  be spent again via this ability.
+
+CORRECT BEHAVIOUR
+  If there are no valid targets, the ability should not fire at all (Corp
+  should be told before spending counters). The guard should not be consumed.
+
+SOLUTION
+  TurnManager._do_use_installed_card (click action handler): before setting
+  once_per_turn_triggered, call a "validate_click_action" method on the
+  interpreter that checks preconditions. For Vladisibirsk: verify ≥1 other
+  advanceable card in the server root AND ≥2 adv counters on self. Only
+  set the guard and deduct counters if validation passes.
+
+FILES TO CHANGE
+  Scripts/Engine/TurnManager.gd — pre-validate click actions before guard/cost
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+MS-L016 — Trieste Model Bioroids: lock not cleared on derez or trash
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+CARD
+  trieste_model_bioroids (Corp asset, HB)
+
+LIMITATION
+  The `trieste_locked_ice_instance_id` field is reset to "" at each Corp
+  turn start as a safety measure, but it is NOT cleared when Trieste itself
+  is trashed or derezzed mid-game. If Trieste is trashed during the
+  Runner's turn, the locked ice remains "locked" for the rest of that turn
+  (until the Corp turn start clears the field). Derezzing Trieste should
+  also immediately clear the lock.
+
+IMPACT
+  Low. Trieste is trashed at trash cost 4 (high), so mid-run trashing is
+  uncommon. When it does happen, the Runner suffers an unfair one-turn lock
+  on the bioroid ice. The Corp turn start reset ensures the lock cannot
+  persist across turns.
+
+CORRECT BEHAVIOUR
+  When Trieste is trashed (from Runner access or Corp effect) or derezzed,
+  ctx.trieste_locked_ice_instance_id should be immediately cleared.
+
+SOLUTION
+  1. AbilityInterpreter: add an `on_trash` listener for trieste_model_bioroids:
+       "on_trash": { "effects": [{ "type": "clear_trieste_lock" }] }
+  2. New effect `clear_trieste_lock`: sets ctx.trieste_locked_ice_instance_id = ""
+  3. Similarly, if Trieste is derezzed (on_derez trigger), clear the lock.
+     Or more robustly: in EncounterProcessor, before checking the lock,
+     verify Trieste is still rezzed on the board:
+       if ctx.trieste_locked_ice_instance_id != "":
+           var trieste_ic = ctx.get_installed_card_by_id("trieste_model_bioroids")
+           if trieste_ic == null or not trieste_ic.is_rezzed:
+               ctx.trieste_locked_ice_instance_id = ""
+
+FILES TO CHANGE
+  Scripts/Engine/EncounterProcessor.gd — add rezzed check before lock enforcement
+  Data/abilities.json — trieste_model_bioroids on_trash trigger (optional)

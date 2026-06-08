@@ -21,6 +21,33 @@ func process(action: Dictionary, encounter: EncounterState,
 
 	var action_type: String = action.get("type", "")
 
+	# Midnight Sun: Trieste Model Bioroids — Runner cannot break subs on the locked ice
+	# using ANY card ability (program breaks, hardware breaks, bioroid click breaks, etc.).
+	# L016 fix: verify Trieste itself is still rezzed before enforcing the lock; clear stale lock.
+	if ctx.trieste_locked_ice_instance_id != "":
+		var trieste_still_active: bool = false
+		for t_srv_any in ctx.servers.values():
+			var t_srv: Server = t_srv_any as Server
+			if t_srv == null:
+				continue
+			for t_c_any in t_srv.root:
+				var t_c: InstalledCard = t_c_any as InstalledCard
+				if t_c != null and t_c.card_id == "trieste_model_bioroids" and t_c.is_rezzed:
+					trieste_still_active = true
+					break
+			if trieste_still_active:
+				break
+		if not trieste_still_active:
+			ctx.trieste_locked_ice_instance_id = ""   # stale lock — Trieste was trashed/derezzed
+
+	if action_type in ["break_subroutine", "break_all", "hardware_break", "break_click"] \
+			and ctx.trieste_locked_ice_instance_id != "" \
+			and encounter.ice_card != null \
+			and encounter.ice_card.runtime_instance_id == ctx.trieste_locked_ice_instance_id:
+		ctx.send_log("[Trieste Model Bioroids] Runner card abilities cannot break subs on %s." % \
+			encounter.ice_card.display_name())
+		return false
+
 	match action_type:
 		"boost_strength":
 			var boost_ok: bool = await _do_boost(action, encounter, ctx, ability_registry)

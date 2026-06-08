@@ -128,6 +128,9 @@ func _corp_turn() -> void:
 	ctx.corp_skip_discard_step_this_turn = false             # reset for Midnight-3 Arcology
 	ctx.runner_bioroid_paid_abilities_suppressed = false     # reset for Hákarl 1.0
 	ctx.mitosis_restricted_instance_ids.clear()             # reset for Mitosis
+	ctx.trieste_locked_ice_instance_id = ""                 # reset for Trieste (safety)
+	ctx.corp_action_phase_force_end = false                  # reset for Big Deal
+	ctx.corp_cards_added_to_archives_this_turn = 0           # reset for Regenesis
 	# Capture whether the runner stole or trashed last runner turn before clearing the flag.
 	# Active Policing / Bring Them Home pre-play condition reads this.
 	ctx.runner_stole_or_trashed_last_runner_turn = \
@@ -198,6 +201,13 @@ func _corp_turn() -> void:
 		if not ctx.game_over:
 			await ctx.notify_event("corp_action_taken", {"action_type": _ww_type}, interpreter)
 
+		# Midnight Sun: Big Deal — terminal operation ends Corp's action phase immediately.
+		if ctx.corp_action_phase_force_end:
+			ctx.corp_action_phase_force_end = false
+			ctx.corp_clicks = 0
+			ctx.send_log("[Big Deal] Corp's action phase ends.")
+			break
+
 		# Brief pause between Corp actions so the human player can read the log
 		# and the game doesn't feel like it resolved instantaneously.
 		if not ctx.simulation_mode:
@@ -251,6 +261,7 @@ func _corp_discard_to_hand_limit() -> void:
 					if cr != null:
 						ctx.corp_discard.append(cr)
 						ctx.corp_discard_facedown[cr.title] = true
+						ctx.corp_cards_added_to_archives_this_turn += 1  # Regenesis tracking
 					ctx.send_log("%s discards %s to hand limit." % [ctx.corp_name(), cr.title if cr else "?"])
 					did_discard = true
 				if not ctx.simulation_mode: emit_signal("hand_changed", "corp")
@@ -321,6 +332,9 @@ func _runner_discard_to_hand_limit() -> void:
 						discarded_records.append(cr)
 					ctx.send_log("%s discards %s to hand limit. (%d cards remaining)" % [
 						ctx.runner_name(), cr.title if cr else "?", limit])
+					# MS-L011: fire when_in_grip trigger
+					if cr != null:
+						await _fire_when_in_grip_trigger(cr)
 				if not ctx.simulation_mode: emit_signal("hand_changed", "runner")
 				continue
 			elif chosen is Dictionary and not (chosen as Dictionary).is_empty():
@@ -364,11 +378,38 @@ func _runner_discard_to_hand_limit() -> void:
 			ctx.runner_name(), record.title if record else "?", limit
 		])
 		if not ctx.simulation_mode: emit_signal("hand_changed", "runner")
+		# MS-L011: fire when_in_grip trigger for discarded cards (e.g. Steelskin Scarring)
+		if record != null:
+			await _fire_when_in_grip_trigger(record)
 	# Magdalene Keino Chemutai: fire event so identity can install from discarded cards
 	if not discarded_records.is_empty():
 		await ctx.notify_event("runner_discards_to_hand_limit", {
 			"discarded_cards": discarded_records
 		}, interpreter)
+
+
+# MS-L011: Steelskin Scarring grip listener.
+# When a card with a "when_in_grip" trigger is trashed from the Runner's grip
+# (via discard-to-hand-limit, damage, or Corp effect), fire the trigger.
+# The Runner is offered an optional choice before effects resolve.
+func _fire_when_in_grip_trigger(record: CardRecord) -> void:
+	if record == null:
+		return
+	var card_def: Dictionary = ability_registry._abilities.get(record.id, {}) as Dictionary
+	var grip_trigger: Dictionary = card_def.get("when_in_grip", {}) as Dictionary
+	if grip_trigger.is_empty():
+		return
+	ctx.send_log("[%s] Trashed from grip — trigger fires." % record.title)
+	# Optional: Runner decides whether to activate
+	var use_it := false
+	if ctx.runner_decision_maker != null and \
+			ctx.runner_decision_maker.has_method("choose_optional_ability"):
+		use_it = await ctx.runner_decision_maker.choose_optional_ability(
+			"%s: trashed from grip — activate trigger?" % record.title, ctx)
+	else:
+		use_it = true   # AI: always activate grip triggers
+	if use_it:
+		await interpreter.execute_trigger(grip_trigger, ctx)
 
 
 # ── Runner turn ───────────────────────────────────────────────────────────────
@@ -1328,6 +1369,9 @@ func _do_advance(player: String, action: GameAction) -> void:
 								cost_target = cic
 								break
 					if cost_target != null:
+						var cost_was_rezzed: bool = cost_target.is_rezzed
+						var cost_rez_cost: int = cost_target.card_record.cost if cost_target.card_record else 0
+						var cost_server_id: String = cost_target.server_id
 						var cost_server: Server = ctx.get_server(cost_target.server_id)
 						if cost_server:
 							cost_server.remove_from_root(cost_target)
@@ -1335,10 +1379,20 @@ func _do_advance(player: String, action: GameAction) -> void:
 						ctx.unregister_all_card_effects(cost_target.runtime_instance_id)
 						if cost_target.card_record:
 							ctx.corp_discard.append(cost_target.card_record)
+							# MS-L013: mark as facedown (Corp-side trash)
+							ctx.corp_discard_facedown[cost_target.card_record.title] = true
+							ctx.corp_cards_added_to_archives_this_turn += 1
 						ctx.send_log("[%s] %s trashes %s as additional scoring cost." % [
 							card.display_name(), ctx.corp_name(), cost_target.display_name()])
 						if not ctx.simulation_mode:
 							emit_signal("card_trashed", cost_target.card_id, cost_target.server_id)
+						# MS-L003: fire Ob trigger if rezzed card was trashed as scoring cost
+						if cost_was_rezzed and not ctx.corp_is_installing:
+							await ctx.notify_event("corp_trashes_own_rezzed_card", {
+								"card_id": cost_target.card_id,
+								"rez_cost": cost_rez_cost,
+								"server_id": cost_server_id
+							}, interpreter)
 						await _score_agenda(card)
 					# If cost_target == null (Corp declined), skip scoring
 			else:
@@ -1788,6 +1842,34 @@ func _do_use_installed_card(player: String, action: GameAction) -> void:
 			ctx.send_log("%s: this ability can only be used once per turn." % installed.display_name())
 			return
 		ctx.once_per_turn_triggered[ca_opt_full] = true
+
+	# ── Advancement-counter cost (e.g. Vladisibirsk City Grid: spend 2 adv counters) ──
+	# MS-L015 fix: pre-validate BEFORE setting the once_per_turn guard so guard is not
+	# consumed when the ability has no valid target (guard refund was unreliable).
+	# The guard is now set only after all preconditions pass; adv counters deducted here.
+	var ca_adv_cost: int = click_action_def.get("cost_advancement_counters", 0)
+	if ca_adv_cost > 0:
+		if installed.get_counter("advancement") < ca_adv_cost:
+			ctx.send_log("%s: not enough advancement counters (need %d)." % [
+				installed.display_name(), ca_adv_cost])
+			return
+		# Vladisibirsk: also verify ≥1 other advanceable card exists in the same server root.
+		if installed.card_id == "vladisibirsk_city_grid":
+			var vl_srv: Server = ctx.get_server(installed.server_id)
+			var vl_has_target: bool = false
+			if vl_srv != null:
+				for vl_c_any in vl_srv.root:
+					var vl_c: InstalledCard = vl_c_any as InstalledCard
+					if vl_c != null and vl_c != installed and vl_c.card_record != null \
+							and vl_c.can_be_advanced():
+						vl_has_target = true
+						break
+			if not vl_has_target:
+				ctx.send_log("[Vladisibirsk] No other advanceable cards in this server — ability blocked.")
+				return
+		installed.remove_counter("advancement", ca_adv_cost)
+		ctx.send_log("%s spends %d advancement counter(s) for %s." % [
+			ctx.player_name(player), ca_adv_cost, installed.display_name()])
 
 	# ── Tag cost: Corp abilities on stolen agendas (e.g. Oracle Thinktank) ──
 	# Deduct runner tags as a cost before executing the effect.

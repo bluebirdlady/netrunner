@@ -1,0 +1,28 @@
+EXTRACT. EXPORT. EXCEL.
+by Circuito Saudade
+
+The manifest was not secret. That was the first thing the analyst noticed.
+
+Ob Superheavy Logistics maintained a public ledger of orbital cargo movements — a regulatory requirement under the new Automata Initiative compliance framework, which mandated transparency in supply chains involving any bioroid-adjacent labour. The ledger was updated every six hours, cross-referenced with Heinlein Customs, and freely accessible to any licensed auditor.
+
+What the ledger did not show was what the cargo actually was.
+
+The declared contents of shipment OBX-7714-VEGA: "reclaimed construction materials, classification 4C, non-hazardous." Weight: 312 metric tons. Origin: Ob extraction facility, Heinlein polar crater array. Destination: Weyland Consortium staging depot, Earth transfer orbit.
+
+The analyst had cross-referenced OBX-7714-VEGA with seventeen other manifests across six months. The weight figures for "reclaimed construction materials, classification 4C" fluctuated by plus or minus two percent across all seventeen shipments — a variance small enough to read as normal cargo settling, large enough to suggest something was being carefully subtracted from each load before weighting.
+
+312 metric tons of material, seventeen times, at a variance of six metric tons per shipment.
+
+102 metric tons unaccounted for across six months. Moving in small parcels, in plain sight, through a public ledger.
+
+She had sent the analysis to her supervisor. Her supervisor had thanked her for her diligence and told her the variance was within acceptable limits.
+
+Her supervisor had a Weyland Consortium badge on her desk that had never been there before.
+
+The analyst had found, through a chain of contacts she did not entirely trust, a runner designation. She had forwarded the analysis to that designation at 3 a.m. and not slept since.
+
+—
+
+TARGET: Ob Superheavy Logistics: Extract. Export. Excel.
+FACILITY: Ob Orbital Operations Hub, Heinlein Equatorial Transfer Station
+OBJECTIVE: Pull the cargo metadata. Find where the subtracted tonnage is going and why Weyland needs it hidden in a compliant ledger.
