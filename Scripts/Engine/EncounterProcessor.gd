@@ -76,7 +76,7 @@ func process(action: Dictionary, encounter: EncounterState,
 		"weaken_ice":
 			return _do_weaken_ice(action, encounter, ctx)
 		"break_with_click":
-			return _do_break_with_click(action, encounter, ctx)
+			return _do_break_with_click(action, encounter, ctx, ability_registry)
 		"break_self_sub":
 			# N-Pot: runner pays cost credits to break one subroutine on the ice itself.
 			var bss_cost: int = action.get("cost", 3)
@@ -207,6 +207,11 @@ func process(action: Dictionary, encounter: EncounterState,
 			ctx.run_runner_broke_any_subroutine = true
 			await ctx.check_outside_credits_trigger(interpreter)
 			return true
+		"f2p_break":
+			# Uprising: F2P — Runner pays 2cr to break 1 sub on this ice (untagged only).
+			var f2p_ok: bool = _do_f2p_break(action, encounter, ctx, ability_registry)
+			await ctx.check_outside_credits_trigger(interpreter)
+			return f2p_ok
 		"done":
 			return true
 		_:
@@ -357,6 +362,10 @@ func _do_break_sub(action: Dictionary, encounter: EncounterState,
 		ctx.send_log("[Encounter] Cannot break — Anvil effect: printed subroutines cannot be broken this encounter.")
 		return false
 
+	# ── Uprising: Next Activation Command — non-icebreakers cannot break subs ──
+	if _blocked_by_next_activation_command(ctx, breaker.card_record):
+		return false
+
 	# ── Parhelion: Hafrun — specific breaker disabled for this run ─────────────
 	var hafrun_key: String = "hafrun_disabled_" + breaker.runtime_instance_id
 	if ctx.run_modifiers.get(hafrun_key, false):
@@ -385,6 +394,13 @@ func _do_break_sub(action: Dictionary, encounter: EncounterState,
 		var ice_ab_def: Dictionary = ability_registry._abilities.get(
 			encounter.ice_card.card_id, {}) as Dictionary
 		var break_limit: int = ice_ab_def.get("break_limit_per_encounter", -1)
+		# Uprising: Akhet — while 3+ hosted advancement counters, the Runner cannot
+		# break more than 1 printed sub per encounter.
+		var cond_limit: Dictionary = ice_ab_def.get("break_limit_per_encounter_if_counters_gte", {}) as Dictionary
+		if not cond_limit.is_empty() and encounter.ice_card.get_counter("advancement") >= int(cond_limit.get("threshold", 0)):
+			var cl: int = int(cond_limit.get("limit", -1))
+			if break_limit < 0 or cl < break_limit:
+				break_limit = cl
 		if break_limit >= 0:
 			var exempt_subtypes: Array = ice_ab_def.get("break_limit_except_subtype", []) as Array
 			var is_exempt := false
@@ -554,6 +570,7 @@ func _do_break_sub(action: Dictionary, encounter: EncounterState,
 	if break_dict.get("trash_self_on_use", false):
 		_trash_breaker(breaker, ctx)
 
+	_apply_printed_sub_break_modifiers(encounter, ctx, ability_registry, [sub_index])
 	return true
 
 
@@ -575,6 +592,10 @@ func _do_break_all(action: Dictionary, encounter: EncounterState,
 		ctx.send_log("[Encounter] Cannot break — Anvil effect: printed subroutines cannot be broken this encounter.")
 		return false
 
+	# ── Uprising: Next Activation Command — non-icebreakers cannot break subs ──
+	if _blocked_by_next_activation_command(ctx, breaker.card_record):
+		return false
+
 	# ── Parhelion: Hafrun — specific breaker disabled for this run ─────────────
 	var hafrun_key_all: String = "hafrun_disabled_" + breaker.runtime_instance_id
 	if ctx.run_modifiers.get(hafrun_key_all, false):
@@ -589,6 +610,7 @@ func _do_break_all(action: Dictionary, encounter: EncounterState,
 		return false
 
 	var break_dict: Dictionary = break_def as Dictionary
+	var _gf_unbroken_before: Array = encounter.unbroken_indices()
 
 	# target_only: can only break subs on the chosen target ice (Boomerang).
 	if break_dict.get("target_only", false):
@@ -645,6 +667,7 @@ func _do_break_all(action: Dictionary, encounter: EncounterState,
 		ctx.send_log("[Encounter] %s: paid %d cr flat to break all subs." % [breaker.display_name(), flat_break_cost])
 		if break_dict.get("trash_self_on_use", false):
 			_trash_breaker(breaker, ctx)
+		_apply_printed_sub_break_modifiers(encounter, ctx, ability_registry, _gf_unbroken_before)
 		return true
 
 	var cost_per_sub: int = break_dict.get("cost_per_sub", 1)
@@ -738,10 +761,13 @@ func _do_break_all(action: Dictionary, encounter: EncounterState,
 	if break_dict.get("trash_self_on_use", false):
 		_trash_breaker(breaker, ctx)
 
+	var _gf_newly_broken: Array = _gf_unbroken_before.filter(func(idx): return encounter.is_broken(idx))
+	_apply_printed_sub_break_modifiers(encounter, ctx, ability_registry, _gf_newly_broken)
 	return true
 
 
-func _do_break_with_click(action: Dictionary, encounter: EncounterState, ctx: GameContext) -> bool:
+func _do_break_with_click(action: Dictionary, encounter: EncounterState, ctx: GameContext,
+		ability_registry: AbilityRegistry) -> bool:
 	# Runner spends 1 click to break 1 subroutine on a bioroid.
 	# No strength check required — this is the ice's own ability, not an icebreaker.
 	# Midnight Sun: Hákarl 1.0 — block this ability when suppression flag is set.
@@ -764,6 +790,12 @@ func _do_break_with_click(action: Dictionary, encounter: EncounterState, ctx: Ga
 	ctx.send_log("[Encounter] Runner spends 1 click to break '%s'. (%d clicks remaining)" % [
 		sub_label, ctx.runner_clicks
 	])
+	# Tyr: each [lose click] break grants the Corp +1 allotted click for their next turn.
+	if encounter.ice_card != null:
+		var ice_def: Dictionary = ability_registry._abilities.get(encounter.ice_card.card_id, {}) as Dictionary
+		if ice_def.get("bioroid_break_grants_corp_click", false):
+			ctx.pending_click_bonuses["corp"] = ctx.pending_click_bonuses.get("corp", 0) + 1
+			ctx.send_log("[Tyr] %s will gain +1 click at the start of their next turn." % ctx.corp_name())
 	return true
 
 
@@ -870,6 +902,10 @@ func _do_trojan_break_sub(action: Dictionary, encounter: EncounterState,
 		push_error("EncounterProcessor: trojan_break_sub — trojan '%s' not found on ice" % card_id)
 		return false
 
+	# ── Uprising: Next Activation Command — non-icebreakers cannot break subs ──
+	if _blocked_by_next_activation_command(ctx, trojan.card_record):
+		return false
+
 	var ib_def: Variant = ability_registry.get_interface_break(card_id)
 	if ib_def == null:
 		push_error("EncounterProcessor: trojan_break_sub — '%s' has no interface_break" % card_id)
@@ -918,6 +954,10 @@ func _do_umbrella_break(action: Dictionary, encounter: EncounterState,
 	var umbrella: InstalledCard = _find_card_in_rig(card_id, ctx)
 	if umbrella == null:
 		push_error("EncounterProcessor: umbrella_break — '%s' not found in rig" % card_id)
+		return false
+
+	# ── Uprising: Next Activation Command — non-icebreakers cannot break subs ──
+	if _blocked_by_next_activation_command(ctx, umbrella.card_record):
 		return false
 
 	var ub_def: Variant = ability_registry.get_umbrella_break(card_id)
@@ -987,6 +1027,96 @@ func _do_umbrella_break(action: Dictionary, encounter: EncounterState,
 
 
 # ── Shared micro-helpers ──────────────────────────────────────────────────────
+
+# Uprising: Next Activation Command — "The Runner cannot use non-icebreaker
+# cards to break subroutines" while the lockdown operation is active.
+func _blocked_by_next_activation_command(ctx: GameContext, card_record: CardRecord) -> bool:
+	var nac_active := false
+	for lockdown_card in ctx.active_lockdown_cards:
+		if (lockdown_card as InstalledCard).card_id == "next_activation_command":
+			nac_active = true
+			break
+	if not nac_active:
+		return false
+	if card_record != null and card_record.has_subtype("icebreaker"):
+		return false
+	ctx.send_log("[Encounter] Next Activation Command: only icebreakers can break subroutines.")
+	return true
+
+
+# Uprising: Gold Farmer — "Whenever the Runner breaks a printed subroutine on
+# this ice, they lose 1[credit]." Called with the indices freshly broken by a
+# single break action; only indices within the ice's printed subroutine count
+# trigger the credit loss.
+func _apply_printed_sub_break_modifiers(encounter: EncounterState, ctx: GameContext,
+		ability_registry: AbilityRegistry, newly_broken: Array) -> void:
+	if newly_broken.is_empty() or encounter.ice_card == null:
+		return
+	var ab_def: Dictionary = ability_registry._abilities.get(encounter.ice_card.card_id, {}) as Dictionary
+	var mods: Array = ab_def.get("passive_modifiers", []) as Array
+	var loses_credits := false
+	for m in mods:
+		if (m as Dictionary).get("type", "") == "runner_loses_credits_on_printed_sub_break":
+			loses_credits = true
+			break
+	if not loses_credits:
+		return
+	var printed_count: int = ability_registry.get_subroutines_for_card(
+		encounter.ice_card.card_id, encounter.ice_card).size()
+	for idx in newly_broken:
+		if int(idx) < printed_count and ctx.runner_credits > 0:
+			ctx.runner_credits -= 1
+			ctx.send_log("[Encounter] %s loses 1cr (broke a printed subroutine on %s)." % [
+				ctx.runner_name(), encounter.ice_card.display_name()])
+
+
+# Uprising: F2P — "2[credit]: Break 1 subroutine on this ice. Only the Runner
+# can use this ability, and only if they are not tagged."
+func _do_f2p_break(action: Dictionary, encounter: EncounterState,
+		ctx: GameContext, ability_registry: AbilityRegistry) -> bool:
+	var ice_card: InstalledCard = encounter.ice_card
+	if ice_card == null:
+		return false
+	var ab_def: Dictionary = ability_registry._abilities.get(ice_card.card_id, {}) as Dictionary
+	var f2p_def: Dictionary = ab_def.get("runner_paid_break_ability", {}) as Dictionary
+	if f2p_def.is_empty():
+		return false
+
+	# Uprising: Next Activation Command — only icebreakers can break subs.
+	if _blocked_by_next_activation_command(ctx, null):
+		return false
+
+	var condition: String = f2p_def.get("condition", "")
+	if condition == "runner_not_tagged" and ctx.runner_is_tagged():
+		ctx.send_log("[Encounter] Cannot use %s's ability — %s is tagged." % [
+			ice_card.display_name(), ctx.runner_name()])
+		return false
+
+	var cost: int = f2p_def.get("cost_credits", 2)
+	if ctx.runner_available_credits() < cost:
+		ctx.send_log("[Encounter] Cannot afford %s's ability (need %d cr)." % [ice_card.display_name(), cost])
+		return false
+
+	var subs_per_use: int = f2p_def.get("subs_per_use", 1)
+	var sub_indices: Array = action.get("sub_indices", [])
+	var valid: Array = sub_indices.filter(func(idx):
+		return idx >= 0 and idx < encounter.subroutines.size() and not encounter.is_broken(idx)
+	)
+	if valid.is_empty():
+		ctx.send_log("[Encounter] No valid subroutines to break with %s." % ice_card.display_name())
+		return false
+	if valid.size() > subs_per_use:
+		valid = valid.slice(0, subs_per_use)
+
+	ctx.runner_spend_credits(cost)
+	for idx in valid:
+		encounter.break_subroutine(idx)
+		var label: String = (encounter.subroutines[idx] as Dictionary).get("label", "sub %d" % idx)
+		ctx.send_log("[Encounter] %s spends %d cr to break '%s'." % [ctx.runner_name(), cost, label])
+	ctx.run_runner_broke_any_subroutine = true
+	_apply_printed_sub_break_modifiers(encounter, ctx, ability_registry, valid)
+	return true
+
 
 func _find_breaker(card_id: String, encounter: EncounterState) -> InstalledCard:
 	for b in encounter.available_breakers:
@@ -1160,6 +1290,10 @@ func _do_matryoshka_break(action: Dictionary, encounter: EncounterState, ctx: Ga
 	var matryoshka: InstalledCard = _find_card_in_rig(card_id, ctx)
 	if matryoshka == null:
 		push_error("EncounterProcessor: matryoshka_break — '%s' not found in rig" % card_id)
+		return false
+
+	# ── Uprising: Next Activation Command — non-icebreakers cannot break subs ──
+	if _blocked_by_next_activation_command(ctx, matryoshka.card_record):
 		return false
 
 	# Count faceup hosted copies.

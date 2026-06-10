@@ -279,6 +279,16 @@ func _choose_action_impl(ctx: GameContext) -> GameAction:
 
 # ── Run‑time interface (forwarded to CorpRunAI) ───────────────────────────────
 
+# Boost a trace just enough to guarantee success against the Runner's maximum
+# possible total (link + all available credits), if affordable; otherwise
+# spend nothing. Used by Winchester / Scapenet traces.
+func choose_trace_boost(base_strength: int, ctx: GameContext) -> int:
+	var runner_max: int = ctx.runner_total_link() + ctx.runner_credits
+	var needed: int = (runner_max + 1) - base_strength
+	if needed <= 0:
+		return 0
+	return min(needed, ctx.corp_credits)
+
 func choose_rez(card: InstalledCard, ctx: GameContext) -> bool:
 	return _run_ai.choose_rez(card, ctx)
 

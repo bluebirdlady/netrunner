@@ -57,8 +57,44 @@ func choose_pay_to_avoid_damage(_cost: int, _amount: int, _ctx: GameContext) -> 
 	return false
 
 
+# ── Trace ──────────────────────────────────────────────────────────────────────
+
+# Boost a trace just enough to guarantee success against the Runner's maximum
+# possible total (link + all available credits), if affordable; otherwise
+# spend nothing. This is a simple, slightly conservative heuristic — it
+# overestimates the Runner's likely response but avoids wasting credits on
+# traces the AI cannot win outright.
+func choose_trace_boost(base_strength: int, ctx: GameContext) -> int:
+	var runner_max: int = ctx.runner_total_link() + ctx.runner_credits
+	var needed: int = (runner_max + 1) - base_strength
+	if needed <= 0:
+		return 0
+	return min(needed, ctx.corp_credits)
+
+
 func choose_suffer_damage_or_etr(_damage: int, _ctx: GameContext) -> String:
 	return "etr"
+
+
+# ── Wall to Wall ───────────────────────────────────────────────────────────────
+
+# Single-choice case (Corp has another rezzed asset): advance ice toward agendas.
+func choose_wall_to_wall_option(choices: Array, _ctx: GameContext) -> String:
+	if "place_adv_on_ice" in choices:
+		return "place_adv_on_ice"
+	return choices[0] if not choices.is_empty() else ""
+
+
+# No-other-rezzed-assets case: take draw + credit + advance, skip returning to HQ.
+func choose_wall_to_wall_options_multi(choices: Array, max_count: int, _ctx: GameContext) -> Array:
+	var picks: Array = []
+	for c in choices:
+		if c == "return_self_to_hq":
+			continue
+		picks.append(c)
+		if picks.size() >= max_count:
+			break
+	return picks
 
 
 func choose_take_tag_or_end_run(_ctx: GameContext) -> String:

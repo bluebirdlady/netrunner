@@ -74,6 +74,19 @@ static func make(ice: InstalledCard, subs: Array, breakers: Array, game_ctx: Obj
 				var enc_server: Object = game_ctx.get_server(ice.server_id)
 				if enc_server != null and enc_server.ice.size() == 1:
 					e.ice_strength += only_ice_bonus
+	# Uprising: Colossus / Akhet — strength bonuses based on hosted advancement counters.
+	if game_ctx != null and game_ctx.has_meta("ability_registry"):
+		var enc_ab_reg2: Object = game_ctx.get_meta("ability_registry")
+		if enc_ab_reg2 != null:
+			var enc_ability2: Dictionary = enc_ab_reg2._abilities.get(ice.card_id, {}) as Dictionary
+			var adv_counters: int = ice.get_counter("advancement")
+			var per_counter: int = int(enc_ability2.get("strength_bonus_per_adv_counter", 0))
+			if per_counter > 0:
+				e.ice_strength += per_counter * adv_counters
+			var gte_def: Dictionary = enc_ability2.get("strength_bonus_if_adv_counters_gte", {}) as Dictionary
+			if not gte_def.is_empty() and adv_counters >= int(gte_def.get("threshold", 0)):
+				e.ice_strength += int(gte_def.get("amount", 0))
+
 	# The Tungsten Tailor (VP3): apply global ice strength modifier from installed hardware
 	if game_ctx != null and game_ctx.has_method("query_ice_strength_modifier"):
 		var tt_mod: int = game_ctx.query_ice_strength_modifier()

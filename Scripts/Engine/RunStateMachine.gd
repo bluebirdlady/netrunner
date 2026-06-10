@@ -277,6 +277,17 @@ func _phase_encounter_ice(ice_card: InstalledCard) -> void:
 		await _phase_end()
 		return
 
+	# Konjin (Uprising): on a psi mismatch, the Corp may redirect this encounter
+	# to a different rezzed ice. The Runner encounters that ice instead for the
+	# remainder of this encounter (Konjin's own subroutines do not separately fire).
+	if ctx.has_meta("konjin_redirect_ice"):
+		var konjin_redirect_ice: InstalledCard = ctx.get_meta("konjin_redirect_ice") as InstalledCard
+		ctx.remove_meta("konjin_redirect_ice")
+		if konjin_redirect_ice != null and konjin_redirect_ice.is_rezzed:
+			ctx.send_log("[Konjin] The Runner encounters %s instead." % konjin_redirect_ice.display_name())
+			ice_card = konjin_redirect_ice
+			emit_signal("ice_encountered", ice_card)
+
 	# Fire the ice's own "when encountered" abilities (e.g. Jaguarundi's tag-or-click).
 	# These are interruptible by AirbladeX (JSRF Ed.) — see _fire_ice_when_encountered().
 	await _fire_ice_when_encountered(ice_card)
@@ -821,6 +832,12 @@ func _phase_success() -> void:
 						"rez_cost": ltf_rez_cost,
 						"server_id": ltf_svr
 					}, interpreter)
+
+	# Hyoubu Precog Manifold: a psi game on successful run may end the run
+	# (via the "end_run" effect setting ctx.run_ended) before breach occurs.
+	if ctx.run_ended:
+		await _phase_end()
+		return
 
 	# Red Team payout: take hosted credits before breach
 	if ctx.has_meta("red_team_pending_payout"):
@@ -1567,6 +1584,23 @@ func _steal_agenda(card_record: CardRecord, source: Variant = null) -> void:
 		ctx.runner_credits -= sc_credits
 		ctx.send_log("[Access] Runner pays %d cr to steal %s." % [sc_credits, card_record.title])
 
+	# NAPD Cordon (Uprising lockdown): additional steal cost = 4cr + 2cr per
+	# advancement counter on the agenda being stolen.
+	var napd_active := false
+	for napd_lockdown in ctx.active_lockdown_cards:
+		if (napd_lockdown as InstalledCard).card_id == "napd_cordon":
+			napd_active = true
+			break
+	if napd_active:
+		var napd_adv: int = (source as InstalledCard).get_counter("advancement") if source is InstalledCard else 0
+		var napd_cost: int = 4 + 2 * napd_adv
+		if ctx.runner_credits < napd_cost:
+			ctx.send_log("[Access] Runner cannot steal %s — NAPD Cordon requires %d cr (has %d)." % [
+				card_record.title, napd_cost, ctx.runner_credits])
+			return
+		ctx.runner_credits -= napd_cost
+		ctx.send_log("[NAPD Cordon] %s pays %d cr to steal %s." % [ctx.runner_name(), napd_cost, card_record.title])
+
 	# Daniela Jorge Inácio (TAI): additional steal cost (e.g. discard 2 grip cards to stack).
 	if not ctx.active_server_additional_steal_cost.is_empty():
 		var dji_sc: Dictionary = ctx.active_server_additional_steal_cost
@@ -1592,6 +1626,14 @@ func _steal_agenda(card_record: CardRecord, source: Variant = null) -> void:
 
 	# server_id is _target_server (the run's target); capture before removal.
 	var stolen_server_id: String = _target_server.server_id if _target_server != null else ""
+
+	# Project Vacheron: when added to the Runner's score area from anywhere except
+	# Archives, instead it is added with 4 hosted agenda counters (worth 0 points
+	# while counters remain — see GameContext.runner_agenda_points()).
+	if card_record.id == "project_vacheron" and stolen_server_id != "archives":
+		stolen_inst.add_counter("agenda", 4)
+		ctx.send_log("[Project Vacheron] Added to %s's score area with 4 agenda counters (worth 0 agenda points)." % \
+			ctx.runner_name())
 
 	for server in ctx.servers.values():
 		var s: Server = server as Server

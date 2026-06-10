@@ -192,6 +192,60 @@ func choose_psi_bid(max_bid: int, _ctx: GameContext) -> int:
 	return 0   # Default: always bid 0
 
 
+# ── Trace ──────────────────────────────────────────────────────────────────────
+
+# Corp chooses how many credits to spend boosting a trace's strength
+# (0..corp_credits). Used by: Winchester, Scapenet.
+var choose_trace_boost_proxy: Callable  # func(base_strength: int) -> int
+
+func choose_trace_boost(base_strength: int, _ctx: GameContext) -> int:
+	if choose_trace_boost_proxy.is_valid():
+		return await choose_trace_boost_proxy.call(base_strength)
+	return 0   # Default: don't boost
+
+
+# Runner chooses how many credits to spend boosting their link to beat a trace
+# (0..runner_credits). Used by: Winchester, Scapenet.
+var choose_trace_link_boost_proxy: Callable  # func(trace_strength: int, link: int) -> int
+
+func choose_trace_link_boost(trace_strength: int, link: int, _ctx: GameContext) -> int:
+	if choose_trace_link_boost_proxy.is_valid():
+		return await choose_trace_link_boost_proxy.call(trace_strength, link)
+	return 0   # Default: don't boost
+
+
+# ── Pay-or-end-the-run ────────────────────────────────────────────────────────
+
+# Runner may pay 'cost' credits to avoid the run ending.
+# Used by: Gold Farmer, Cayambe Grid.
+var choose_pay_to_avoid_etr_proxy: Callable  # func(cost: int) -> bool (true = pay)
+
+func choose_pay_to_avoid_etr(cost: int, _ctx: GameContext) -> bool:
+	if choose_pay_to_avoid_etr_proxy.is_valid():
+		return await choose_pay_to_avoid_etr_proxy.call(cost)
+	return cost <= _ctx.runner_credits   # Default: pay if affordable (avoid ending the run)
+
+
+# ── Wall to Wall ───────────────────────────────────────────────────────────────
+
+# Corp chooses 1 of the listed options (when Corp has another rezzed asset).
+var choose_wall_to_wall_option_proxy: Callable  # func(choices: Array) -> String
+
+func choose_wall_to_wall_option(choices: Array, _ctx: GameContext) -> String:
+	if choose_wall_to_wall_option_proxy.is_valid():
+		return await choose_wall_to_wall_option_proxy.call(choices)
+	return choices[0] if not choices.is_empty() else ""
+
+
+# Corp chooses up to `max_count` distinct options, in order (no other rezzed assets).
+var choose_wall_to_wall_options_multi_proxy: Callable  # func(choices: Array, max_count: int) -> Array
+
+func choose_wall_to_wall_options_multi(choices: Array, max_count: int, _ctx: GameContext) -> Array:
+	if choose_wall_to_wall_options_multi_proxy.is_valid():
+		return await choose_wall_to_wall_options_multi_proxy.call(choices, max_count)
+	return choices.slice(0, max_count)
+
+
 # ── Bigger Picture: Corp chooses how many tags to remove ─────────────────────
 
 var choose_tags_to_remove_proxy: Callable  # func(max_count: int) -> int

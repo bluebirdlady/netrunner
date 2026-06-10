@@ -5798,7 +5798,7 @@
 	},
 
 	"drafter": {
-		"_note": "RWR Corp ice (HB). Code gate. Str 2. Sub: add 1 card from Archives to HQ. Sub: install 1 card from Archives or HQ, ignoring all costs.",
+		"_note": "Uprising Corp ice (HB, sentry, cost 3, str 3). Sub: may add 1 card from Archives to HQ. Sub: may install 1 card from Archives or HQ, ignoring all costs.",
 		"subroutines": [
 			{
 				"label": "You may add 1 card from Archives to HQ.",
@@ -8597,5 +8597,466 @@
 			"condition": { "type": "installed_card_type_is", "card_type": "hardware" },
 			"effects": [{ "type": "environmental_testing_trigger" }]
 		}
+	},
+
+	"akhet": {
+		"_note": "Uprising Corp ice (Weyland, Barrier, cost 3, str 2). Advanceable. While 3+ hosted advancement counters: +3 strength, and the Runner cannot break more than 1 printed sub per encounter. Subs: gain 1cr + place 1 advancement counter on an installed card; end the run.",
+		"strength_bonus_if_adv_counters_gte": {"threshold": 3, "amount": 3},
+		"break_limit_per_encounter_if_counters_gte": {"threshold": 3, "limit": 1},
+		"subroutines": [
+			{
+				"label": "Gain 1[credit]. Place 1 advancement counter on an installed card.",
+				"effects": [
+					{"type": "gain_credits", "params": {"subject": "corp", "amount": 1}},
+					{"type": "place_advancement_on_installed", "params": {"any_installed": true, "optional": true}}
+				]
+			},
+			{
+				"label": "End the run.",
+				"effects": [{"type": "end_run"}]
+			}
+		]
+	},
+
+	"colossus": {
+		"_note": "Uprising Corp ice (Weyland, Destroyer/Sentry, cost 6, str 4). Advanceable. +1 strength per hosted advancement counter. Subs: give 1 tag (2 if 3+ counters); trash 1 program (+1 resource if 3+ counters).",
+		"strength_bonus_per_adv_counter": 1,
+		"subroutines": [
+			{
+				"label": "Give the Runner 1 tag. If there are 3 or more hosted advancement counters, instead give the Runner 2 tags.",
+				"effects": [{
+					"type": "give_tags",
+					"params": {"amount": {"if_self_counters_gte": {"counter": "advancement", "threshold": 3, "then": 2, "else": 1}}}
+				}]
+			},
+			{
+				"label": "Trash 1 installed program. If there are 3 or more hosted advancement counters, instead trash 1 installed program and 1 installed resource.",
+				"effects": [{"type": "trash_runner_program_and_resource_if_self_counters_gte", "params": {"threshold": 3}}]
+			}
+		]
+	},
+
+	"cerebral_overwriter": {
+		"_note": "Uprising Corp asset (HB, cost 0, trash 0). Advanceable. When the Runner accesses this asset while it is installed, Corp may pay 3cr to do X core damage, X = hosted advancement counters.",
+		"on_access": {
+			"effects": [{"type": "pay_credits_deal_damage_per_self_adv_counter", "params": {"cost": 3, "damage_type": "core"}}]
+		}
+	},
+
+	"cayambe_grid": {
+		"_note": "Uprising Corp upgrade (Weyland, region, cost 3, trash 3). Corp turn begin: place 1 advancement counter on a piece of ice protecting this server. Whenever the Runner approaches this server: end the run unless they pay 2cr per advanced piece of ice protecting this server. Limit 1 region per server.",
+		"region": true,
+		"corp_turn_start": {
+			"condition": {"type": "self_is_rezzed"},
+			"effects": [{"type": "cayambe_grid_turn_begin"}]
+		},
+		"approach_server": {
+			"condition": {
+				"type": "and",
+				"conditions": [
+					{"type": "self_is_rezzed"},
+					{"type": "run_target_is_self_server"}
+				]
+			},
+			"effects": [{"type": "end_run_unless_pay_per_advanced_ice", "params": {"cost_per_ice": 2}}]
+		}
+	},
+
+	"la_costa_grid": {
+		"_note": "Uprising Corp upgrade (Jinteki, region, cost 3, trash 4). Remote server only. Corp turn begin: place 1 advancement counter on a card in the root of this server. Limit 1 region per server.",
+		"region": true,
+		"remote_only": true,
+		"corp_turn_start": {
+			"condition": {"type": "self_is_rezzed"},
+			"effects": [{"type": "la_costa_grid_turn_begin"}]
+		}
+	},
+
+	"tranquility_home_grid": {
+		"_note": "Uprising Corp upgrade (HB, region, cost 1, trash 4). Remote server only. The first time each turn Corp installs a card in the root of this server: gain 2cr or draw 1 card. Limit 1 region per server.",
+		"region": true,
+		"remote_only": true,
+		"corp_installs_in_root": {
+			"once_per_turn_key": "tranquility_home_grid_install",
+			"condition": {
+				"type": "and",
+				"conditions": [
+					{"type": "self_is_rezzed"},
+					{"type": "installed_in_self_server"}
+				]
+			},
+			"effects": [{"type": "gain_credits_or_draw_card", "params": {"credits": 2}}]
+		}
+	},
+
+	"ganked": {
+		"_note": "Uprising Corp upgrade (NBN, ambush, cost 0, trash 3). While accessed in R&D, must be revealed. On access: Corp may trash this upgrade to choose a rezzed piece of ice protecting this server — the Runner encounters that ice.",
+		"reveal_when_accessed_in_rd": true,
+		"on_access": {
+			"effects": [{"type": "optional_trash_self_redirect_encounter"}]
+		}
+	},
+
+	"wall_to_wall": {
+		"_note": "Uprising Corp asset (Weyland, advertisement, cost 1, trash 3). Corp turn begin: if Corp has any other rezzed assets, resolve 1 of the following; otherwise resolve up to 3 (each only once): draw 1 card; gain 1cr; place 1 advancement counter on an installed piece of ice; add this asset to HQ.",
+		"corp_turn_start": {
+			"condition": {"type": "self_is_rezzed"},
+			"effects": [{"type": "wall_to_wall_turn_begin"}]
+		}
+	},
+
+	"argus_crackdown": {
+		"_note": "Uprising Corp operation (Weyland, gray ops, cost 0, trash 4). LOCKDOWN: play only if there is no active lockdown; not trashed until your next turn begins. While active, whenever the Runner makes a successful run on a server protected by ice, do 2 meat damage.",
+		"is_lockdown": true,
+		"pre_play_condition": "no_active_lockdown",
+		"successful_run": {
+			"condition": {"type": "run_target_server_has_ice"},
+			"effects": [{"type": "deal_damage", "params": {"damage_type": "meat", "amount": 2}}]
+		}
+	},
+
+	"sync_rerouting": {
+		"_note": "Uprising Corp operation (NBN, lockdown, cost 0, trash 3). LOCKDOWN: play only if there is no active lockdown; not trashed until your next turn begins. While active, whenever a run begins, give the Runner 1 tag unless they pay 4cr.",
+		"is_lockdown": true,
+		"pre_play_condition": "no_active_lockdown",
+		"run_start": {
+			"effects": [{"type": "give_tag_unless_runner_pays", "params": {"cost": 4}}]
+		}
+	},
+
+	"next_activation_command": {
+		"_note": "Uprising Corp operation (HB, lockdown, cost 0, trash 4). LOCKDOWN: play only if there is no active lockdown; not trashed until your next turn begins. While active, each piece of ice gets +2 strength, and the Runner cannot use non-icebreaker cards to break subroutines (enforced in EncounterProcessor via active_lockdown_cards).",
+		"is_lockdown": true,
+		"pre_play_condition": "no_active_lockdown",
+		"passive_modifiers": [
+			{"type": "ice_strength", "value": 2}
+		]
+	},
+
+	"hyoubu_precog_manifold": {
+		"_note": "Uprising Corp operation (Jinteki, lockdown, psi, cost 0, trash 4). LOCKDOWN: play only if there is no active lockdown; not trashed until your next turn begins. On play, choose a server. While active, whenever the Runner makes a successful run on the chosen server, play a Psi Game; if the bids differ, end the run.",
+		"is_lockdown": true,
+		"pre_play_condition": "no_active_lockdown",
+		"on_play": {
+			"effects": [{"type": "hyoubu_choose_server"}]
+		},
+		"successful_run": {
+			"condition": {"type": "run_target_is_hyoubu_chosen_server"},
+			"effects": [
+				{
+					"type": "psi_game",
+					"params": {
+						"on_match": [],
+						"on_mismatch": [{"type": "end_run"}]
+					}
+				}
+			]
+		}
+	},
+
+	"napd_cordon": {
+		"_note": "Uprising Corp operation (Neutral, lockdown, cost 0, trash 2). LOCKDOWN: play only if there is no active lockdown; not trashed until your next turn begins. While active, as an additional cost to steal an agenda, the Runner must pay 4cr plus 2cr per advancement counter on that agenda (enforced in RunStateMachine._steal_agenda via active_lockdown_cards).",
+		"is_lockdown": true,
+		"pre_play_condition": "no_active_lockdown"
+	},
+
+	"bellona": {
+		"_note": "Uprising Corp agenda (NBN, expansion, 5/3). As an additional cost to steal this agenda, the Runner must pay 5cr. When scored, gain 5cr.",
+		"steal_costs_credits": 5,
+		"on_score": {
+			"effects": [{"type": "gain_credits", "params": {"subject": "corp", "amount": 5}}]
+		}
+	},
+
+	"false_lead": {
+		"_note": "Uprising Corp agenda (Neutral, security, 3/1). 'Forfeit this agenda: If the Runner has 2 or more clicks remaining, they lose [click][click].' Usable any time this agenda is in the score area; does not cost a click.",
+		"click_action": {
+			"no_click_cost": true,
+			"effects": [
+				{"type": "forfeit_self_lose_clicks_if_runner_clicks_gte", "params": {"threshold": 2, "amount": 2}}
+			]
+		}
+	},
+
+	"konjin": {
+		"_note": "Uprising Corp ice (Weyland, mythic/psi, cost 3, str 3). When the Runner encounters this ice, play a Psi Game. If the bids differ, the Corp may choose another rezzed ice; the Runner encounters that ice instead (Konjin's own subroutines do not separately fire).",
+		"encounter_ice": {
+			"effects": [
+				{
+					"type": "psi_game",
+					"params": {
+						"on_match": [],
+						"on_mismatch": [{"type": "redirect_encounter_to_chosen_ice"}]
+					}
+				}
+			]
+		}
+	},
+
+	"engram_flush": {
+		"_note": "Uprising Corp ice (NBN, code gate/observer, cost 2, str 5). When the Runner encounters this ice, choose a card type. For the remainder of the encounter, whenever the Corp reveals the grip with a subroutine on this ice, it may trash 1 revealed card of the chosen type.",
+		"encounter_ice": {
+			"effects": [
+				{"type": "choose_card_type_for_encounter", "params": {"types": ["program", "resource", "hardware", "event"]}}
+			]
+		},
+		"subroutines": [
+			{"label": "Reveal the grip.", "effects": [{"type": "reveal_grip_and_optional_trash_by_type"}]},
+			{"label": "Reveal the grip.", "effects": [{"type": "reveal_grip_and_optional_trash_by_type"}]}
+		]
+	},
+
+	"f2p": {
+		"_note": "Uprising Corp ice (HB, sentry, cost 4, str 5). '2cr: Break 1 subroutine on this ice. Only the Runner can use this ability, and only if they are not tagged.'",
+		"runner_paid_break_ability": {
+			"cost_credits": 2,
+			"subs_per_use": 1,
+			"condition": "runner_not_tagged"
+		},
+		"subroutines": [
+			{"label": "Add 1 installed Runner card to the grip.", "effects": [{"type": "add_installed_runner_card_to_grip"}]},
+			{"label": "Give the Runner 1 tag.", "effects": [{"type": "give_tags", "params": {"amount": 1}}]}
+		]
+	},
+
+	"gold_farmer": {
+		"_note": "Uprising Corp ice (Weyland, barrier, cost 3, str 1). Whenever the Runner breaks a printed subroutine on this ice, they lose 1cr.",
+		"passive_modifiers": [
+			{"type": "runner_loses_credits_on_printed_sub_break", "value": 1}
+		],
+		"subroutines": [
+			{"label": "End the run unless the Runner pays 3[credit].", "effects": [{"type": "end_run_unless_runner_pays_credits", "params": {"cost": 3}}]},
+			{"label": "End the run unless the Runner pays 3[credit].", "effects": [{"type": "end_run_unless_runner_pays_credits", "params": {"cost": 3}}]}
+		]
+	},
+
+	"bass_ch1r180g4": {
+		"_note": "Uprising Corp asset (HB, bioroid, cost 3, trash 4). [click], [trash]: Gain [click][click].",
+		"click_action": {
+			"effects": [
+				{"type": "trash_self"},
+				{"type": "gain_clicks", "params": {"subject": "corp", "amount": 2}}
+			]
+		}
+	},
+
+	"tyr": {
+		"_note": "Uprising Corp ice (HB, AP/bioroid/destroyer/sentry, cost 10, str 7). [Lose click]: break 1 sub on this ice; the Corp gets +1 allotted click for their next turn (Runner-only ability, handled generically by EncounterProcessor's break_with_click via the bioroid_break_grants_corp_click flag).",
+		"bioroid_break_grants_corp_click": true,
+		"subroutines": [
+			{"label": "Do 2 core damage.", "effects": [{"type": "deal_damage", "params": {"damage_type": "core", "amount": 2}}]},
+			{"label": "Trash 1 installed Runner card. Gain 3[credit].", "effects": [{"type": "corp_trash_installed_runner_card_gain_credits", "params": {"amount": 3}}]},
+			{"label": "End the run.", "effects": [{"type": "end_run"}]}
+		]
+	},
+
+	"prana_condenser": {
+		"_note": "Uprising Corp asset (cost 1, trash 4). [interrupt] Whenever the Corp would do 1 or more net damage, they may prevent 1 of it; if they do, place 1 power counter here and gain 3cr (handled in AbilityInterpreter._deal_damage). [click][click], [trash]: Do 1 net damage for each hosted power counter.",
+		"click_action": {
+			"additional_cost_clicks": 1,
+			"effects": [
+				{"type": "trash_self"},
+				{"type": "deal_damage_per_self_counter", "params": {"counter": "power", "damage_type": "net"}}
+			]
+		}
+	},
+
+	"transport_monopoly": {
+		"_note": "Uprising Corp agenda (initiative, 4/2). When you score this agenda, place 2 agenda counters on it. Once per turn, during a run — Hosted agenda counter: this run cannot be declared successful.",
+		"on_score": {
+			"effects": [{"type": "add_self_counters", "counter": "agenda", "amount": 2}]
+		},
+		"click_action": {
+			"once_per_turn_key": "transport_monopoly_activate",
+			"condition": {"type": "run_active"},
+			"effects": [
+				{"type": "spend_agenda_counter"},
+				{"type": "suppress_run_success"}
+			]
+		}
+	},
+
+	"vaporframe_fabricator": {
+		"_note": "Uprising Corp asset (industrial, cost 2, trash 3). Once per turn — [click]: Install 1 card from HQ, ignoring all costs. (The reactive 'when the Runner trashes this asset, install 1 card from HQ' ability is not yet implemented — no on-trash trigger infrastructure exists in the engine.)",
+		"click_action": {
+			"once_per_turn_key": "vaporframe_install",
+			"effects": [{"type": "install_any_from_hq", "params": {"max_installs": 1, "optional": true}}]
+		}
+	},
+
+	"digital_rights_management": {
+		"_note": "Uprising Corp operation (cost 1). Play only if the Runner did not make a successful run on HQ during their last turn. Search R&D for 1 agenda and reveal it. Add that agenda to HQ. May install 1 card from HQ in the root of a remote server. Cannot score agendas for the remainder of the turn.",
+		"pre_play_condition": "runner_no_hq_successful_run_last_turn",
+		"on_play": {
+			"effects": [
+				{"type": "search_deck", "params": {"subject": "corp", "card_types": ["agenda"], "reveal": true}},
+				{"type": "install_any_from_hq", "params": {"max_installs": 1, "optional": true, "zone": "root"}},
+				{"type": "set_corp_cannot_score_agendas_this_turn"}
+			]
+		}
+	},
+
+	"cyberdex_sandbox": {
+		"_note": "Uprising Corp agenda (4/2). The first time each turn the Corp purges virus counters, gain 4[credit]. When scored, may purge virus counters.",
+		"on_score": {
+			"effects": [
+				{"type": "may_purge_virus_counters"}
+			]
+		},
+		"corp_purges_virus_counters": {
+			"once_per_turn_key": "cyberdex_sandbox_purge_credit",
+			"effects": [
+				{"type": "gain_credits", "params": {"subject": "corp", "amount": 4}}
+			]
+		}
+	},
+
+	"flower_sermon": {
+		"_note": "Uprising Corp agenda (4/2). When scored, place 5 agenda counters on it. Hosted agenda counter, once per turn: reveal the top card of R&D, draw 2 cards, then add 1 card from HQ to the top of R&D.",
+		"on_score": {
+			"effects": [
+				{"type": "add_self_counters", "params": {"counter": "agenda", "amount": 5}}
+			]
+		},
+		"click_action": {
+			"once_per_turn_key": "flower_sermon_activate",
+			"effects": [
+				{"type": "spend_agenda_counter"},
+				{"type": "flower_sermon_ability"}
+			]
+		}
+	},
+
+	"megaprix_qualifier": {
+		"_note": "Uprising Corp agenda (3/1). When scored, if there is another copy of Megaprix Qualifier in either player's score area, place 1 agenda counter on this agenda. While it has a hosted agenda counter, it is worth 1 more agenda point.",
+		"on_score": {
+			"effects": [
+				{"type": "place_agenda_counter_if_duplicate_scored"}
+			]
+		}
+	},
+
+	"project_vacheron": {
+		"_note": "Uprising Corp agenda (5/3, 0 base agenda points). If the Runner steals this agenda from anywhere except Archives, it is added to their score area with 4 hosted agenda counters and is worth 0 agenda points while it has 1 or more counters. At the start of the Runner's turn, remove 1 hosted agenda counter. Fully implemented in engine code (RunStateMachine steal logic, TurnManager runner-turn-start decrement, GameContext agenda point calculation)."
+	},
+
+	"earth_station_sea_headquarters": {
+		"_note": "Uprising Corp identity (Weyland, Side A: SEA Headquarters). Limit 1 remote server (enforced via GameContext.can_create_new_remote_server). As an additional cost to run HQ, the Runner must pay 1[credit]. [click]: Flip this identity to Ascending to Orbit.",
+		"passive_modifiers": [
+			{"type": "additional_run_cost_credits", "value": 1, "conditions": {"server": "hq"}}
+		],
+		"identity_click_action": {
+			"effects": [
+				{
+					"type": "flip_identity",
+					"params": {
+						"face": "corp",
+						"flip_to": "earth_station_ascending_to_orbit",
+						"flip_title": "Earth Station: Ascending to Orbit",
+						"optional": false,
+						"on_flip": []
+					}
+				}
+			]
+		}
+	},
+
+	"earth_station_ascending_to_orbit": {
+		"_note": "Uprising Corp identity (Weyland, Side B: Ascending to Orbit — flip face of Earth Station: SEA Headquarters). Limit 1 remote server. As an additional cost to run a remote server, the Runner must pay 6[credit]. When the Runner makes a successful run on HQ, flip back to SEA Headquarters.",
+		"passive_modifiers": [
+			{"type": "additional_run_cost_credits", "value": 6, "conditions": {"server": "remote"}}
+		],
+		"successful_run": {
+			"effects": [
+				{
+					"type": "flip_identity",
+					"params": {
+						"face": "corp",
+						"flip_to": "earth_station_sea_headquarters",
+						"flip_title": "Earth Station: SEA Headquarters",
+						"condition": "server_is_hq",
+						"optional": false,
+						"on_flip": []
+					}
+				}
+			]
+		}
+	},
+
+	"gamenet_where_dreams_are_real": {
+		"_note": "Uprising Corp identity (NBN). Whenever a Corp card ability causes the Runner to spend or lose 1 or more credits during a run, gain 1[credit].",
+		"runner_loses_credits_from_corp_ability_during_run": {
+			"effects": [
+				{"type": "gain_credits", "params": {"subject": "corp", "amount": 1}}
+			]
+		}
+	},
+
+	"kakurenbo": {
+		"_note": "Uprising Corp operation (Jinteki, cost 2). Additional cost: spend [click][click]. Trash any number of cards from HQ. Turn all cards in Archives facedown. May install 1 card from Archives in the root of a remote server with 2 advancement counters. Removed from the game.",
+		"additional_cost_clicks": 2,
+		"on_play": {
+			"remove_from_game": true,
+			"effects": [{"type": "kakurenbo_play"}]
+		}
+	},
+
+	"scapenet": {
+		"_note": "Uprising Corp operation (HB, gray ops, cost 1). Play only if the Runner made a successful run during their last turn. Trace[7] - if successful, remove 1 installed chip or virtual card from the game.",
+		"pre_play_condition": "runner_made_successful_run_last_turn",
+		"on_play": {
+			"effects": [
+				{
+					"type": "trace",
+					"params": {
+						"base_strength": 7,
+						"on_success": [{"type": "rfg_runner_installed_chip_or_virtual"}]
+					}
+				}
+			]
+		}
+	},
+
+	"winchester": {
+		"_note": "Uprising Corp ice (Weyland, destroyer/sentry/tracer, cost 4, str 4). Trace[4] - if successful, trash 1 installed program. Trace[3] - if successful, trash 1 installed hardware. While protecting HQ, gains a third subroutine: Trace[3] - if successful, end the run.",
+		"subroutines": [
+			{
+				"label": "Trace[4] - if successful, trash 1 installed program.",
+				"effects": [
+					{
+						"type": "trace",
+						"params": {
+							"base_strength": 4,
+							"on_success": [{"type": "trash_runner_installed", "params": {"card_types": ["program"]}}]
+						}
+					}
+				]
+			},
+			{
+				"label": "Trace[3] - if successful, trash 1 installed piece of hardware.",
+				"effects": [
+					{
+						"type": "trace",
+						"params": {
+							"base_strength": 3,
+							"on_success": [{"type": "trash_runner_installed", "params": {"card_types": ["hardware"]}}]
+						}
+					}
+				]
+			},
+			{
+				"require_server": "hq",
+				"label": "Trace[3] - if successful, end the run.",
+				"effects": [
+					{
+						"type": "trace",
+						"params": {
+							"base_strength": 3,
+							"on_success": [{"type": "end_run"}]
+						}
+					}
+				]
+			}
+		]
 	}
 }

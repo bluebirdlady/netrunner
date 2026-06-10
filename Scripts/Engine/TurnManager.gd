@@ -131,6 +131,15 @@ func _corp_turn() -> void:
 	ctx.trieste_locked_ice_instance_id = ""                 # reset for Trieste (safety)
 	ctx.corp_action_phase_force_end = false                  # reset for Big Deal
 	ctx.corp_cards_added_to_archives_this_turn = 0           # reset for Regenesis
+	ctx.corp_cannot_score_agendas_this_turn = false          # reset for Digital Rights Management
+	# Uprising lockdown operations: trashed when the Corp's next turn begins.
+	for lockdown_card in ctx.active_lockdown_cards.duplicate():
+		var lc: InstalledCard = lockdown_card as InstalledCard
+		ctx.unregister_all_card_effects(lc.runtime_instance_id)
+		if lc.card_record != null:
+			ctx.corp_discard.append(lc.card_record)
+		ctx.send_log("%s is trashed (lockdown ends)." % lc.display_name())
+	ctx.active_lockdown_cards.clear()
 	# Capture whether the runner stole or trashed last runner turn before clearing the flag.
 	# Active Policing / Bring Them Home pre-play condition reads this.
 	ctx.runner_stole_or_trashed_last_runner_turn = \
@@ -141,6 +150,9 @@ func _corp_turn() -> void:
 	# Capture whether the runner ran successfully last turn before this turn's reset.
 	# Used by Public Trail ("Play only if the Runner made a successful run during their last turn").
 	ctx.runner_made_successful_run_last_turn = ctx.runner_made_successful_run_this_turn
+	# Capture whether the runner made a successful run on HQ last turn.
+	# Used by Digital Rights Management's pre-play condition.
+	ctx.runner_hq_successful_run_last_turn = ctx.runner_hq_successful_run_this_turn
 	ctx.corp_used_reality_plus_this_turn = false        # reset once-per-turn identity limit
 	ctx.once_per_turn_triggered.clear()                # reset per-turn trigger guards
 	if corp_penalty > 0:
@@ -429,6 +441,14 @@ func _runner_turn() -> void:
 	if runner_bonus > 0:
 		ctx.send_log("%s gets +%d click(s) this turn (Basilar Synthgland / bonus)." % [
 			ctx.runner_name(), runner_bonus])
+	# Project Vacheron: remove 1 hosted agenda counter at the start of the Runner's turn
+	# while it sits in the Runner's score area with counters (worth 0 points until then).
+	for pv_card_any in ctx.runner_score_area_cards:
+		var pv_card: InstalledCard = pv_card_any as InstalledCard
+		if pv_card != null and pv_card.card_id == "project_vacheron" and pv_card.get_counter("agenda") > 0:
+			pv_card.remove_counter("agenda", 1)
+			ctx.send_log("[Project Vacheron] Removes 1 hosted agenda counter (%d remaining)." % pv_card.get_counter("agenda"))
+
 	ctx.runner_made_successful_run_this_turn = false   # reset each turn
 	ctx.runner_centrals_run_this_turn = []             # reset each turn
 	ctx.runner_click_draws_this_turn  = 0              # reset each turn
@@ -567,7 +587,12 @@ func _validate_action(player: String, action: GameAction) -> Dictionary:
 			return {"ok": true, "reason": ""}
 
 		"use_installed_card":
-			if clicks < 1:
+			# Uprising: False Lead — "Forfeit this agenda:" is the cost; usable
+			# without spending a click.
+			var uic_card_id: String = action.params.get("card_id", "")
+			var uic_no_click_cost: bool = (ability_registry._abilities.get(uic_card_id, {}) as Dictionary) \
+				.get("click_action", {}).get("no_click_cost", false)
+			if clicks < 1 and not uic_no_click_cost:
 				return {"ok": false, "reason": "Not enough clicks"}
 			# Check for additional click costs in the card's click_action def (e.g. Rent Rioters: 3 total)
 			var act_card_id: String = action.params.get("card_id", "")
@@ -609,6 +634,10 @@ func _validate_action(player: String, action: GameAction) -> Dictionary:
 						var fc_c: InstalledCard = fc_root as InstalledCard
 						if fc_c != null and fc_c.is_rezzed and fc_c.card_id == "front_company":
 							return {"ok": false, "reason": "Front Company: you must make another run before running on a remote."}
+			# Earth Station: additional credit cost to run HQ (Side A) or a remote (Side B).
+			var run_extra_cost: int = ctx.additional_run_cost_credits(target)
+			if run_extra_cost > 0 and ctx.get_credits("runner") < run_extra_cost:
+				return {"ok": false, "reason": "Cannot afford the additional %dcr cost to run this server." % run_extra_cost}
 			return {"ok": true, "reason": ""}
 
 		"install":
@@ -674,6 +703,10 @@ func _validate_action(player: String, action: GameAction) -> Dictionary:
 				if not ctx.runner_made_successful_run_last_turn:
 					return {"ok": false,
 						"reason": "%s: Runner did not make a successful run last turn." % record.title}
+			if va_ppc == "runner_no_hq_successful_run_last_turn" and player == "corp":
+				if ctx.runner_hq_successful_run_last_turn:
+					return {"ok": false,
+						"reason": "%s: Runner made a successful run on HQ last turn." % record.title}
 			if va_ppc == "runner_tags_gte_2" and player == "corp":
 				if ctx.runner_tags < 2:
 					return {"ok": false,
@@ -1347,6 +1380,10 @@ func _do_advance(player: String, action: GameAction) -> void:
 			if ctx.mitosis_restricted_instance_ids.has(card.runtime_instance_id):
 				ctx.send_log("[Mitosis] %s cannot be scored this turn." % card.display_name())
 				return
+			# Digital Rights Management: agendas cannot be scored for the rest of the turn.
+			if ctx.corp_cannot_score_agendas_this_turn:
+				ctx.send_log("[Digital Rights Management] Cannot score agendas this turn.")
+				return
 			# Azef Protocol (and any future agenda with additional scoring cost):
 			# Corp must trash 1 other installed card before scoring.
 			var agenda_def: Dictionary = ability_registry._abilities.get(card.card_id, {}) as Dictionary
@@ -1447,6 +1484,24 @@ func _do_play_operation(player: String, action: GameAction) -> void:
 	if op_card_def.get("pre_play_condition", "") == "runner_stole_agenda_this_turn" and player == "runner":
 		if not ctx.runner_stole_agenda_this_turn:
 			ctx.send_log("%s: cannot play — Runner has not stolen an agenda this turn." % record.title)
+			return
+
+	# Digital Rights Management: play only if Runner did not make a successful run on HQ last turn.
+	if op_card_def.get("pre_play_condition", "") == "runner_no_hq_successful_run_last_turn" and player == "corp":
+		if ctx.runner_hq_successful_run_last_turn:
+			ctx.send_log("%s: cannot play — Runner made a successful run on HQ last turn." % record.title)
+			return
+
+	# Scapenet: play only if the Runner made a successful run during their last turn.
+	if op_card_def.get("pre_play_condition", "") == "runner_made_successful_run_last_turn" and player == "corp":
+		if not ctx.runner_made_successful_run_last_turn:
+			ctx.send_log("%s: cannot play — Runner did not make a successful run last turn." % record.title)
+			return
+
+	# Uprising lockdown operations: "Play only if there is no active lockdown."
+	if op_card_def.get("pre_play_condition", "") == "no_active_lockdown" and player == "corp":
+		if not ctx.no_active_lockdown():
+			ctx.send_log("%s: cannot play — there is already an active lockdown." % record.title)
 			return
 
 	_spend_click(player)
@@ -1592,6 +1647,17 @@ func _do_play_operation(player: String, action: GameAction) -> void:
 		if ctx.has_meta("operation_scored_as_agenda"):
 			ctx.remove_meta("operation_scored_as_agenda")
 			# Card now lives in corp_score_area — do not discard
+		elif on_play_def != null and (on_play_def as Dictionary).get("remove_from_game", false):
+			ctx.corp_rfg.append(record)
+			ctx.send_log("%s is removed from the game." % record.title)
+		elif op_card_def.get("is_lockdown", false):
+			# Uprising lockdown operations: "This operation is not trashed until your
+			# next turn begins." Keep it in a play-area zone with its ongoing
+			# listeners/modifiers registered until _corp_turn() trashes it.
+			var lockdown_card := InstalledCard.make_runtime_instance(record, "play_area", "lockdown", true)
+			ctx.active_lockdown_cards.append(lockdown_card)
+			_register_card_listeners(lockdown_card)
+			ctx.send_log("%s remains active until %s's next turn begins (lockdown)." % [record.title, ctx.corp_name()])
 		else:
 			ctx.corp_discard.append(record)
 		# Track for Nebula Making Stars flip condition; fire once-per-turn click gain trigger
@@ -1722,6 +1788,14 @@ func _do_run(action: GameAction) -> void:
 	_spend_click("runner")
 	var server_id: String = action.params.get("server_id", "hq")
 
+	# Earth Station: additional credit cost to run HQ (Side A) or a remote (Side B).
+	var run_extra_cost: int = ctx.additional_run_cost_credits(server_id)
+	if run_extra_cost > 0:
+		var run_cost_paid: int = min(run_extra_cost, ctx.runner_credits)
+		ctx.runner_credits -= run_cost_paid
+		if not ctx.simulation_mode: emit_signal("credits_changed", "runner", ctx.runner_credits)
+		ctx.send_log("%s pays %dcr additional cost to run %s." % [ctx.runner_name(), run_cost_paid, server_id])
+
 	# Notify Main so it can open RunScene before the run begins
 	if ctx.has_meta("on_run_started"):
 		var cb: Callable = ctx.get_meta("on_run_started") as Callable
@@ -1750,9 +1824,15 @@ func _do_run(action: GameAction) -> void:
 
 
 func _do_use_installed_card(player: String, action: GameAction) -> void:
-	_spend_click(player)
 	var instance_id: String = action.params.get("card_instance_id", "")
 	var card_id: String     = action.params.get("card_id", "")
+
+	# Uprising: False Lead — "Forfeit this agenda:" is the cost; this ability
+	# does not consume a click.
+	var no_click_cost: bool = (ability_registry._abilities.get(card_id, {}) as Dictionary) \
+		.get("click_action", {}).get("no_click_cost", false)
+	if not no_click_cost:
+		_spend_click(player)
 
 	# Find the installed card — also checks scored agendas for Dividends / NBT click actions
 	var installed: InstalledCard = null
@@ -2206,7 +2286,8 @@ func _register_scored_agenda_listeners(card: InstalledCard) -> void:
 			"corp_turn_start", "runner_turn_start", "corp_turn_end", "runner_turn_end",
 			"run_start", "successful_run", "breach_complete", "runner_steals_agenda",
 			"runner_takes_tags", "corp_scores_agenda", "runner_trashes_during_breach",
-			"before_breach", "card_accessed_event", "corp_card_trashed_from_server"]:
+			"before_breach", "card_accessed_event", "corp_card_trashed_from_server",
+			"corp_purges_virus_counters"]:
 		var trigger_def = card_def.get(event_type, null)
 		if trigger_def != null:
 			ctx.register_listener(event_type, instance_id, trigger_def as Dictionary)
@@ -2363,7 +2444,9 @@ func _register_identity_listeners(instance_id: String, card_id: String) -> void:
 					"runner_action_phase_ends", "melies_u_flipped",
 					"runner_rig_action", "card_accessed_event",
 					# Midnight Sun identity events
-					"runner_suffers_core_damage", "corp_trashes_own_rezzed_card"]:
+					"runner_suffers_core_damage", "corp_trashes_own_rezzed_card",
+					# Uprising identity events
+					"runner_loses_credits_from_corp_ability_during_run"]:
 		var trigger_def = card_def.get(event_type, null)
 		if trigger_def != null:
 			ctx.register_listener(event_type, instance_id, trigger_def as Dictionary)

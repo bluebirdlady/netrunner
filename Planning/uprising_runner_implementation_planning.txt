@@ -1,0 +1,474 @@
+UPRISING — RUNNER-SIDE IMPLEMENTATION PLANNING
+===============================================
+Date: 2026-06-10
+Set: Uprising (65 entries in CSV; Runner-side subset = 30 cards)
+Source: Sets/uprising.csv, Campaign/cards.json
+Note: Corp-side Uprising cards (35) were completed in
+Planning/uprising_corp_implementation_planning.txt (Sprints 1-6, all done).
+This document covers ONLY the 30 Runner-side cards. Where a mechanic is
+shared with the Corp side (e.g. trace, flip-identity), it is called out so
+work isn't duplicated — the trace mechanic and flip_identity infrastructure
+already exist and are reused as-is.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CARD INDEX — RUNNER SIDE (30 cards)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+01  afterimage                 — Program (Crim, icebreaker - killer, MU 1,
+                                  cost 4). Once per turn -> pay 2cr (stealth
+                                  only) when encountering a sentry: bypass
+                                  it. Interface -> 1cr: break up to 2 sentry
+                                  subs.
+02  aniccam                     — Hardware (Shaper, console, cost 3). +1 MU.
+                                  First time each turn an event is trashed
+                                  from anywhere: draw 1 card. Limit 1 console
+                                  per player.
+03  boomerang                   — Hardware (Crim, cost 2). ALREADY
+                                  IMPLEMENTED. On install, choose 1 installed
+                                  ice; usable only vs that ice. [trash]:
+                                  break up to 2 subs. On successful run
+                                  (using Boomerang), may add it from heap to
+                                  grip.
+04  bravado                     — Event (Crim, run, cost 3). Run a server
+                                  protected by ice. On run end: gain 6cr +
+                                  1cr per ice passed during the run.
+05  buffer_drive                — Hardware (Neutral, cost 3). First time
+                                  each turn 1+ cards trashed from grip/stack:
+                                  may add 1 to bottom of stack. [Remove from
+                                  game]: add 1 card from heap to bottom of
+                                  stack and shuffle, then draw 1 card.
+06  cordyceps                   — Program (Shaper, virus, cost 3). On
+                                  install, place 2 virus counters. Once per
+                                  turn -> on successful run on a central
+                                  server: remove 1 hosted virus counter to
+                                  swap 1 piece of ice protecting that central
+                                  with a piece of ice protecting another
+                                  server.
+07  cybertrooper_talut          — Resource (Shaper, connection - virtual,
+                                  cost 2). +1 link. Whenever you install a
+                                  non-AI icebreaker: that icebreaker gets +2
+                                  strength for the remainder of the turn.
+08  daily_casts                 — Resource (Neutral, cost 3). ALREADY
+                                  IMPLEMENTED. On install, load 8cr. Turn
+                                  start: take 2cr. When empty, trash.
+09  devil_charm                 — Hardware (Anarch, chip, cost 1). Whenever
+                                  you encounter a piece of ice, may [remove
+                                  from game] this: that ice gets -6 strength
+                                  for the remainder of the run.
+10  dreamnet                    — Resource (Neutral, virtual, cost 3). First
+                                  time each turn you make a successful run:
+                                  draw 1 card; if your identity is digital or
+                                  you have 2+ link, also gain 1cr.
+11  euler                       — Program (Shaper, icebreaker - decoder,
+                                  cost 2). Interface -> 0cr: break 1 code
+                                  gate sub, only if installed this turn.
+                                  Interface -> 2cr: break up to 2 code gate
+                                  subs. 1cr: +1 strength.
+12  gachapon                    — Hardware (Anarch, chip, cost 0). [Trash]:
+                                  set aside top 6 cards of stack faceup; may
+                                  install 1 program or virtual resource from
+                                  among them paying 2cr less; shuffle the
+                                  rest (3 of the remaining cards per the
+                                  printed text — actually "shuffle 3 of the
+                                  remaining cards into your stack, trash the
+                                  rest") into stack/heap.
+13  harmony_ar_therapy          — Event (Shaper, cost 2). Choose up to 5
+                                  cards with different names in heap; shuffle
+                                  into stack. [Remove from game].
+14  hoshiko_shiro_untold_protagonist — Runner identity (Anarch, natural,
+                                  *2-sided identity card*). Turn end: if you
+                                  accessed a card this turn, gain 2cr and
+                                  flip this identity (to its "digital" face,
+                                  Untold Protagonist).
+15  keiko                       — Hardware (Anarch, console - companion,
+                                  cost 3). ALREADY IMPLEMENTED. +2 MU. First
+                                  time each turn you install a companion or
+                                  spend hosted companion credits: gain 1cr.
+                                  Limit 1 console per player.
+16  makler                       — Program (Crim, icebreaker - fracter, cost
+                                  5). Interface -> 2cr: break up to 2 barrier
+                                  subs. 2cr: +2 strength. First time each
+                                  turn this fully breaks a piece of ice: gain
+                                  1cr.
+17  mantle                       — Program (Shaper, stealth, MU 1, cost 1).
+                                  1 recurring credit. You can spend hosted
+                                  credits to use hardware and programs (i.e.
+                                  pay for abilities/install costs of
+                                  hardware/programs).
+18  moshing                      — Event (Anarch, cost 0). Additional cost:
+                                  trash 3 cards from grip. Gain 3cr and draw
+                                  3 cards.
+19  mu_safecracker               — Hardware (Crim, cost 2). Spend credits
+                                  only from stealth cards to use this
+                                  hardware. On successful run on HQ: may pay
+                                  1cr to access 1 additional card when
+                                  breaching HQ. On successful run on R&D: may
+                                  pay 1cr to access 1 additional card when
+                                  breaching R&D (printed text covers both
+                                  HQ and R&D — confirm against full card
+                                  text during implementation).
+20  mystic_maemi                 — Resource (Anarch, companion - virtual,
+                                  cost 1). Turn start + whenever you steal an
+                                  agenda: place 1 hosted credit. May spend
+                                  hosted credits to play events. Turn end: if
+                                  3+ hosted credits, must trash this resource
+                                  (no tag-or-trash choice — confirm exact
+                                  wording vs. Trickster Taka's choice clause
+                                  during implementation).
+21  odore                         — Program (Anarch, icebreaker - killer,
+                                  cost 4). Interface -> 2cr: break any number
+                                  of sentry subs. Interface -> 0cr: break 1
+                                  sentry sub, only if you have 3+ installed
+                                  virtual resources. 3cr: +3 strength
+                                  (confirm exact boost amount during
+                                  implementation).
+22  paladin_poemu                 — Resource (Anarch, companion - virtual,
+                                  cost 1). Turn start + whenever you steal an
+                                  agenda: place 1 hosted credit. May spend
+                                  hosted credits to install non-connection
+                                  cards. Turn end: if 3+ hosted credits, must
+                                  trash this resource.
+23  paules_cafe                   — Resource (Shaper, location - seedy, cost
+                                  1). [Click]: host 1 program or hardware
+                                  from grip faceup on this resource. 1cr:
+                                  install 1 hosted card. The first card
+                                  installed this way each turn costs 1cr
+                                  less.
+24  penrose                       — Program (Shaper, icebreaker - decoder -
+                                  fracter, cost 3). Interface -> 1cr: break 1
+                                  barrier sub, only if installed this turn.
+                                  Interface -> 1cr: break 1 code gate sub. 1
+                                  cr: +3 strength. Spend credits only from
+                                  stealth cards for boost (confirm exact
+                                  stealth-restriction scope during
+                                  implementation).
+25  penumbral_toolkit             — Resource (Crim, stealth - virtual, cost
+                                  2). Costs 2cr less to install if you made a
+                                  successful run on HQ this turn. On install,
+                                  load 4cr. When empty, trash. Spend hosted
+                                  credits to use stealth cards (confirm exact
+                                  spend-restriction wording during
+                                  implementation).
+26  prognostic_q_loop              — Hardware (Crim, chip, cost 1). First
+                                  time each turn a run begins: may look at
+                                  top 2 cards of stack. Once per turn -> 1cr:
+                                  reveal top card of stack; if program or
+                                  hardware, may install it paying 2cr less
+                                  (confirm exact text during implementation).
+27  self_modifying_code            — Program (Shaper, cost 0). 2cr, [trash]:
+                                  search stack for 1 program, install it,
+                                  shuffle stack.
+28  simulchip                      — Hardware (Shaper, chip, cost 1).
+                                  Additional cost to use this hardware: trash
+                                  1 installed program (waived if a program
+                                  was already trashed this turn). [Trash]:
+                                  install 1 program from heap, paying 3cr
+                                  less (confirm discount amount during
+                                  implementation).
+29  swift                         — Hardware (Crim, console - vehicle, cost
+                                  2). +1 MU. First time each turn you play a
+                                  run event: gain [click]. Limit 1 console
+                                  per player.
+30  the_back                       — Resource (Crim, job - location, cost
+                                  1). First time each turn you use a piece of
+                                  hardware during a run: place 1 power
+                                  counter. [Click], [remove from game]: for
+                                  each hosted power counter, choose up to 2
+                                  cards (confirm exact effect text during
+                                  implementation — likely "draw 1 card and/or
+                                  gain 1cr" per counter, similar to other
+                                  Job/Location resources).
+
+NOTE ON TEXT ACCURACY: several entries above (12, 19, 21, 24-26, 28, 30) were
+summarized from truncated stripped_text in Campaign/cards.json. Before
+writing each abilities.json entry, re-fetch the full `text` field for that
+card_id from Campaign/cards.json (or NetrunnerDB) to confirm exact wording,
+costs, and edge cases — do not implement from the summary above alone.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ALREADY IMPLEMENTED
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+boomerang     Present in abilities.json (choose_target_on_install +
+              break.target_only + run_end boomerang_recur_from_heap). Verify
+              against the Uprising printing (subs_per_use 2, trash_self_on_use
+              true) — looks correct already.
+
+daily_casts   Present in abilities.json (on_rez add_self_counters credits=8,
+              runner_turn_start take_hosted_credits=2 + self_trash_if_empty).
+              Looks correct already.
+
+keiko         Present in abilities.json (passive_modifiers runner_mu_bonus=2,
+              on_companion_install_or_spend with first_time_this_turn gain
+              1cr, console: true). Looks correct already.
+
+These three should get a quick cross-check pass (similar to the Drafter
+cross-check in Sprint 6 of the Corp plan) but need no new engine work.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+EXISTING ENGINE FEATURES LEVERAGED BY UPRISING (no new code needed)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  - icebreaker `break` / `boost` / `interface_break` / `interface_boost`
+    blocks (Revolver, Abaasy, Rising Tide, Lobisomem)            — base
+    pattern for Afterimage, Euler, Makler, Odore, Penrose.
+  - `fully_break_code_gate` / `fully_break_sentry` triggers       (Abaasy,
+    Orca)                                                          —
+    reusable for Makler's "first full break each turn -> gain 1cr".
+  - `dynamic_base_strength` passive modifier                      (Rising
+    Tide) — reusable if Penrose/Euler need conditional strength.
+  - `place_stealth_credits` / `add_run_stealth_credits` /
+    `stealth_credits` counter + run_modifiers                     (Touchstone
+    and others) — base for Mantle's recurring stealth credit and
+    Penumbral Toolkit / Mu Safecracker's "spend stealth credits only"
+    restriction.
+  - companion mechanic: `on_companion_install_or_spend`,
+    `on_steal_agenda`, `runner_turn_start` add_self_counters,
+    `choice_take_tag_or_trash_self`, `self_has_counter_gte` condition
+    (Keiko, Trickster Taka)                                        — base
+    for Mystic Maemi and Paladin Poemu (new "spend hosted credits to play
+    events / install non-connection cards" payment-source types needed —
+    see Phase 1B).
+  - virus counter infrastructure (`add_self_counters` counter="virus",
+    Botulus, Mavirus, Cyberdex Sandbox)                            —
+    reusable for Cordyceps' 2 starting virus counters.
+  - `corp_swap_ice` / ice-position-swap pattern if it exists (check Cordyceps
+    against any existing "swap ice protecting two servers" effect; if none
+    exists this is new — see Phase 1C).
+  - `run_ice_passed_count` (AbilityInterpreter.gd ~7620)            —
+    reusable for Bravado's "+1cr per ice passed".
+  - `flip_identity` + `reregister_identity` + runner_decision_maker
+    .choose_flip_identity (already supports runner side, used nowhere yet
+    on Runner side but built generically)                          —
+    reusable for Hoshiko Shiro / Untold Protagonist 2-sided identity.
+  - `install_from_heap` / `return_heap_card_to_stack` (Scrounge)    —
+    reusable for Simulchip's heap-install and Buffer Drive's stack-return.
+  - `add_self_counters` counter="power" + power-counter spend patterns
+    (Revolver, Prana Condenser-style)                              —
+    reusable for The Back's hosted power counters.
+  - `runner_mu_bonus` passive modifier (Keiko, Aniccam's console)   —
+    reusable for Aniccam (+1 MU) and Swift (+1 MU).
+  - `first_time_this_turn` condition helper                        — reusable
+    for Aniccam (event trashed), Dreamnet (successful run), Makler (full
+    break), Buffer Drive (cards trashed), Swift (run event played), The
+    Back (hardware used during run).
+  - trace mechanic (built in Corp Sprint 6) and `runner_total_link()` /
+    `runner_credits` — no new Runner-side trace cards in this set, but
+    `runner_total_link()` is directly reusable for Cybertrooper Talut (+1
+    link) and Dreamnet's "2+ link" condition check.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 1 — ENGINE INFRASTRUCTURE (GDScript changes)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+─────────────────────────────────────────────────────────────────────────────
+1A. EVENT-TRASH / GRIP-TRASH TRIGGERS (NEW)
+─────────────────────────────────────────────────────────────────────────────
+Used by: aniccam (event trashed -> draw), buffer_drive (grip/stack cards
+trashed -> may rebury).
+
+Need a generic event hook fired whenever a card is trashed "from any
+location" (for Aniccam, specifically when the trashed card is type=event)
+and a more specific "trashed from grip or stack" hook (for Buffer Drive).
+Check whether an existing `on_card_trashed` / `runner_card_trashed` event
+already exists anywhere (search AbilityInterpreter.gd for "trashed" event
+dispatch) before adding a new one — likely partial infrastructure exists for
+Degree Mill / Labor Rights-style effects and can be extended with a
+`source_zone` / `card_type` filter rather than built from scratch.
+
+─────────────────────────────────────────────────────────────────────────────
+1B. COMPANION CREDIT-SPEND PAYMENT SOURCES (NEW)
+─────────────────────────────────────────────────────────────────────────────
+Used by: mystic_maemi (spend hosted credits to pay for playing events),
+paladin_poemu (spend hosted credits to pay for installing non-connection
+cards), mantle (spend hosted stealth credits to pay for hardware/program
+costs — install costs and ability costs).
+
+Trickster Taka already has a `runner_program_run_recurring_credits`-style
+passive modifier for "spend on programs during runs" — generalize this into
+a small family of "alternate payment source" passive modifiers, e.g.
+`{"type": "companion_credit_source", "applies_to": "events"|"installs_non_connection"|"hardware_and_programs", "source": "self_hosted"|"stealth"}`.
+The cost-resolution code path (wherever the engine currently asks "can the
+Runner afford this, and where do the credits come from") needs to check
+these modifiers before falling back to the credit pool. This is the central
+piece of new infrastructure for this set — three cards (Mystic Maemi,
+Paladin Poemu, Mantle) plus the existing stealth-spend cards (Penumbral
+Toolkit, Mu Safecracker, Afterimage, Penrose) all funnel through it.
+
+─────────────────────────────────────────────────────────────────────────────
+1C. ICE-POSITION SWAP (NEW, unless already present)
+─────────────────────────────────────────────────────────────────────────────
+Used by: cordyceps (swap a piece of ice protecting one central server with a
+piece of ice protecting another server).
+
+Search for any existing "swap ice between servers" effect (some ice-relocate
+cards may exist from other sets, e.g. Trick Shot or similar). If none, add a
+`swap_ice_position` effect: takes two InstalledCard ice references, swaps
+their `server_id` (and position-in-list) fields, fires any
+on-server-change listeners. Keep the implementation generic (any two ice,
+any two servers) even though Cordyceps restricts the choices — restriction
+logic belongs in the card's effect params, not the engine primitive.
+
+─────────────────────────────────────────────────────────────────────────────
+1D. STACK "LOOK AT TOP N" / "REVEAL TOP CARD, CONDITIONAL INSTALL" (NEW)
+─────────────────────────────────────────────────────────────────────────────
+Used by: prognostic_q_loop (look at top 2 of stack on first run each turn;
+once per turn pay 1cr to reveal top card and conditionally install at a
+discount), gachapon (set aside top 6, install one at a discount, shuffle/
+trash the rest), self_modifying_code (search stack for a program — likely
+already supported via existing `search_deck` pattern used by Corp's
+Digital Rights Management / Wave; verify and reuse).
+
+`search_deck` (Corp side, used for Wave/Trust Operation/Gaslight/DRM) is
+list-position-agnostic (search whole deck). Prognostic Q-Loop and Gachapon
+need *positional* stack access (top N cards specifically, in order, with
+set-aside/shuffle-back semantics). This is new — add a `stack_look_top` /
+`stack_set_aside_top` family of effects operating on `ctx.runner_deck`
+(or equivalent Array) by index rather than search-and-remove.
+
+─────────────────────────────────────────────────────────────────────────────
+1E. HOSTING FACEUP CARDS FOR LATER INSTALL (NEW, unless Hayley/similar exists)
+─────────────────────────────────────────────────────────────────────────────
+Used by: paules_cafe ([click]: host 1 program/hardware from grip faceup;
+1cr: install a hosted card, first one each turn at -1cr).
+
+Check for an existing "host card from grip, install later" pattern (some
+existing console/resource may already do this, e.g. a Shaper "rig
+construction" style card). If absent, add a generic `host_card_from_grip`
+effect (places a CardRecord into an InstalledCard's `hosted_cards` array
+without installing it) and a `install_hosted_card` effect (moves a hosted
+card through normal install resolution, applying any cost modifiers from
+the host).
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 2 — IMPLEMENTATION ORDER (Data/abilities.json + small effects)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Group cards by shared infrastructure so each sprint either needs zero new
+engine work or builds exactly one piece of Phase 1 infrastructure.
+
+Sprint R1 — Verification pass (no new code)
+  - Cross-check boomerang, daily_casts, keiko against Uprising printings
+    (item from "ALREADY IMPLEMENTED" above).
+
+Sprint R2 — Straightforward icebreakers (uses existing break/boost/interface
+infrastructure only)
+  - euler (decoder)
+  - penrose (decoder/fracter dual-type — model on Lobisomem's
+    break/break_barrier dual-block pattern)
+  - makler (fracter + fully_break_code_gate-style trigger generalized to
+    fully_break any ice → gain 1cr, first time per turn)
+  - afterimage (killer + sentry-bypass paid ability — bypass pattern likely
+    needs a small new "encounter bypass" effect; check for an existing
+    bypass effect from another sentry-bypass card, e.g. Inversificator/
+    Aumakua-adjacent, before adding new code)
+  - odore (killer, conditional 0cr break based on virtual-resource count —
+    needs a "count installed cards with subtype X" condition helper, check
+    if one exists for similar conditional-cost cards)
+
+Sprint R3 — Consoles / MU / passive triggers (uses runner_mu_bonus,
+first_time_this_turn, companion infra)
+  - aniccam (+1 MU, event-trashed draw — depends on Phase 1A)
+  - swift (+1 MU, first run-event-played -> gain click)
+  - cybertrooper_talut (+1 link via runner_total_link, non-AI icebreaker
+    install -> +2 str for the turn)
+  - dreamnet (first successful run -> draw, + conditional credit via
+    runner_total_link()/identity check)
+
+Sprint R4 — Companion family (builds Phase 1B)
+  - mystic_maemi
+  - paladin_poemu
+  - mantle
+  (Cross-check keiko's existing entry still integrates correctly once 1B
+  generalizes the companion-spend modifiers.)
+
+Sprint R5 — Stealth-credit family (builds on Phase 1B's stealth source, plus
+existing place_stealth_credits/stealth_credits counter)
+  - penumbral_toolkit
+  - mu_safecracker
+  (afterimage and penrose's stealth-only costs also validated here once 1B
+  lands.)
+
+Sprint R6 — Heap/stack manipulation (builds Phase 1D, reuses install_from_heap/
+return_heap_card_to_stack from Scrounge)
+  - self_modifying_code
+  - simulchip
+  - gachapon
+  - prognostic_q_loop
+  - buffer_drive (also depends on Phase 1A's grip/stack-trash hook)
+  - harmony_ar_therapy (heap -> stack shuffle + RFG, mostly existing
+    primitives)
+
+Sprint R7 — Misc economy/run events
+  - moshing (additional cost trash 3 from grip; gain 3cr draw 3 — should be
+    a thin wrapper around existing additional-cost-discard + gain/draw
+    effects)
+  - bravado (run + ice-passed credit bonus, via run_ice_passed_count)
+  - cordyceps (virus counters + ice-swap; depends on Phase 1C)
+  - the_back (power counters from hardware-use-during-run; depends on
+    Phase 1A-style "first time this turn" hardware-use hook — verify
+    against existing "hardware used during run" trackers before adding new
+    ones)
+  - paules_cafe (depends on Phase 1E)
+
+Sprint R8 — Identity
+  - hoshiko_shiro_untold_protagonist (flip_identity reuse; need the second
+    face's card_id and ability set defined as its own abilities.json entry,
+    mirroring Earth Station's two-entry pattern from Corp Sprint 5C)
+
+After each sprint: run the same validation pair used for Corp —
+  python3 -c "import json; json.load(open('Data/abilities.json', encoding='utf-8')); print('OK')"
+  & "D:\Godot_v4.6.2-stable_mono_win64\Godot_v4.6.2-stable_mono_win64\godot.exe" --headless --check-only --quit 2>&1 | tail -60
+  (expect "CardRegistry: loaded 2054 cards", "Available missions count: 22",
+  no errors — card count may increase by 1 if Hoshiko's second face is a
+  separate registry entry).
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 3 — AI UPDATES (SimRunnerAI / RunnerTurnAI / decision-makers)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Per the same minimal-scope principle applied to Corp Sprint 6: most of these
+30 cards are "fire and forget" passive/triggered effects that need no AI
+decision beyond "play/install when affordable," which existing generic AI
+heuristics already handle. Candidates for actual new AI decision points:
+
+  - Companion spend choices (Mystic Maemi/Paladin Poemu/Mantle): when the
+    Runner AI pays for an event/install/ability, it should prefer spending
+    hosted companion/stealth credits over its credit pool when a
+    `companion_credit_source` modifier applies (pure cost-minimization,
+    likely falls out of Phase 1B's payment-resolution code automatically if
+    that code always prefers alternate sources first — confirm rather than
+    add bespoke AI logic).
+  - Cordyceps' ice-swap target choice: needs a `choose_target`-style picker
+    (reuse CorpTurnAI's `choose_target` pattern on the Runner AI side) —
+    likely already has an equivalent on RunnerTurnAI; verify before adding.
+  - Afterimage's sentry-bypass and Odore's conditional 0cr break: these are
+    "always take if available and beneficial" — should fall out of existing
+    icebreaker-use heuristics once the break/interface definitions are in
+    place; no new AI code expected.
+  - Gachapon / Self-Modifying Code / Simulchip / Prognostic Q-Loop: deck-
+    search and heap-install choices should reuse whatever generic
+    "choose best program/hardware to install from a candidate list" picker
+    the Runner AI already has for similar tutors (e.g. existing Diesel/
+    Quality Time-style or program-tutor cards) — confirm such a picker
+    exists before writing a new one.
+
+Recommendation: keep Phase 3 to verification (confirm existing generic
+pickers handle these new cards) plus, only if testing reveals a real gap,
+the single most impactful addition — most likely the companion/stealth
+payment-preference check in 1B's cost-resolution path, since that's shared
+infrastructure rather than a one-off.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+OPEN QUESTIONS TO RESOLVE BEFORE/DURING IMPLEMENTATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  1. Confirm full card text for: gachapon, mu_safecracker, mystic_maemi,
+     odore, paules_cafe, penrose, penumbral_toolkit, prognostic_q_loop,
+     simulchip, the_back (truncated in Campaign/cards.json stripped_text).
+  2. Confirm whether a generic "card trashed" event dispatch already exists
+     (Phase 1A) before adding one.
+  3. Confirm whether ice-position-swap (Phase 1C) and host-card-for-later-
+     install (Phase 1E) primitives already exist anywhere in the codebase.
+  4. Confirm Hoshiko Shiro's second face's card_id/title for the
+     reregister_identity flip target.

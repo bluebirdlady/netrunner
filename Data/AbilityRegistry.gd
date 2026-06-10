@@ -96,6 +96,11 @@ func get_subroutines_for_card(card_id: String, installed: InstalledCard) -> Arra
 			var actual: int = installed.get_counter("advancement")
 			if actual < required:
 				continue   # sub doesn't exist yet
+		# Check "require_server" condition — sub only exists while protecting that server
+		# (e.g. Winchester's bonus Trace[3] sub while protecting HQ).
+		var required_server: String = s.get("require_server", "")
+		if required_server != "" and installed.server_id != required_server:
+			continue
 		result.append(s)
 	return result
 

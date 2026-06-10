@@ -57,6 +57,16 @@ var runner_score_area: Array[CardRecord] = []
 # click actions (e.g. Next Big Thing) can store and spend counters after being stolen.
 var runner_score_area_cards: Array = []   # Array[InstalledCard]
 
+# ── Lockdown operations (Uprising) ──────────────────────────────────────────────
+# "Play only if there is no active lockdown. This operation is not trashed
+# until your next turn begins." — these operations remain in a play-area
+# zone (not Archives) with their ongoing listeners/modifiers registered until
+# TurnManager._corp_turn() trashes them at the start of the Corp's next turn.
+var active_lockdown_cards: Array = []   # Array[InstalledCard]
+
+func no_active_lockdown() -> bool:
+	return active_lockdown_cards.is_empty()
+
 # ── Servers ───────────────────────────────────────────────────────────────────
 var servers: Dictionary = {}
 
@@ -167,6 +177,12 @@ var run_accessed_archives_card_ids: Array = []
 # Tracks whether the runner has made a successful run on HQ this turn (for Détente).
 # Cleared at the start of each runner turn.
 var runner_hq_successful_run_this_turn: bool = false
+# Captured at the start of each Corp turn from runner_hq_successful_run_this_turn.
+# Used by Digital Rights Management's pre-play condition.
+var runner_hq_successful_run_last_turn: bool = false
+# Set by Digital Rights Management's on_play effect; cleared at the start of the
+# Corp's next turn. While true, agendas cannot be scored.
+var corp_cannot_score_agendas_this_turn: bool = false
 # Tracks whether the runner made a successful run on R&D this turn (VP1 Chain Reaction).
 # Cleared at the start of each runner turn.
 var runner_successful_run_on_rd_this_turn: bool = false
@@ -610,11 +626,27 @@ func create_remote_server() -> Server:
 	return server
 
 # Returns false when the Corp identity limits remote servers and the cap is already reached.
-# Currently only A Teia: IP Recovery enforces a hard cap of 2 remote servers.
 func can_create_new_remote_server() -> bool:
 	if corp_identity != null and corp_identity.id == "a_teia_ip_recovery":
 		return get_remote_servers().size() < 2
+	# Earth Station: SEA Headquarters / Ascending to Orbit — Limit 1 remote server (both faces).
+	if corp_identity != null and corp_identity.id == "earth_station_sea_headquarters":
+		return get_remote_servers().size() < 1
 	return true
+
+# Total additional credit cost the Runner must pay (on top of the click) to make a
+# run on the given server, from passive identity modifiers (e.g. Earth Station).
+func additional_run_cost_credits(server_id: String) -> int:
+	var total := 0
+	for mod in _state_modifiers.get("additional_run_cost_credits", []):
+		var m: Dictionary = mod as Dictionary
+		var cond: Dictionary = m.get("conditions", {}) as Dictionary
+		var cond_server: String = cond.get("server", "")
+		if cond_server == "hq" and server_id == "hq":
+			total += m.get("value", 0) as int
+		elif cond_server == "remote" and server_id.begins_with("remote_"):
+			total += m.get("value", 0) as int
+	return total
 
 func get_remote_servers() -> Array:
 	var result: Array = []
@@ -694,6 +726,12 @@ func get_installed_card_by_instance_id(instance_id: String) -> InstalledCard:
 			return c
 	# Also check runner score area (stolen agendas with ongoing effects, e.g. The Basalt Spire).
 	for card in runner_score_area_cards:
+		var c: InstalledCard = card as InstalledCard
+		if c != null and c.runtime_instance_id == instance_id:
+			return c
+	# Also check active lockdown operations (Uprising) — remain in play until trashed
+	# at the start of the Corp's next turn.
+	for card in active_lockdown_cards:
 		var c: InstalledCard = card as InstalledCard
 		if c != null and c.runtime_instance_id == instance_id:
 			return c
@@ -927,14 +965,32 @@ func get_card_owner_by_instance_id(instance_id: String) -> String:
 
 func corp_agenda_points() -> int:
 	var total := 0
-	for card in corp_score_area:
-		total += (card as CardRecord).agenda_points
+	for i in range(corp_score_area.size()):
+		var record: CardRecord = corp_score_area[i] as CardRecord
+		var pts = record.agenda_points
+		# Megaprix Qualifier: worth 1 more agenda point while it has a hosted agenda counter.
+		if record.id == "megaprix_qualifier" and i < corp_score_area_cards.size():
+			var ic: InstalledCard = corp_score_area_cards[i] as InstalledCard
+			if ic != null and ic.get_counter("agenda") > 0:
+				pts += 1
+		total += pts
 	return total
 
 func runner_agenda_points() -> int:
 	var total := 0
-	for card in runner_score_area:
-		total += (card as CardRecord).agenda_points
+	for i in range(runner_score_area.size()):
+		var record: CardRecord = runner_score_area[i] as CardRecord
+		var pts = record.agenda_points
+		if i < runner_score_area_cards.size():
+			var ic: InstalledCard = runner_score_area_cards[i] as InstalledCard
+			if ic != null:
+				# Project Vacheron: worth 0 agenda points while it has hosted agenda counters.
+				if record.id == "project_vacheron" and ic.get_counter("agenda") > 0:
+					pts = 0
+				# Megaprix Qualifier: worth 1 more agenda point while it has a hosted agenda counter.
+				elif record.id == "megaprix_qualifier" and ic.get_counter("agenda") > 0:
+					pts += 1
+		total += pts
 	# Nightmare Archive (Parhelion): each copy in the Runner's score area is worth -1 point.
 	total -= runner_nightmare_archive_count
 	return total
@@ -1487,6 +1543,9 @@ func clone_for_sim() -> GameContext:
 	c.runner_score_area_cards = []
 	for ic in runner_score_area_cards:
 		c.runner_score_area_cards.append((ic as InstalledCard).clone())
+	c.active_lockdown_cards = []
+	for ic in active_lockdown_cards:
+		c.active_lockdown_cards.append((ic as InstalledCard).clone())
 
 	# ── Servers ────────────────────────────────────────────────────────────────
 	c.servers = {}
@@ -1543,6 +1602,8 @@ func clone_for_sim() -> GameContext:
 	c.run_s_dobrado_encounter_count               = run_s_dobrado_encounter_count
 	c.arissana_installed_this_run_iid             = arissana_installed_this_run_iid
 	c.runner_hq_successful_run_this_turn          = runner_hq_successful_run_this_turn
+	c.runner_hq_successful_run_last_turn          = runner_hq_successful_run_last_turn
+	c.corp_cannot_score_agendas_this_turn         = corp_cannot_score_agendas_this_turn
 
 	# ── Per-turn Corp flags ────────────────────────────────────────────────────
 	c.ice_rezzed_this_turn                        = ice_rezzed_this_turn

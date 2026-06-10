@@ -1,0 +1,1239 @@
+UPRISING — CORP-SIDE IMPLEMENTATION PLANNING
+=============================================
+Date: 2026-06-10
+Set: Uprising (65 entries in CSV; Corp-side subset = 35 cards)
+Source: Sets/uprising.csv, Campaign/cards.json
+Note: Runner-side Uprising cards (30) are planned separately. This document
+covers ONLY the 35 Corp-side cards. Where a mechanic is shared with the
+Runner side (e.g. trace, psi game redirect), it is called out so the two
+plans don't duplicate engine work.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CARD INDEX — CORP SIDE (35 cards)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+01  akhet                      — Ice (Weyland, barrier). Advanceable. While
+                                  3+ hosted adv counters: +3 strength, Runner
+                                  cannot break more than 1 printed sub per
+                                  encounter. Subs: gain 1cr + place 1 adv
+                                  counter on an installed card; end the run.
+02  argus_crackdown            — Operation (Weyland, gray ops, LOCKDOWN).
+                                  Not trashed until your next turn. Whenever
+                                  Runner makes a successful run on a server
+                                  protected by ice: 2 meat damage.
+03  bass_ch1r180g4             — Asset (HB, bioroid). [click][trash]: gain
+                                  [click][click].
+04  bellona                    — Agenda (NBN, expansion, 4/2). Additional
+                                  steal cost: Runner pays 5cr. On score: gain
+                                  5cr.
+05  cayambe_grid               — Upgrade (Weyland, region). Corp turn begin:
+                                  place 1 adv counter on a piece of ice
+                                  protecting this server. Whenever Runner
+                                  approaches this server: end the run unless
+                                  they pay 2cr per advanced ice protecting
+                                  this server. Limit 1 region per server.
+06  cerebral_overwriter        — Asset (HB, ambush). Advanceable. On access
+                                  while installed: Corp may pay 3cr to do X
+                                  core damage, X = hosted adv counters.
+07  colossus                   — Ice (Weyland, destroyer, sentry).
+                                  Advanceable. +1 strength per hosted adv
+                                  counter. Subs: give 1 tag (2 if 3+
+                                  counters); trash 1 program (+1 resource if
+                                  3+ counters).
+08  cyberdex_sandbox           — Agenda (Neutral, security, 3/2). The first
+                                  time each turn Corp purges virus counters:
+                                  gain 4cr. On score: may purge virus
+                                  counters.
+09  digital_rights_management  — Operation (NBN). Play only if Runner did
+                                  not make a successful run on HQ during
+                                  their last turn. Search R&D for 1 agenda,
+                                  reveal it, add to HQ, shuffle R&D. May
+                                  install 1 card from HQ in the root of a
+                                  remote server. Cannot score agendas for the
+                                  remainder of the turn.
+10  drafter                    — Ice (HB, sentry). ALREADY IMPLEMENTED
+                                  (confirm subs: may add 1 card from Archives
+                                  to HQ; may install 1 card from Archives or
+                                  HQ ignoring costs).
+11  earth_station_sea_headquarters — Corp identity (Weyland, division).
+                                  Limit 1 remote server. Additional cost to
+                                  run HQ: Runner pays 1cr. [click]: flip this
+                                  identity (to Earth Station: Ascending to
+                                  Orbit, with a different ability set —
+                                  *2-sided identity card*).
+12  engram_flush               — Ice (Jinteki, code gate, observer). On
+                                  encounter: Corp chooses a card type; for
+                                  the rest of the encounter, whenever the
+                                  grip is revealed by a sub on this ice, Corp
+                                  may trash 1 revealed card of that type.
+                                  Subs: reveal the grip (x2).
+13  f2p                        — Ice (NBN, sentry). 2cr: break 1 sub on this
+                                  ice — usable ONLY by the Runner, and only
+                                  if untagged. Subs: add 1 installed Runner
+                                  card to the grip; give Runner 1 tag.
+14  false_lead                 — Agenda (Neutral, security, 3/0). Forfeit
+                                  this agenda: if Runner has 2+ clicks
+                                  remaining, they lose [click][click].
+15  flower_sermon              — Agenda (Jinteki, 5/3). On score: place 5
+                                  agenda counters. Once per turn → spend 1
+                                  hosted counter: reveal top card of R&D,
+                                  draw 2 cards, add 1 card from HQ to top of
+                                  R&D.
+16  gamenet_where_dreams_are_real — Corp identity (NBN, division). Whenever a
+                                  Corp card ability causes the Runner to
+                                  spend or lose ≥1cr during a run: gain 1cr.
+17  ganked                     — Upgrade (NBN, ambush). While accessed in
+                                  R&D, must be revealed. On access: Corp may
+                                  trash this upgrade to choose a rezzed piece
+                                  of ice protecting this server — Runner
+                                  encounters that ice.
+18  gold_farmer                — Ice (NBN, barrier). Whenever Runner breaks a
+                                  printed sub on this ice: Runner loses 1cr.
+                                  Subs: end the run unless Runner pays 3cr
+                                  (x2).
+19  hyoubu_precog_manifold     — Operation (Jinteki, lockdown, psi). LOCKDOWN.
+                                  When played, choose a server. Whenever
+                                  Runner makes a successful run on the chosen
+                                  server: psi game — if bids differ, end the
+                                  run.
+20  kakurenbo                  — Operation (Jinteki, triple — additional
+                                  cost: spend [click][click]). Trash any
+                                  number of cards from HQ. Turn all cards in
+                                  Archives facedown. May install 1 card from
+                                  Archives in the root of a remote server and
+                                  place 2 adv counters on it. RFG.
+21  konjin                     — Ice (Jinteki, mythic, psi). On encounter:
+                                  psi game — if bids differ, Corp may choose
+                                  another rezzed ice; Runner encounters that
+                                  ice (then resumes encountering Konjin if
+                                  the run continues).
+22  la_costa_grid              — Upgrade (Jinteki, region, seedy). Remote
+                                  server only. Corp turn begin: place 1 adv
+                                  counter on a card in the root of this
+                                  server. Limit 1 region per server.
+23  megaprix_qualifier         — Agenda (HB, 3/2). On score: if another copy
+                                  of Megaprix Qualifier is in either player's
+                                  score area, place 1 agenda counter on this
+                                  agenda. While it has a hosted counter, it's
+                                  worth +1 agenda point.
+24  napd_cordon                — Operation (Neutral, lockdown). LOCKDOWN.
+                                  Additional cost to steal an agenda: Runner
+                                  pays 4cr + 2cr per adv counter on that
+                                  agenda.
+25  next_activation_command    — Operation (HB, lockdown). LOCKDOWN. Each
+                                  piece of ice gets +2 strength. Runner
+                                  cannot use non-icebreaker cards to break
+                                  subs.
+26  prana_condenser            — Asset (Jinteki). [interrupt] Whenever Corp
+                                  would suffer ≥1 net damage... wait — re-read:
+                                  "Whenever you would do 1+ net damage, you
+                                  may prevent 1 net damage. If you do, place
+                                  1 power counter + gain 3cr." (this is a
+                                  CORP-side net-damage-to-Runner interrupt —
+                                  Corp prevents its OWN damage effect to bank
+                                  counters/credits). [click][click][trash]: do
+                                  1 net damage per hosted power counter.
+27  project_vacheron           — Agenda (HB, research, 5/3). [interrupt] When
+                                  this agenda would be added to the Runner's
+                                  score area from anywhere except Archives:
+                                  instead it's added WITH 4 hosted agenda
+                                  counters. While in Runner's score area with
+                                  1+ counters: worth 0 points, and gains
+                                  "Runner turn begin: remove 1 hosted
+                                  counter."
+28  scapenet                   — Operation (HB, gray ops). Play only if
+                                  Runner made a successful run during their
+                                  last turn. Trace[7] — if successful, remove
+                                  1 installed chip or virtual card from the
+                                  game.
+29  sync_rerouting             — Operation (NBN, lockdown). LOCKDOWN.
+                                  Whenever a run begins: give Runner 1 tag
+                                  unless they pay 4cr.
+30  tranquility_home_grid      — Upgrade (HB, region). Remote server only.
+                                  The first time each turn Corp installs a
+                                  card in the root of this server: gain 2cr
+                                  or draw 1 card. Limit 1 region per server.
+31  transport_monopoly         — Agenda (Weyland, initiative, 3/2). On score:
+                                  place 2 agenda counters. Once per turn →
+                                  spend 1 hosted counter (during a run only):
+                                  this run cannot be declared successful.
+32  tyr                        — Ice (HB, ap, bioroid, destroyer, sentry).
+                                  [Lose click]: break 1 sub on this ice — the
+                                  Corp gets +1 allotted click next turn. Only
+                                  the Runner can use this ability. Subs: 2
+                                  core damage; trash 1 installed Runner card
+                                  + gain 3cr; end the run.
+33  vaporframe_fabricator      — Asset (HB, industrial). Once per turn →
+                                  [click]: install 1 card from HQ, ignoring
+                                  all costs. When Runner trashes this asset:
+                                  Corp may install 1 card from HQ ignoring
+                                  all costs (not in root of this server).
+34  wall_to_wall               — Asset (Weyland, advertisement). Corp turn
+                                  begin: if Corp has any OTHER rezzed assets,
+                                  resolve 1 of the following; otherwise
+                                  resolve up to 3 (each only once): draw 1
+                                  card; gain 1cr; place 1 adv counter on an
+                                  installed piece of ice; add this asset to
+                                  HQ.
+35  winchester                 — Ice (Weyland, destroyer, sentry, tracer).
+                                  Subs: Trace[4] — if successful, trash 1
+                                  installed program; Trace[3] — if
+                                  successful, trash 1 installed piece of
+                                  hardware. While protecting HQ, gains
+                                  "Trace[3] — if successful, end the run."
+                                  after its other subs.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ALREADY IMPLEMENTED
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+drafter   Present in abilities.json. Verify the existing entry matches the
+          Uprising printing exactly (subs: may add 1 card from Archives to
+          HQ; may install 1 card from Archives or HQ ignoring all costs).
+
+EXISTING ENGINE FEATURES LEVERAGED BY UPRISING (no new code needed):
+  - advanceable ice/asset pattern + advancement counters     (Drago, Vasilisa,
+    Mestnichestvo, Vladisibirsk, etc.) — reusable for Akhet, Colossus,
+    Cerebral Overwriter, Cayambe Grid (turn-begin placement), La Costa Grid,
+    Project Vacheron's counter bookkeeping pattern.
+  - region / "limit 1 region per server" constraint          (Nanisivik Grid,
+    Vladisibirsk City Grid, ZATO City Grid) — reusable for Cayambe Grid,
+    La Costa Grid, Tranquility Home Grid.
+  - reveal_when_accessed_in_rd flag + on_access ambush
+    pattern                                                   (Nightmare
+    Archive, Mavirus) — reusable for Cerebral Overwriter, Ganked.
+  - psi_game effect type (on_match / on_mismatch)             (See How They
+    Run, Adrian Seis) — base for Hyoubu Precog Manifold and Konjin (Konjin
+    needs an extension — see 1E below).
+  - give_tags / remove_tags / tags_compare / runner_is_tagged — reusable for
+    Colossus, F2P, Sync Rerouting, NAPD Cordon (steal-cost math).
+  - corp_scores_agenda / runner_steals_agenda events          — reusable for
+    Bellona, Megaprix Qualifier, Project Vacheron.
+  - sabotage / charge_card / identify_mark / mark mechanic    — not used by
+    Corp-side Uprising cards directly, but should not be duplicated.
+  - additional_cost_spend_click(s)                            (Mitosis, MAD)
+    — reusable for Kakurenbo (additional cost: spend [click][click]).
+  - corp_optional_trash_own_for_credits / corp chooses
+    installed card to trash patterns                          (Extract,
+    Stavka) — reusable for Vaporframe Fabricator's on-trash effect and
+    Ganked's trash-self-to-redirect.
+  - search_deck_corp / install_and_rez_from_archives patterns (Wave, Trust
+    Operation, Gaslight) — reusable for Digital Rights Management (search
+    R&D for agenda) and Kakurenbo (install from Archives).
+  - corp_turn_begin gain-credits / draw-cards triggers        (Refuge
+    Campaign, Ubiquitous Vig) — reusable for Wall to Wall, La Costa Grid,
+    Cayambe Grid.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 1 — ENGINE INFRASTRUCTURE (GDScript changes)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+─────────────────────────────────────────────────────────────────────────────
+1A. TRACE MECHANIC (NEW — biggest single piece of work in this set)
+─────────────────────────────────────────────────────────────────────────────
+Used by: winchester (Trace[4], Trace[3], Trace[3]), scapenet (Trace[7])
+
+Trace is not implemented anywhere in the engine yet. This is the Corp's most
+common interactive subroutine type in the broader card pool, so the
+implementation should be general enough to cover future sets, not just these
+two cards.
+
+Rules summary: Corp reveals a trace strength X (the printed/modified base
+value for this trace). Runner secretly (or, in this single-player engine,
+via decision-maker) decides how many credits to spend to boost their link
+(link + credits spent = Runner's trace strength). Corp may then spend
+credits to boost X. Trace succeeds if Corp's final strength > Runner's final
+strength (some cards use >=, but standard Netrunner trace is "Corp strength
+exceeds Runner strength" — i.e., succeeds on X > link+spent). Both players'
+credit spends happen in a single simultaneous-ish step; in this engine we can
+sequence it as: Corp may boost first (spend credits to raise X), Runner then
+spends credits + link to attempt to meet/beat the (possibly boosted) X.
+
+Changes required:
+• AbilityInterpreter: new effect type `trace`
+  - params: { "base_strength": int, "on_success": [effects], "on_fail": [effects] (optional) }
+  - Step 1: Corp decision — `corp_decision_maker.choose_trace_boost(base_strength, ctx) -> int`
+    (amount of credits Corp spends to increase base_strength, 0..corp_credits).
+  - Step 2: Runner decision — `runner_decision_maker.choose_trace_link_boost(trace_strength, runner_link, ctx) -> int`
+    (credits Runner spends, 0..runner_available_credits).
+  - Compute runner_total = runner_link + bonus + runner_link_boost (apply
+    any existing link-boost passive modifiers).
+  - Trace succeeds if trace_strength > runner_total (Corp's effective
+    strength strictly greater than Runner's). Per current rules wording,
+    most cards read "Trace[X]. If successful, ..." where success = Corp wins.
+  - On success: execute on_success effects. On failure: execute on_fail
+    effects (often empty).
+  - Both Corp and Runner pay the credits they committed regardless of outcome.
+• HumanDecisionMaker: `choose_trace_boost(base, ctx) -> int`,
+  `choose_trace_link_boost(strength, link, ctx) -> int` — present a credit
+  slider/prompt.
+• SimCorpAI / CorpTurnAI: heuristic for `choose_trace_boost` — boost just
+  enough to guarantee success against the Runner's known maximum possible
+  link+credits if affordable and the on_success effect is high value (e.g.
+  Winchester's program/hardware trash, Scapenet's RFG); otherwise boost 0 or
+  a small amount.
+• SimRunnerAI: heuristic for `choose_trace_link_boost` — spend enough credits
+  to beat the (possibly boosted) trace strength if the on_success effect is
+  costly (program/hardware trash, chip/virtual RFG) and Runner can afford it
+  without going broke; otherwise spend 0.
+• GameContext: expose `runner_link` (base link + passive modifiers, e.g.
+  Cybertrooper Talut's +1 link from the Uprising Runner side, Mantle, etc.)
+  if not already present — check GameContext for an existing `runner_link`
+  field before adding a new one.
+
+JSON representation:
+  { "type": "trace", "params": {
+      "base_strength": 4,
+      "on_success": [{ "type": "trash_runner_installed_program", "params": {...} }],
+      "on_fail": []
+  }}
+
+This is the foundational piece — both Winchester subs and Scapenet's effect
+are simple once `trace` exists.
+
+─────────────────────────────────────────────────────────────────────────────
+1B. LOCKDOWN MECHANIC (NEW — shared keyword across 5 operations)
+─────────────────────────────────────────────────────────────────────────────
+Used by: argus_crackdown, hyoubu_precog_manifold, napd_cordon,
+         next_activation_command, sync_rerouting
+
+All five share: "Play only if there is no active lockdown. This operation is
+not trashed until your next turn begins." While "active," the operation's
+ongoing effect applies; it remains face-up in the play area (not Archives)
+until the start of Corp's next turn, at which point it is trashed and its
+effect ends. Only one lockdown operation can be active at a time (across
+both — actually within the Corp's own operations; check Runner side for any
+"lockdown" keyword cards too, since the pre_play_condition is "no active
+lockdown" globally for the Corp).
+
+Changes required:
+• GameContext: new field `active_lockdown_card_id: String = ""` (empty =
+  none active). Also store the active lockdown's runtime instance so its
+  ongoing effects/listeners can be looked up.
+• New pre_play_condition `no_active_lockdown`: true when
+  active_lockdown_card_id == "".
+• AbilityInterpreter / TurnManager._do_play_corp_operation(): when an
+  operation has `is_lockdown: true`:
+  - After paying costs and resolving on_play effects, do NOT move the card
+    to Archives. Instead set active_lockdown_card_id = this card's id/instance,
+    and register its ongoing listeners (e.g. Argus Crackdown's
+    successful_run trigger, Sync Rerouting's run_start trigger, Hyoubu's
+    successful_run-on-chosen-server trigger, NAPD Cordon's steal-cost
+    modifier, Next Activation Command's ice-strength/break-restriction
+    passive modifiers).
+  - At the start of Corp's next turn (TurnManager._corp_turn() entry), if
+    active_lockdown_card_id != "": trash that card (move to Archives, fire
+    trash events) and clear the field + unregister its listeners.
+• Listener registration: lockdown operations need their `successful_run`,
+  `run_start`, passive-modifier, and steal-cost-modifier hooks registered
+  the same way rezzed upgrades/assets are (extend
+  TurnManager._register_card_listeners() or add a parallel
+  `_register_active_lockdown_listeners()` called when a lockdown becomes
+  active, and unregistered when it's trashed).
+
+JSON keys: `"is_lockdown": true`, `"pre_play_condition": "no_active_lockdown"`.
+
+─────────────────────────────────────────────────────────────────────────────
+1C. RUN-CANNOT-BE-DECLARED-SUCCESSFUL MODIFIER (NEW)
+─────────────────────────────────────────────────────────────────────────────
+Used by: transport_monopoly
+
+Once per turn, during a run, Corp may spend 1 hosted agenda counter so that
+"this run cannot be declared successful." This does not end the run or make
+it unsuccessful by itself — it just blocks the run from ever transitioning
+to "successful" for the rest of its duration (i.e., Runner cannot breach/
+access at the end of this run, but the run also doesn't fail outright —
+matches RunStateMachine's existing distinction between "ends in failure" and
+"ends without success").
+
+Changes required:
+• GameContext / run_modifiers: new flag `run_cannot_be_successful: bool = false`,
+  set on the active run's modifier dict. Cleared at run end.
+• RunStateMachine: wherever the run transitions to "successful" (i.e., the
+  Runner passes the last piece of ice / approaches the server with no more
+  ice), check this flag first. If set, the run instead ends in the
+  "unsuccessful, no breach" state (Runner does not access anything, and
+  effects keyed on `successful_run` do not fire).
+• AbilityInterpreter: new effect type `prevent_run_success`
+  - params: {} — sets run_modifiers["run_cannot_be_successful"] = true.
+  - Only usable `during a run` (gate via existing `run_in_progress` style
+    condition — check what condition currently exists for "is a run
+    active").
+• click_action / hosted-counter ability on Transport Monopoly:
+  once_per_turn_key + condition `run_in_progress` + cost: spend 1 hosted
+  agenda counter + effect `prevent_run_success`.
+
+─────────────────────────────────────────────────────────────────────────────
+1D. APPROACH-SERVER PAY-OR-END-RUN SCALED BY ADVANCED ICE (NEW)
+─────────────────────────────────────────────────────────────────────────────
+Used by: cayambe_grid
+
+Whenever Runner approaches this server: end the run unless they pay 2cr for
+each advanced piece of ice protecting this server.
+
+Changes required:
+• AbilityInterpreter: new effect type `end_run_unless_pay_per_advanced_ice`
+  - params: { "cost_per_ice": 2 }
+  - Count rezzed/installed ice protecting Cayambe Grid's server with
+    advancement_counter_count >= 1.
+  - total_cost = count * cost_per_ice.
+  - If total_cost == 0: no effect.
+  - Else: Runner decision `choose_pay_or_end_run(total_cost, ctx) -> bool`
+    (reuse existing "pay X or end the run" pattern if one exists — check
+    `runner_must_take_tag_or_end_run` / `end_run_if_tagged` for a template
+    of the pay-or-end-run dialog).
+• Trigger: `approach_server` event with condition `run_target_is_self_server`
+  (both already exist from Parhelion/Midnight Sun work).
+• Corp turn-begin effect (separate, simple): place 1 adv counter on a piece
+  of ice protecting this server — reuse `place_advancement_counter_on_installed`
+  with a server-scoped target filter (`server_scoped: true`, restrict
+  candidates to ice protecting Cayambe Grid's server).
+
+─────────────────────────────────────────────────────────────────────────────
+1E. KONJIN: PSI GAME WITH ICE-ENCOUNTER REDIRECT (NEW psi_game extension)
+─────────────────────────────────────────────────────────────────────────────
+Used by: konjin
+
+On encounter, psi game; if bids differ, Corp may choose another rezzed ice —
+Runner encounters that ice (and when THAT encounter ends, if the run hasn't
+ended, the Runner resumes encountering Konjin).
+
+Changes required:
+• Existing `psi_game` effect supports `on_mismatch`/`on_match` effect lists.
+  Add a new effect type `redirect_encounter_to_chosen_ice`:
+  - Corp may choose any other rezzed ice (choose_optional_ability + pick from
+    all rezzed ice excluding self).
+  - If chosen: push the current ice (Konjin) onto a
+    `ctx.encounter_resume_stack` (new field — Array of ice instance ids) and
+    begin a new encounter with the chosen ice immediately.
+  - If declined: nothing happens, Konjin's own subroutines resolve normally.
+• RunStateMachine / EncounterProcessor: after an encounter completes (all
+  subs resolved/broken, or ice trashed), check `encounter_resume_stack`. If
+  non-empty AND the run hasn't ended, pop the top entry and begin an
+  encounter with that ice (resuming Konjin).
+• Konjin's `on_encounter_ice` trigger:
+    { "type": "psi_game", "params": {
+        "on_mismatch": [{ "type": "redirect_encounter_to_chosen_ice", "params": { "optional": true } }],
+        "on_match": []
+    }}
+• This is the most invasive RunStateMachine change in the Corp set — needs
+  careful handling so Konjin's own subroutines still resolve after the
+  redirected encounter (or are skipped if the run ended during the
+  redirected encounter).
+
+─────────────────────────────────────────────────────────────────────────────
+1F. ENGRAM FLUSH: CHOOSE CARD TYPE + REVEAL-GRIP-TO-TRASH ON SUB RESOLUTION
+─────────────────────────────────────────────────────────────────────────────
+Used by: engram_flush
+
+On encounter: Corp chooses a card type. For the rest of the encounter,
+whenever the grip is revealed by a subroutine on this ice, Corp may trash 1
+revealed card of the chosen type. Subs: reveal the grip (x2).
+
+Changes required:
+• `reveal_grip` already needs to exist as an effect (or be added) — check
+  whether a `reveal_runner_grip` effect exists (Vera Ivanovna Shuyskaya from
+  Parhelion used `reveal_runner_grip_and_trash` — confirm whether a bare
+  "reveal grip" effect without the trash exists separately; if not, factor
+  the reveal step out as `reveal_runner_grip` reusable by both).
+• AbilityInterpreter: new effect type `choose_card_type_for_encounter`
+  - Corp picks a card type (program, resource, hardware, event) via
+    `choose_card_type(ctx) -> String`. Store in
+    `run_modifiers["engram_flush_type"]`.
+• New effect type `reveal_grip_and_optional_trash_by_type`
+  - Reveal grip (existing/new reveal_runner_grip).
+  - If `run_modifiers["engram_flush_type"]` is set and any revealed card
+    matches that type: Corp may choose 1 such card to trash (optional).
+• on_encounter_ice trigger: choose_card_type_for_encounter.
+• Each sub: reveal_grip_and_optional_trash_by_type (x2).
+
+─────────────────────────────────────────────────────────────────────────────
+1G. F2P: ICE GRANTS A PAID ABILITY TO THE RUNNER (NEW pattern)
+─────────────────────────────────────────────────────────────────────────────
+Used by: f2p
+
+"2cr: Break 1 subroutine on this ice. Only the Runner can use this ability,
+and only if they are not tagged."
+
+This is structurally unusual: a Runner-usable paid ability printed on a
+piece of Corp ice, gated by a Runner-state condition (untagged).
+
+Changes required:
+• EncounterProcessor: when building the Runner's available break options
+  during an encounter with F2P, in addition to installed icebreakers, check
+  the encountered ice itself for a `runner_paid_break_ability` key:
+  { "cost_credits": 2, "subs_per_use": 1, "subtype_restriction": null,
+    "condition": "runner_not_tagged" }
+  If the condition passes and Runner has enough credits, surface this as a
+  break option (uses no installed card — the ability lives on the ice).
+• HumanDecisionMaker / SimRunnerAI: include this option in the encounter
+  break menu like any other breaker.
+• JSON: `"runner_paid_break_ability": { "cost_credits": 2, "subs_per_use": 1,
+  "condition": "runner_not_tagged" }` on f2p's definition.
+
+─────────────────────────────────────────────────────────────────────────────
+1H. EARTH STATION: SEA HEADQUARTERS — FLIPPABLE CORP IDENTITY (NEW)
+─────────────────────────────────────────────────────────────────────────────
+Used by: earth_station_sea_headquarters
+
+[click]: Flip this identity (becomes "Earth Station: Ascending to Orbit",
+a different Weyland identity with its own ability and deck-building
+implications — both faces share the Earth Station name/influence but have
+distinct text). Side A (SEA Headquarters): Limit 1 remote server; HQ runs
+cost the Runner 1cr extra. Side B (Ascending to Orbit, per NetrunnerDB):
+"While there are 7 or more agenda points in your score area, your
+identity gains '[click][click][click]: Win the game.'" (verify exact wording
+against Campaign/cards.json before implementation).
+
+Changes required:
+• This is the FIRST flippable Corp identity in the engine. Check whether any
+  Runner identity flip mechanic already exists (Hoshiko Shiro from this same
+  set is a Runner identity that flips — "When your turn ends, if you
+  accessed a card this turn, gain 2cr and flip this identity"). If Hoshiko's
+  flip mechanic is implemented as part of the Runner-side Uprising plan
+  first, REUSE that infrastructure (`flip_identity` effect / `identity_face`
+  field on GameContext) rather than building a parallel system.
+• GameContext: `corp_identity_face: String = "a"` (or reuse a generic
+  `identity_face` field shared by both sides if Hoshiko's plan introduces
+  one).
+• AbilityInterpreter: `flip_identity` effect — toggles `corp_identity_face`
+  and re-registers the identity's ability listeners for the new face
+  (unregister face-A listeners, register face-B listeners).
+• Side A passive modifiers: `additional_run_cost_credits: { server: "hq",
+  amount: 1 }` (new passive modifier type — check if a similar "additional
+  cost to run X" modifier exists from Earth Station's HQ tax; likely new).
+• "Limit 1 remote server" — new deck/board constraint: TurnManager must
+  prevent the Corp from creating a second remote server while this
+  constraint is active. Add a check in the "create new remote server"
+  install path: if `corp_identity.id == "earth_station_sea_headquarters"`
+  and face == "a" and `len(remote_servers) >= 1` and the install target is a
+  NEW remote, deny/redirect.
+• Side B win condition ("[click][click][click]: Win the game" once at 7+
+  agenda points) reuses `win_game` effect (Phase 1F from Parhelion).
+
+─────────────────────────────────────────────────────────────────────────────
+1I. GAMENET IDENTITY: CREDIT-LOSS-DURING-RUN TRIGGER (NEW event)
+─────────────────────────────────────────────────────────────────────────────
+Used by: gamenet_where_dreams_are_real
+
+Whenever a Corp card ability causes the Runner to spend or lose at least 1cr
+during a run: gain 1cr.
+
+Changes required:
+• New event `runner_loses_credits_from_corp_ability_during_run`, fired
+  wherever a `lose_credits(runner, N)` or "Runner pays Xcr" effect resolves
+  AND `ctx.run_in_progress` is true AND the source is a Corp card ability
+  (i.e., not the Runner's own voluntary spending). This requires tagging
+  `lose_credits` effect executions with their source (Corp ability vs.
+  Runner choice) — likely most existing `lose_credits(runner, ...)` effects
+  in ice subroutines and Corp card abilities already qualify; Runner
+  voluntary spends (paying for breaks, paying for cards) should NOT trigger
+  this.
+• Practical approach: in AbilityInterpreter._execute_effect() for
+  `lose_credits` (and any "runner pays Xcr or Y happens" effects), after
+  applying the loss, if `ctx.run_in_progress` and `subject == "runner"` and
+  amount >= 1 and the effect is being executed as part of resolving a Corp
+  card's ability (not a cost the Runner chose to pay): notify_event(
+  "runner_loses_credits_from_corp_ability_during_run", {amount: N}).
+• GameNET identity listens for this event (no once-per-turn gate per card
+  text) with effect `gain_credits(corp, 1)`.
+• This is a broad hook — flag it for careful testing against false
+  positives (e.g., Runner paying to break a sub should NOT trigger it, but
+  Gold Farmer's "Runner loses 1cr when breaking a printed sub" SHOULD).
+
+─────────────────────────────────────────────────────────────────────────────
+1J. KAKURENBO: ARCHIVES FACEDOWN BULK-FLIP + INSTALL FROM ARCHIVES WITH COUNTERS
+─────────────────────────────────────────────────────────────────────────────
+Used by: kakurenbo
+
+Additional cost: spend [click][click]. Trash any number of cards from HQ.
+Turn ALL cards in Archives facedown. May install 1 card from Archives in the
+root of a remote server with 2 adv counters. RFG.
+
+Changes required:
+• Facedown-Archives tracking (`corp_discard_facedown_ids`) was identified as
+  needed by Parhelion's Nanisivik Grid (Phase 1O) and Midnight Sun's Moon
+  Pool (Phase 1AD). If not yet implemented by the time Uprising work begins,
+  implement it here: GameContext gains `corp_discard_facedown_ids: Array[String]`.
+• AbilityInterpreter: new compound effect `kakurenbo_play`:
+  1. `additional_cost_clicks: 2` (existing).
+  2. Corp chooses any number of cards from corp_hand to trash (multi-select,
+     0 or more) — reuse the multi-select pattern from
+     `mutually_assured_destruction_play` (Midnight Sun 1AE).
+  3. Set ALL entries in `corp_discard_facedown_ids` to include every card
+     currently in corp_discard (mark all Archives cards facedown).
+  4. Optional: Corp chooses 1 card from corp_discard (any card, now
+     facedown) to install in the root of a NEW or existing remote server,
+     ignoring install restrictions for facedown cards (standard "install
+     facedown from Archives" rules — agendas/assets/upgrades only,
+     ice cannot be installed this way per comprehensive rules... actually
+     verify: Kakurenbo allows installing ANY card type facedown? Check
+     NetrunnerDB ruling — typically only asset/agenda/upgrade can be
+     installed in a server root). Place 2 adv counters on it.
+  5. RFG self (remove_from_game: true).
+• Corp decision_maker: `choose_cards_from_hand_to_trash(ctx) -> Array[CardRecord]`,
+  `choose_card_from_archives_to_install(eligible, ctx) -> CardRecord` (reuse
+  from Trust Operation if compatible).
+
+─────────────────────────────────────────────────────────────────────────────
+1K. PROJECT VACHERON: NEGATIVE-VALUE AGENDA WITH SELF-DECREMENTING COUNTERS
+─────────────────────────────────────────────────────────────────────────────
+Used by: project_vacheron
+
+[interrupt] When this agenda would be added to the Runner's score area from
+anywhere except Archives: instead it's added with 4 hosted agenda counters.
+While in Runner's score area with 1+ counters: worth 0 points, gains "Runner
+turn begin: remove 1 hosted counter."
+
+Changes required:
+• Builds directly on Nightmare Archive's negative/zero-point score-area
+  support (Parhelion Phase 1G — verify it landed and supports a 0-point
+  agenda with dynamic point value, not just -1).
+• AbilityInterpreter: new effect type `vacheron_steal_interceptor`
+  - Registered as an `on_steal_interrupt` (or equivalent "before agenda
+    moves to Runner score area" hook). Condition: source location !=
+    "archives".
+  - If triggered: move the agenda to Runner score area with
+    `hosted_counters["agenda"] = 4` and `agenda_points_override = 0`.
+• Scoring/point-total calculation: GameContext's Runner score sum must read
+  `agenda_points_override` when present instead of the printed value.
+• New `runner_turn_begin` listener registered dynamically when Vacheron
+  enters the Runner's score area with counters: remove 1 counter per turn.
+  When counters reach 0: `agenda_points_override` reverts to printed value
+  (3) — i.e., the agenda becomes worth its normal points once fully
+  decremented. (Verify against card text/ruling: "While this agenda is in
+  the Runner's score area with 1 or more hosted agenda counters, it is worth
+  0 agenda points" — implies once counters hit 0, it reverts to printed
+  value, which is a significant late-game point swing the AI needs to
+  anticipate.)
+• CorpStateEvaluator / SimRunnerAI: must account for Vacheron's "fake steal"
+  — stealing it doesn't immediately help the Runner and temporarily
+  delays their score by 3 points until counters expire (4 Runner turns).
+
+─────────────────────────────────────────────────────────────────────────────
+1L. CYBERDEX SANDBOX: FIRST-PURGE-EACH-TURN TRIGGER
+─────────────────────────────────────────────────────────────────────────────
+Used by: cyberdex_sandbox
+
+The first time each turn Corp purges virus counters: gain 4cr. On score: may
+purge virus counters.
+
+Changes required:
+• `purge_virus_counters` effect already exists (Mavirus). Need a
+  `corp_purges_viruses` event fired whenever that effect executes (regardless
+  of source — Cyberdex Sandbox itself, Mavirus, future Cyberdex Trial, etc.).
+• Cyberdex Sandbox (as a SCORED agenda, sitting in corp_score_area) must
+  remain a live listener for `corp_purges_viruses` even after being scored —
+  confirm scored agendas can still have active listeners (Megaprix Qualifier
+  and Project Vacheron also need scored-agenda listeners, so this pattern
+  must be supported generally).
+• once_per_turn_key: "cyberdex_sandbox_purge" + effect `gain_credits(corp, 4)`.
+• on_score: `purge_virus_counters` (optional).
+
+─────────────────────────────────────────────────────────────────────────────
+1M. MEGAPRIX QUALIFIER: CROSS-COPY AGENDA-IN-EITHER-SCORE-AREA CHECK
+─────────────────────────────────────────────────────────────────────────────
+Used by: megaprix_qualifier
+
+On score: if another copy of Megaprix Qualifier is in EITHER player's score
+area, place 1 agenda counter on this agenda. While it has a hosted counter,
+it's worth +1 agenda point (3 → 4).
+
+Changes required:
+• New helper `count_other_megaprix_qualifier_copies(ctx) -> int`: scan
+  `corp_score_area` and `runner_score_area` for other instances of
+  "megaprix_qualifier" (excluding the one currently being scored).
+• on_score: if count > 0, `add_self_counters(agenda, 1)`.
+• Agenda point calculation: when summing corp_score, check
+  `self.hosted_counters.get("agenda", 0) > 0` → contributes printed_points + 1
+  instead of printed_points. (Reuses the same "dynamic agenda point"
+  machinery needed for Project Vacheron — both should share a single
+  `effective_agenda_points(card)` helper in GameContext.)
+
+─────────────────────────────────────────────────────────────────────────────
+1N. WALL TO WALL: CONDITIONAL N-OF-M CHOICE LIST ON TURN BEGIN
+─────────────────────────────────────────────────────────────────────────────
+Used by: wall_to_wall
+
+Corp turn begin: if Corp has any OTHER rezzed assets, resolve 1 of the
+following; otherwise resolve up to 3 (each only once, any order): draw 1
+card; gain 1cr; place 1 adv counter on an installed piece of ice; add this
+asset to HQ.
+
+Changes required:
+• AbilityInterpreter: new effect type `wall_to_wall_turn_begin`
+  - Compute `other_rezzed_assets = count of rezzed Corp assets excluding self`.
+  - choices = ["draw_1", "gain_1cr", "place_adv_on_ice", "return_self_to_hq"]
+  - If other_rezzed_assets > 0: Corp picks exactly 1 from choices (decision
+    maker `choose_wall_to_wall_option(choices, ctx) -> String`), execute it.
+  - Else: Corp picks up to 3 distinct choices, in order, executing each
+    (the "return self to HQ" choice, if picked, should presumably be last
+    since it removes the asset from play — if chosen mid-sequence, remaining
+    chosen effects should still resolve since the asset's ability is "use"
+    not "trigger from board").
+• "add this asset to HQ" = move self InstalledCard back to corp_hand as a
+  CardRecord (uninstall, not trash). Check whether an `uninstall_self_to_hand`
+  effect pattern already exists; if not, add one (simple move, no trash
+  events fired).
+• SimCorpAI: when other rezzed assets == 0, picking all 3 (draw, gain
+  credit, advance an ice) is almost always correct early game; returning
+  self to HQ is situational (re-installing elsewhere, avoiding a Runner
+  trash). Default heuristic: prefer draw + credit + advance over
+  return-to-HQ unless Wall to Wall is under imminent threat.
+
+─────────────────────────────────────────────────────────────────────────────
+1O. TYR: BIOROID LOSE-CLICK BREAK GRANTING CORP EXTRA CLICK NEXT TURN
+─────────────────────────────────────────────────────────────────────────────
+Used by: tyr
+
+[Lose click]: break 1 subroutine on this ice. The Corp gets +1 allotted
+[click] for their next turn. Only the Runner can use this ability.
+
+Changes required:
+• `bioroid_break_clicks` flag already referenced in abilities.json (check
+  Hakarl 1.0 / existing bioroid ice for the [lose click]-to-break pattern —
+  reuse directly).
+• New side-effect on Tyr's bioroid break specifically: each time the Runner
+  uses [lose click] to break a sub on Tyr, increment
+  `ctx.corp_allotted_click_bonus_next_turn` (new GameContext field, mirrors
+  the Runner-side `runner_allotted_click_bonus` from Parhelion Phase 1C but
+  for Corp, and additive across multiple uses/turns until consumed).
+• TurnManager._corp_turn(): `corp_clicks = CORP_CLICKS_PER_TURN +
+  corp_allotted_click_bonus_next_turn`; reset the bonus field to 0 after
+  applying it for that turn.
+• JSON: Tyr's bioroid break ability gets an additional effect
+  `{ "type": "grant_corp_click_next_turn" }` attached to the break action
+  (fires once per use, i.e., once per sub broken this way).
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 2 — ABILITIES.JSON ENTRIES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+─────────────────────────────────────────────────────────────────────────────
+TIER A — PURE EXISTING EFFECTS (simple JSON only, no Phase 1 dependency)
+─────────────────────────────────────────────────────────────────────────────
+
+bass_ch1r180g4
+  click_action: { additional_cost_trash_self: true,
+    effects: [gain_clicks(corp, 2)] }
+  — verify a `gain_clicks` effect exists (Tyr's grant-next-turn is
+    different — this is an immediate +2 clicks THIS turn).
+
+bellona (agenda 4/2)
+  additional_cost_steal: { type: "credits", amount: 5 }
+  on_score: { effects: [gain_credits(corp, 5)] }
+  — "additional cost to steal" needs the same machinery as NAPD Cordon's
+    steal-cost modifier (1Q below); Bellona's is a flat 5cr printed directly
+    on the agenda rather than granted by an operation, so it can likely be a
+    simple `additional_cost_steal_credits: 5` flag checked at steal time —
+    confirm the steal-cost-check function can read per-card flags as well as
+    active operation modifiers.
+
+false_lead (agenda 3/0)
+  forfeit_ability: {
+    condition: tags... no — condition: runner_clicks_remaining_gte(2),
+    effects: [lose_clicks(runner, 2)]
+  }
+  — "Forfeit this agenda" is a new activation type (Corp voluntarily
+    forfeits a scored agenda — removing it from score area, recomputing
+    corp_score) — check whether any existing card has a forfeit ability; if
+    not, this is a small new effect `forfeit_self` + condition gate.
+
+─────────────────────────────────────────────────────────────────────────────
+TIER B — NEAR-EXISTING (minor new parameterization)
+─────────────────────────────────────────────────────────────────────────────
+
+akhet (advanceable barrier)
+  advanceable: true
+  passive_modifiers: [
+    { type: "self_strength_bonus_if_counters_gte", threshold: 3, amount: 3 },
+    { type: "limit_runner_breaks_per_encounter_if_counters_gte", threshold: 3, limit: 1 }
+  ]
+  subroutines: [
+    { gain_credits(corp,1) + place_advancement_counter_on_installed },
+    { end_run }
+  ]
+  — both passive modifier types are new but small; "limit breaks per
+    encounter" mirrors Unsmiling Tsarevna's `tsarevna_sub_limit` run
+    modifier (Parhelion 1AG) — generalize that into a reusable
+    `sub_break_limit` modifier keyed by ice rather than by run.
+
+colossus (advanceable destroyer/sentry)
+  advanceable: true
+  passive_modifiers: [{ type: "self_strength_bonus_per_self_adv_counter", amount: 1 }]
+  subroutines: [
+    { give_tags_1_or_2_if_counters_gte_3 },   — new small variant of give_tags
+    { trash_program_plus_resource_if_counters_gte_3 } — new small variant of
+      trash_runner_installed_program
+  ]
+
+cerebral_overwriter (advanceable ambush asset)
+  advanceable: true
+  reveal_when_accessed_in_rd: false  (it's a remote-installed ambush, not R&D
+    — confirm trigger is on_access while installed, not reveal-in-R&D)
+  on_access: {
+    condition: self_is_installed,
+    effects: [{ type: "pay_credits_deal_damage_per_self_adv_counter",
+                params: { cost: 3, damage_type: "core" } }]
+  }
+  — small new effect combining Vasilisa's "pay Xcr" optional gate (1AS,
+    Midnight Sun) with "deal damage equal to self adv counters" (variant of
+    Ubiquitous Vig's counter-counting, 1AR).
+
+cyberdex_sandbox — see Phase 1L.
+
+digital_rights_management
+  pre_play_condition: "runner_no_successful_hq_run_last_turn" (new condition
+    — mirror existing "runner_stole_agenda_last_turn"/"runner_ran_X_last_turn"
+    conditions; check if a generic `runner_ran_server_last_turn(server)` flag
+    exists and negate it for HQ)
+  on_play: {
+    effects: [
+      search_rd_for_agenda_reveal_add_to_hq,  — new, modeled on Wave's
+        search_rd_for_ice_add_to_hq (Midnight Sun 1AV) but filters
+        card_type == "agenda"
+      optional_install_hq_card_in_remote_root, — modeled on Hybrid Release's
+        install-from-archives but sourced from HQ and targets a (possibly
+        new) remote server root
+      set_corp_cannot_score_this_turn  — new GameContext flag
+        `corp_cannot_score_agendas_this_turn: bool`, checked in the score
+        validation path, reset at Corp turn end.
+    ]
+  }
+
+flower_sermon (agenda 5/3)
+  on_score: { effects: [add_self_counters(agenda, 5)] }
+  click_action: {
+    once_per_turn_key: "flower_sermon",
+    cost_agenda_counter: 1,
+    effects: [
+      reveal_top_rd_card,        — new tiny effect, just logs/reveals
+      draw_cards(corp, 2),
+      add_card_from_hq_to_top_of_rd  — new, Corp chooses 1 HQ card, place on
+        top of corp_deck
+    ]
+  }
+  — this is a SCORED-agenda click ability; confirm scored agendas in
+    corp_score_area can still expose `click_action` (Megaprix Qualifier and
+    Cyberdex Sandbox also need scored-agenda triggers — establish the
+    pattern once, reuse across all three).
+
+ganked (ambush upgrade)
+  reveal_when_accessed_in_rd: true
+  on_access: {
+    effects: [{ type: "optional_trash_self_redirect_encounter",
+      params: { chooser: "corp" } }]
+  }
+  — new effect: Corp may trash this upgrade; if so, choose 1 rezzed ice
+    protecting this server, and the Runner immediately encounters it (a
+    one-shot version of Konjin's redirect from 1E — if 1E's
+    `redirect_encounter_to_chosen_ice` is implemented generally enough,
+    Ganked can call it directly without the psi wrapper).
+
+gold_farmer (barrier)
+  passive_modifiers: [{ type: "runner_loses_credits_on_printed_sub_break", amount: 1 }]
+  subroutines: [
+    { end_run_unless_runner_pays(3) },
+    { end_run_unless_runner_pays(3) }
+  ]
+  — "end the run unless Runner pays Xcr" — check if this exact pay-or-ETR
+    pattern exists already (Cayambe Grid 1D needs the same primitive,
+    generalized to a per-ice flat cost rather than scaled by adv counters).
+    Implement ONE shared effect `end_run_unless_runner_pays_credits` with a
+    `cost` param, used by both Gold Farmer (flat 3) and Cayambe Grid (computed
+    total).
+  — "loses 1cr when breaking a printed sub" needs a new
+    `runner_breaks_printed_sub` event hook in EncounterProcessor (fires once
+    per printed sub broken, regardless of which breaker/ability broke it).
+
+la_costa_grid (region, remote only)
+  remote_only: true
+  region: true
+  corp_turn_begin: {
+    condition: self_is_rezzed,
+    effects: [place_advancement_counter_on_installed(scope: "self_server_root")]
+  }
+
+napd_cordon (lockdown operation) — see Phase 1B for lockdown plumbing.
+  is_lockdown: true
+  pre_play_condition: "no_active_lockdown"
+  ongoing_passive_modifiers: [{ type: "steal_cost_increase",
+    base: 4, per_self_adv_counter_of_stolen_agenda: 2 }]
+  — "steal cost increase" passive modifier needs to be checked at the
+    moment of steal (RunStateMachine breach/steal path), reading the
+    advancement counter count of the SPECIFIC agenda being stolen. New
+    condition/calc: `additional_steal_cost(agenda) = 4 + 2 * agenda.adv_counters`.
+
+next_activation_command (lockdown operation) — see Phase 1B.
+  is_lockdown: true
+  pre_play_condition: "no_active_lockdown"
+  ongoing_passive_modifiers: [
+    { type: "all_ice_strength_bonus", amount: 2 },
+    { type: "runner_breaks_require_icebreaker" }  — new: EncounterProcessor
+      blocks any break attempt from a non-icebreaker card/ability while this
+      modifier is active (e.g. Endurance hardware breaks, Begemot-style
+      breaks, F2P's runner_paid_break_ability from 1G — all blocked).
+  ]
+
+sync_rerouting (lockdown operation) — see Phase 1B.
+  is_lockdown: true
+  pre_play_condition: "no_active_lockdown"
+  ongoing_trigger: {
+    event: "run_start",
+    effects: [give_tag_unless_runner_pays(4)]
+  }
+  — `give_tag_unless_runner_pays` likely already exists in some form (similar
+    structures appear for tag-avoidance costs); confirm signature.
+
+argus_crackdown (lockdown operation) — see Phase 1B.
+  is_lockdown: true
+  pre_play_condition: "no_active_lockdown"
+  ongoing_trigger: {
+    event: "successful_run",
+    condition: "run_target_server_has_ice",  — new condition: at least 1
+      piece of ice (rezzed or not?) protects the run's target server. Verify
+      ruling: likely means "at least one ice was/are installed protecting
+      that server" regardless of rez state — check NetrunnerDB ruling.
+    effects: [deal_damage(meat, 2)]
+  }
+
+hyoubu_precog_manifold (lockdown operation, psi) — see Phase 1B.
+  is_lockdown: true
+  pre_play_condition: "no_active_lockdown"
+  on_play: { effects: [choose_server_for_hyoubu] }  — new tiny effect, Corp
+    picks any server, store in run_modifiers/global state
+    `hyoubu_chosen_server`.
+  ongoing_trigger: {
+    event: "successful_run",
+    condition: "run_target_is(hyoubu_chosen_server)",  — needs a dynamic
+      server-comparison condition (compare against a stored value, not a
+      hardcoded server name)
+    effects: [{ type: "psi_game", params: {
+      on_mismatch: [{ type: "end_run" }], on_match: [] } }]
+  }
+
+prana_condenser
+  interrupt_trigger: {
+    event: "corp_deals_net_damage" (or equivalent "before damage applied"
+      hook — verify an interrupt/prevention hook exists for damage; Project
+      Vacheron and Nightmare Archive use [interrupt] for score-area/access
+      timing, but a damage-prevention interrupt may be new),
+    effects: [{ type: "prevent_damage_for_counter_and_credits",
+      params: { prevent_amount: 1, gain_credits: 3 } }]
+  }
+  click_action: {
+    cost_clicks: 2,
+    additional_cost_trash_self: true,
+    effects: [{ type: "deal_damage_per_self_counter",
+      params: { damage_type: "net", counter: "power" } }]
+  }
+  — NOTE: re-read the card text carefully before implementation. "Whenever
+    you would do 1 or more net damage, you may prevent 1 net damage" — "you"
+    = the Corp, meaning this triggers off the CORP'S OWN net-damage effects
+    (e.g., from other Jinteki ice/ops), not damage dealt TO the Corp (Corp
+    doesn't take net damage in normal play). This is a self-interrupt on the
+    Corp's own damage-dealing effects — net effect: "the first point of any
+    net damage you deal can instead become +1 power counter and +3cr,
+    optionally." Implement as a hook in the `deal_damage` effect itself: if
+    damage_type == "net" and subject == "runner" and source == corp-controlled
+    and Corp opts in (once per damage-instance, may decline): reduce the
+    damage amount dealt by 1, add 1 power counter to Prana Condenser, gain
+    3cr.
+
+vaporframe_fabricator
+  click_action: {
+    once_per_turn_key: "vaporframe_install",
+    effects: [install_card_from_hq_ignore_costs(target: "any_server_or_new")]
+  }
+  on_trash_by_runner: {
+    effects: [{ type: "optional_install_card_from_hq_ignore_costs",
+      params: { exclude_server: "self_server" } }]
+  }
+  — `install_card_from_hq_ignore_costs` is a generalization of Vaporframe's
+    own ability and DRM's optional-install effect from above; implement once,
+    parameterize by source pile (HQ) and target-server constraints.
+
+wall_to_wall — see Phase 1N.
+
+winchester (tracer ice) — see Phase 1A (trace).
+  subroutines: [
+    { trace: { base_strength: 4, on_success: [trash_runner_installed_program] } },
+    { trace: { base_strength: 3, on_success: [trash_runner_installed_hardware] } }
+  ]
+  conditional_subroutines: {
+    condition: "self_protects_hq",
+    extra_subs_after_printed: [
+      { trace: { base_strength: 3, on_success: [end_run] } }
+    ]
+  }
+  — "gains an additional sub while protecting HQ" is a new conditional-
+    subroutine-list pattern; check if any existing ice has server-conditional
+    subroutines (Bathynomus has a server-conditional STRENGTH bonus, not
+    subs — this would be new). Simplest implementation: at encounter-build
+    time, if `self_server_id == "hq"`, append the extra subroutine to the
+    resolved subroutine list for this encounter only.
+
+scapenet (gray ops operation) — see Phase 1A (trace).
+  pre_play_condition: "runner_made_successful_run_last_turn"
+  on_play: { effects: [{ type: "trace", params: {
+    base_strength: 7,
+    on_success: [{ type: "remove_runner_installed_chip_or_virtual_from_game" }]
+  }}]}
+  — `remove_runner_installed_chip_or_virtual_from_game`: Corp chooses 1
+    Runner installed card with subtype "chip" or "virtual"; RFG it (reuse
+    RFG machinery from Phase 1F/Superdeep Borehole-era work).
+
+f2p (sentry) — see Phase 1G.
+  runner_paid_break_ability: { cost_credits: 2, subs_per_use: 1, condition: "runner_not_tagged" }
+  subroutines: [
+    { add_installed_runner_card_to_grip },  — new, Corp chooses 1 installed
+      Runner card, move CardRecord to runner_hand (uninstall, no trash
+      events — distinct from trashing)
+    { give_tags(1) }
+  ]
+
+engram_flush — see Phase 1F.
+
+konjin — see Phase 1E.
+
+cayambe_grid — see Phase 1D.
+
+─────────────────────────────────────────────────────────────────────────────
+TIER C — COMPLEX (require significant Phase 1 engine work)
+─────────────────────────────────────────────────────────────────────────────
+
+winchester           (needs Phase 1A trace + conditional-subroutine pattern)
+scapenet             (needs Phase 1A trace + RFG-chip/virtual)
+argus_crackdown      (needs Phase 1B lockdown)
+hyoubu_precog_manifold (needs Phase 1B lockdown + dynamic server condition + psi)
+napd_cordon          (needs Phase 1B lockdown + steal-cost-increase modifier)
+next_activation_command (needs Phase 1B lockdown + breaker-restriction modifier)
+sync_rerouting       (needs Phase 1B lockdown + run_start tag-or-pay)
+transport_monopoly   (needs Phase 1C run-cannot-be-successful)
+cayambe_grid         (needs Phase 1D approach trigger + pay-or-ETR primitive)
+konjin               (needs Phase 1E psi redirect + encounter resume stack)
+engram_flush         (needs Phase 1F reveal-grip + choose-card-type)
+f2p                  (needs Phase 1G runner-usable ice ability)
+earth_station_sea_headquarters (needs Phase 1H flippable identity + remote-limit)
+gamenet_where_dreams_are_real  (needs Phase 1I credit-loss-during-run event)
+kakurenbo            (needs Phase 1J facedown-Archives + multi-trash + RFG)
+project_vacheron     (needs Phase 1K negative/zero agenda points + scored-card listener)
+cyberdex_sandbox     (needs Phase 1L purge event + scored-agenda listener)
+megaprix_qualifier   (needs Phase 1M cross-score-area check + dynamic agenda points)
+wall_to_wall         (needs Phase 1N N-of-M conditional choice)
+tyr                  (needs Phase 1O corp click-bonus-next-turn)
+ganked               (needs Phase 1E's redirect effect, generalized)
+gold_farmer          (needs shared pay-or-ETR primitive from 1D + new break-event hook)
+cerebral_overwriter  (needs pay-credits-for-damage-per-counter combo)
+flower_sermon        (needs scored-agenda click-ability pattern, shared with
+                       Cyberdex Sandbox / Megaprix Qualifier)
+digital_rights_management (needs search-RD-for-agenda + cannot-score-this-turn flag)
+vaporframe_fabricator (needs install-from-HQ-ignore-costs, shared w/ DRM)
+bellona              (needs additional-cost-to-steal primitive, shared w/ NAPD Cordon)
+false_lead           (needs forfeit-agenda mechanic — new, small)
+akhet                (needs conditional strength bonus + per-ice break limit)
+colossus             (needs conditional tag/trash-count variants)
+la_costa_grid        (straightforward once region pattern confirmed — Tier B
+                       in practice, listed here only for completeness)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 3 — AI INTEGRATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+─────────────────────────────────────────────────────────────────────────────
+3A. CorpStateEvaluator.gd updates
+─────────────────────────────────────────────────────────────────────────────
+
+• Add Uprising damage/disruption ops to relevant scoring tables:
+    "argus_crackdown"  : meat damage on iced-server runs while lockdown active
+    "tyr"              : core damage + Runner card trash via subs
+    "scapenet"         : trace-based RFG of chip/virtual — high value vs.
+                          stealth/console-heavy Runner decks
+    "winchester"       : trace-based program/hardware trash, extra ETR sub on HQ
+
+• Lockdown-aware evaluation: while `active_lockdown_card_id != ""`, the AI
+  must not attempt to play a second lockdown operation
+  (`no_active_lockdown` pre_play_condition already blocks it, but the
+  evaluator shouldn't even consider it as a candidate play, to avoid wasted
+  evaluation cycles).
+
+• Trace evaluator: `evaluate_trace_boost(base_strength, on_success_value,
+  corp_credits, estimated_runner_link)` — used by both Winchester (during
+  Runner encounters) and Scapenet (on play). Should weigh: cost to
+  guarantee success vs. value of on_success effect vs. credits needed for
+  other turn priorities.
+
+• Project Vacheron: the evaluator must NOT treat a Runner steal of Vacheron
+  as an immediate +3 to Runner score in its win-distance calculations while
+  the agenda carries 4 hosted counters; instead model it as "+0 now, +3 in
+  ~4 Runner turns unless removed."
+
+• Megaprix Qualifier: when both copies are out, the second scored copy is
+  worth 4 points not 3 — evaluator's win-distance math must call
+  `effective_agenda_points()` rather than printed value everywhere.
+
+• Earth Station SEA HQ (if Corp identity): factor "Limit 1 remote server"
+  into remote-server creation decisions — the AI must never attempt to open
+  a second remote while on face A, and should consider flipping to face B
+  once at 7+ agenda points if face B grants a win condition.
+
+─────────────────────────────────────────────────────────────────────────────
+3B. CorpTurnAI / CorpTurnAI_Tactical updates
+─────────────────────────────────────────────────────────────────────────────
+
+• Lockdown play timing: the 5 lockdown operations are each one-shot,
+  turn-spanning effects. AI should sequence them for maximum value —
+  e.g., play Sync Rerouting / Hyoubu Precog Manifold defensively when
+  expecting a Runner rush turn; play Argus Crackdown / NAPD Cordon when
+  the board has heavily-iced remotes/scoring servers.
+
+• Cayambe Grid / La Costa Grid: AI should prioritize installing these on a
+  scoring remote EARLY (before ice is built up) so the turn-begin
+  advancement-placement compounds over multiple turns.
+
+• Kakurenbo: AI should evaluate this primarily as an Archives-recursion +
+  surprise-install tool — useful when Archives contains a strong asset/
+  agenda/upgrade worth re-installing with a 2-advancement head start, and
+  when HQ contains cards safe to discard (excess ice, redundant copies).
+
+• Wall to Wall: AI should rez Wall to Wall ASAP (cheap rez) and prioritize
+  having at least one OTHER rezzed asset on board if possible is actually
+  the OPPOSITE of optimal — re-read: "if you have any OTHER rezzed assets,
+  resolve 1 ... otherwise resolve up to 3" — so the FIRST Wall to Wall (with
+  no other rezzed assets) gets the strong "up to 3" mode. AI should rez Wall
+  to Wall before other assets when possible to capture the 3-effect mode at
+  least once, OR accept the 1-effect mode as a steady-state economy engine.
+
+• Tyr: no AI decision needed (Runner-triggered ability); CorpTurnAI should
+  factor the "+1 click next turn" bonus into next-turn planning when
+  Tyr has been broken via lose-click this turn.
+
+• Vaporframe Fabricator: AI should use the click-install-from-HQ ability to
+  deploy ice/assets that are otherwise too expensive to install normally
+  (cost reduction = full cost), prioritizing ice for under-defended servers.
+
+─────────────────────────────────────────────────────────────────────────────
+3C. SimRunnerAI updates (Corp-side cards affecting Runner decisions)
+─────────────────────────────────────────────────────────────────────────────
+
+• `choose_trace_link_boost`: spend credits to beat Winchester/Scapenet
+  traces only when the protected resource (program/hardware/chip/virtual)
+  is high-value and replaceable cost is high.
+
+• Konjin psi game / redirect: Runner AI has no choice in the redirect itself
+  (Corp-controlled), but should factor Konjin's existence into run-server
+  selection (avoid running through Konjin into a much scarier piece of ice
+  if alternatives exist).
+
+• F2P: Runner AI should track its own tag status before relying on F2P's
+  free-break ability as part of a break-cost plan.
+
+• Cayambe Grid / NAPD Cordon: Runner AI must factor escalating steal/run
+  costs into run/steal decisions — may choose to NOT steal an
+  over-advanced agenda guarded by NAPD Cordon if the credit cost exceeds
+  available funds (would trigger normal "cannot pay additional cost ->
+  agenda not stolen" handling, presumably already supported by the additional
+  steal cost framework once built for Bellona/NAPD Cordon).
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+IMPLEMENTATION ORDER RECOMMENDATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+SPRINT 1 (foundational mechanics — unblock the most cards):
+  1. Phase 1A: Trace mechanic (unblocks Winchester, Scapenet)
+  2. Phase 1B: Lockdown mechanic (unblocks 5 operations)
+  3. Shared pay-or-end-run-for-credits primitive (unblocks Gold Farmer,
+     Cayambe Grid, used as basis for 1D)
+  4. Dynamic agenda points helper `effective_agenda_points()` (unblocks
+     Megaprix Qualifier, Project Vacheron)
+  5. Scored-agenda persistent listener pattern (unblocks Cyberdex Sandbox,
+     Flower Sermon, Megaprix Qualifier, Project Vacheron)
+
+SPRINT 2 (advancement / region / ambush cards):
+  6. Akhet, Colossus, Cerebral Overwriter (advanceable patterns + small new
+     conditional effects)
+  7. Cayambe Grid (Phase 1D), La Costa Grid, Tranquility Home Grid (regions)
+  8. Ganked (ambush + redirect — coordinate with Konjin's redirect effect)
+  9. Wall to Wall (Phase 1N)
+
+SPRINT 3 (lockdown operations + steal-cost):
+  10. Phase 1B lockdown plumbing finalized
+  11. Argus Crackdown, Sync Rerouting, Next Activation Command,
+      Hyoubu Precog Manifold, NAPD Cordon
+  12. Bellona (additional steal cost, shared with NAPD Cordon)
+  13. False Lead (forfeit mechanic)
+
+SPRINT 4 (encounter-engine extensions):
+  14. Phase 1E: Konjin psi redirect + encounter resume stack
+  15. Phase 1F: Engram Flush reveal-grip + choose-card-type
+  16. Phase 1G: F2P runner-usable ice ability
+  17. Gold Farmer (printed-sub-break event hook)
+
+SPRINT 5 (identity / economy / late-game cards):
+  18. Phase 1H: Earth Station: SEA Headquarters (coordinate with Hoshiko
+      Shiro flip mechanic from the Runner-side plan if sequenced first)
+  19. Phase 1I: GameNET identity credit-loss event
+  20. Phase 1J: Kakurenbo (facedown Archives + multi-trash + RFG)
+  21. Phase 1K: Project Vacheron
+  22. Phase 1L: Cyberdex Sandbox
+  23. Phase 1M: Megaprix Qualifier
+  24. Phase 1O: Tyr
+  25. Flower Sermon, Vaporframe Fabricator, Digital Rights Management,
+      Prana Condenser, Bass CH1R180G4, Transport Monopoly (1C)
+
+SPRINT 6 (JSON pass + AI):
+  26. Write/verify all Tier A and Tier B JSON entries
+  27. Write all Tier C JSON entries using engine work from Sprints 1-5
+  28. Phase 3: AI updates (CorpStateEvaluator, CorpTurnAI, SimRunnerAI)
+  29. Cross-check Drafter's existing entry against the Uprising printing
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+COORDINATION NOTES WITH RUNNER-SIDE PLAN
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+• Hoshiko Shiro: Untold Protagonist (Runner identity) flips itself each turn
+  it accesses a card. If the Runner-side plan implements a generic
+  `flip_identity` effect + `identity_face` field first, Earth Station: SEA
+  Headquarters (1H) should reuse it rather than building a parallel system.
+  Whichever plan is implemented FIRST should generalize the flip mechanic
+  for both sides.
+
+• Mark mechanic (already implemented from Parhelion) is used by several
+  Runner-side Uprising cards but NOT by any Corp-side card in this set — no
+  coordination needed beyond not re-implementing it.
+
+• Trace (1A) is purely a Corp-side mechanic in this set, but is broadly
+  useful — flag it as a shared engine primitive in project memory once
+  built, since future sets (both sides) will reference it heavily.
+
+• Facedown-Archives tracking (`corp_discard_facedown_ids`, needed by
+  Kakurenbo 1J) may already exist if Parhelion's Nanisivik Grid or Midnight
+  Sun's Moon Pool/Regenesis were implemented first — check before
+  re-implementing.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SCOPE SUMMARY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Total Corp cards in set:       35
+  Already implemented:            1  (drafter — verify exact text match)
+  Remaining to implement:        34
+  New effect types needed:      ~30
+  New condition types needed:    ~6
+  New GameContext fields:        ~8  (active_lockdown_card_id,
+                                       corp_allotted_click_bonus_next_turn,
+                                       corp_cannot_score_agendas_this_turn,
+                                       encounter_resume_stack,
+                                       corp_identity_face,
+                                       hyoubu_chosen_server,
+                                       corp_discard_facedown_ids [if not
+                                       already present], run_modifiers entries
+                                       for run_cannot_be_successful /
+                                       engram_flush_type)
+  New decision-maker methods:   ~10
+  Major new subsystems:           2  (Trace mechanic, Lockdown mechanic)
+  Estimated sprints:               6
+
+  Campaign deck design and fiction are deferred to a combined plan once both
+  the Corp-side and Runner-side Uprising implementation plans are complete,
+  since Uprising decks for the campaign will mix cards from both sides.

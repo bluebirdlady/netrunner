@@ -66,6 +66,19 @@ func choose_encounter_action(encounter: EncounterState, ctx: GameContext) -> Dic
 				# Break up to 2 unbroken subs per use
 				var to_break: Array = unbroken.slice(0, mini(2, unbroken.size()))
 				return {"type": "hardware_break", "card_id": "endurance", "sub_indices": to_break}
+	# Uprising: F2P — if not tagged and affordable, pay 2cr to break 1 sub.
+	if not unbroken.is_empty() and not ctx.runner_is_tagged():
+		var f2p_def: Dictionary = {}
+		if ctx.has_meta("ability_registry"):
+			var f2p_ab_reg: AbilityRegistry = ctx.get_meta("ability_registry") as AbilityRegistry
+			var f2p_card_def: Dictionary = f2p_ab_reg._abilities.get(encounter.ice_card.card_id, {}) as Dictionary
+			f2p_def = f2p_card_def.get("runner_paid_break_ability", {}) as Dictionary
+		if not f2p_def.is_empty():
+			var f2p_cost: int = f2p_def.get("cost_credits", 2)
+			var f2p_subs: int = f2p_def.get("subs_per_use", 1)
+			if ctx.runner_available_credits() >= f2p_cost:
+				return {"type": "f2p_break", "sub_indices": unbroken.slice(0, mini(f2p_subs, unbroken.size()))}
+
 	# Default: pass all subroutines — simplest safe behaviour.
 	return {"type": "done"}
 
@@ -135,6 +148,27 @@ func choose_pay_to_avoid_tag(_cost: int, _ctx: GameContext) -> bool:
 
 func choose_pay_to_avoid_damage(_cost: int, _damage: int, _damage_type: String, _ctx: GameContext) -> bool:
 	return false
+
+
+# ── Trace ──────────────────────────────────────────────────────────────────────
+
+# Spend just enough credits to bring link+boost above the trace strength
+# (i.e. make the trace fail), if affordable while keeping a small buffer;
+# otherwise spend nothing.
+func choose_trace_link_boost(trace_strength: int, link: int, ctx: GameContext) -> int:
+	var needed: int = (trace_strength + 1) - link
+	if needed <= 0:
+		return 0
+	if needed <= ctx.runner_credits:
+		return needed
+	return 0
+
+
+# ── Pay-or-end-the-run ────────────────────────────────────────────────────────
+
+# Pay to avoid ending the run if affordable while keeping a small credit buffer.
+func choose_pay_to_avoid_etr(cost: int, ctx: GameContext) -> bool:
+	return cost <= ctx.runner_credits
 
 
 func choose_pay_shred_etr(_count: int, _ctx: GameContext) -> bool:
