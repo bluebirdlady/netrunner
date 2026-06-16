@@ -498,6 +498,11 @@ func _score_click_action(card: InstalledCard, ctx: GameContext) -> int:
 	if click_def.is_empty():
 		return -1
 
+	# Multi-click abilities: ensure the Corp has enough clicks to pay the total cost.
+	var extra_clicks: int = click_def.get("additional_cost_clicks", 0)
+	if ctx.corp_clicks < 1 + extra_clicks:
+		return -1  # can't afford multi-click cost this turn
+
 	var score := 0
 	# One‑shot abilities (e.g., Humanoid Resources) – use if we have the clicks
 	if click_def.get("one_shot", false):
@@ -1386,6 +1391,24 @@ func choose_tags_to_remove(max_count: int, _ctx: GameContext) -> int:
 func choose_install_faceup(_card_record: CardRecord, _ctx: GameContext) -> bool:
 	# BANGUN: always install agendas faceup — the access punishment is the whole point.
 	return true
+
+
+func choose_card_name(ctx: GameContext) -> String:
+	# Complete Image: pick the card title most duplicated in the runner's visible discard.
+	# This maximises the chance of chaining repeat-damage on the named card.
+	var counts: Dictionary = {}
+	for e in ctx.runner_discard:
+		var cr: CardRecord = e as CardRecord
+		if cr != null and cr.title != "":
+			counts[cr.title] = counts.get(cr.title, 0) + 1
+	var best_name := ""
+	var best_count := 0
+	for title in counts:
+		if counts[title] > best_count:
+			best_count = counts[title]
+			best_name = title
+	# Fallback: most common runner card in game — any name triggers 1 net damage.
+	return best_name if best_name != "" else "Sure Gamble"
 
 
 func choose_runner_card_type(types: Array, ctx: GameContext) -> String:

@@ -131,6 +131,24 @@ func get_break_for_ice(card_id: String, ice_subtypes: Array) -> Variant:
 		return null
 	return card_def["break"]
 
+# Returns the alternative break interface for an icebreaker (e.g. Euler's free
+# first-turn code-gate break, Odore's free sentry break with 3+ virtual
+# resources), or null if this card has no break_alt or it doesn't apply to
+# this ice's subtypes. Availability conditions (requires_installed_this_turn,
+# installed_cards_by_subtype_gte) are checked separately by the caller, since
+# they require GameContext/InstalledCard state this registry doesn't have.
+func get_break_alt_for_ice(card_id: String, ice_subtypes: Array) -> Variant:
+	if not _abilities.has(card_id):
+		return null
+	var card_def: Dictionary = _abilities[card_id] as Dictionary
+	if not card_def.has("break_alt"):
+		return null
+	var alt: Dictionary = card_def["break_alt"] as Dictionary
+	var restriction: String = alt.get("subtype_restriction", "")
+	if restriction != "" and not (restriction in ice_subtypes):
+		return null
+	return alt
+
 # Returns the on_fully_break_code_gate trigger for an icebreaker, or null if none.
 # Fires when the breaker is used to break the last unbroken subroutine on a code gate.
 func get_on_fully_break_code_gate(card_id: String) -> Variant:
@@ -151,6 +169,18 @@ func get_on_fully_break_sentry(card_id: String) -> Variant:
 	if not card_def.has("on_fully_break_sentry"):
 		return null
 	return card_def["on_fully_break_sentry"]
+
+# Returns the on_fully_break_ice trigger for an icebreaker, or null if none.
+# Fires when the breaker is used to break the last unbroken subroutine on
+# any piece of ice, regardless of subtype.
+# Used by: Makler (first time per turn -> gain 1cr).
+func get_on_fully_break_ice(card_id: String) -> Variant:
+	if not _abilities.has(card_id):
+		return null
+	var card_def: Dictionary = _abilities[card_id] as Dictionary
+	if not card_def.has("on_fully_break_ice"):
+		return null
+	return card_def["on_fully_break_ice"]
 
 # Returns the boost definition for an icebreaker, or null if none.
 func get_boost(card_id: String) -> Variant:

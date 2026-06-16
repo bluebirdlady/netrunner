@@ -71,6 +71,51 @@ func _evaluate_condition(condition: Dictionary, ctx: GameContext) -> bool:
 		"runner_is_tagged":
 			return ctx.runner_is_tagged()
 
+		"trashed_cards_include_event":
+			# Uprising — Aniccam: true if any card in the current
+			# "runner_cards_trashed_from_grip_or_stack" event payload is an event.
+			var tcie_cards: Array = ctx.current_event_data.get("cards", []) as Array
+			for tcie_c in tcie_cards:
+				var tcie_r: CardRecord = tcie_c as CardRecord
+				if tcie_r != null and tcie_r.card_type == "event":
+					return true
+			return false
+
+		"trashed_cards_include_runner_identity_faction":
+			# Downfall — Storgotic Resonator: true if any card in the current
+			# "runner_cards_trashed_from_grip_or_stack" event payload matches the
+			# faction of the Runner's identity.
+			if ctx.runner_identity == null:
+				return false
+			var tcirf_cards: Array = ctx.current_event_data.get("cards", []) as Array
+			for tcirf_c in tcirf_cards:
+				var tcirf_r: CardRecord = tcirf_c as CardRecord
+				if tcirf_r != null and tcirf_r.faction == ctx.runner_identity.faction:
+					return true
+			return false
+
+		"self_installed_this_turn":
+			# Downfall — The Class Act: true if this card's card_id is in the list of
+			# Runner cards installed this turn.
+			var siit_self: InstalledCard = _get_self_card(ctx)
+			if siit_self == null:
+				return false
+			return ctx.runner_installed_this_turn.has(siit_self.card_id)
+
+		"runner_and_corp_hand_sizes_equal":
+			# Downfall — Lat: Ethical Freelancer: true when runner_hand.size() == corp_hand.size().
+			return ctx.runner_hand.size() == ctx.corp_hand.size()
+
+		"encountering_host_ice":
+			# Downfall — Chisel: true when the current encounter is with this card's host ice.
+			var ehi_self: InstalledCard = _get_self_card(ctx)
+			if ehi_self == null or ehi_self.hosted_on_id == "":
+				return false
+			var ehi_ice: InstalledCard = ctx.current_event_data.get("ice", null) as InstalledCard
+			if ehi_ice == null:
+				return false
+			return ehi_ice.runtime_instance_id == ehi_self.hosted_on_id
+
 		"credits_compare":
 			var subject: String   = params.get("subject", "runner")
 			var operator: String  = params.get("operator", "lte")
@@ -121,6 +166,18 @@ func _evaluate_condition(condition: Dictionary, ctx: GameContext) -> bool:
 		"runner_stole_or_trashed_last_runner_turn":
 			# Active Policing / Bring Them Home pre-play condition.
 			return ctx.runner_stole_or_trashed_last_runner_turn
+
+		"runner_agenda_points_gte":
+			# True when the Runner's agenda point total meets or exceeds the threshold.
+			return ctx.runner_agenda_points() >= int(condition.get("value", 0))
+
+		"stolen_agenda_is_not_self":
+			# Divested Trust: true when the agenda the Runner just stole is not this card.
+			var sins_self: InstalledCard = _get_self_card(ctx)
+			if sins_self == null:
+				return false
+			var sins_stolen_id: String = ctx.current_event_data.get("agenda_id", ctx.current_event_data.get("card_id", ""))
+			return sins_stolen_id != sins_self.card_id
 
 		"corp_discarded_last_turn":
 			return ctx.corp_discarded_to_hand_limit_last_turn
@@ -428,6 +485,14 @@ func _evaluate_condition(condition: Dictionary, ctx: GameContext) -> bool:
 				return false
 			return ctx.run_target_server != "" and ctx.run_target_server == rtss_card.server_id
 
+		"no_successful_run_on_self_server_last_turn":
+			# True when the Runner did NOT make a successful run on this card's
+			# server during their last turn. Used by Downfall: Daily Quest.
+			var nsr_card := _get_self_card(ctx)
+			if nsr_card == null:
+				return false
+			return not ctx.runner_successful_run_servers_last_turn.has(nsr_card.server_id)
+
 		"installed_card_is_hardware":
 			# True when the runner_installs_card event data refers to a hardware card.
 			# Used by VP17 Hiram to filter the install trigger.
@@ -479,6 +544,15 @@ func _evaluate_condition(condition: Dictionary, ctx: GameContext) -> bool:
 			if shs_self.card_record != null and shs_self.card_record.has_subtype(shs_subtype):
 				return true
 			return shs_self.extra_subtypes.has(shs_subtype)
+
+		"runner_identity_digital_or_link_gte":
+			# True when the Runner's identity has the "digital" subtype, or the
+			# Runner's total link is >= the given "value" (default 2).
+			# Used by: Dreamnet (first successful run each turn -> draw + maybe gain 1cr).
+			var ridl_value: int = condition.get("value", 2)
+			if ctx.runner_identity != null and ctx.runner_identity.has_subtype("digital"):
+				return true
+			return ctx.runner_total_link() >= ridl_value
 
 		"run_modifier_false":
 			# True when a run_modifiers key is absent or false.
@@ -844,7 +918,7 @@ func _execute_effect(effect: Dictionary, ctx: GameContext, chosen_target: Varian
 				else:
 					ndpo_pay = true  # AI default: pay to avoid damage
 			if ndpo_pay:
-				ctx.runner_spend_credits(ndpo_cost)
+				ctx.runner_spend_credits(ndpo_cost, "other")
 				ctx.send_log("Runner pays %dcr to avoid %d net damage." % [ndpo_cost, ndpo_amount])
 			else:
 				if ndpo_blocked:
@@ -902,6 +976,24 @@ func _execute_effect(effect: Dictionary, ctx: GameContext, chosen_target: Varian
 			var amount_def          = params.get("amount", 0)
 			var amount: int         = _resolve_amount(amount_def, ctx)
 			await _deal_damage(damage_type, amount, ctx)
+
+		"saisentan_deal_damage_then_chain":
+			# Saisentan: do 1 net damage. Whenever a card of the chosen type is
+			# trashed by this damage, do 1 additional net damage (chains).
+			var sdt_chosen: String = ctx.run_modifiers.get("saisentan_chosen_type", "")
+			var sdt_amount: int    = _resolve_amount(params.get("amount", 1), ctx)
+			var sdt_trashed: Array = await _deal_damage("net", sdt_amount, ctx)
+			while not ctx.game_over and sdt_chosen != "":
+				var sdt_match := false
+				for sdt_card in sdt_trashed:
+					var sdt_rec: CardRecord = sdt_card as CardRecord
+					if sdt_rec != null and sdt_rec.card_type == sdt_chosen:
+						sdt_match = true
+						break
+				if not sdt_match:
+					break
+				ctx.send_log("Saisentan: a %s was trashed by net damage — 1 additional net damage." % sdt_chosen)
+				sdt_trashed = await _deal_damage("net", 1, ctx)
 
 		"deal_damage_etr_if_odd_cost":
 			# Diviner: do N net damage; if the trashed card has an odd printed cost, end the run.
@@ -962,6 +1054,1133 @@ func _execute_effect(effect: Dictionary, ctx: GameContext, chosen_target: Varian
 				doc_do_draw = true  # AI default: always draw
 			if doc_do_draw:
 				_draw_cards(doc_subject, doc_amount, ctx)
+
+		"gain_credits_optional":
+			# Subject may choose to gain N credits.  AI defaults to always gaining.
+			# params: { subject: "corp"|"runner", amount: int }
+			var gco_subject: String = params.get("subject", "corp")
+			var gco_amount: int     = params.get("amount", 1)
+			var gco_do_gain := false
+			var gco_dm: Object = ctx.corp_decision_maker if gco_subject == "corp" else ctx.runner_decision_maker
+			if gco_dm != null and gco_dm.has_method("choose_modes"):
+				var gco_modes: Array = [
+					{"label": "Gain %d credit(s)" % gco_amount},
+					{"label": "Pass"}
+				]
+				var gco_chosen: Array = await gco_dm.choose_modes(gco_modes, 1, ctx)
+				gco_do_gain = (not gco_chosen.is_empty() and gco_chosen[0] == 0)
+			else:
+				gco_do_gain = true  # AI default: always gain
+			if gco_do_gain:
+				if gco_subject == "corp":
+					ctx.corp_credits += gco_amount
+				else:
+					ctx.runner_credits += gco_amount
+				ctx.send_log("%s gains %d[credit]." % [ctx.player_name(gco_subject), gco_amount])
+
+		"pay_credits_for_self_counters_up_to":
+			# Reduced Service: on rez, may pay up to N credits to place that many
+			# power counters on this card (1cr per counter).
+			var pcu_counter: String   = params.get("counter", "power")
+			var pcu_max: int          = int(params.get("max_amount", 0))
+			var pcu_cost_per: int     = int(params.get("cost_per_counter", 1))
+			var pcu_card: InstalledCard = _get_self_card(ctx)
+			if pcu_card == null:
+				return
+			var pcu_affordable: int = pcu_max
+			if pcu_cost_per > 0:
+				pcu_affordable = min(pcu_max, ctx.corp_credits / pcu_cost_per)
+			var pcu_amount: int = pcu_affordable
+			if ctx.corp_decision_maker != null and ctx.corp_decision_maker.has_method("choose_amount"):
+				pcu_amount = await ctx.corp_decision_maker.choose_amount(0, pcu_affordable, ctx,
+					"Pay %dcr per counter to place up to %d %s counter(s) on %s?" % \
+					[pcu_cost_per, pcu_affordable, pcu_counter, pcu_card.display_name()])
+			pcu_amount = clamp(pcu_amount, 0, pcu_affordable)
+			if pcu_amount > 0:
+				ctx.corp_credits -= pcu_amount * pcu_cost_per
+				if not ctx.simulation_mode:
+					emit_signal("credits_changed", "corp", ctx.corp_credits)
+				pcu_card.add_counter(pcu_counter, pcu_amount)
+				ctx.send_log("%s pays %dcr to place %d %s counter(s) on %s." % \
+					[ctx.corp_name(), pcu_amount * pcu_cost_per, pcu_amount, pcu_counter, pcu_card.display_name()])
+
+		# ── Downfall: Focus Group ─────────────────────────────────────────────────
+
+		"reveal_grip_count_by_type_then_advance":
+			# Focus Group: choose a card type, reveal the grip, count revealed cards
+			# of that type, then may pay X (≤ count) to place X advancement
+			# counters on 1 installed card.
+			var rgca_types: Array = params.get("types", ["program", "resource", "hardware", "event"])
+			var rgca_chosen: String = "program"
+			if ctx.corp_decision_maker != null and ctx.corp_decision_maker.has_method("choose_runner_card_type"):
+				rgca_chosen = await ctx.corp_decision_maker.choose_runner_card_type(rgca_types, ctx)
+			if rgca_chosen == "" or not (rgca_chosen in rgca_types):
+				rgca_chosen = rgca_types[0]
+			ctx.send_log("%s reveals the grip (%d card(s))." % [ctx.runner_name(), ctx.runner_hand.size()])
+			_hyoubu_check_first_reveal(ctx)
+			var rgca_count := 0
+			for rgca_entry in ctx.runner_hand:
+				var rgca_rec: CardRecord = (rgca_entry as Dictionary).get("card_record", null) as CardRecord
+				if rgca_rec != null and rgca_rec.card_type == rgca_chosen:
+					rgca_count += 1
+			ctx.send_log("Focus Group: %d revealed %s card(s)." % [rgca_count, rgca_chosen])
+			if rgca_count == 0:
+				return
+			var rgca_max: int = min(rgca_count, ctx.corp_credits)
+			var rgca_x: int = rgca_max
+			if ctx.corp_decision_maker != null and ctx.corp_decision_maker.has_method("choose_amount"):
+				rgca_x = await ctx.corp_decision_maker.choose_amount(0, rgca_max, ctx,
+					"Pay X[credit] to place X advancement counter(s) on 1 installed card (X up to %d)?" % rgca_max)
+			rgca_x = clamp(rgca_x, 0, rgca_max)
+			if rgca_x <= 0:
+				return
+			var rgca_targets: Array = []
+			for rgca_srv in ctx.servers.values():
+				var rgca_s: Server = rgca_srv as Server
+				for rgca_ic in rgca_s.ice:
+					rgca_targets.append(rgca_ic)
+				for rgca_rc in rgca_s.root:
+					rgca_targets.append(rgca_rc)
+			if rgca_targets.is_empty():
+				return
+			var rgca_target: InstalledCard = null
+			if ctx.corp_decision_maker != null and ctx.corp_decision_maker.has_method("choose_target"):
+				rgca_target = await ctx.corp_decision_maker.choose_target(rgca_targets, {"reason": "focus_group_advance"}) as InstalledCard
+			if rgca_target == null:
+				rgca_target = rgca_targets[0] as InstalledCard
+			ctx.corp_credits -= rgca_x
+			if not ctx.simulation_mode:
+				emit_signal("credits_changed", "corp", ctx.corp_credits)
+			rgca_target.add_counter("advancement", rgca_x)
+			ctx.send_log("Focus Group: pays %d[credit] to place %d advancement counter(s) on %s." % \
+				[rgca_x, rgca_x, rgca_target.display_name()])
+
+		# ── Downfall: Game Over ───────────────────────────────────────────────────
+
+		"trash_runner_installed_by_type_with_prevent_cost":
+			# Game Over: choose a Runner card type. Trash all installed
+			# non-icebreaker cards of that type. For each, the Runner may pay
+			# X[credit] to prevent that card from being trashed.
+			var tibtwp_types: Array = ["program", "resource", "hardware"]
+			var tibtwp_chosen: String = "program"
+			if ctx.corp_decision_maker != null and ctx.corp_decision_maker.has_method("choose_runner_card_type"):
+				tibtwp_chosen = await ctx.corp_decision_maker.choose_runner_card_type(tibtwp_types, ctx)
+			if tibtwp_chosen == "" or not (tibtwp_chosen in tibtwp_types):
+				tibtwp_chosen = tibtwp_types[0]
+			ctx.send_log("Game Over: chooses card type \"%s\"." % tibtwp_chosen)
+			var tibtwp_prevent_cost: int = int(params.get("prevent_cost", 3))
+			var tibtwp_pool: Array = []
+			for tibtwp_c_any in ctx.runner_rig:
+				var tibtwp_c: InstalledCard = tibtwp_c_any as InstalledCard
+				if tibtwp_c == null or tibtwp_c.card_record == null:
+					continue
+				if tibtwp_c.card_record.card_type != tibtwp_chosen:
+					continue
+				if tibtwp_c.card_record.has_subtype("icebreaker"):
+					continue
+				tibtwp_pool.append(tibtwp_c)
+			for tibtwp_target in tibtwp_pool:
+				var tibtwp_prevented := false
+				if ctx.runner_credits >= tibtwp_prevent_cost:
+					if ctx.runner_decision_maker != null and ctx.runner_decision_maker.has_method("choose_optional_ability"):
+						tibtwp_prevented = await ctx.runner_decision_maker.choose_optional_ability(
+							"Game Over: pay %d[credit] to prevent %s from being trashed?" % \
+							[tibtwp_prevent_cost, tibtwp_target.display_name()], ctx)
+					else:
+						tibtwp_prevented = true  # AI default: prevent if affordable
+				if tibtwp_prevented:
+					ctx.runner_credits -= tibtwp_prevent_cost
+					if not ctx.simulation_mode:
+						emit_signal("credits_changed", "runner", ctx.runner_credits)
+					ctx.send_log("%s pays %d[credit] to prevent %s from being trashed." % \
+						[ctx.runner_name(), tibtwp_prevent_cost, tibtwp_target.display_name()])
+				else:
+					_trash_installed_card(tibtwp_target, ctx)
+			await _execute_effect({"type": "give_bad_pub", "params": {"amount": 1}}, ctx, null)
+
+		# ── Downfall: Increased Drop Rates ────────────────────────────────────────
+
+		"runner_choice_take_tag_or_remove_bad_pub":
+			# Increased Drop Rates: when the Runner accesses this upgrade, remove 1
+			# bad publicity unless they take 1 tag.
+			var tort_take_tag := false
+			if ctx.runner_decision_maker != null and ctx.runner_decision_maker.has_method("choose_optional_ability"):
+				tort_take_tag = await ctx.runner_decision_maker.choose_optional_ability(
+					"Increased Drop Rates: take 1 tag (otherwise the Corp removes 1 bad publicity)?", ctx)
+			if tort_take_tag:
+				await _execute_effect({"type": "give_tags", "params": {"amount": 1}}, ctx, null)
+			else:
+				await _execute_effect({"type": "remove_bad_pub", "params": {"amount": 1}}, ctx, null)
+
+		# ── Downfall: Sting! ──────────────────────────────────────────────────────
+
+		"deal_damage_per_named_copies_in_score_area":
+			# Sting!: when scored or stolen, do X net damage, where X = 1 plus the
+			# number of copies of Sting! in the other player's score area.
+			var sting_self: InstalledCard = ctx.current_event_data.get("card", null) as InstalledCard
+			if sting_self == null:
+				sting_self = _get_self_card(ctx)
+			if sting_self == null:
+				return
+			var sting_card_id: String = sting_self.card_id
+			var sting_area_name: String = params.get("other_area", "runner_score_area")
+			var sting_area: Array = ctx.runner_score_area if sting_area_name == "runner_score_area" else ctx.corp_score_area
+			var sting_count := 0
+			for sting_rec_any in sting_area:
+				var sting_rec: CardRecord = sting_rec_any as CardRecord
+				if sting_rec != null and sting_rec.id == sting_card_id:
+					sting_count += 1
+			var sting_amount: int = 1 + sting_count
+			ctx.send_log("Sting!: deals %d net damage (%d other cop%s in %s's score area)." % \
+				[sting_amount, sting_count, "y" if sting_count == 1 else "ies",
+				ctx.runner_name() if sting_area_name == "runner_score_area" else ctx.corp_name()])
+			await _deal_damage("net", sting_amount, ctx)
+
+		# ── Downfall: Divested Trust ──────────────────────────────────────────────
+
+		"forfeit_self_to_gain_credits_and_reclaim_stolen_agenda":
+			# Divested Trust: whenever the Runner steals another agenda, may forfeit
+			# this agenda to gain 5[credit] and add the stolen agenda to HQ.
+			var dt_self: InstalledCard = _get_self_card(ctx)
+			if dt_self == null:
+				return
+			var dt_do := false
+			if ctx.corp_decision_maker != null and ctx.corp_decision_maker.has_method("choose_optional_ability"):
+				dt_do = await ctx.corp_decision_maker.choose_optional_ability(
+					"Divested Trust: forfeit this agenda to gain %d[credit] and reclaim the stolen agenda?" % \
+					int(params.get("amount", 5)), ctx)
+			else:
+				dt_do = true  # AI default: always take the trade
+			if not dt_do:
+				return
+			var dt_amount: int = int(params.get("amount", 5))
+			_forfeit_agenda(dt_self, ctx)
+			ctx.corp_credits += dt_amount
+			if not ctx.simulation_mode:
+				emit_signal("credits_changed", "corp", ctx.corp_credits)
+			ctx.send_log("Divested Trust: %s forfeits it to gain %d[credit]." % [ctx.corp_name(), dt_amount])
+			var dt_stolen_id: String = ctx.current_event_data.get("agenda_id", ctx.current_event_data.get("card_id", ""))
+			for dt_i in range(ctx.runner_score_area.size()):
+				var dt_rec: CardRecord = ctx.runner_score_area[dt_i] as CardRecord
+				if dt_rec != null and dt_rec.id == dt_stolen_id:
+					ctx.runner_score_area.remove_at(dt_i)
+					if dt_i < ctx.runner_score_area_cards.size():
+						var dt_ic: InstalledCard = ctx.runner_score_area_cards[dt_i] as InstalledCard
+						ctx.runner_score_area_cards.remove_at(dt_i)
+						if dt_ic != null:
+							ctx.unregister_all_card_effects(dt_ic.runtime_instance_id)
+					ctx.corp_hand.append({"card_id": dt_rec.id, "card_record": dt_rec})
+					ctx.send_log("Divested Trust: %s is returned to HQ." % dt_rec.title)
+					break
+
+		# ── Downfall: Letheia Nisei ───────────────────────────────────────────────
+
+		"letheia_psi_on_first_approach":
+			# Letheia Nisei: the first time the Runner approaches this server during
+			# each run, play a Psi Game. If the bids differ, the Corp may trash this
+			# upgrade, moving the Runner to the outermost position; they may jack out.
+			var ln_self: InstalledCard = _get_self_card(ctx)
+			if ln_self == null:
+				return
+			if not ctx.run_active or ctx.run_target_server != ln_self.server_id:
+				return
+			var ln_key: String = "letheia_used:" + ln_self.runtime_instance_id
+			if ctx.run_modifiers.get(ln_key, false):
+				return
+			ctx.run_modifiers[ln_key] = true
+			await _execute_effect({
+				"type": "psi_game",
+				"params": {"on_mismatch": [{"type": "letheia_may_trash_and_reposition"}]}
+			}, ctx, null)
+
+		"letheia_may_trash_and_reposition":
+			var lmt_self: InstalledCard = _get_self_card(ctx)
+			if lmt_self == null:
+				return
+			var lmt_do := false
+			if ctx.corp_decision_maker != null and ctx.corp_decision_maker.has_method("choose_optional_ability"):
+				lmt_do = await ctx.corp_decision_maker.choose_optional_ability(
+					"Letheia Nisei: trash this upgrade to move the Runner to the outermost position?", ctx)
+			else:
+				lmt_do = true  # AI default: always trash
+			if not lmt_do:
+				return
+			var lmt_server_id: String = lmt_self.server_id
+			await _execute_effect({"type": "trash_self"}, ctx, null)
+			await _execute_effect({"type": "move_runner_to_outermost", "params": {"server_id": lmt_server_id}}, ctx, null)
+			if not ctx.game_over:
+				var lmt_jack_out := false
+				if ctx.runner_decision_maker != null and ctx.runner_decision_maker.has_method("choose_jack_out"):
+					lmt_jack_out = await ctx.runner_decision_maker.choose_jack_out(ctx)
+				if lmt_jack_out:
+					ctx.send_log("%s jacks out." % ctx.runner_name())
+					ctx.run_ended = true
+
+		# ── Downfall: Stargate ────────────────────────────────────────────────────
+
+		"set_substitute_breach_effect":
+			ctx.run_modifiers["substitute_breach_effect"] = params.get("effects", [])
+
+		"reveal_top_rd_n_trash_1":
+			# Stargate: reveal the top N cards of R&D and trash 1 of them.
+			var rtrt_amount: int = min(int(params.get("amount", 3)), ctx.corp_deck.size())
+			if rtrt_amount <= 0:
+				ctx.send_log("Stargate: R&D is empty — nothing to reveal.")
+				return
+			var rtrt_cards: Array = ctx.corp_deck.slice(0, rtrt_amount)
+			var rtrt_names: Array = []
+			for rtrt_c_any in rtrt_cards:
+				rtrt_names.append((rtrt_c_any as CardRecord).title)
+			ctx.send_log("Stargate: reveals the top %d card(s) of R&D — %s." % [rtrt_amount, ", ".join(rtrt_names)])
+			_hyoubu_check_first_reveal(ctx)
+			var rtrt_wrapped: Array = []
+			for rtrt_c_any in rtrt_cards:
+				rtrt_wrapped.append({"card_id": (rtrt_c_any as CardRecord).id, "card_record": rtrt_c_any})
+			var rtrt_target_entry: Variant = null
+			if ctx.corp_decision_maker != null and ctx.corp_decision_maker.has_method("choose_card_from_hand"):
+				rtrt_target_entry = await ctx.corp_decision_maker.choose_card_from_hand(rtrt_wrapped, ctx)
+			if rtrt_target_entry == null:
+				rtrt_target_entry = rtrt_wrapped[0]
+			var rtrt_target: CardRecord = (rtrt_target_entry as Dictionary).get("card_record", null) as CardRecord
+			if rtrt_target != null:
+				ctx.corp_deck.erase(rtrt_target)
+				ctx.corp_discard.append(rtrt_target)
+				ctx.send_log("Stargate: trashes %s." % rtrt_target.title)
+
+		"stargate_run":
+			# Stargate: [click]: Run R&D. If successful, instead of breaching R&D,
+			# reveal the top 3 cards of R&D and trash 1 of them.
+			var sg_lid: String = "stargate_%d" % randi()
+			ctx.register_listener("successful_run", sg_lid, {
+				"effects": [{"type": "set_substitute_breach_effect",
+					"params": {"effects": [{"type": "reveal_top_rd_n_trash_1", "params": {"amount": 3}}]}}]
+			})
+			if ctx.has_meta("on_run_started"):
+				(ctx.get_meta("on_run_started") as Callable).call("rd")
+				await Engine.get_main_loop().process_frame
+			var sg_rsm: Object = ctx.get_meta("run_state_machine") if ctx.has_meta("run_state_machine") else null
+			if sg_rsm == null:
+				push_error("AbilityInterpreter: stargate_run — no run_state_machine on ctx")
+				ctx.unregister_all_card_effects(sg_lid)
+				return
+			ctx.send_log("Stargate: %s runs R&D." % ctx.corp_name())
+			await sg_rsm.execute("rd")
+			ctx.unregister_all_card_effects(sg_lid)
+
+		# ── Downfall: Complete Image ──────────────────────────────────────────────
+
+		"complete_image_resolve":
+			# Complete Image: choose a card name, then do 1 net damage. If a card
+			# with the chosen name is trashed this way, repeat. After resolving,
+			# the Corp's action phase ends.
+			var ci_name: String = ""
+			if ctx.corp_decision_maker != null and ctx.corp_decision_maker.has_method("choose_card_name"):
+				ci_name = await ctx.corp_decision_maker.choose_card_name(ctx)
+			if ci_name != "":
+				ctx.send_log("Complete Image: names \"%s\"." % ci_name)
+			var ci_trashed: Array = await _deal_damage("net", 1, ctx)
+			while not ctx.game_over and ci_name != "":
+				var ci_match := false
+				for ci_card in ci_trashed:
+					var ci_rec: CardRecord = ci_card as CardRecord
+					if ci_rec != null and ci_rec.title == ci_name:
+						ci_match = true
+						break
+				if not ci_match:
+					break
+				ctx.send_log("Complete Image: a card named \"%s\" was trashed — 1 additional net damage." % ci_name)
+				ci_trashed = await _deal_damage("net", 1, ctx)
+			ctx.corp_clicks = 0
+			ctx.send_log("Complete Image: the Corp's action phase ends.")
+
+		# ── Downfall: Hyoubu Institute: Absolute Clarity ──────────────────────────
+
+		"hyoubu_reveal_card":
+			# Hyoubu Institute identity ability: [click]: Reveal 1 card from the
+			# Runner's grip at random, or the top card of the Runner's stack.
+			var hyo_modes: Array = [
+				{"label": "Reveal 1 card from the grip at random"},
+				{"label": "Reveal the top card of the stack"}
+			]
+			var hyo_choice := 0
+			if ctx.corp_decision_maker != null and ctx.corp_decision_maker.has_method("choose_modes"):
+				var hyo_chosen: Array = await ctx.corp_decision_maker.choose_modes(hyo_modes, 1, ctx)
+				if not hyo_chosen.is_empty():
+					hyo_choice = hyo_chosen[0]
+			if hyo_choice == 1:
+				if ctx.runner_deck.is_empty():
+					ctx.send_log("Hyoubu Institute: %s's stack is empty — nothing to reveal." % ctx.runner_name())
+				else:
+					var hyo_top: CardRecord = ctx.runner_deck[0] as CardRecord
+					ctx.send_log("Hyoubu Institute: reveals the top card of %s's stack — %s." % [ctx.runner_name(), hyo_top.title])
+					_hyoubu_check_first_reveal(ctx)
+			else:
+				if ctx.runner_hand.is_empty():
+					ctx.send_log("Hyoubu Institute: %s's grip is empty — nothing to reveal." % ctx.runner_name())
+				else:
+					var hyo_idx: int = randi() % ctx.runner_hand.size()
+					var hyo_entry: Dictionary = ctx.runner_hand[hyo_idx] as Dictionary
+					var hyo_rec: CardRecord = hyo_entry.get("card_record", null) as CardRecord
+					ctx.send_log("Hyoubu Institute: reveals 1 random card from %s's grip — %s." % \
+						[ctx.runner_name(), hyo_rec.title if hyo_rec != null else "?"])
+					_hyoubu_check_first_reveal(ctx)
+
+		# ── Downfall: Roughneck Repair Squad ─────────────────────────────────────
+
+		"roughneck_repair_squad_use":
+			# [click][click][click]: Gain 6cr. You may remove 1 bad publicity.
+			ctx.corp_credits += 6
+			if not ctx.simulation_mode:
+				emit_signal("credits_changed", "corp", ctx.corp_credits)
+			ctx.send_log("Roughneck Repair Squad: %s gains 6[credit]." % ctx.corp_name())
+			if ctx.corp_bad_pub > 0:
+				var rrs_do := false
+				if ctx.corp_decision_maker != null and ctx.corp_decision_maker.has_method("choose_optional_ability"):
+					rrs_do = await ctx.corp_decision_maker.choose_optional_ability(
+						"Roughneck Repair Squad: remove 1 bad publicity?", ctx)
+				else:
+					rrs_do = true  # AI default: always remove
+				if rrs_do:
+					await _execute_effect({"type": "remove_bad_pub", "params": {"amount": 1}}, ctx, null)
+
+		# ── Downfall: Fully Operational ───────────────────────────────────────────
+
+		"fully_operational_resolve":
+			# Gain 2cr or draw 2 cards. Repeat for each remote server that has a
+			# card in its root and is protected by ice.
+			var fo_remotes: Array = []
+			for fo_srv_any in ctx.servers.values():
+				var fo_srv: Server = fo_srv_any as Server
+				if fo_srv.server_id.begins_with("remote") and not fo_srv.root.is_empty() and not fo_srv.ice.is_empty():
+					fo_remotes.append(fo_srv)
+			var fo_iterations: int = 1 + fo_remotes.size()
+			for fo_i in range(fo_iterations):
+				var fo_modes: Array = [
+					{"label": "Gain 2[credit]"},
+					{"label": "Draw 2 cards"}
+				]
+				var fo_choice := 0
+				if ctx.corp_decision_maker != null and ctx.corp_decision_maker.has_method("choose_modes"):
+					var fo_chosen: Array = await ctx.corp_decision_maker.choose_modes(fo_modes, 1, ctx)
+					if not fo_chosen.is_empty():
+						fo_choice = fo_chosen[0]
+				if fo_choice == 1:
+					_draw_cards("corp", 2, ctx)
+				else:
+					ctx.corp_credits += 2
+					if not ctx.simulation_mode:
+						emit_signal("credits_changed", "corp", ctx.corp_credits)
+					ctx.send_log("Fully Operational: %s gains 2[credit]." % ctx.corp_name())
+
+		# ── Downfall: Storgotic Resonator ─────────────────────────────────────────
+
+		"storgotic_deal_damage":
+			await _deal_damage("net", int(params.get("amount", 1)), ctx)
+
+		# ── Downfall: Project Yagi-Uda ────────────────────────────────────────────
+
+		"place_agenda_counters_per_excess_advancement":
+			# When scored, place 1 agenda counter for each hosted advancement
+			# counter past 3 (i.e. equal to current_event_data["excess_advancement"]).
+			var pacpea_self: InstalledCard = _get_self_card(ctx)
+			if pacpea_self == null:
+				return
+			var pacpea_excess: int = int(ctx.current_event_data.get("excess_advancement", 0))
+			if pacpea_excess > 0:
+				pacpea_self.add_counter("agenda", pacpea_excess)
+				ctx.send_log("Project Yagi-Uda: places %d agenda counter(s). (%d total)" % \
+					[pacpea_excess, pacpea_self.get_counter("agenda")])
+
+		"yagi_uda_swap":
+			# Hosted agenda counter: swap 1 card from HQ with 1 card in the root of
+			# or protecting the server being run. The Runner may jack out.
+			if not ctx.run_active or ctx.run_target_server == "":
+				ctx.send_log("Project Yagi-Uda: this ability may only be used during a run.")
+				return
+			if ctx.corp_hand.is_empty():
+				ctx.send_log("Project Yagi-Uda: HQ is empty — nothing to swap.")
+				return
+			var yu_server: Server = ctx.get_server(ctx.run_target_server)
+			if yu_server == null:
+				return
+			var yu_candidates: Array = []
+			for yu_ic in yu_server.ice:
+				yu_candidates.append(yu_ic)
+			for yu_rc in yu_server.root:
+				yu_candidates.append(yu_rc)
+			if yu_candidates.is_empty():
+				ctx.send_log("Project Yagi-Uda: no cards to swap on %s." % yu_server.display_name())
+				return
+			var yu_hq_entry: Variant = null
+			if ctx.corp_decision_maker != null and ctx.corp_decision_maker.has_method("choose_card_from_hand"):
+				yu_hq_entry = await ctx.corp_decision_maker.choose_card_from_hand(ctx.corp_hand.duplicate(), ctx)
+			if yu_hq_entry == null:
+				yu_hq_entry = ctx.corp_hand[0]
+			var yu_hq_record: CardRecord = (yu_hq_entry as Dictionary).get("card_record", null) as CardRecord
+			if yu_hq_record == null:
+				return
+			var yu_target: InstalledCard = null
+			if ctx.corp_decision_maker != null and ctx.corp_decision_maker.has_method("choose_target"):
+				yu_target = await ctx.corp_decision_maker.choose_target(yu_candidates, {"reason": "yagi_uda_swap"}) as InstalledCard
+			if yu_target == null:
+				yu_target = yu_candidates[0] as InstalledCard
+			# Remove the HQ card and the installed target from their current zones.
+			ctx.corp_hand.erase(yu_hq_entry)
+			var yu_new: InstalledCard = InstalledCard.make_runtime_instance(yu_hq_record, yu_target.server_id, yu_target.zone, false)
+			if yu_target.zone == "ice":
+				var yu_idx: int = yu_server.ice.find(yu_target)
+				yu_server.ice[yu_idx] = yu_new
+			else:
+				var yu_idx2: int = yu_server.root.find(yu_target)
+				yu_server.root[yu_idx2] = yu_new
+			ctx.unregister_all_card_effects(yu_target.runtime_instance_id)
+			if yu_target.card_record != null:
+				ctx.corp_hand.append({"card_id": yu_target.card_record.id, "card_record": yu_target.card_record})
+			ctx.send_log("Project Yagi-Uda: swaps %s from HQ with %s on %s." % \
+				[yu_hq_record.title, yu_target.display_name(), yu_server.display_name()])
+			if not ctx.game_over:
+				var yu_jack_out := false
+				if ctx.runner_decision_maker != null and ctx.runner_decision_maker.has_method("choose_jack_out"):
+					yu_jack_out = await ctx.runner_decision_maker.choose_jack_out(ctx)
+				if yu_jack_out:
+					ctx.send_log("%s jacks out." % ctx.runner_name())
+					ctx.run_ended = true
+
+		# ── Downfall: Red Level Clearance ─────────────────────────────────────────
+
+		"install_non_agenda_from_hq":
+			# Install 1 non-agenda card from HQ, paying its normal install cost.
+			var inafh_pool: Array = []
+			for inafh_entry_any in ctx.corp_hand:
+				var inafh_entry: Dictionary = inafh_entry_any as Dictionary
+				var inafh_rec: CardRecord = inafh_entry.get("card_record", null) as CardRecord
+				if inafh_rec != null and inafh_rec.card_type != "agenda":
+					inafh_pool.append(inafh_entry)
+			if inafh_pool.is_empty():
+				ctx.send_log("Red Level Clearance: no non-agenda cards in HQ to install.")
+				return
+			var inafh_entry: Variant = null
+			if ctx.corp_decision_maker != null and ctx.corp_decision_maker.has_method("choose_card_from_hand"):
+				inafh_entry = await ctx.corp_decision_maker.choose_card_from_hand(inafh_pool, ctx)
+			if inafh_entry == null:
+				inafh_entry = inafh_pool[0]
+			var inafh_rec: CardRecord = (inafh_entry as Dictionary).get("card_record", null) as CardRecord
+			if inafh_rec == null:
+				return
+			var inafh_cost: int = max(0, inafh_rec.cost)
+			var inafh_server: Server = ctx.create_remote_server()
+			var inafh_pos_cost: int = inafh_server.ice.size() if inafh_rec.is_ice() else 0
+			var inafh_total: int = inafh_cost + inafh_pos_cost
+			if ctx.corp_credits < inafh_total:
+				ctx.send_log("Red Level Clearance: %s cannot afford to install %s (needs %d[credit])." % \
+					[ctx.corp_name(), inafh_rec.title, inafh_total])
+				return
+			ctx.corp_credits -= inafh_total
+			if not ctx.simulation_mode:
+				emit_signal("credits_changed", "corp", ctx.corp_credits)
+			ctx.corp_hand.erase(inafh_entry)
+			var inafh_zone: String = "ice" if inafh_rec.is_ice() else "root"
+			_install_corp_card(inafh_rec, inafh_server, inafh_zone, false)
+			ctx.send_log("Red Level Clearance: %s installs %s on %s (pays %d[credit])." % \
+				[ctx.corp_name(), inafh_rec.title, inafh_server.display_name(), inafh_total])
+
+		# ── Downfall: Architect Deployment Test ───────────────────────────────────
+
+		"architect_deployment_test_resolve":
+			# When scored: look at the top 5 cards of R&D. May install and rez 1 of
+			# them, ignoring all costs.
+			var adt_n: int = min(5, ctx.corp_deck.size())
+			if adt_n <= 0:
+				ctx.send_log("Architect Deployment Test: R&D is empty.")
+				return
+			var adt_cards: Array = ctx.corp_deck.slice(0, adt_n)
+			ctx.send_log("Architect Deployment Test: %s looks at the top %d card(s) of R&D." % [ctx.corp_name(), adt_n])
+			var adt_do := false
+			if ctx.corp_decision_maker != null and ctx.corp_decision_maker.has_method("choose_optional_ability"):
+				adt_do = await ctx.corp_decision_maker.choose_optional_ability(
+					"Architect Deployment Test: install and rez 1 of those cards, ignoring all costs?", ctx)
+			else:
+				adt_do = true  # AI default: always take the install
+			if not adt_do:
+				return
+			var adt_wrapped: Array = []
+			for adt_c_any in adt_cards:
+				adt_wrapped.append({"card_id": (adt_c_any as CardRecord).id, "card_record": adt_c_any})
+			var adt_chosen_entry: Variant = null
+			if ctx.corp_decision_maker != null and ctx.corp_decision_maker.has_method("choose_card_from_hand"):
+				adt_chosen_entry = await ctx.corp_decision_maker.choose_card_from_hand(adt_wrapped, ctx)
+			if adt_chosen_entry == null:
+				adt_chosen_entry = adt_wrapped[0]
+			var adt_chosen: CardRecord = (adt_chosen_entry as Dictionary).get("card_record", null) as CardRecord
+			if adt_chosen == null:
+				return
+			ctx.corp_deck.erase(adt_chosen)
+			var adt_server: Server = ctx.create_remote_server()
+			var adt_zone: String = "ice" if adt_chosen.is_ice() else "root"
+			var adt_installed: InstalledCard = _install_corp_card(adt_chosen, adt_server, adt_zone, true)
+			if ctx.has_meta("ability_registry"):
+				var adt_ab_reg: AbilityRegistry = ctx.get_meta("ability_registry") as AbilityRegistry
+				var adt_on_rez = adt_ab_reg.get_on_rez(adt_chosen.id)
+				if adt_on_rez != null:
+					ctx.current_event_data = {"card": adt_installed, "card_instance_id": adt_installed.runtime_instance_id}
+					await execute_trigger(adt_on_rez as Dictionary, ctx)
+					ctx.current_event_data = {}
+			ctx.send_log("Architect Deployment Test: %s installs and rezzes %s on %s, ignoring all costs." % \
+				[ctx.corp_name(), adt_chosen.title, adt_server.display_name()])
+
+		# ── Downfall Runner: R1 effects ──────────────────────────────────────────
+
+		"blueberry_diesel_resolve":
+			# Look at the top 2 cards of the stack. You may add 1 of those cards to
+			# the bottom of the stack. Draw 2 cards.
+			var bd_n: int = min(2, ctx.runner_deck.size())
+			if bd_n <= 0:
+				_draw_cards("runner", 2, ctx)
+				return
+			var bd_top: Array = ctx.runner_deck.slice(0, bd_n)
+			var bd_names: Array = []
+			for bd_c_any in bd_top:
+				bd_names.append((bd_c_any as CardRecord).title)
+			ctx.send_log("Blueberry!™ Diesel: %s looks at top %d card(s) of stack — %s." % [ctx.runner_name(), bd_n, ", ".join(bd_names)])
+			var bd_do := false
+			if ctx.runner_decision_maker != null and ctx.runner_decision_maker.has_method("choose_optional_ability"):
+				bd_do = await ctx.runner_decision_maker.choose_optional_ability(
+					"Blueberry!™ Diesel: add 1 of the top %d cards to the bottom of the stack?" % bd_n, ctx)
+			if bd_do:
+				var bd_wrapped: Array = []
+				for bd_c_any in bd_top:
+					bd_wrapped.append({"card_id": (bd_c_any as CardRecord).id, "card_record": bd_c_any})
+				var bd_chosen_entry: Variant = null
+				if ctx.runner_decision_maker != null and ctx.runner_decision_maker.has_method("choose_card_from_hand"):
+					bd_chosen_entry = await ctx.runner_decision_maker.choose_card_from_hand(bd_wrapped, ctx)
+				if bd_chosen_entry == null:
+					bd_chosen_entry = bd_wrapped[0]
+				var bd_chosen: CardRecord = (bd_chosen_entry as Dictionary).get("card_record", null) as CardRecord
+				if bd_chosen != null:
+					ctx.runner_deck.erase(bd_chosen)
+					ctx.runner_deck.append(bd_chosen)
+					ctx.send_log("Blueberry!™ Diesel: %s adds %s to the bottom of the stack." % [ctx.runner_name(), bd_chosen.title])
+			_draw_cards("runner", 2, ctx)
+
+		"rejig_resolve":
+			# As an additional cost to play this event, add 1 installed program or
+			# piece of hardware to your grip. Then install 1 program or hardware from
+			# your grip paying X[credit] less, where X is the printed install cost of
+			# the card added to your grip.
+			# Step 1: bounce one installed program/hardware to grip.
+			var rj_rig_pool: Array = []
+			for rj_ic_any in ctx.runner_rig:
+				var rj_ic: InstalledCard = rj_ic_any as InstalledCard
+				if rj_ic != null and rj_ic.card_record != null and \
+						(rj_ic.card_record.card_type == "program" or rj_ic.card_record.card_type == "hardware"):
+					rj_rig_pool.append(rj_ic)
+			if rj_rig_pool.is_empty():
+				ctx.send_log("Rejig: no installed programs or hardware to return.")
+				return
+			var rj_bounce: InstalledCard = null
+			if ctx.runner_decision_maker != null and ctx.runner_decision_maker.has_method("choose_target"):
+				rj_bounce = await ctx.runner_decision_maker.choose_target(rj_rig_pool, {"reason": "rejig_bounce"}) as InstalledCard
+			if rj_bounce == null:
+				rj_bounce = rj_rig_pool[0] as InstalledCard
+			var rj_discount: int = rj_bounce.card_record.cost if rj_bounce.card_record != null else 0
+			ctx.runner_rig.erase(rj_bounce)
+			ctx.unregister_all_card_effects(rj_bounce.runtime_instance_id)
+			ctx.runner_hand.append({"card_id": rj_bounce.card_id, "card_record": rj_bounce.card_record})
+			ctx.send_log("Rejig: %s returns %s to grip (printed cost %d — becomes install discount)." % \
+				[ctx.runner_name(), rj_bounce.display_name(), rj_discount])
+			# Step 2: install 1 program or hardware from grip paying X less.
+			var rj_pool: Array = []
+			for rj_entry_any in ctx.runner_hand:
+				var rj_entry: Dictionary = rj_entry_any as Dictionary
+				var rj_rec: CardRecord = rj_entry.get("card_record", null) as CardRecord
+				if rj_rec != null and (rj_rec.card_type == "program" or rj_rec.card_type == "hardware"):
+					rj_pool.append(rj_entry)
+			if rj_pool.is_empty():
+				ctx.send_log("Rejig: no programs or hardware in grip to install.")
+				return
+			var rj_install_entry: Variant = null
+			if ctx.runner_decision_maker != null and ctx.runner_decision_maker.has_method("choose_card_from_hand"):
+				rj_install_entry = await ctx.runner_decision_maker.choose_card_from_hand(rj_pool, ctx)
+			if rj_install_entry == null:
+				rj_install_entry = rj_pool[0]
+			var rj_install_rec: CardRecord = (rj_install_entry as Dictionary).get("card_record", null) as CardRecord
+			if rj_install_rec == null:
+				return
+			var rj_cost: int = max(0, rj_install_rec.cost - rj_discount)
+			if ctx.runner_credits < rj_cost:
+				ctx.send_log("Rejig: %s cannot afford to install %s (needs %d[credit])." % [ctx.runner_name(), rj_install_rec.title, rj_cost])
+				return
+			ctx.runner_credits -= rj_cost
+			if not ctx.simulation_mode:
+				emit_signal("credits_changed", "runner", ctx.runner_credits)
+			ctx.runner_hand.erase(rj_install_entry)
+			var rj_installed: InstalledCard = InstalledCard.make_runtime_instance(rj_install_rec, "runner_rig", "rig", false)
+			ctx.runner_rig.append(rj_installed)
+			ctx.runner_installed_this_turn.append(rj_install_rec.id)
+			ctx.send_log("Rejig: %s installs %s paying %d[credit] (discount %d)." % \
+				[ctx.runner_name(), rj_install_rec.title, rj_cost, rj_discount])
+
+		"the_artist_use":
+			# The Artist: two independent once-per-turn click abilities.
+			# [once per turn click]: Gain 2cr.
+			# [once per turn click]: Install 1 program or hardware from grip, paying 1cr less.
+			var ta_self: InstalledCard = _get_self_card(ctx)
+			var ta_iid: String = ta_self.runtime_instance_id if ta_self != null else "artist"
+			var ta_gain_key: String = ta_iid + ":artist_gain"
+			var ta_install_key: String = ta_iid + ":artist_install"
+			var ta_can_gain: bool = not ctx.once_per_turn_triggered.get(ta_gain_key, false)
+			var ta_can_install: bool = not ctx.once_per_turn_triggered.get(ta_install_key, false)
+			var ta_modes: Array = []
+			if ta_can_gain:
+				ta_modes.append({"label": "Gain 2[credit]", "key": ta_gain_key})
+			if ta_can_install:
+				ta_modes.append({"label": "Install 1 program or hardware paying 1[credit] less", "key": ta_install_key})
+			if ta_modes.is_empty():
+				ctx.send_log("The Artist: both abilities already used this turn.")
+				return
+			var ta_chosen: int = 0
+			if ta_modes.size() > 1 and ctx.runner_decision_maker != null and ctx.runner_decision_maker.has_method("choose_modes"):
+				var ta_chosen_arr: Array = await ctx.runner_decision_maker.choose_modes(ta_modes, 1, ctx)
+				if not ta_chosen_arr.is_empty():
+					ta_chosen = ta_chosen_arr[0]
+			var ta_mode: Dictionary = ta_modes[ta_chosen] as Dictionary
+			ctx.once_per_turn_triggered[ta_mode["key"]] = true
+			if ta_mode["key"] == ta_gain_key:
+				ctx.runner_credits += 2
+				if not ctx.simulation_mode:
+					emit_signal("credits_changed", "runner", ctx.runner_credits)
+				ctx.send_log("The Artist: %s gains 2[credit]." % ctx.runner_name())
+			else:
+				var ta_pool: Array = []
+				for ta_entry_any in ctx.runner_hand:
+					var ta_entry: Dictionary = ta_entry_any as Dictionary
+					var ta_rec: CardRecord = ta_entry.get("card_record", null) as CardRecord
+					if ta_rec != null and (ta_rec.card_type == "program" or ta_rec.card_type == "hardware"):
+						ta_pool.append(ta_entry)
+				if ta_pool.is_empty():
+					ctx.send_log("The Artist: no programs or hardware in grip to install.")
+					return
+				var ta_install_entry: Variant = null
+				if ctx.runner_decision_maker != null and ctx.runner_decision_maker.has_method("choose_card_from_hand"):
+					ta_install_entry = await ctx.runner_decision_maker.choose_card_from_hand(ta_pool, ctx)
+				if ta_install_entry == null:
+					ta_install_entry = ta_pool[0]
+				var ta_install_rec: CardRecord = (ta_install_entry as Dictionary).get("card_record", null) as CardRecord
+				if ta_install_rec == null:
+					return
+				var ta_install_cost: int = max(0, ta_install_rec.cost - 1)
+				if ctx.runner_credits < ta_install_cost:
+					ctx.send_log("The Artist: cannot afford to install %s (needs %d[credit])." % [ta_install_rec.title, ta_install_cost])
+					return
+				ctx.runner_credits -= ta_install_cost
+				if not ctx.simulation_mode:
+					emit_signal("credits_changed", "runner", ctx.runner_credits)
+				ctx.runner_hand.erase(ta_install_entry)
+				var ta_installed: InstalledCard = InstalledCard.make_runtime_instance(ta_install_rec, "runner_rig", "rig", false)
+				ctx.runner_rig.append(ta_installed)
+				ctx.runner_installed_this_turn.append(ta_install_rec.id)
+				ctx.send_log("The Artist: %s installs %s, paying %d[credit]." % [ctx.runner_name(), ta_install_rec.title, ta_install_cost])
+
+		"the_class_act_discard_draw":
+			# Downfall — The Class Act: draw 4 cards.
+			# (Fired from runner_discard_phase_ends when this card was installed this turn.)
+			_draw_cards("runner", 4, ctx)
+
+		# ── Downfall Runner: R2 effects ──────────────────────────────────────────
+
+		"masterwork_install_hardware_on_run_start":
+			# Masterwork (v37): whenever a run begins, the Runner may install 1 hardware
+			# from their grip, paying 1[credit] more than its printed cost.
+			var mw_pool: Array = []
+			for mw_entry_any in ctx.runner_hand:
+				var mw_entry: Dictionary = mw_entry_any as Dictionary
+				var mw_rec: CardRecord = mw_entry.get("card_record", null) as CardRecord
+				if mw_rec != null and mw_rec.card_type == "hardware":
+					mw_pool.append(mw_entry)
+			if mw_pool.is_empty():
+				return
+			var mw_do := false
+			if ctx.runner_decision_maker != null and ctx.runner_decision_maker.has_method("choose_optional_ability"):
+				mw_do = await ctx.runner_decision_maker.choose_optional_ability(
+					"Masterwork (v37): install 1 hardware from grip, paying 1[credit] more?", ctx)
+			if not mw_do:
+				return
+			var mw_entry_chosen: Variant = null
+			if ctx.runner_decision_maker != null and ctx.runner_decision_maker.has_method("choose_card_from_hand"):
+				mw_entry_chosen = await ctx.runner_decision_maker.choose_card_from_hand(mw_pool, ctx)
+			if mw_entry_chosen == null:
+				mw_entry_chosen = mw_pool[0]
+			var mw_rec: CardRecord = (mw_entry_chosen as Dictionary).get("card_record", null) as CardRecord
+			if mw_rec == null:
+				return
+			var mw_cost: int = mw_rec.cost + 1
+			if ctx.runner_credits < mw_cost:
+				ctx.send_log("Masterwork (v37): cannot afford to install %s (needs %d[credit])." % [mw_rec.title, mw_cost])
+				return
+			ctx.runner_credits -= mw_cost
+			if not ctx.simulation_mode:
+				emit_signal("credits_changed", "runner", ctx.runner_credits)
+			ctx.runner_hand.erase(mw_entry_chosen)
+			var mw_installed: InstalledCard = InstalledCard.make_runtime_instance(mw_rec, "runner_rig", "rig", false)
+			ctx.runner_rig.append(mw_installed)
+			ctx.runner_installed_this_turn.append(mw_rec.id)
+			ctx.send_log("Masterwork (v37): %s installs %s during run start, paying %d[credit]." % [ctx.runner_name(), mw_rec.title, mw_cost])
+
+		# ── Downfall Runner: R3 effects ──────────────────────────────────────────
+
+		"bukhgalter_full_break_gain":
+			# Bukhgalter: the first time each turn this killer fully breaks a piece
+			# of ice, gain 2 credits.
+			ctx.runner_credits += 2
+			if not ctx.simulation_mode:
+				emit_signal("credits_changed", "runner", ctx.runner_credits)
+			ctx.send_log("Bukhgalter: %s gains 2[credit] from fully breaking ice." % ctx.runner_name())
+
+		"chisel_encounter":
+			# Chisel: when the runner encounters the host ice, if its strength is 0
+			# or less (after Chisel's own counter penalty), trash it. Otherwise place
+			# 1 virus counter on Chisel.
+			var ce_self: InstalledCard = _get_self_card(ctx)
+			if ce_self == null:
+				return
+			var ce_host: InstalledCard = ctx.get_ice_by_instance_id(ce_self.hosted_on_id)
+			if ce_host == null:
+				return
+			var ce_base_str: int = ce_host.card_record.strength if ce_host.card_record != null else 0
+			var ce_counters: int = ce_self.get_counter("virus")
+			var ce_str: int = ce_base_str - ce_counters
+			if ce_str <= 0:
+				ctx.send_log("Chisel: %s has strength %d (base %d − %d counters) — trashing it." % \
+					[ce_host.display_name(), ce_str, ce_base_str, ce_counters])
+				_trash_installed_card(ce_host, ctx)
+			else:
+				ce_self.add_counter("virus", 1)
+				ctx.send_log("Chisel: places 1 virus counter (%d total). %s now at strength %d." % \
+					[ce_self.get_counter("virus"), ce_host.display_name(), ce_str - 1])
+
+		"pelangi_grant_subtype":
+			# Pelangi: spend 1 hosted virus counter — the encountered ice gains the
+			# chosen subtype for the remainder of this encounter.
+			var pgs_self: InstalledCard = _get_self_card(ctx)
+			if pgs_self == null or pgs_self.get_counter("virus") <= 0:
+				ctx.send_log("Pelangi: no virus counters remaining.")
+				return
+			var pgs_ice: InstalledCard = ctx.current_event_data.get("ice", null) as InstalledCard
+			if pgs_ice == null:
+				return
+			var pgs_subtype: String = ""
+			var pgs_subtypes: Array = ["barrier", "code_gate", "sentry", "ap", "destroyer", "grail"]
+			if ctx.runner_decision_maker != null and ctx.runner_decision_maker.has_method("choose_modes"):
+				var pgs_mode_list: Array = []
+				for pgs_st in pgs_subtypes:
+					pgs_mode_list.append({"label": pgs_st.replace("_", " ").capitalize()})
+				var pgs_chosen: Array = await ctx.runner_decision_maker.choose_modes(pgs_mode_list, 1, ctx)
+				if not pgs_chosen.is_empty():
+					pgs_subtype = pgs_subtypes[pgs_chosen[0]]
+			if pgs_subtype == "" :
+				pgs_subtype = pgs_subtypes[0]
+			pgs_self.remove_counter("virus", 1)
+			if not pgs_ice.extra_subtypes.has(pgs_subtype):
+				pgs_ice.extra_subtypes.append(pgs_subtype)
+			ctx.run_modifiers["pelangi_granted_subtype"] = pgs_subtype
+			ctx.run_modifiers["pelangi_granted_to_ice_iid"] = pgs_ice.runtime_instance_id
+			ctx.send_log("Pelangi: %s spends 1 virus counter — %s gains subtype [%s] this encounter." % \
+				[ctx.runner_name(), pgs_ice.display_name(), pgs_subtype])
+
+		"pelangi_clear_temp_subtype":
+			# Pelangi encounter_ended cleanup: remove the temporarily-granted subtype.
+			var pct_subtype: String = ctx.run_modifiers.get("pelangi_granted_subtype", "")
+			var pct_ice_iid: String = ctx.run_modifiers.get("pelangi_granted_to_ice_iid", "")
+			if pct_subtype == "" or pct_ice_iid == "":
+				return
+			var pct_ice: InstalledCard = ctx.get_ice_by_instance_id(pct_ice_iid)
+			if pct_ice != null:
+				pct_ice.extra_subtypes.erase(pct_subtype)
+			ctx.run_modifiers.erase("pelangi_granted_subtype")
+			ctx.run_modifiers.erase("pelangi_granted_to_ice_iid")
+
+		# ── Sprint R6: Khusyuk / Always Have a Backup Plan / Direct Access ──
+
+		"khusyuk_run":
+			# Khusyuk: [click]: run R&D; if successful, substitute breach with khusyuk_breach.
+			var khrun_rsm: Object = ctx.get_meta("run_state_machine") if ctx.has_meta("run_state_machine") else null
+			if khrun_rsm == null:
+				push_error("AbilityInterpreter: khusyuk_run — no run_state_machine")
+				return
+			var khrun_lid: String = "khusyuk_%d" % randi()
+			ctx.register_listener("successful_run", khrun_lid, {
+				"effects": [{"type": "set_substitute_breach_effect",
+					"params": {"effects": [{"type": "khusyuk_breach"}]}}]
+			})
+			if ctx.has_meta("on_run_started"):
+				(ctx.get_meta("on_run_started") as Callable).call("rd")
+				await Engine.get_main_loop().process_frame
+			ctx.send_log("Khusyuk: %s runs R&D." % ctx.runner_name())
+			await khrun_rsm.execute("rd")
+			ctx.unregister_all_card_effects(khrun_lid)
+
+		"khusyuk_breach":
+			# Khusyuk substitute breach: choose install cost > 0; count runner rig cards with that
+			# cost (X, up to 6); Corp reveals top X R&D faceup; Runner accesses 1.
+			var khb_costs_map: Dictionary = {}
+			for khb_c_any in ctx.runner_rig:
+				var khb_ic: InstalledCard = khb_c_any as InstalledCard
+				if khb_ic == null or khb_ic.card_record == null:
+					continue
+				var khb_cost: int = khb_ic.card_record.cost
+				if khb_cost <= 0:
+					continue
+				khb_costs_map[khb_cost] = khb_costs_map.get(khb_cost, 0) + 1
+			if khb_costs_map.is_empty():
+				ctx.send_log("Khusyuk: no installed cards with cost > 0 — no access.")
+				return
+			var khb_cost_keys: Array = khb_costs_map.keys()
+			var khb_modes: Array = []
+			for khb_k in khb_cost_keys:
+				var khb_cnt: int = min(khb_costs_map[khb_k] as int, 6)
+				khb_modes.append({"label": "%dcr (reveals %d)" % [khb_k, khb_cnt]})
+			# AI default: pick cost that maximizes revealed cards
+			var khb_chosen_idx: int = 0
+			var khb_best: int = 0
+			for ki in range(khb_cost_keys.size()):
+				var ki_cnt: int = min(khb_costs_map[khb_cost_keys[ki]] as int, 6)
+				if ki_cnt > khb_best:
+					khb_best = ki_cnt
+					khb_chosen_idx = ki
+			if ctx.runner_decision_maker != null and ctx.runner_decision_maker.has_method("choose_modes"):
+				var khb_picks: Array = await ctx.runner_decision_maker.choose_modes(khb_modes, 1, ctx)
+				if not khb_picks.is_empty():
+					khb_chosen_idx = khb_picks[0] as int
+			var khb_chosen_cost: int = khb_cost_keys[khb_chosen_idx] as int
+			var khb_x: int = min(khb_costs_map.get(khb_chosen_cost, 0) as int, 6)
+			var khb_reveal_n: int = min(khb_x, ctx.corp_deck.size())
+			if khb_reveal_n <= 0:
+				ctx.send_log("Khusyuk: R&D is empty — no cards to access.")
+				return
+			var khb_top: Array = ctx.corp_deck.slice(0, khb_reveal_n)
+			var khb_names: Array = []
+			for khb_cr_any in khb_top:
+				khb_names.append((khb_cr_any as CardRecord).title)
+			ctx.send_log("Khusyuk: chose %dcr — Corp reveals top %d: %s." % [khb_chosen_cost, khb_reveal_n, ", ".join(khb_names)])
+			_hyoubu_check_first_reveal(ctx)
+			var khb_wrapped: Array = []
+			for khb_cr_any in khb_top:
+				khb_wrapped.append({"card_id": (khb_cr_any as CardRecord).id, "card_record": khb_cr_any})
+			var khb_pick: Variant = null
+			if ctx.runner_decision_maker != null and ctx.runner_decision_maker.has_method("choose_card_from_hand"):
+				khb_pick = await ctx.runner_decision_maker.choose_card_from_hand(khb_wrapped, ctx)
+			if khb_pick == null and not khb_wrapped.is_empty():
+				khb_pick = khb_wrapped[0]
+			if khb_pick != null:
+				var khb_accessed: CardRecord = (khb_pick as Dictionary).get("card_record", null) as CardRecord
+				if khb_accessed != null:
+					ctx.send_log("Khusyuk: %s accesses %s." % [ctx.runner_name(), khb_accessed.title])
+					if khb_accessed.is_agenda():
+						ctx.corp_deck.erase(khb_accessed)
+						ctx.runner_score_area.append(khb_accessed)
+						ctx.runner_stole_agenda_this_run = true
+						ctx.runner_stole_agenda_this_turn = true
+						var khb_stolen_inst := InstalledCard.make_runtime_instance(khb_accessed, "runner_score_area", "root", true)
+						ctx.runner_score_area_cards.append(khb_stolen_inst)
+						ctx.send_log("Khusyuk: %s STEALS %s! (%d agenda points)" % [
+							ctx.runner_name(), khb_accessed.title, khb_accessed.agenda_points])
+						await ctx.notify_event("runner_steals_agenda",
+							{"agenda_id": khb_accessed.id, "agenda_points": khb_accessed.agenda_points}, self)
+						if ctx.runner_agenda_points() >= 7:
+							ctx.game_over = true
+							ctx.winner = "runner"
+			ctx.send_log("Khusyuk: Corp shuffles set-aside cards into R&D.")
+			ctx.corp_deck.shuffle()
+
+		"ahbp_resolve":
+			# Always Have a Backup Plan: run any server. If unsuccessful, may run again;
+			# during second run the last ice encountered in the first run is bypassed.
+			var ahbp_rsm: Object = ctx.get_meta("run_state_machine") if ctx.has_meta("run_state_machine") else null
+			if ahbp_rsm == null:
+				push_error("AbilityInterpreter: ahbp_resolve — no run_state_machine")
+				return
+			var ahbp_allowed: Array = ["hq", "rd", "archives"]
+			for ahbp_sid in ctx.servers.keys():
+				if (ahbp_sid as String).begins_with("remote"):
+					ahbp_allowed.append(ahbp_sid)
+			var ahbp_server: String = ahbp_allowed[0]
+			if ctx.runner_decision_maker != null and ctx.runner_decision_maker.has_method("choose_server"):
+				ahbp_server = await ctx.runner_decision_maker.choose_server(ahbp_allowed, ctx)
+			# Register encounter_ice listener to track the last ice encountered
+			var ahbp_lid: String = "ahbp_%d" % randi()
+			ctx.register_listener("encounter_ice", ahbp_lid, {
+				"effects": [{"type": "ahbp_track_last_ice"}]
+			})
+			ctx.once_per_turn_triggered.erase("ahbp_last_iid")
+			if ctx.has_meta("on_run_started"):
+				(ctx.get_meta("on_run_started") as Callable).call(ahbp_server)
+				await Engine.get_main_loop().process_frame
+			ctx.send_log("Always Have a Backup Plan: %s runs %s." % [ctx.runner_name(), ahbp_server.to_upper()])
+			await ahbp_rsm.execute(ahbp_server)
+			ctx.unregister_all_card_effects(ahbp_lid)
+			if ctx.run_successful:
+				return
+			# Offer second run
+			var ahbp_second: bool = false
+			if ctx.simulation_mode:
+				ahbp_second = true  # AI: always take the free second run
+			elif ctx.runner_decision_maker != null and ctx.runner_decision_maker.has_method("choose_optional_ability"):
+				ahbp_second = await ctx.runner_decision_maker.choose_optional_ability(
+					"Always Have a Backup Plan: run %s again?" % ahbp_server.to_upper(), ctx)
+			if not ahbp_second:
+				return
+			# Store bypass target before second run clears run_modifiers
+			var ahbp_last_iid: String = ctx.once_per_turn_triggered.get("ahbp_last_iid", "")
+			ctx.once_per_turn_triggered.erase("ahbp_last_iid")
+			if ahbp_last_iid != "":
+				ctx.once_per_turn_triggered["ahbp_bypass_iid"] = ahbp_last_iid
+			if ctx.has_meta("on_run_started"):
+				(ctx.get_meta("on_run_started") as Callable).call(ahbp_server)
+				await Engine.get_main_loop().process_frame
+			ctx.send_log("Always Have a Backup Plan: %s runs %s again." % [ctx.runner_name(), ahbp_server.to_upper()])
+			await ahbp_rsm.execute(ahbp_server)
+			ctx.once_per_turn_triggered.erase("ahbp_bypass_iid")
+
+		"ahbp_track_last_ice":
+			# Always Have a Backup Plan helper: record last ice encountered this run.
+			var ahbp_tli_ice: InstalledCard = ctx.current_event_data.get("ice", null) as InstalledCard
+			if ahbp_tli_ice != null:
+				ctx.once_per_turn_triggered["ahbp_last_iid"] = ahbp_tli_ice.runtime_instance_id
+
+		"direct_access_run":
+			# Direct Access: run any server. After run, may shuffle this event into stack.
+			# Note: identity ability suppression during run is not implemented.
+			var da_rsm: Object = ctx.get_meta("run_state_machine") if ctx.has_meta("run_state_machine") else null
+			if da_rsm == null:
+				push_error("AbilityInterpreter: direct_access_run — no run_state_machine")
+				return
+			var da_allowed: Array = ["hq", "rd", "archives"]
+			for da_sid in ctx.servers.keys():
+				if (da_sid as String).begins_with("remote"):
+					da_allowed.append(da_sid)
+			var da_server: String = da_allowed[0]
+			if ctx.runner_decision_maker != null and ctx.runner_decision_maker.has_method("choose_server"):
+				da_server = await ctx.runner_decision_maker.choose_server(da_allowed, ctx)
+			if ctx.has_meta("on_run_started"):
+				(ctx.get_meta("on_run_started") as Callable).call(da_server)
+				await Engine.get_main_loop().process_frame
+			ctx.send_log("Direct Access: %s runs %s." % [ctx.runner_name(), da_server.to_upper()])
+			await da_rsm.execute(da_server)
+			var da_shuffle: bool = false
+			if ctx.runner_decision_maker != null and ctx.runner_decision_maker.has_method("choose_optional_ability"):
+				da_shuffle = await ctx.runner_decision_maker.choose_optional_ability(
+					"Direct Access: shuffle back into your stack?", ctx)
+			if da_shuffle:
+				for da_i in range(ctx.runner_discard.size()):
+					var da_cr: CardRecord = ctx.runner_discard[da_i] as CardRecord
+					if da_cr != null and da_cr.id == "direct_access":
+						ctx.runner_discard.remove_at(da_i)
+						ctx.runner_deck.append(da_cr)
+						ctx.runner_deck.shuffle()
+						ctx.send_log("Direct Access: shuffled back into %s's stack." % ctx.runner_name())
+						break
+
+		# ── Sprint R5: Flip Switch / Lucky Charm ──
+
+		"flip_switch_remove_tag":
+			# Flip Switch: trash self to remove 1 tag. Simplified as a click action;
+			# actual cost is [trash] only (no click). Jack-out and trace-interrupt abilities not implemented.
+			var fsr_self: InstalledCard = _get_self_card(ctx)
+			if fsr_self == null:
+				return
+			if ctx.runner_tags <= 0:
+				ctx.send_log("Flip Switch: no tags to remove.")
+				return
+			_trash_installed_card(fsr_self, ctx)
+			ctx.runner_tags -= 1
+			if not ctx.simulation_mode:
+				emit_signal("tags_changed", ctx.runner_tags)
+			ctx.send_log("Flip Switch: trashed to remove 1 tag (%d remaining)." % ctx.runner_tags)
+
+		# ── Sprint R4: Baklan Bochkin / Fencer Fueno / The Nihilist / Climactic Showdown ──
+
+		"baklan_first_encounter_counter":
+			# Baklan Bochkin: first time each run you encounter ice, place 1 power counter.
+			# Uses run_modifiers as a run-scoped once-per-run gate.
+			if ctx.run_modifiers.get("baklan_countered", false):
+				return
+			var bec_self: InstalledCard = _get_self_card(ctx)
+			if bec_self == null:
+				return
+			bec_self.add_counter("power", 1)
+			ctx.run_modifiers["baklan_countered"] = true
+			ctx.send_log("Baklan Bochkin: placed 1 power counter (%d total)." % bec_self.get_counter("power"))
+
+		"fencer_turn_end_check":
+			# Fencer Fueno: at turn end, if 3+ hosted credits, pay 1[cr] or trash self.
+			var ftec_self: InstalledCard = _get_self_card(ctx)
+			if ftec_self == null:
+				return
+			var ftec_n: int = ftec_self.get_counter("credits")
+			if ftec_n < 3:
+				return
+			var ftec_pay: bool = false
+			if ctx.simulation_mode:
+				ftec_pay = ctx.runner_credits >= 1  # AI: pay if able
+			elif ctx.runner_decision_maker != null and ctx.runner_decision_maker.has_method("choose_optional_ability"):
+				ftec_pay = await ctx.runner_decision_maker.choose_optional_ability(
+					"Fencer Fueno: pay 1[cr] to keep (3+ hosted credits)? (decline = trash)", ctx)
+			if ftec_pay and ctx.runner_credits >= 1:
+				ctx.runner_credits -= 1
+				if not ctx.simulation_mode:
+					emit_signal("credits_changed", "runner", ctx.runner_credits)
+				ctx.send_log("Fencer Fueno: %s paid 1[cr] to keep." % ctx.runner_name())
+			else:
+				ctx.send_log("Fencer Fueno: trashed (3+ hosted credits, no payment).")
+				_trash_installed_card(ftec_self, ctx)
+
+		"nihilist_turn_start_draw":
+			# The Nihilist: may remove 2 virus counters from self; if so draw 2 cards.
+			# Simplified: counters removed from Nihilist only; Corp trash-top-R&D option not implemented.
+			var ntsd_self: InstalledCard = _get_self_card(ctx)
+			if ntsd_self == null:
+				return
+			if ntsd_self.get_counter("virus") < 2:
+				return
+			var ntsd_use: bool = false
+			if ctx.simulation_mode:
+				ntsd_use = true  # AI: drawing 2 for free is always correct
+			elif ctx.runner_decision_maker != null and ctx.runner_decision_maker.has_method("choose_optional_ability"):
+				ntsd_use = await ctx.runner_decision_maker.choose_optional_ability(
+					"The Nihilist: remove 2 virus counters to draw 2 cards?", ctx)
+			if not ntsd_use:
+				return
+			ntsd_self.remove_counter("virus", 2)
+			ctx.send_log("The Nihilist: %s removes 2 virus counters." % ctx.runner_name())
+			await _draw_cards("runner", 2, ctx)
+
+		"climactic_showdown_resolve":
+			# Climactic Showdown: remove from game, then grant +2 access on first HQ/R&D breach.
+			# Simplified: Corp's option to trash ice (to deny bonus) not implemented.
+			# Removal is treated as trash for simulation purposes.
+			var csr_self: InstalledCard = _get_self_card(ctx)
+			if csr_self == null:
+				return
+			_trash_installed_card(csr_self, ctx)
+			ctx.once_per_turn_triggered["climactic_bonus_access"] = 2
+			ctx.send_log("Climactic Showdown: removed from game — +2 access on next R&D or HQ breach this turn.")
+
+		"supercorridor_turn_end_gain":
+			# Supercorridor: when your turn ends, if you and the Corp have the same
+			# number of credits, you may gain 2[credit].
+			if ctx.runner_credits != ctx.corp_credits:
+				return
+			var sc_do := false
+			if ctx.runner_decision_maker != null and ctx.runner_decision_maker.has_method("choose_optional_ability"):
+				sc_do = await ctx.runner_decision_maker.choose_optional_ability(
+					"Supercorridor: you and the Corp both have %d[credit] — gain 2[credit]?" % ctx.runner_credits, ctx)
+			else:
+				sc_do = true
+			if sc_do:
+				ctx.runner_credits += 2
+				if not ctx.simulation_mode:
+					emit_signal("credits_changed", "runner", ctx.runner_credits)
+				ctx.send_log("Supercorridor: %s gains 2[credit] (credit parity)." % ctx.runner_name())
 
 		"lago_paranoa_trash_draw_one":
 			# Lago Paranoá Shelter (TAI): runner may trash the top card of the stack to
@@ -1784,11 +3003,13 @@ func _execute_effect(effect: Dictionary, ctx: GameContext, chosen_target: Varian
 					])
 
 		"remove_self_counter":
-			# Remove one counter of a type from the owning card.
+			# Remove one counter of a type from the owning card. If "all" is true,
+			# removes every hosted counter of that type (Cold Site Server).
 			var counter_type: String = effect.get("counter", params.get("counter", "credits"))
-			var amount: int          = int(effect.get("amount", params.get("amount", 1)))
 			var self_card := _get_self_card(ctx)
 			if self_card != null:
+				var amount: int = self_card.get_counter(counter_type) if params.get("all", false) \
+					else int(effect.get("amount", params.get("amount", 1)))
 				self_card.remove_counter(counter_type, amount)
 
 		"self_trash_if_empty":
@@ -1801,16 +3022,8 @@ func _execute_effect(effect: Dictionary, ctx: GameContext, chosen_target: Varian
 				var ste_server_id: String = self_card.server_id
 				var ste_is_corp_card: bool = self_card.card_record != null and \
 					self_card.card_record.card_type in ["asset", "upgrade", "ice", "agenda"]
-				# Remove from server
-				var server: Server = ctx.get_server(self_card.server_id)
-				if server:
-					server.remove_from_root(self_card)
-					ctx.remove_empty_remote_servers()
-				# Also check runner rig
-				ctx.runner_rig.erase(self_card)
-				# Unregister all its listeners
-				ctx.unregister_all_card_effects(self_card.runtime_instance_id)
-				ctx.send_log("%s is trashed (empty)." % self_card.display_name())
+				if not ctx.trash_card_if_counter_empty(self_card, counter_type):
+					return
 				# Parhelion: notify Yakov Erikovich Avdakov and similar listeners
 				if ste_is_corp_card and ste_server_id != "":
 					await ctx.notify_event("corp_card_trashed_from_server", {
@@ -4040,8 +5253,9 @@ func _execute_effect(effect: Dictionary, ctx: GameContext, chosen_target: Varian
 				cte_chosen = await ctx.corp_decision_maker.choose_runner_card_type(cte_types, ctx)
 			if cte_chosen == "" or not (cte_chosen in cte_types):
 				cte_chosen = cte_types[0]
-			ctx.run_modifiers["engram_flush_type"] = cte_chosen
-			ctx.send_log("Engram Flush: chooses card type \"%s\" for this encounter." % cte_chosen)
+			var cte_result_key: String = params.get("result_key", "engram_flush_type")
+			ctx.run_modifiers[cte_result_key] = cte_chosen
+			ctx.send_log("Chooses card type \"%s\" for this encounter." % cte_chosen)
 
 		"reveal_grip_and_optional_trash_by_type":
 			# Engram Flush subroutine: reveal the grip; the Corp may trash 1 revealed
@@ -4299,6 +5513,28 @@ func _execute_effect(effect: Dictionary, ctx: GameContext, chosen_target: Varian
 			ctx.send_log("Reality Plus: %s chooses '%s'." % [ctx.corp_name(), rp_mode.get("label", "")])
 			for rp_eff in rp_mode.get("effects", []) as Array:
 				await _execute_effect(rp_eff as Dictionary, ctx, null)
+
+		# ── Uprising: Cybertrooper Talut ──────────────────────────────────────────
+
+		"icebreaker_turn_strength_boost":
+			# Whenever the Runner installs a non-AI icebreaker, that icebreaker gets
+			# +N strength for the remainder of the turn.
+			# params: amount: int (default 2)
+			# Triggered via runner_installs_program; current_event_data["card"] is the
+			# newly-installed InstalledCard.
+			var itsb_amount: int = params.get("amount", 2)
+			var itsb_card: InstalledCard = ctx.current_event_data.get("card", null) as InstalledCard
+			if itsb_card == null:
+				return
+			if itsb_card.card_record == null or not itsb_card.card_record.has_subtype("icebreaker"):
+				return
+			if itsb_card.card_record.has_subtype("ai"):
+				return
+			var itsb_prev: int = ctx.turn_level_strength_boosts.get(itsb_card.runtime_instance_id, 0)
+			ctx.turn_level_strength_boosts[itsb_card.runtime_instance_id] = itsb_prev + itsb_amount
+			ctx.send_log("Cybertrooper Talut: %s gets +%d strength for the remainder of the turn." % [
+				itsb_card.display_name(), itsb_amount
+			])
 
 		# ── Stealth credits ──────────────────────────────────────────────────────
 
@@ -4780,10 +6016,15 @@ func _execute_effect(effect: Dictionary, ctx: GameContext, chosen_target: Varian
 			#   • If Corp cannot afford the rez portion: install unrezzed, reveal the card.
 			#   • 419 Amoral Scammer: install fires before rez (normal sequence).
 			#
-			# Corp offers to search — the ability is optional ("you may").
+			# Corp offers to search — the ability is optional ("you may") unless
+			# params.optional == false (e.g. Secure and Protect, which is mandatory
+			# once its additional click cost has been paid).
+			var srdi_optional: bool = params.get("optional", true)
 			var srdi_use := false
 			var srdi_cdm: Object = ctx.corp_decision_maker
-			if srdi_cdm != null and srdi_cdm.has_method("choose_optional_ability"):
+			if not srdi_optional:
+				srdi_use = true
+			elif srdi_cdm != null and srdi_cdm.has_method("choose_optional_ability"):
 				srdi_use = await srdi_cdm.choose_optional_ability(
 					"Tucana: search R&D for 1 ice to install and rez (3cr discount)?", ctx)
 			else:
@@ -4816,8 +6057,12 @@ func _execute_effect(effect: Dictionary, ctx: GameContext, chosen_target: Varian
 			ctx.corp_deck.erase(srdi_chosen)
 			ctx.send_log("[Tucana] Corp fetches %s from R&D." % srdi_chosen.title)
 
-			# Corp chooses a server to install it in (any server).
+			# Corp chooses a server to install it in (any server, unless params.servers
+			# restricts the choice — e.g. Secure and Protect: central servers only).
 			var srdi_all_servers: Array = ctx.servers.keys()
+			var srdi_restrict: Array = params.get("servers", [])
+			if not srdi_restrict.is_empty():
+				srdi_all_servers = srdi_all_servers.filter(func(s): return srdi_restrict.has(s))
 			var srdi_server_id: String = srdi_all_servers[0] if not srdi_all_servers.is_empty() else ""
 			if srdi_cdm != null and srdi_cdm.has_method("choose_server"):
 				srdi_server_id = await srdi_cdm.choose_server(srdi_all_servers, ctx)
@@ -5062,6 +6307,34 @@ func _execute_effect(effect: Dictionary, ctx: GameContext, chosen_target: Varian
 			ctx.send_log("%s spends %d %s counter(s) from %s — +%d %s access." % [
 				ctx.runner_name(), scba_spend, scba_counter,
 				scba_card.display_name(), scba_spend, scba_breach.to_upper()
+			])
+
+		# ── Uprising: Mu Safecracker ────────────────────────────────────────────────
+
+		"pay_stealth_credits_for_bonus_access":
+			# During a breach of the specified server, the Runner may pay N stealth
+			# credits for +1 additional access this breach.
+			# params: { "server": String, "cost": int }
+			var pscba_server: String = params.get("server", "rd")
+			var pscba_cost: int      = int(params.get("cost", 1))
+			var pscba_breach: String = ctx.current_event_data.get("server_id", "")
+			if pscba_breach != pscba_server:
+				return
+			if ctx.runner_stealth_credits() < pscba_cost:
+				return
+			var pscba_pay: bool = false
+			if ctx.runner_decision_maker != null and ctx.runner_decision_maker.has_method("choose_yes_no"):
+				pscba_pay = await ctx.runner_decision_maker.choose_yes_no(
+					"Pay %d stealth credit(s) to access 1 additional card from %s?" % \
+						[pscba_cost, pscba_breach.to_upper()], ctx)
+			else:
+				pscba_pay = true   # AI default: take the extra access
+			if not pscba_pay:
+				return
+			ctx.runner_spend_stealth_credits(pscba_cost)
+			ctx.run_modifiers["bonus_access"] = ctx.run_modifiers.get("bonus_access", 0) + 1
+			ctx.send_log("Mu Safecracker: %s pays %d stealth credit(s) — +1 %s access." % [
+				ctx.runner_name(), pscba_cost, pscba_breach.to_upper()
 			])
 
 		# ── Biawak: trash a program or end the run ────────────────────────────────
@@ -7247,6 +8520,32 @@ func _execute_effect(effect: Dictionary, ctx: GameContext, chosen_target: Varian
 		# Removes the self card from its server, sends it to Corp Archives,
 		# unregisters its listeners, and fires corp_trashes_own_rezzed_card for Ob.
 
+		# ── Uprising: Mystic Maemi ─────────────────────────────────────────────────
+
+		"choice_discard_random_grip_or_trash_self":
+			# At 3+ hosted credits, the Runner chooses: trash this resource, or
+			# discard a random card from the grip.
+			var cdrgts_self: InstalledCard = _get_self_card(ctx)
+			var cdrgts_trash_self: bool = ctx.runner_hand.is_empty()
+			if not cdrgts_trash_self and ctx.runner_decision_maker != null and \
+					ctx.runner_decision_maker.has_method("choose_yes_no"):
+				cdrgts_trash_self = await ctx.runner_decision_maker.choose_yes_no(
+					"%s has 3 or more hosted credits. Trash it instead of discarding a random card from your grip?" % \
+						(cdrgts_self.display_name() if cdrgts_self != null else "Mystic Maemi"), ctx)
+			if cdrgts_trash_self:
+				if cdrgts_self != null:
+					_trash_installed_card(cdrgts_self, ctx)
+			else:
+				var cdrgts_idx: int = randi() % ctx.runner_hand.size()
+				var cdrgts_entry: Dictionary = ctx.runner_hand[cdrgts_idx] as Dictionary
+				var cdrgts_record: CardRecord = cdrgts_entry.get("card_record", null) as CardRecord
+				ctx.runner_hand.remove_at(cdrgts_idx)
+				if cdrgts_record != null:
+					ctx.runner_discard.append(cdrgts_record)
+					ctx.send_log("%s discards %s at random (%s has 3+ hosted credits)." % [
+						ctx.runner_name(), cdrgts_record.title,
+						cdrgts_self.display_name() if cdrgts_self != null else "Mystic Maemi"])
+
 		"trash_self":
 			var ts_self: InstalledCard = _get_self_card(ctx)
 			if ts_self == null:
@@ -8559,12 +9858,17 @@ func _execute_effect(effect: Dictionary, ctx: GameContext, chosen_target: Varian
 
 		"install_from_heap":
 			var ifh_types: Array = params.get("card_types", []) as Array
+			var ifh_subtypes: Array = params.get("subtypes", []) as Array
+			var ifh_discount: int = int(params.get("discount", 0))
 			var ifh_candidates: Array = []
 			for ifh_r in ctx.runner_discard:
 				var ifh_record: CardRecord = ifh_r as CardRecord
 				if ifh_record == null:
 					continue
-				if ifh_types.is_empty() or ifh_types.has(ifh_record.card_type):
+				var ifh_type_ok: bool = ifh_types.is_empty() or ifh_types.has(ifh_record.card_type)
+				var ifh_subtype_ok: bool = ifh_subtypes.is_empty() or \
+					ifh_subtypes.any(func(st): return ifh_record.has_subtype(st as String))
+				if ifh_type_ok and ifh_subtype_ok:
 					ifh_candidates.append(ifh_record)
 			if ifh_candidates.is_empty():
 				ctx.send_log("Scrounge: no eligible cards in heap.")
@@ -8577,7 +9881,7 @@ func _execute_effect(effect: Dictionary, ctx: GameContext, chosen_target: Varian
 			if ifh_chosen == null:
 				ctx.send_log("Scrounge: no program chosen.")
 				return
-			var ifh_cost: int = max(0, ifh_chosen.cost)
+			var ifh_cost: int = max(0, ifh_chosen.cost - ifh_discount)
 			# DZMZ Optimizer discount for programs
 			if ifh_chosen.card_type == "program" and not ctx.runner_program_install_discounted_this_turn:
 				for ifh_rig_c in ctx.runner_rig:
@@ -8645,6 +9949,505 @@ func _execute_effect(effect: Dictionary, ctx: GameContext, chosen_target: Varian
 			ctx.send_log("Scrounge: %s returns %s to the bottom of their stack." % [
 				ctx.runner_name(), rhcs_chosen.title
 			])
+
+		# ── Uprising: Self-modifying Code ───────────────────────────────────────────
+
+		"pay_credits_and_search_stack_install_program":
+			# Pay credits, search the stack for 1 program and install it for free
+			# (any further install cost is not charged — SMC pays the search cost
+			# instead), then shuffle the stack. Finally trash this card if
+			# trash_self is set.
+			var scsi_cost: int = int(params.get("cost", 2))
+			if ctx.runner_credits < scsi_cost:
+				ctx.send_log("Self-modifying Code: cannot afford %d¢." % scsi_cost)
+				return
+			var scsi_self: InstalledCard = _get_self_card(ctx)
+			ctx.runner_credits -= scsi_cost
+			var scsi_candidates: Array = []
+			for scsi_r in ctx.runner_deck:
+				var scsi_record: CardRecord = scsi_r as CardRecord
+				if scsi_record != null and scsi_record.card_type == "program":
+					scsi_candidates.append(scsi_record)
+			if scsi_candidates.is_empty():
+				ctx.send_log("Self-modifying Code: no program found in stack.")
+			else:
+				var scsi_chosen: CardRecord = null
+				if ctx.runner_decision_maker != null and ctx.runner_decision_maker.has_method("choose_from_heap"):
+					scsi_chosen = await ctx.runner_decision_maker.choose_from_heap(scsi_candidates, ctx)
+				else:
+					scsi_chosen = scsi_candidates[0]
+				if scsi_chosen != null and scsi_chosen.memory_cost > 0 and \
+						ctx.runner_mu_available() < scsi_chosen.memory_cost:
+					ctx.send_log("Self-modifying Code: not enough MU to install %s." % scsi_chosen.title)
+				elif scsi_chosen != null:
+					ctx.runner_deck.erase(scsi_chosen)
+					var scsi_installed := InstalledCard.make_runtime_instance(scsi_chosen, "runner_rig", "root", true)
+					ctx.runner_rig.append(scsi_installed)
+					if ctx.has_meta("register_installed_card"):
+						(ctx.get_meta("register_installed_card") as Callable).call(scsi_installed)
+					if ctx.has_meta("ability_registry"):
+						var scsi_ab_reg: AbilityRegistry = ctx.get_meta("ability_registry") as AbilityRegistry
+						var scsi_on_rez = scsi_ab_reg.get_on_rez(scsi_chosen.id)
+						if scsi_on_rez != null:
+							ctx.current_event_data = {"card": scsi_installed, "card_instance_id": scsi_installed.runtime_instance_id}
+							await execute_trigger(scsi_on_rez as Dictionary, ctx)
+							ctx.current_event_data = {}
+					ctx.send_log("Self-modifying Code: %s searches the stack and installs %s. [MU: %d/%d]" % [
+						ctx.runner_name(), scsi_chosen.title, ctx.runner_mu_used(), ctx.runner_total_mu()
+					])
+			ctx.runner_deck.shuffle()
+			ctx.send_log("Self-modifying Code: shuffles the stack.")
+			if params.get("trash_self", false) and scsi_self != null:
+				_trash_installed_card(scsi_self, ctx)
+
+		# ── Uprising: Simulchip ──────────────────────────────────────────────────────
+
+		"simulchip_use":
+			# Additional cost: trash 1 installed program, unless a program has
+			# already been trashed this turn.
+			var su_self: InstalledCard = _get_self_card(ctx)
+			if not ctx.runner_trashed_own_program_this_turn:
+				var su_programs: Array = ctx.runner_rig.filter(func(c):
+					var ic: InstalledCard = c as InstalledCard
+					return ic != null and ic.card_record != null and ic.card_record.card_type == "program"
+				)
+				if su_programs.is_empty():
+					ctx.send_log("Simulchip: no installed program to trash as a cost — cannot use.")
+					return
+				var su_target: InstalledCard = su_programs[0] as InstalledCard
+				if ctx.runner_decision_maker != null and ctx.runner_decision_maker.has_method("choose_target"):
+					su_target = await ctx.runner_decision_maker.choose_target(su_programs, {"reason": "simulchip_trash_cost"}) as InstalledCard
+				_trash_installed_card(su_target, ctx)
+				ctx.runner_trashed_own_installed_this_turn = true
+				ctx.send_log("Simulchip: trashes %s as an additional cost." % su_target.display_name())
+			await _execute_effect({"type": "install_from_heap", "params": {"card_types": ["program"], "discount": 3}}, ctx, null)
+			if su_self != null:
+				_trash_installed_card(su_self, ctx)
+
+		# ── Uprising: Gachapon ─────────────────────────────────────────────────────
+
+		"gachapon_use":
+			# trash: Set aside the top 6 cards of the stack. Install 1 program or
+			# virtual resource from among them for 2cr less. Shuffle 3 of the
+			# remaining cards back into the stack; remove the rest from the game.
+			var gp_self: InstalledCard = _get_self_card(ctx)
+			var gp_n: int = mini(6, ctx.runner_deck.size())
+			var gp_set_aside: Array = []
+			for _gp_i in range(gp_n):
+				gp_set_aside.append(ctx.runner_deck.pop_front())
+			var gp_candidates: Array = []
+			for gp_r in gp_set_aside:
+				var gp_record: CardRecord = gp_r as CardRecord
+				if gp_record == null:
+					continue
+				if gp_record.card_type == "program" or \
+						(gp_record.card_type == "resource" and gp_record.has_subtype("virtual")):
+					gp_candidates.append(gp_record)
+			var gp_chosen: CardRecord = null
+			if not gp_candidates.is_empty():
+				if ctx.runner_decision_maker != null and ctx.runner_decision_maker.has_method("choose_from_heap"):
+					gp_chosen = await ctx.runner_decision_maker.choose_from_heap(gp_candidates, ctx)
+				else:
+					gp_chosen = gp_candidates[0]
+			if gp_chosen != null:
+				var gp_cost: int = max(0, gp_chosen.cost - 2)
+				if gp_chosen.card_type == "program" and gp_chosen.memory_cost > 0 and \
+						ctx.runner_mu_available() < gp_chosen.memory_cost:
+					ctx.send_log("Gachapon: not enough MU to install %s." % gp_chosen.title)
+					gp_chosen = null
+				elif ctx.runner_credits < gp_cost:
+					ctx.send_log("Gachapon: cannot afford %s (costs %d¢)." % [gp_chosen.title, gp_cost])
+					gp_chosen = null
+				else:
+					ctx.runner_credits -= gp_cost
+					gp_set_aside.erase(gp_chosen)
+					var gp_installed := InstalledCard.make_runtime_instance(gp_chosen, "runner_rig", "root", true)
+					ctx.runner_rig.append(gp_installed)
+					if ctx.has_meta("register_installed_card"):
+						(ctx.get_meta("register_installed_card") as Callable).call(gp_installed)
+					if ctx.has_meta("ability_registry"):
+						var gp_ab_reg: AbilityRegistry = ctx.get_meta("ability_registry") as AbilityRegistry
+						var gp_on_rez = gp_ab_reg.get_on_rez(gp_chosen.id)
+						if gp_on_rez != null:
+							ctx.current_event_data = {"card": gp_installed, "card_instance_id": gp_installed.runtime_instance_id}
+							await execute_trigger(gp_on_rez as Dictionary, ctx)
+							ctx.current_event_data = {}
+					ctx.send_log("Gachapon: %s installs %s for %d¢. [MU: %d/%d]" % [
+						ctx.runner_name(), gp_chosen.title, gp_cost,
+						ctx.runner_mu_used(), ctx.runner_total_mu()
+					])
+			if gp_chosen == null:
+				ctx.send_log("Gachapon: no program or virtual resource installed.")
+			# Shuffle up to 3 of the remaining set-aside cards back into the stack;
+			# remove the rest from the game.
+			var gp_return_n: int = mini(3, gp_set_aside.size())
+			for _gp_j in range(gp_return_n):
+				ctx.runner_deck.append(gp_set_aside.pop_front())
+			ctx.runner_deck.shuffle()
+			for gp_rfg in gp_set_aside:
+				ctx.runner_rfg.append(gp_rfg as CardRecord)
+			ctx.send_log("Gachapon: shuffles %d card(s) back into the stack and removes %d from the game." % [
+				gp_return_n, gp_set_aside.size()
+			])
+			if gp_self != null:
+				_trash_installed_card(gp_self, ctx)
+
+		# ── Uprising: Prognostic Q-Loop ───────────────────────────────────────────────
+
+		"look_at_top_of_stack":
+			# The first time each turn a run begins, the Runner may look at the top
+			# 2 cards of their stack. (Simplification: logged only — single-player
+			# AI does not currently act on hidden information from this peek.)
+			var laots_n: int = mini(int(params.get("amount", 2)), ctx.runner_deck.size())
+			ctx.send_log("Prognostic Q-Loop: %s looks at the top %d card(s) of their stack." % [
+				ctx.runner_name(), laots_n
+			])
+
+		"reveal_and_optional_install_top_of_stack":
+			# Once per turn, 1cr: reveal the top card of the stack. If it's a
+			# program or piece of hardware, the Runner may install it (paying its
+			# normal install cost).
+			if ctx.runner_deck.is_empty():
+				ctx.send_log("Prognostic Q-Loop: stack is empty.")
+				return
+			var raiots_top: CardRecord = ctx.runner_deck[0] as CardRecord
+			ctx.send_log("Prognostic Q-Loop: reveals %s." % raiots_top.title)
+			if raiots_top.card_type not in ["program", "hardware"]:
+				return
+			var raiots_install := false
+			if ctx.runner_decision_maker != null and ctx.runner_decision_maker.has_method("choose_yes_no"):
+				raiots_install = await ctx.runner_decision_maker.choose_yes_no(
+					"Install %s (revealed from the top of your stack)?" % raiots_top.title, ctx)
+			else:
+				raiots_install = true
+			if not raiots_install:
+				return
+			var raiots_cost: int = max(0, raiots_top.cost)
+			if raiots_top.card_type == "program" and raiots_top.memory_cost > 0 and \
+					ctx.runner_mu_available() < raiots_top.memory_cost:
+				ctx.send_log("Prognostic Q-Loop: not enough MU to install %s." % raiots_top.title)
+				return
+			if ctx.runner_credits < raiots_cost:
+				ctx.send_log("Prognostic Q-Loop: cannot afford %s (costs %d¢)." % [raiots_top.title, raiots_cost])
+				return
+			ctx.runner_credits -= raiots_cost
+			ctx.runner_deck.pop_front()
+			var raiots_installed := InstalledCard.make_runtime_instance(raiots_top, "runner_rig", "root", true)
+			ctx.runner_rig.append(raiots_installed)
+			if ctx.has_meta("register_installed_card"):
+				(ctx.get_meta("register_installed_card") as Callable).call(raiots_installed)
+			if ctx.has_meta("ability_registry"):
+				var raiots_ab_reg: AbilityRegistry = ctx.get_meta("ability_registry") as AbilityRegistry
+				var raiots_on_rez = raiots_ab_reg.get_on_rez(raiots_top.id)
+				if raiots_on_rez != null:
+					ctx.current_event_data = {"card": raiots_installed, "card_instance_id": raiots_installed.runtime_instance_id}
+					await execute_trigger(raiots_on_rez as Dictionary, ctx)
+					ctx.current_event_data = {}
+			ctx.send_log("Prognostic Q-Loop: %s installs %s for %d¢. [MU: %d/%d]" % [
+				ctx.runner_name(), raiots_top.title, raiots_cost,
+				ctx.runner_mu_used(), ctx.runner_total_mu()
+			])
+
+		# ── Uprising: Buffer Drive ─────────────────────────────────────────────────────
+
+		"remove_self_from_game_then_heap_to_stack_top":
+			# Remove this hardware from the game: add 1 card from the heap to the
+			# top of the stack.
+			var rsfgts_self: InstalledCard = _get_self_card(ctx)
+			if ctx.runner_discard.is_empty():
+				ctx.send_log("Buffer Drive: heap is empty.")
+				return
+			var rsfgts_chosen: CardRecord = null
+			if ctx.runner_decision_maker != null and ctx.runner_decision_maker.has_method("choose_from_heap"):
+				rsfgts_chosen = await ctx.runner_decision_maker.choose_from_heap(ctx.runner_discard, ctx)
+			else:
+				rsfgts_chosen = ctx.runner_discard[0] as CardRecord
+			if rsfgts_chosen == null:
+				return
+			ctx.runner_discard.erase(rsfgts_chosen)
+			ctx.runner_deck.push_front(rsfgts_chosen)
+			ctx.send_log("Buffer Drive: %s adds %s from the heap to the top of their stack." % [
+				ctx.runner_name(), rsfgts_chosen.title
+			])
+			if rsfgts_self != null:
+				ctx.runner_rfg.append(rsfgts_self.card_record)
+				ctx.runner_rig.erase(rsfgts_self)
+				ctx.unregister_all_card_effects(rsfgts_self.runtime_instance_id)
+				ctx.send_log("Buffer Drive removes itself from the game.")
+
+		"buffer_drive_redirect_to_bottom":
+			# The first time each turn 1+ cards are trashed from the grip or
+			# stack, may add 1 of those cards to the bottom of the stack.
+			var bdrb_cards: Array = ctx.current_event_data.get("cards", []) as Array
+			if bdrb_cards.is_empty():
+				return
+			var bdrb_take: bool = false
+			if ctx.runner_decision_maker != null and ctx.runner_decision_maker.has_method("choose_yes_no"):
+				bdrb_take = await ctx.runner_decision_maker.choose_yes_no(
+					"Buffer Drive: put one of the trashed card(s) on the bottom of your stack?", ctx)
+			if not bdrb_take:
+				return
+			var bdrb_chosen: CardRecord = null
+			if bdrb_cards.size() == 1:
+				bdrb_chosen = bdrb_cards[0] as CardRecord
+			elif ctx.runner_decision_maker != null and ctx.runner_decision_maker.has_method("choose_from_heap"):
+				bdrb_chosen = await ctx.runner_decision_maker.choose_from_heap(bdrb_cards, ctx)
+			else:
+				bdrb_chosen = bdrb_cards[0] as CardRecord
+			if bdrb_chosen == null or not ctx.runner_discard.has(bdrb_chosen):
+				return
+			ctx.runner_discard.erase(bdrb_chosen)
+			ctx.runner_deck.append(bdrb_chosen)
+			ctx.send_log("Buffer Drive: %s puts %s on the bottom of their stack." % [
+				ctx.runner_name(), bdrb_chosen.title
+			])
+
+		# ── Uprising: Harmony AR Therapy ──────────────────────────────────────────────
+
+		"shuffle_distinct_heap_cards_into_stack":
+			# Choose up to N cards with different titles from the heap and shuffle
+			# them into the stack.
+			var sdhc_max: int = int(params.get("amount", 5))
+			var sdhc_seen_titles: Dictionary = {}
+			var sdhc_candidates: Array = []
+			for sdhc_r in ctx.runner_discard:
+				var sdhc_record: CardRecord = sdhc_r as CardRecord
+				if sdhc_record == null or sdhc_seen_titles.has(sdhc_record.title):
+					continue
+				sdhc_seen_titles[sdhc_record.title] = true
+				sdhc_candidates.append(sdhc_record)
+			var sdhc_chosen: Array = []
+			if ctx.runner_decision_maker != null and ctx.runner_decision_maker.has_method("choose_multiple_from_heap"):
+				sdhc_chosen = await ctx.runner_decision_maker.choose_multiple_from_heap(sdhc_candidates, sdhc_max, ctx)
+			elif sdhc_candidates.size() <= sdhc_max:
+				sdhc_chosen = sdhc_candidates
+			else:
+				sdhc_chosen = sdhc_candidates.slice(0, sdhc_max)
+			for sdhc_c in sdhc_chosen:
+				ctx.runner_discard.erase(sdhc_c)
+				ctx.runner_deck.append(sdhc_c)
+			ctx.runner_deck.shuffle()
+			ctx.send_log("Harmony AR Therapy: %s shuffles %d card(s) from the heap into their stack." % [
+				ctx.runner_name(), sdhc_chosen.size()
+			])
+
+		# ── Uprising: Bravado ──────────────────────────────────────────────────────
+
+		"bravado_play":
+			# Run a server protected by ice. On a successful run, gain 6cr plus 1cr
+			# per piece of ice passed during the run.
+			var brv_iced_servers: Array = []
+			for brv_sid in ctx.servers.keys():
+				var brv_srv: Server = ctx.get_server(brv_sid)
+				if brv_srv != null and brv_srv.has_ice():
+					brv_iced_servers.append(brv_sid)
+			if brv_iced_servers.is_empty():
+				ctx.send_log("Bravado: no iced server to run.")
+				return
+			var brv_server: String = brv_iced_servers[0]
+			if ctx.runner_decision_maker != null and ctx.runner_decision_maker.has_method("choose_run_target"):
+				var brv_pick: String = await ctx.runner_decision_maker.choose_run_target(brv_iced_servers, ctx)
+				if brv_iced_servers.has(brv_pick):
+					brv_server = brv_pick
+			ctx.run_modifiers["run_event_active"] = 1
+			if ctx.has_meta("on_run_started"):
+				(ctx.get_meta("on_run_started") as Callable).call(brv_server)
+				await Engine.get_main_loop().process_frame
+			var brv_rsm: Object = ctx.get_meta("run_state_machine") if ctx.has_meta("run_state_machine") else null
+			if brv_rsm != null:
+				await brv_rsm.execute(brv_server)
+			else:
+				push_error("AbilityInterpreter: bravado_play — no run_state_machine on ctx")
+				return
+			if not ctx.run_successful:
+				ctx.send_log("[Bravado] Run unsuccessful — no bonus credits.")
+				return
+			var brv_gain: int = 6 + ctx.run_ice_passed_count
+			await _execute_effect({"type": "gain_credits", "params": {"subject": "runner", "amount": brv_gain}}, ctx, null)
+			ctx.send_log("[Bravado] %s passed %d ice — gains %d¢ total." % [
+				ctx.runner_name(), ctx.run_ice_passed_count, brv_gain
+			])
+
+		# ── Uprising: Cordyceps ────────────────────────────────────────────────────
+
+		"cordyceps_swap_ice":
+			# Once per turn, on a successful run on a central server: remove 1
+			# hosted virus counter to swap a piece of ice protecting that central
+			# server with a piece of ice protecting another server.
+			var cor_self: InstalledCard = _get_self_card(ctx)
+			if cor_self == null or cor_self.get_counter("virus") <= 0:
+				return
+			var cor_once_key: String = "%s:cordyceps_swap" % cor_self.runtime_instance_id
+			if ctx.once_per_turn_triggered.get(cor_once_key, false):
+				return
+			var cor_server_id: String = ctx.current_event_data.get("server_id", "")
+			if cor_server_id not in ["hq", "rd", "archives"]:
+				return
+			var cor_src_srv: Server = ctx.get_server(cor_server_id)
+			if cor_src_srv == null or not cor_src_srv.has_ice():
+				return
+			var cor_other_servers: Array = []
+			for cor_sid in ctx.servers.keys():
+				if cor_sid != cor_server_id:
+					var cor_osrv: Server = ctx.get_server(cor_sid)
+					if cor_osrv != null and cor_osrv.has_ice():
+						cor_other_servers.append(cor_sid)
+			if cor_other_servers.is_empty():
+				return
+			var cor_do_swap: bool = false
+			if ctx.runner_decision_maker != null and ctx.runner_decision_maker.has_method("choose_yes_no"):
+				cor_do_swap = await ctx.runner_decision_maker.choose_yes_no(
+					"Cordyceps: remove 1 hosted virus counter to swap a piece of ice protecting %s with ice protecting another server?" % \
+						cor_server_id.to_upper(), ctx)
+			else:
+				cor_do_swap = true
+			if not cor_do_swap:
+				return
+			ctx.once_per_turn_triggered[cor_once_key] = true
+			var cor_src_ice: InstalledCard = cor_src_srv.ice[0] as InstalledCard
+			if ctx.runner_decision_maker != null and ctx.runner_decision_maker.has_method("choose_target"):
+				cor_src_ice = await ctx.runner_decision_maker.choose_target(cor_src_srv.ice, {"reason": "cordyceps_swap_source"}) as InstalledCard
+			var cor_dst_server_id: String = cor_other_servers[0]
+			if ctx.runner_decision_maker != null and ctx.runner_decision_maker.has_method("choose_run_target"):
+				var cor_dst_pick: String = await ctx.runner_decision_maker.choose_run_target(cor_other_servers, ctx)
+				if cor_other_servers.has(cor_dst_pick):
+					cor_dst_server_id = cor_dst_pick
+			var cor_dst_srv: Server = ctx.get_server(cor_dst_server_id)
+			var cor_dst_ice: InstalledCard = cor_dst_srv.ice[0] as InstalledCard
+			if ctx.runner_decision_maker != null and ctx.runner_decision_maker.has_method("choose_target"):
+				cor_dst_ice = await ctx.runner_decision_maker.choose_target(cor_dst_srv.ice, {"reason": "cordyceps_swap_target"}) as InstalledCard
+			var cor_src_idx: int = cor_src_srv.ice.find(cor_src_ice)
+			var cor_dst_idx: int = cor_dst_srv.ice.find(cor_dst_ice)
+			cor_src_srv.ice[cor_src_idx] = cor_dst_ice
+			cor_dst_srv.ice[cor_dst_idx] = cor_src_ice
+			cor_src_ice.server_id = cor_dst_server_id
+			cor_dst_ice.server_id = cor_server_id
+			cor_self.remove_counter("virus", 1)
+			ctx.send_log("Cordyceps: %s swaps %s (was protecting %s) with %s (was protecting %s)." % [
+				ctx.runner_name(),
+				cor_src_ice.display_name(), cor_server_id.to_upper(),
+				cor_dst_ice.display_name(), cor_dst_server_id.to_upper()
+			])
+
+		# ── Uprising: The Back ─────────────────────────────────────────────────────
+
+		"the_back_use":
+			# [Click][Remove from game]: for each hosted power counter, choose to
+			# either gain 1cr or draw 1 card.
+			# (Simplification: The Back's first ability — "the first time each turn
+			# you use a piece of hardware during a run, place 1 power counter" —
+			# is NOT implemented, since the engine has no "hardware used during a
+			# run" event hook. The Back will therefore never accumulate power
+			# counters in practice; this click action is included for completeness
+			# in case counters are added by other means in the future.)
+			var tb_self: InstalledCard = _get_self_card(ctx)
+			if tb_self == null:
+				return
+			var tb_n: int = tb_self.get_counter("power")
+			ctx.runner_rig.erase(tb_self)
+			ctx.unregister_all_card_effects(tb_self.runtime_instance_id)
+			ctx.runner_rfg.append(tb_self.card_record)
+			if tb_n <= 0:
+				ctx.send_log("The Back: %s removes it from the game (no hosted power counters)." % ctx.runner_name())
+				return
+			var tb_credits: int = 0
+			var tb_cards: int = 0
+			for _tb_i in range(tb_n):
+				var tb_draw: bool = false
+				if ctx.runner_decision_maker != null and ctx.runner_decision_maker.has_method("choose_yes_no"):
+					tb_draw = await ctx.runner_decision_maker.choose_yes_no(
+						"The Back: draw 1 card instead of gaining 1¢?", ctx)
+				if tb_draw:
+					tb_cards += 1
+				else:
+					tb_credits += 1
+			if tb_credits > 0:
+				await _execute_effect({"type": "gain_credits", "params": {"subject": "runner", "amount": tb_credits}}, ctx, null)
+			if tb_cards > 0:
+				await _execute_effect({"type": "draw_cards", "params": {"subject": "runner", "amount": tb_cards}}, ctx, null)
+			ctx.send_log("The Back: %s removes it from the game, gaining %d¢ and drawing %d card(s) from %d power counter(s)." % [
+				ctx.runner_name(), tb_credits, tb_cards, tb_n
+			])
+
+		# ── Uprising: Paule's Café ─────────────────────────────────────────────────
+
+		"paules_cafe_use":
+			# [Click]: host 1 program or piece of hardware from the grip on this
+			# resource, faceup.
+			# 1cr: install 1 hosted card (the first such install each turn costs
+			# 1cr less).
+			var pc_self: InstalledCard = _get_self_card(ctx)
+			if pc_self == null:
+				return
+			var pc_grip_candidates: Array = []
+			for pc_e in ctx.runner_hand:
+				var pc_rec: CardRecord = (pc_e as Dictionary).get("card_record", null) as CardRecord
+				if pc_rec != null and pc_rec.card_type in ["program", "hardware"]:
+					pc_grip_candidates.append(pc_rec)
+			var pc_modes: Array = []
+			if ctx.runner_clicks >= 1 and not pc_grip_candidates.is_empty():
+				pc_modes.append("host")
+			if ctx.runner_credits >= 1 and not pc_self.faceup_hosted_cards.is_empty():
+				pc_modes.append("install")
+			if pc_modes.is_empty():
+				ctx.send_log("Paule's Café: no available actions.")
+				return
+			var pc_choice: String = pc_modes[0]
+			if pc_modes.size() > 1 and ctx.runner_decision_maker != null and ctx.runner_decision_maker.has_method("choose_modes"):
+				var pc_labels: Array = pc_modes.map(func(m):
+					return {"label": ("Host a card from grip (1 click)" if m == "host" else "Install a hosted card (1cr)")})
+				var pc_pick: Array = await ctx.runner_decision_maker.choose_modes(pc_labels, 1, ctx)
+				if not pc_pick.is_empty():
+					pc_choice = pc_modes[pc_pick[0] as int]
+
+			if pc_choice == "host":
+				var pc_chosen: CardRecord = pc_grip_candidates[0]
+				if ctx.runner_decision_maker != null and ctx.runner_decision_maker.has_method("choose_from_heap"):
+					var pc_pick_card: CardRecord = await ctx.runner_decision_maker.choose_from_heap(pc_grip_candidates, ctx)
+					if pc_pick_card != null:
+						pc_chosen = pc_pick_card
+				ctx.runner_clicks -= 1
+				for pc_i in range(ctx.runner_hand.size()):
+					if (ctx.runner_hand[pc_i] as Dictionary).get("card_record", null) == pc_chosen:
+						ctx.runner_hand.remove_at(pc_i)
+						break
+				pc_self.faceup_hosted_cards.append(pc_chosen)
+				ctx.send_log("Paule's Café: %s hosts %s faceup." % [ctx.runner_name(), pc_chosen.title])
+			else:
+				var pc_install: CardRecord = pc_self.faceup_hosted_cards[0] as CardRecord
+				if ctx.runner_decision_maker != null and ctx.runner_decision_maker.has_method("choose_from_search"):
+					var pc_pick_install: CardRecord = await ctx.runner_decision_maker.choose_from_search(
+						pc_self.faceup_hosted_cards.duplicate(), ctx)
+					if pc_pick_install != null:
+						pc_install = pc_pick_install
+				var pc_cost: int = max(0, pc_install.cost)
+				if not ctx.runner_paules_cafe_discount_used_this_turn:
+					pc_cost = max(0, pc_cost - 1)
+				if pc_install.card_type == "program" and pc_install.memory_cost > 0 and \
+						ctx.runner_mu_available() < pc_install.memory_cost:
+					ctx.send_log("Paule's Café: not enough MU to install %s." % pc_install.title)
+					return
+				if ctx.runner_credits < pc_cost:
+					ctx.send_log("Paule's Café: cannot afford %s (costs %d¢)." % [pc_install.title, pc_cost])
+					return
+				ctx.runner_credits -= pc_cost
+				ctx.runner_paules_cafe_discount_used_this_turn = true
+				pc_self.faceup_hosted_cards.erase(pc_install)
+				var pc_installed := InstalledCard.make_runtime_instance(pc_install, "runner_rig", "root", true)
+				ctx.runner_rig.append(pc_installed)
+				if ctx.has_meta("register_installed_card"):
+					(ctx.get_meta("register_installed_card") as Callable).call(pc_installed)
+				if ctx.has_meta("ability_registry"):
+					var pc_ab_reg: AbilityRegistry = ctx.get_meta("ability_registry") as AbilityRegistry
+					var pc_on_rez = pc_ab_reg.get_on_rez(pc_install.id)
+					if pc_on_rez != null:
+						ctx.current_event_data = {"card": pc_installed, "card_instance_id": pc_installed.runtime_instance_id}
+						await execute_trigger(pc_on_rez as Dictionary, ctx)
+						ctx.current_event_data = {}
+				ctx.send_log("Paule's Café: %s installs %s for %d¢. [MU: %d/%d]" % [
+					ctx.runner_name(), pc_install.title, pc_cost,
+					ctx.runner_mu_used(), ctx.runner_total_mu()
+				])
 
 		"install_from_grip_discounted":
 			var ifgd_require_success: bool = params.get("requires_successful_run", false)
@@ -8808,6 +10611,12 @@ func _execute_effect(effect: Dictionary, ctx: GameContext, chosen_target: Varian
 						return
 				"corp_played_operation":
 					if not ctx.corp_played_operation_this_turn:
+						return
+				"runner_accessed_card_this_turn":
+					if not ctx.runner_accessed_card_this_turn:
+						return
+				"runner_did_not_access_card_this_turn":
+					if ctx.runner_accessed_card_this_turn:
 						return
 				_:
 					pass  # no condition (or unrecognised — treat as always met)
@@ -12087,6 +13896,16 @@ func _execute_effect(effect: Dictionary, ctx: GameContext, chosen_target: Varian
 					var ltr_cb: Callable = ctx.get_meta("on_look_at_rd_top") as Callable
 					await ltr_cb.call(ltr_top)
 
+		"reveal_top_rd":
+			# Downfall: Public Health Portal — reveal the top card of R&D to both
+			# players (informational only; the card does not move).
+			if ctx.corp_deck.is_empty():
+				ctx.send_log("%s reveals the top of R&D — R&D is empty." % ctx.corp_name())
+			else:
+				var rtr_top: CardRecord = ctx.corp_deck[0] as CardRecord
+				ctx.send_log("%s reveals the top card of R&D: %s." % [ctx.corp_name(), rtr_top.title])
+				_hyoubu_check_first_reveal(ctx)
+
 		# ── VP64 Flagship: suppress run success ──────────────────────────────────
 
 		"suppress_run_success":
@@ -15209,6 +17028,21 @@ func _wall_to_wall_resolve(choice: String, ctx: GameContext, _self_card: Install
 # Reads card_instance_id (preferred) then card_id from current_event_data,
 # and falls back from get_by_instance_id to get_by_id so on_rez abilities
 # fired before the card has a runtime_instance_id still resolve correctly.
+# Downfall: Hyoubu Institute, Absolute Clarity — the first time each turn the
+# Corp reveals a card (by any means), gain 1 credit. Call from any effect that
+# reveals a card to the Runner or to both players.
+func _hyoubu_check_first_reveal(ctx: GameContext) -> void:
+	if ctx.corp_identity == null or ctx.corp_identity.id != "hyoubu_institute_absolute_clarity":
+		return
+	if ctx.once_per_turn_triggered.get("hyoubu_reveal_credit", false):
+		return
+	ctx.once_per_turn_triggered["hyoubu_reveal_credit"] = true
+	ctx.corp_credits += 1
+	if not ctx.simulation_mode:
+		emit_signal("credits_changed", "corp", ctx.corp_credits)
+	ctx.send_log("Hyoubu Institute: Absolute Clarity — %s gains 1[credit] from the first reveal this turn." % ctx.corp_name())
+
+
 func _get_self_card(ctx: GameContext) -> InstalledCard:
 	var iid: String = ctx.current_event_data.get("card_instance_id", "")
 	if iid.is_empty():
@@ -15438,6 +17272,11 @@ func _cleanup_granted_subtypes(card: InstalledCard, ctx: GameContext) -> void:
 
 
 func _trash_installed_card(card: InstalledCard, ctx: GameContext) -> void:
+	# Uprising — Simulchip: track program-specific trashes separately from the
+	# general "trashed own installed card" flag (Boi Tata).
+	if card.card_record != null and card.card_record.card_type == "program":
+		ctx.runner_trashed_own_program_this_turn = true
+
 	# If this card has hosted programs (ice with trojans, or daemon with hosted programs),
 	# trash those first before removing the host.
 	if not card.hosted_cards.is_empty():
@@ -15608,6 +17447,12 @@ func execute_encounter_card_ability(card_id: String, mode_index: int,
 	if eeca_credits > 0:
 		ctx.runner_spend_credits(eeca_credits)
 		ctx.send_log("[Encounter] %s spends %d cr." % [card_id, eeca_credits])
+
+	# Uprising: Afterimage — bypass paid with stealth credits only.
+	var eeca_stealth_credits: int = mode.get("cost_stealth_credits", 0)
+	if eeca_stealth_credits > 0:
+		ctx.runner_spend_stealth_credits(eeca_stealth_credits)
+		ctx.send_log("[Encounter] %s spends %d stealth credit(s)." % [card_id, eeca_stealth_credits])
 
 	var eeca_clicks: int = mode.get("cost_clicks", 0)
 	if eeca_clicks > 0:

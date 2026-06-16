@@ -1,0 +1,16 @@
+CABLECARNAGE
+by Circuito Saudade
+
+"Weyland's relay" took some finding, because Weyland did not call it a relay. They called it a trunk — one of dozens of physical cable trunks routing power, data, and control signals between Heinlein's transfer stations, the kind of infrastructure so basic that nobody audited it for anything beyond throughput.
+
+One trunk, designated TR-19, carried more than throughput. Buried in its control channel, alongside the legitimate routing data, was a passive repeater — not unlike the one you'd found tapping Earth Station's clearing account, but older, and built directly into the trunk's original construction. TR-19 had been laid fourteen years ago. The repeater was original equipment.
+
+Fourteen years ago, someone with access to Weyland's infrastructure contracts had built a listening post into a cable trunk and left it running, the same year Annex Thirty-Nine started growing its continuity candidate. Mercury's groundwork wasn't four projects. It was a network, laid down across four corporations at once, over a single construction season, by someone who had apparently had the access and the patience to do all of it without anyone noticing for fourteen years.
+
+The diary's last line said someone else might have found TR-19. If they had, they'd gotten there through Weyland — and Weyland's Built to Last division did not respond well to unscheduled traffic on its trunk network. You'd be running this one hot, and you wouldn't be the only thing moving on that line.
+
+—
+
+TARGET: Weyland Consortium: Built to Last
+FACILITY: Weyland Consortium Trunk Relay Substation, Heinlein Equatorial Transfer Station
+OBJECTIVE: Find out who else has accessed TR-19's repeater, and whether Mercury's network is still theirs — or already someone else's.

@@ -40,6 +40,8 @@ var runner_rfg: Array = []   # Array[CardRecord]
 var corp_discard_facedown: Dictionary = {}
 # Instance IDs of cards the Corp installed this turn (for Seamless Launch restriction)
 var corp_installed_this_turn: Array = []
+# Card IDs of cards the Runner installed this turn (for The Class Act trigger).
+var runner_installed_this_turn: Array = []
 # A Teia: IP Recovery — tracks whether the first remote install this turn has fired.
 # Cleared at the start of each Corp turn.
 var corp_first_remote_install_triggered_this_turn: bool = false
@@ -120,8 +122,16 @@ var runner_hq_breached_this_turn: bool = false
 var runner_trashed_during_breach_this_turn: bool = false
 # Tracks whether the runner trashed any of their own installed cards this turn (Boi Tata discount)
 var runner_trashed_own_installed_this_turn: bool = false
+# Tracks whether the runner trashed one of their own installed programs this turn (Simulchip)
+var runner_trashed_own_program_this_turn: bool = false
 # Tracks whether DZMZ Optimizer discount has been used this turn
 var runner_program_install_discounted_this_turn: bool = false
+# Az McCaffrey: first job/connection resource or hardware install costs 1cr less.
+var runner_az_install_discounted_this_turn: bool = false
+# Tracks whether Paule's Café's "first install this way each turn" discount has been used
+var runner_paules_cafe_discount_used_this_turn: bool = false
+# Tracks whether the Runner has accessed any card this turn (Hoshiko Shiro flip condition)
+var runner_accessed_card_this_turn: bool = false
 # Tracks whether Carnivore has been used this turn (once per turn)
 var runner_carnivore_used_this_turn: bool = false
 # Tracks whether Corp has already gained Built-to-Last advance credits this turn
@@ -180,6 +190,12 @@ var runner_hq_successful_run_this_turn: bool = false
 # Captured at the start of each Corp turn from runner_hq_successful_run_this_turn.
 # Used by Digital Rights Management's pre-play condition.
 var runner_hq_successful_run_last_turn: bool = false
+
+# Generic per-server successful-run tracking (Downfall: Daily Quest).
+# server_id values appended for each successful run this turn; captured into
+# the "_last_turn" copy at the start of each Corp turn.
+var runner_successful_run_servers_this_turn: Array = []
+var runner_successful_run_servers_last_turn: Array = []
 # Set by Digital Rights Management's on_play effect; cleared at the start of the
 # Corp's next turn. While true, agendas cannot be scored.
 var corp_cannot_score_agendas_this_turn: bool = false
@@ -193,6 +209,10 @@ var runner_successful_run_on_archives_this_turn: bool = false
 # Keys: icebreaker runtime_instance_id → total accumulated boost.
 # Cleared at the start of each run by RunStateMachine.execute().
 var run_level_strength_boosts: Dictionary = {}
+# Keys: icebreaker runtime_instance_id → total accumulated boost.
+# Lasts for the remainder of the Runner's turn (Cybertrooper Talut).
+# Cleared at the start of each Runner turn.
+var turn_level_strength_boosts: Dictionary = {}
 # Tracks whether at least one subroutine resolved during the current run (Ryo "Phoenix" Ōno).
 # Cleared at the start of each run by RunStateMachine.execute().
 var run_had_subroutine_resolve: bool = false
@@ -338,6 +358,12 @@ var once_per_turn_triggered: Dictionary = {}
 # Used by Wage Workers: Corp gains 1 click when any type hits exactly 3.
 # Cleared at the start of each Corp turn by TurnManager.
 var corp_action_type_counts: Dictionary = {}
+
+# MirrorMorph: Endless Iteration — types of the first 3 actions taken this turn,
+# in order. Reset each Corp turn; consumed once it reaches size 3.
+var corp_first_three_action_types: Array = []
+# Set true once MirrorMorph's bonus has already been offered this turn.
+var corp_mirrormorph_bonus_resolved_this_turn: bool = false
 
 # ── Game state ────────────────────────────────────────────────────────────────
 var turn_number:   int    = 1
@@ -646,7 +672,37 @@ func additional_run_cost_credits(server_id: String) -> int:
 			total += m.get("value", 0) as int
 		elif cond_server == "remote" and server_id.begins_with("remote_"):
 			total += m.get("value", 0) as int
+	total += additional_run_cost_from_hosted_counters(server_id).get("credits", 0)
 	return total
+
+
+# Downfall: Cold Site Server / Reduced Service — rezzed upgrades in a server's
+# root that impose additional run costs scaled by their hosted counters.
+func additional_run_cost_from_hosted_counters(server_id: String) -> Dictionary:
+	var result := {"credits": 0, "clicks": 0}
+	if not has_meta("ability_registry") or not has_method("get_server"):
+		return result
+	var arc_ab_reg: AbilityRegistry = get_meta("ability_registry") as AbilityRegistry
+	var arc_srv: Object = get_server(server_id)
+	if arc_srv == null:
+		return result
+	for arc_root in (arc_srv as Server).root:
+		var arc_card: InstalledCard = arc_root as InstalledCard
+		if arc_card == null or not arc_card.is_rezzed:
+			continue
+		var arc_ab: Dictionary = arc_ab_reg._abilities.get(arc_card.card_id, {}) as Dictionary
+		var arc_def: Dictionary = arc_ab.get("additional_run_cost_from_hosted_counters", {}) as Dictionary
+		if arc_def.is_empty():
+			continue
+		var arc_counter: String = arc_def.get("counter", "power")
+		var arc_count: int = arc_card.get_counter(arc_counter)
+		result["credits"] += int(arc_def.get("credits_per_counter", 0)) * arc_count
+		result["clicks"]  += int(arc_def.get("clicks_per_counter", 0)) * arc_count
+	return result
+
+
+func additional_run_cost_clicks(server_id: String) -> int:
+	return additional_run_cost_from_hosted_counters(server_id).get("clicks", 0)
 
 func get_remote_servers() -> Array:
 	var result: Array = []
@@ -1074,6 +1130,30 @@ func count_installed_icebreakers() -> int:
 	return count
 
 
+func can_rez_ice_anytime_this_run() -> bool:
+	# Rime: "During runs against this server, you can rez this ice any time
+	# you could rez non-ice cards." Returns true if any unrezzed ice on the
+	# currently-attacked server grants this timing.
+	if not run_active:
+		return false
+	if not has_meta("ability_registry"):
+		return false
+	if not has_method("get_server"):
+		return false
+	var rime_srv: Object = get_server(run_target_server)
+	if rime_srv == null:
+		return false
+	var rime_ab_reg: AbilityRegistry = get_meta("ability_registry") as AbilityRegistry
+	for rime_ice in (rime_srv as Server).ice:
+		var rime_ic: InstalledCard = rime_ice as InstalledCard
+		if rime_ic == null or rime_ic.is_rezzed:
+			continue
+		var rime_ab: Dictionary = rime_ab_reg._abilities.get(rime_ic.card_id, {}) as Dictionary
+		if rime_ab.get("rez_anytime_during_run_on_own_server", false):
+			return true
+	return false
+
+
 func count_fracters_in_heap() -> int:
 	# Count fracter icebreakers in the runner's discard pile (heap).
 	# Used by Rising Tide's dynamic base-strength modifier.
@@ -1095,7 +1175,14 @@ func runner_max_hand_size() -> int:
 		+ query_hackerspace_hand_size_bonus() \
 		+ query_hippocampic_hand_size_bonus() \
 		+ query_marrow_hand_size_bonus() \
+		+ query_passive_hand_size_bonus() \
 		- query_keeling_hand_size_penalty()
+
+func query_passive_hand_size_bonus() -> int:
+	var bonus := 0
+	for mod in _state_modifiers.get("runner_hand_size_bonus", []):
+		bonus += int((mod as Dictionary).get("value", 0))
+	return bonus
 
 
 # Hippocampic Mechanocytes (Parhelion): +1 max hand size per power counter on each installed copy.
@@ -1127,6 +1214,17 @@ func query_keeling_hand_size_penalty() -> int:
 			if ic != null and ic.is_rezzed and ic.card_id == "dr_vientiane_keeling":
 				penalty += ic.get_counter("power")
 	return penalty
+
+
+# Odore (Uprising): counts all installed Runner cards with the given subtype
+# (e.g. "virtual"), regardless of card type.
+func count_installed_by_subtype(subtype: String) -> int:
+	var count := 0
+	for rig_c in runner_rig:
+		var ic: InstalledCard = rig_c as InstalledCard
+		if ic != null and ic.card_record != null and ic.card_record.has_subtype(subtype):
+			count += 1
+	return count
 
 
 # Tremolo (Parhelion): counts all installed Runner hardware with the "cybernetic" subtype.
@@ -1227,11 +1325,22 @@ func runner_available_credits() -> int:
 # Spend runner credits, drawing from Overclock → bad pub → own pool in order.
 # Both Overclock and bad pub are "outside the credit pool" for Shackleton Grid.
 # Returns false if insufficient total credits.
-func runner_spend_credits(amount: int) -> bool:
+func runner_spend_credits(amount: int, reason: String = "") -> bool:
 	var overclock:  int = run_modifiers.get("overclock_credits",  0)
 	var concerto:   int = run_modifiers.get("concerto_credits",   0)
 	var bad_pub:    int = run_modifiers.get("bad_pub_credits",    0)
-	var total: int      = runner_credits + overclock + concerto + bad_pub
+	# Uprising — Mantle: "You can spend hosted credits to install or use
+	# programs and hardware." Spends tagged reason: "other" (run costs, trace
+	# costs, event/operation costs, etc.) cannot be paid from Mantle-style
+	# recurring credits.
+	var program_recurring: int = 0
+	if reason != "other":
+		for prc_mod in _state_modifiers.get("runner_program_run_recurring_credits", []):
+			var prc_d := prc_mod as Dictionary
+			var prc_card := get_installed_card_by_instance_id(prc_d.get("card_instance_id", "") as String)
+			if prc_card != null:
+				program_recurring += prc_card.get_counter("recurring_credits")
+	var total: int      = runner_credits + overclock + concerto + bad_pub + program_recurring
 	if total < amount:
 		return false
 
@@ -1276,7 +1385,25 @@ func runner_spend_credits(amount: int) -> bool:
 					remaining -= spend
 					runner_outside_credits_spent_pending += spend
 
-	# 5. Drain own credit pool
+	# 5. Mantle (and similar): drain hosted recurring credits usable for
+	#    program/hardware install-or-use costs (not "other" spends).
+	for prc_mod in (_state_modifiers.get("runner_program_run_recurring_credits", []) if reason != "other" else []):
+		if remaining <= 0:
+			break
+		var prc_d2 := prc_mod as Dictionary
+		var prc_card2 := get_installed_card_by_instance_id(prc_d2.get("card_instance_id", "") as String)
+		if prc_card2 != null:
+			var prc_avail: int = prc_card2.get_counter("recurring_credits")
+			var prc_spend: int = min(prc_avail, remaining)
+			if prc_spend > 0:
+				prc_card2.remove_counter("recurring_credits", prc_spend)
+				send_log("%s: spends %d hosted recurring credit(s) (%d remaining)." % [
+					prc_card2.display_name(), prc_spend, prc_card2.get_counter("recurring_credits")])
+				remaining -= prc_spend
+				if run_active:
+					runner_outside_credits_spent_pending += prc_spend
+
+	# 6. Drain own credit pool
 	runner_credits -= remaining
 	return true
 
@@ -1416,7 +1543,8 @@ func runner_spend_stealth_credits(amount: int) -> bool:
 		run_modifiers["stealth_credits"] = run_stealth - from_run
 		remaining -= from_run
 	# Then drain stealth counters from installed rig cards
-	for card in runner_rig:
+	var emptied_cards: Array = []
+	for card in runner_rig.duplicate():
 		if remaining <= 0:
 			break
 		var c: InstalledCard = card as InstalledCard
@@ -1432,9 +1560,34 @@ func runner_spend_stealth_credits(amount: int) -> bool:
 		send_log("%s: spends %d stealth credit(s) (%d remaining)." % [
 			c.display_name(), spend, c.get_counter("stealth_credits")])
 		remaining -= spend
+		if c.get_counter("stealth_credits") <= 0:
+			emptied_cards.append(c)
+	# Uprising — Penumbral Toolkit: trash immediately if hosted credits hit 0.
+	for c in emptied_cards:
+		trash_card_if_counter_empty(c as InstalledCard, "stealth_credits")
 	# VP65 Shackleton Grid: all stealth credits are "outside the credit pool"
 	if run_active:
 		runner_outside_credits_spent_pending += amount
+	return true
+
+
+# Trash an installed card immediately if a given counter on it has reached
+# zero. Shared by the "self_trash_if_empty" effect (turn-start fallback) and
+# by runner_spend_stealth_credits (immediate check, e.g. Penumbral Toolkit).
+# Returns true if the card was trashed.
+func trash_card_if_counter_empty(card: InstalledCard, counter_type: String) -> bool:
+	if card == null or card.get_counter(counter_type) > 0:
+		return false
+	var server: Server = get_server(card.server_id)
+	if server:
+		server.remove_from_root(card)
+		remove_empty_remote_servers()
+	var was_runner_card: bool = runner_rig.has(card)
+	runner_rig.erase(card)
+	unregister_all_card_effects(card.runtime_instance_id)
+	if was_runner_card and card.card_record != null:
+		runner_discard.append(card.card_record)
+	send_log("%s is trashed (empty)." % card.display_name())
 	return true
 
 
@@ -1561,6 +1714,7 @@ func clone_for_sim() -> GameContext:
 	c.corp_installed_this_turn                          = corp_installed_this_turn.duplicate()
 	c.corp_first_remote_install_triggered_this_turn     = corp_first_remote_install_triggered_this_turn
 	c.a_teia_free_installed_instance_ids                = a_teia_free_installed_instance_ids.duplicate()
+	c.runner_installed_this_turn                        = runner_installed_this_turn.duplicate()
 
 	# ── Deferred click modifiers ───────────────────────────────────────────────
 	c.pending_click_penalties = pending_click_penalties.duplicate()
@@ -1583,13 +1737,18 @@ func clone_for_sim() -> GameContext:
 	c.runner_hq_breached_this_turn                = runner_hq_breached_this_turn
 	c.runner_trashed_during_breach_this_turn      = runner_trashed_during_breach_this_turn
 	c.runner_trashed_own_installed_this_turn      = runner_trashed_own_installed_this_turn
+	c.runner_trashed_own_program_this_turn        = runner_trashed_own_program_this_turn
 	c.runner_program_install_discounted_this_turn = runner_program_install_discounted_this_turn
+	c.runner_az_install_discounted_this_turn      = runner_az_install_discounted_this_turn
+	c.runner_paules_cafe_discount_used_this_turn  = runner_paules_cafe_discount_used_this_turn
+	c.runner_accessed_card_this_turn              = runner_accessed_card_this_turn
 	c.runner_carnivore_used_this_turn             = runner_carnivore_used_this_turn
 	c.runner_stole_agenda_this_turn               = runner_stole_agenda_this_turn
 	c.runner_assassination_agendas                = runner_assassination_agendas
 	c.runner_successful_run_on_rd_this_turn       = runner_successful_run_on_rd_this_turn
 	c.runner_successful_run_on_archives_this_turn = runner_successful_run_on_archives_this_turn
 	c.run_level_strength_boosts                   = run_level_strength_boosts.duplicate()
+	c.turn_level_strength_boosts                  = turn_level_strength_boosts.duplicate()
 	c.run_had_subroutine_resolve                  = run_had_subroutine_resolve
 	c.runner_cannot_steal_or_trash_this_run       = runner_cannot_steal_or_trash_this_run
 	c.runner_cannot_access_except_self_card_id    = runner_cannot_access_except_self_card_id
@@ -1602,6 +1761,8 @@ func clone_for_sim() -> GameContext:
 	c.run_s_dobrado_encounter_count               = run_s_dobrado_encounter_count
 	c.arissana_installed_this_run_iid             = arissana_installed_this_run_iid
 	c.runner_hq_successful_run_this_turn          = runner_hq_successful_run_this_turn
+	c.runner_successful_run_servers_this_turn     = runner_successful_run_servers_this_turn.duplicate()
+	c.runner_successful_run_servers_last_turn     = runner_successful_run_servers_last_turn.duplicate()
 	c.runner_hq_successful_run_last_turn          = runner_hq_successful_run_last_turn
 	c.corp_cannot_score_agendas_this_turn         = corp_cannot_score_agendas_this_turn
 

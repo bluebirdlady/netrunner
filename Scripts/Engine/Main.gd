@@ -9,12 +9,13 @@ var ctx: GameContext
 var ability_registry: AbilityRegistry
 var turn_manager: TurnManager
 var run_machine: RunStateMachine
-var corp_brain: CorpTurnAI
-var runner_brain: HumanDecisionMaker
+var corp_brain:   Object   # CorpTurnAI (runner mode) or CorpHumanBrain (corp mode)
+var runner_brain: Object   # HumanDecisionMaker (runner mode) or SimRunnerAI (corp mode)
 var _run_scene: RunScene = null
 
 # ── Campaign mode ─────────────────────────────────────────────────────────────
 var campaign_mode:           bool     = false
+var corp_mode:               bool     = false   # true when the human player is the Corp
 var campaign_runner_deck:    Array    = []
 var campaign_runner_id:      String   = ""
 var campaign_corp_deck:      Array    = []
@@ -47,28 +48,34 @@ func _init_and_start() -> void:
 	else:
 		print("AbilityRegistry loaded %d card definitions" % ability_registry._abilities.size())
 
-	# Select Corp AI level — heuristic (0), tactical 1-ply (1), strategic 2-ply (2), MCTS (3)
-	match campaign_ai_level:
-		1:
-			corp_brain = CorpTurnAI_Tactical.new(ability_registry)
-		2:
-			corp_brain = CorpTurnAI_Strategic.new(ability_registry)
-		3:
-			corp_brain = CorpTurnAI_MCTS.new(ability_registry)
-		_:
-			corp_brain = CorpTurnAI.new(ability_registry)
-
-	runner_brain = HumanDecisionMaker.new()
+	if corp_mode:
+		# Human plays Corp; SimRunnerAI plays Runner as opponent.
+		corp_brain   = CorpHumanBrain.new()
+		runner_brain = SimRunnerAI.new()
+	else:
+		# Human plays Runner; CorpTurnAI plays Corp at selected difficulty.
+		match campaign_ai_level:
+			1:
+				corp_brain = CorpTurnAI_Tactical.new(ability_registry)
+			2:
+				corp_brain = CorpTurnAI_Strategic.new(ability_registry)
+			3:
+				corp_brain = CorpTurnAI_MCTS.new(ability_registry)
+			_:
+				corp_brain = CorpTurnAI.new(ability_registry)
+		runner_brain = HumanDecisionMaker.new()
 
 	ctx.corp_decision_maker   = corp_brain
 	ctx.runner_decision_maker = runner_brain
 
 	if campaign_mode:
 		_populate_campaign_state()
-		# Seed the Bayesian runner model from public info (identity + format pool),
+		# Seed the AI opponent's model from public info (identity + format pool),
 		# not from the player's actual deck list.
 		if corp_brain.has_method("seed_runner_model"):
 			corp_brain.seed_runner_model(campaign_runner_id, campaign_available_pool)
+		if runner_brain.has_method("seed_corp_model"):
+			runner_brain.seed_corp_model(campaign_corp_id, campaign_available_pool)
 	else:
 		_populate_test_state()
 
@@ -83,6 +90,10 @@ func _init_and_start() -> void:
 	ctx.set_meta("register_installed_card", Callable(turn_manager, "_register_card_listeners"))
 
 	game_ui.setup(ctx, turn_manager, run_machine, ability_registry)
+	# In Corp mode the human is never waiting for the AI to "think" —
+	# disconnect the overlay that GameUI wires unconditionally in setup().
+	if corp_mode and turn_manager.corp_thinking.is_connected(game_ui._on_corp_thinking):
+		turn_manager.corp_thinking.disconnect(game_ui._on_corp_thinking)
 
 	# VP36 Méliès U: refresh the identity card display whenever the identity flips.
 	# The callback fires from flip_melies_u / flip_melies_u_back in AbilityInterpreter.
@@ -90,24 +101,31 @@ func _init_and_start() -> void:
 		game_ui._update_all_displays()
 	)
 
-	# Route UI actions to the runner brain, and observe them for the AI model
+	# Route UI actions to the active player's brain.
+	# In Corp mode the human plays Corp; in Runner mode the human plays Runner.
 	game_ui.action_requested.connect(func(action: GameAction):
-		if ctx.active_player == "runner":
-			runner_brain.action_selected.emit(action)
-			_observe_runner_action(action)
+		if corp_mode:
+			if ctx.active_player == "corp":
+				(corp_brain as CorpHumanBrain).action_selected.emit(action)
+		else:
+			if ctx.active_player == "runner":
+				(runner_brain as HumanDecisionMaker).action_selected.emit(action)
+				_observe_runner_action(action)
 	)
 
-	# Observe end of runner turn: fires when a Corp turn starts, meaning the
-	# previous runner turn is fully resolved (action phase + discard phase done).
+	# Observe end of runner turn for the Corp AI model (runner mode only).
 	turn_manager.turn_started.connect(func(player: String, _turn_num: int):
-		if player == "corp":
+		if not corp_mode and player == "corp":
 			_observe_runner_action(GameAction._make("end_turn", {}))
 	)
 
-	# Default proxies → GameUI (used outside of runs)
-	_wire_proxies_to_game_ui()
+	# Default proxies → GameUI (used outside of runs; runner-mode only).
+	# In corp mode there are no runner-brain proxies to wire here;
+	# CorpScene will wire corp_brain proxies in C2.
+	if not corp_mode:
+		_wire_proxies_to_game_ui()
 
-	# Intercept run initiation to show RunScene
+	# Intercept run initiation to open the appropriate run scene.
 	_wire_run_via_turn_manager()
 
 	await _perform_mulligan_phase()
@@ -218,7 +236,11 @@ func _wire_run_via_turn_manager() -> void:
 
 
 func _on_run_will_start(server_id: String) -> void:
-	# Called by TurnManager just before run_machine.execute(server_id)
+	if corp_mode:
+		# C1: runs execute invisibly — SimRunnerAI makes all runner decisions
+		# autonomously and CorpHumanBrain stubs handle rez/trace/psi defaults.
+		# CorpScene will open here in C2.
+		return
 	_open_run_scene(server_id)
 
 
@@ -289,8 +311,12 @@ func _start_game_loop() -> void:
 
 func _perform_mulligan_phase() -> void:
 	# Corp decides first, then Runner. Each may shuffle their hand back and redraw 5.
-	# AI Corp uses a heuristic; human Runner is prompted via the UI.
-	if _corp_wants_mulligan():
+	var corp_mulligans: bool
+	if corp_mode:
+		corp_mulligans = await game_ui.show_mulligan_prompt(ctx.corp_name(), ctx.corp_hand)
+	else:
+		corp_mulligans = _corp_wants_mulligan()
+	if corp_mulligans:
 		for entry in ctx.corp_hand:
 			var card: CardRecord = (entry as Dictionary).get("card_record", null) as CardRecord
 			if card != null:
@@ -306,7 +332,7 @@ func _perform_mulligan_phase() -> void:
 		ctx.send_log("Corp keeps their opening hand.")
 
 	var runner_mulligans: bool
-	if runner_brain is HumanDecisionMaker:
+	if not corp_mode and runner_brain is HumanDecisionMaker:
 		runner_mulligans = await game_ui.show_mulligan_prompt(ctx.runner_name(), ctx.runner_hand)
 	else:
 		runner_mulligans = _runner_wants_mulligan()

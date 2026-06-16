@@ -1145,6 +1145,16 @@ func _eval_encounter_mode_condition(mode: Dictionary, encounter: EncounterState,
 			var needed: int = cond.get("amount", 1)
 			return game_ctx.runner_clicks >= needed
 
+		"encountered_ice_is_sentry":
+			# Uprising: Afterimage — true when the encountered ice has the "sentry" subtype.
+			if encounter.ice_card == null or encounter.ice_card.card_record == null:
+				return false
+			var esub: Array = encounter.ice_card.card_record.subtypes.duplicate()
+			for ees in encounter.ice_card.extra_subtypes:
+				if not esub.has(ees):
+					esub.append(ees)
+			return esub.has("sentry")
+
 		"run_modifier_false":
 			# True when a run_modifiers key is absent or false (i.e. the ability hasn't been used this run).
 			var key: String = cond.get("key", "")
@@ -1180,6 +1190,12 @@ func _can_afford_encounter_mode(mode: Dictionary, game_ctx: GameContext, card: I
 		return false
 	if click_cost > 0 and game_ctx.runner_clicks < click_cost:
 		return false
+
+	# Uprising: Afterimage — bypass paid with stealth credits only.
+	var stealth_cost: int = mode.get("cost_stealth_credits", 0)
+	if stealth_cost > 0 and game_ctx.runner_stealth_credits() < stealth_cost:
+		return false
+
 	if counter_type != "" and counter_amt > 0 and card.get_counter(counter_type) < counter_amt:
 		return false
 	return true

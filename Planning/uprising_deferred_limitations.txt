@@ -1,0 +1,120 @@
+UPRISING — DEFERRED IMPLEMENTATION LIMITATIONS (RESOLVED)
+================================================
+Originally written after both the Corp-side (35 cards) and Runner-side (30
+cards) Uprising implementations were completed (2026-06-11). All items
+listed below have since been fully resolved (2026-06-11) — every Uprising
+card now matches its printed text.
+
+CHANGELOG OF FIXES
+------------------
+
+vaporframe_fabricator (Corp asset)
+  Added a new `corp_installed_card_trashed` event, fired from
+  RunStateMachine.gd whenever the Runner trashes an installed Corp card
+  during breach. Vaporframe Fabricator now reacts to its own trash via a new
+  `corp_installed_card_trashed` trigger (condition `trashed_card_is_self`,
+  effect `install_from_hq_ignoring_costs`), installing 1 card from HQ
+  ignoring all costs — matching its printed reactive ability.
+
+euler (Runner icebreaker)
+  Added a `break_alt` interface (0cr, break 1 code gate sub,
+  `requires_installed_this_turn`), selected via the new multi-interface
+  break-resolution system (see "Multi-interface break system" below).
+
+afterimage (Runner icebreaker)
+  Added a once-per-turn `encounter_ability` mode: 2 stealth credits to
+  bypass an encountered sentry (new `cost_stealth_credits` cost type, new
+  `encountered_ice_is_sentry` condition, reuses the existing
+  `bypass_current_ice_flag` effect).
+
+odore (Runner icebreaker)
+  Added a `break_alt` interface (0cr, break 1 sentry sub, available only
+  with `installed_cards_by_subtype_gte` 3 virtual resources), selected via
+  the multi-interface break-resolution system.
+
+aniccam (Runner hardware)
+  Now triggers on the new generic `runner_cards_trashed_from_grip_or_stack`
+  event (via condition `trashed_cards_include_event`), covering all
+  event-trash sources (play, mill, hand-size discard), not just events being
+  played.
+
+mantle (Runner program)
+  `GameContext.runner_spend_credits()` now takes an optional
+  `reason: String` parameter. Mantle's recurring credits are skipped when
+  `reason == "other"`, which is now passed at the one call site that pays a
+  cost Mantle shouldn't cover (pay-to-avoid-net-damage). Mantle now only
+  funds program/hardware install-and-use costs, as printed.
+
+penumbral_toolkit (Runner resource)
+  Hosted-credit depletion now triggers an immediate trash via the new shared
+  `GameContext.trash_card_if_counter_empty()` helper, called directly from
+  `runner_spend_stealth_credits()`. The old turn-start fallback trigger was
+  removed — the card is trashed the same turn its last credit is spent, as
+  printed.
+
+simulchip (Runner hardware)
+  The "ignore additional cost if a program has already been trashed this
+  turn" check now uses a new program-specific flag
+  (`runner_trashed_own_program_this_turn`), set only when the trashed card's
+  type is "program" — matching the printed wording precisely.
+
+prognostic_q_loop (Runner hardware)
+  No change — the look-without-acting peek has no mechanical effect on a
+  single-player-vs-AI engine and remains log-only by design.
+
+buffer_drive (Runner hardware)
+  Added the "first time each turn cards are trashed from grip/stack, may
+  redirect 1 to the bottom of your stack" ability via the new generic
+  `runner_cards_trashed_from_grip_or_stack` event and a new
+  `buffer_drive_redirect_to_bottom` effect.
+
+harmony_ar_therapy (Runner event)
+  Replaced the greedy auto-pick with a real choice: new
+  `choose_multiple_from_heap()` decision-maker method (with an AI greedy
+  fallback) lets the player select which up-to-5 distinct-titled heap cards
+  to shuffle into the stack.
+
+the_back (Runner resource)
+  Added the "first time each turn you use a piece of hardware during a run,
+  place 1 power counter" trigger via a new `runner_uses_hardware_during_run`
+  event, fired from `_do_use_installed_card` when a hardware card is used
+  while a run is active.
+
+mu_safecracker / mystic_maemi / paladin_poemu
+  No changes needed — these were already implemented as printed.
+
+
+SHARED PRIMITIVES BUILT (formerly "missing primitives")
+--------------------------------------------------------
+
+1. `runner_cards_trashed_from_grip_or_stack` event — fired from hand-size
+   discards, additional-cost trashes (Moshing), and event-play discards.
+   Powers Buffer Drive and Aniccam.
+
+2. `runner_uses_hardware_during_run` event — fired from
+   `_do_use_installed_card` (TurnManager.gd) when a hardware card is used
+   during an active run. Powers The Back.
+
+3. `corp_installed_card_trashed` event — fired from RunStateMachine.gd when
+   the Runner trashes an installed Corp card during breach. Powers
+   Vaporframe Fabricator.
+
+4. `choose_multiple_from_heap(candidates, max_count, ctx)` — new
+   decision-maker method for "choose up to N cards with different titles"
+   effects. Powers Harmony AR Therapy.
+
+5. Multi-interface break system — `break_alt` key in abilities.json,
+   `AbilityRegistry.get_break_alt_for_ice()`, `EncounterProcessor`'s
+   `_resolve_break_interface()`, and `choose_break_interface()` on the
+   decision maker. Supports availability gating via
+   `requires_installed_this_turn` and the new
+   `installed_cards_by_subtype_gte` condition (backed by
+   `GameContext.count_installed_by_subtype()`). Powers Euler and Odore.
+
+6. `bypass_current_ice_flag` effect + `cost_stealth_credits` encounter-ability
+   cost type + `encountered_ice_is_sentry` condition — powers Afterimage's
+   stealth-bypass ability (the bypass-flag effect itself already existed for
+   other cards; the stealth-cost and sentry-condition pieces are new).
+
+All 12 originally-listed cards are now implemented to match their printed
+text.

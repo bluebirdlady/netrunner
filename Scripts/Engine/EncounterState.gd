@@ -59,6 +59,12 @@ static func make(ice: InstalledCard, subs: Array, breakers: Array, game_ctx: Obj
 	if game_ctx != null and game_ctx.get("run_level_strength_boosts") != null:
 		for breaker_id in game_ctx.run_level_strength_boosts:
 			e.temp_strength_boosts[breaker_id] = game_ctx.run_level_strength_boosts[breaker_id]
+	# Cybertrooper Talut: carry forward any turn-level strength boosts (last for the
+	# remainder of the Runner's turn, across multiple runs).
+	if game_ctx != null and game_ctx.get("turn_level_strength_boosts") != null:
+		for breaker_id in game_ctx.turn_level_strength_boosts:
+			e.temp_strength_boosts[breaker_id] = e.temp_strength_boosts.get(breaker_id, 0) \
+				+ game_ctx.turn_level_strength_boosts[breaker_id]
 	# Stegodon MK IV (TAI): Corp derezzed non-attacked ice at run start → all breakers −2 str.
 	if game_ctx != null and game_ctx.get("run_ice_derezzed_this_run"):
 		e.breaker_strength_penalty = 2
@@ -86,6 +92,34 @@ static func make(ice: InstalledCard, subs: Array, breakers: Array, game_ctx: Obj
 			var gte_def: Dictionary = enc_ability2.get("strength_bonus_if_adv_counters_gte", {}) as Dictionary
 			if not gte_def.is_empty() and adv_counters >= int(gte_def.get("threshold", 0)):
 				e.ice_strength += int(gte_def.get("amount", 0))
+
+	# Downfall: Hagen / Sandstone — dynamic per-counter/per-icebreaker strength penalties,
+	# and Rime — server-wide +1 strength to all ice on its server while rezzed.
+	if game_ctx != null and game_ctx.has_meta("ability_registry"):
+		var dyn_ab_reg: Object = game_ctx.get_meta("ability_registry")
+		if dyn_ab_reg != null:
+			var dyn_ability: Dictionary = dyn_ab_reg._abilities.get(ice.card_id, {}) as Dictionary
+			# Hagen: -1 strength for each installed Runner icebreaker.
+			var per_breaker: int = int(dyn_ability.get("strength_penalty_per_runner_icebreaker", 0))
+			if per_breaker > 0 and game_ctx.has_method("count_installed_icebreakers"):
+				e.ice_strength -= per_breaker * game_ctx.count_installed_icebreakers()
+			# Sandstone: -1 strength for each hosted virus counter.
+			var per_virus: int = int(dyn_ability.get("strength_penalty_per_self_virus_counter", 0))
+			if per_virus > 0:
+				e.ice_strength -= per_virus * ice.get_counter("virus")
+			# Rime: each piece of ice protecting this server gets +N strength while a
+			# card with this ability is rezzed on the same server (including itself).
+			if game_ctx.has_method("get_server") and ice.server_id != "":
+				var rime_srv: Object = game_ctx.get_server(ice.server_id)
+				if rime_srv != null:
+					for rime_ice in (rime_srv as Server).ice:
+						var rime_ic: InstalledCard = rime_ice as InstalledCard
+						if rime_ic == null or not rime_ic.is_rezzed:
+							continue
+						var rime_ab: Dictionary = dyn_ab_reg._abilities.get(rime_ic.card_id, {}) as Dictionary
+						var rime_bonus: int = int(rime_ab.get("ice_strength_bonus_to_server_while_rezzed", 0))
+						if rime_bonus > 0:
+							e.ice_strength += rime_bonus
 
 	# The Tungsten Tailor (VP3): apply global ice strength modifier from installed hardware
 	if game_ctx != null and game_ctx.has_method("query_ice_strength_modifier"):

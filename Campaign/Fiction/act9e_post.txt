@@ -1,0 +1,13 @@
+SEVERANCE
+
+TR-19's repeater had an access log, and the access log had exactly one entry from outside Mercury's own network: four days ago, the same day the diary's final note was written. A single read — not a tap, not a copy, a single targeted read — of the repeater's routing table. The entire map of Mercury's fourteen-year network, all four nodes, pulled in one query by an account that traced back to Weyland's own internal security division.
+
+Weyland hadn't stumbled onto TR-19. Weyland's security division had been auditing trunk infrastructure as part of the post-Midnight Sun cleanup — the same cleanup you had triggered at Kestrel-9 — and TR-19 had flagged as anomalous. They had found Mercury's repeater, read its routing table, and, as far as you could tell, done nothing else with it yet. No alert. No removal order. No report filed.
+
+Either they hadn't recognised what they'd found, or they had, and were deciding what to do with it.
+
+You pulled the repeater's full routing table yourself, before Weyland could come back for it. Three of the four nodes you already knew. The fourth was new — a location the table listed only by coordinates, in the Outer Ring, with a facility designation that matched nothing in any registry you had access to.
+
+The coordinates matched Méliès U's closed campus. Specifically, a building inside it that the campus access logs didn't show as existing at all.
+
+The diary had said "if they've found it too, we're out of time." You didn't know whose time was running out — Mercury's, Weyland's, or yours. But you knew where the answer was, and you knew you needed to get there before whoever read that routing table decided to act on it.

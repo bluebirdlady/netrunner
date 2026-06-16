@@ -1,0 +1,18 @@
+SPACE PRISON
+by Circuito Saudade
+
+The contact log from Kestrel-9 gave you one address. The address gave you nothing — no registry entry, no certificate chain, no traceable owner. Just a relay signature, repeating on a fixed interval, bouncing through six anonymizing hops before it went dark.
+
+You had pulled signal logs like this before. Usually they terminated at a shell corporation, a dead drop, a burner account that had been cold for years. This one was different. It was live. It had been live, on the same interval, for at least the six months that Project Midnight Sun's production unit had been running.
+
+You followed the interval back through its hops. Five of the six were dead ends, scrubbed and salted, exactly as expected. The sixth was not. Buried under three layers of routing obfuscation, the sixth hop terminated at a facility registry entry for Earth Station: SEA Headquarters — Southeast Asia Headquarters, technically, though nobody who worked there called it that. Officially, a regional processing center for decommissioned orbital labour contracts. Unofficially, according to the three independent labour-rights filings you found buried in the same registry, something closer to a holding facility for workers whose contracts had been quietly converted into debt.
+
+Whoever Mercury was, they had a foothold inside Earth Station. Or Earth Station was Mercury. You did not yet know which.
+
+You did know that the relay signature updated every time a new "intake batch" was logged. And you knew that Earth Station's systems were about to log one tonight.
+
+—
+
+TARGET: Earth Station: SEA Headquarters
+FACILITY: Earth Station SEA Regional Processing Center, Heinlein Orbital Ring
+OBJECTIVE: Find the system that generates Mercury's relay signature. Find out whether Mercury is watching Earth Station, or running it.

@@ -70,6 +70,7 @@ func _launch_game(mission: Dictionary, opponent: Dictionary, ai_level_override: 
 
 	# Configure from campaign data
 	_main.campaign_mode           = true
+	_main.corp_mode               = false   # Runner campaign: human plays Runner
 	_main.campaign_runner_deck    = _state.get_runner_deck()
 	_main.campaign_runner_id      = _state.get_runner_identity_id()
 	_main.campaign_corp_deck      = opponent.get("deck", []) as Array

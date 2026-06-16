@@ -51,6 +51,22 @@ func choose_jack_out(_ctx: GameContext) -> bool:
 	return false
 
 
+# Uprising: Euler / Odore — choose between an icebreaker's primary break
+# interface and its alternative (free/conditional) interface when both are
+# available for the encountered ice. Returns 0 for primary, 1 for alt.
+var choose_break_interface_proxy: Callable  # func(breaker: InstalledCard, primary: Dictionary, alt: Dictionary, unbroken_count: int) -> int
+
+func choose_break_interface(breaker: InstalledCard, primary: Dictionary, alt: Dictionary,
+		unbroken_count: int, _ctx: GameContext) -> int:
+	if choose_break_interface_proxy.is_valid():
+		return await choose_break_interface_proxy.call(breaker, primary, alt, unbroken_count)
+	# AI default: use the free alternative interface if it can break everything
+	# unbroken in one activation; otherwise stick with the primary interface.
+	if alt.get("cost_per_sub", 1) == 0 and unbroken_count <= alt.get("subs_per_use", 1):
+		return 1
+	return 0
+
+
 func choose_encounter_action(encounter: EncounterState, _ctx: GameContext) -> Dictionary:
 	if encounter_action_proxy.is_valid():
 		return await encounter_action_proxy.call(encounter)
@@ -143,6 +159,15 @@ func choose_pay_shred_etr(count: int, _ctx: GameContext) -> bool:
 	return true   # Default: pay — preserving the ETR is usually worth it
 
 
+# ── Choose card name (e.g. Complete Image chain damage) ──────────────────────
+
+var choose_card_name_proxy: Callable  # func(ctx: GameContext) -> String
+
+func choose_card_name(ctx: GameContext) -> String:
+	if choose_card_name_proxy.is_valid():
+		return await choose_card_name_proxy.call(ctx)
+	return ""  # Default: blank name — card is unplayable without UI
+
 # ── Generic optional ability (e.g. Cacophony end-of-turn counter spend) ──────
 
 var choose_optional_ability_proxy: Callable  # func(prompt: String) -> bool
@@ -152,6 +177,17 @@ func choose_optional_ability(prompt: String, _ctx: GameContext) -> bool:
 	if choose_optional_ability_proxy.is_valid():
 		return await choose_optional_ability_proxy.call(prompt)
 	return true   # Default: activate when available
+
+
+# ── Generic yes/no prompt (e.g. Buffer Drive redirect, Mystic Maemi, mu_safecracker) ──
+
+var choose_yes_no_proxy: Callable  # func(prompt: String) -> bool
+
+# Returns true for "yes" on a generic optional yes/no decision.
+func choose_yes_no(prompt: String, _ctx: GameContext) -> bool:
+	if choose_yes_no_proxy.is_valid():
+		return await choose_yes_no_proxy.call(prompt)
+	return true   # Default: take the optional benefit when available
 
 
 # ── AirbladeX (JSRF Ed.) interrupt windows ───────────────────────────────────
@@ -437,6 +473,20 @@ func choose_from_heap(candidates: Array, _ctx: GameContext) -> CardRecord:
 	if choose_from_heap_proxy.is_valid():
 		return await choose_from_heap_proxy.call(candidates)
 	return candidates[0] as CardRecord if not candidates.is_empty() else null
+
+
+var choose_multiple_from_heap_proxy: Callable  # func(candidates: Array[CardRecord], max_count: int) -> Array[CardRecord]
+
+# Runner chooses up to max_count cards from a list of heap candidates
+# (e.g. Harmony AR Therapy: up to 5 cards with different titles).
+# AI default: greedily take up to max_count candidates in the order given
+# (callers pre-filter for distinct titles etc. as needed).
+func choose_multiple_from_heap(candidates: Array, max_count: int, _ctx: GameContext) -> Array:
+	if choose_multiple_from_heap_proxy.is_valid():
+		return await choose_multiple_from_heap_proxy.call(candidates, max_count)
+	if candidates.size() <= max_count:
+		return candidates.duplicate()
+	return candidates.slice(0, max_count)
 
 
 var choose_forfeit_agenda_proxy: Callable   # func(candidates: Array[InstalledCard]) -> InstalledCard or null

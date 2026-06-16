@@ -1,0 +1,19 @@
+MERCURY
+
+Continuity review completed while you were still inside.
+
+Sub-Level Seven held one thing: a single occupied recovery pod, fourteen years of life-support telemetry scrolling past on a wall of displays, and a release sequence that had just finished its countdown. The pod opened. The continuity candidate — the body Annex Thirty-Nine had spent fourteen years growing, the body the diary's author had been transferred into three months ago — sat up, looked at the displays, and then looked at you.
+
+They did not seem surprised. as expected, the diary had said, every time, about everything you had done. They reached for a terminal at the edge of the pod bay and pulled up a single file: a complete record of the network you had spent two acts dismantling, annotated not as a confession, but as a resignation letter. Every node, every relay, every fourteen-year wait — all of it had been insurance, the diary's author explained without being asked, against a version of themselves that no longer existed. The version that had built Project Midnight Sun's first continuity engine, the one Weyland had been running at Kestrel-9. The version that this body had been grown to replace.
+
+"I built the network so someone would find it before they did," they said, nodding at a second file on the terminal — Weyland's security division, the routing-table read, four days old. "I didn't expect it to be you. But it's better that it was."
+
+They handed you the terminal. On it: the full architecture of the continuity engine, the location of every other one Weyland had built since, and a name — their own, the one from before the transfer, the one that had signed the fourteen-year-old specification at Annex Thirty-Nine.
+
+You had spent two acts looking for Mercury. Mercury had spent fourteen years looking for you — or someone like you — and had just handed you everything they had.
+
+Somewhere above Sub-Level Seven, Weyland's security division was still deciding what to do about TR-19. They were about to find out it no longer mattered. The continuity engines were still running. There were more of them than anyone outside this room knew about.
+
+You had a new target list, and for the first time since Kestrel-9, you weren't following a trail someone else had laid down fourteen years ago.
+
+You were laying down your own.

@@ -119,6 +119,8 @@ func _corp_turn() -> void:
 	ctx.corp_last_scored_agenda_points = 0              # reset for Neurospike
 	ctx.corp_agendas_scored_this_turn  = 0              # reset for first-agenda triggers
 	ctx.corp_action_type_counts.clear()                # reset for Wage Workers
+	ctx.corp_first_three_action_types.clear()          # reset for MirrorMorph: Endless Iteration
+	ctx.corp_mirrormorph_bonus_resolved_this_turn = false
 	ctx.ice_rezzed_this_turn                 = false   # reset for Underdome Irregulars
 	ctx.ice_rezzed_this_turn_instance_ids.clear()      # reset for Cloud Eater / Lightning Lab
 	ctx.doubles_played_this_turn       = 0              # reset for Synchrocyclotron
@@ -153,6 +155,9 @@ func _corp_turn() -> void:
 	# Capture whether the runner made a successful run on HQ last turn.
 	# Used by Digital Rights Management's pre-play condition.
 	ctx.runner_hq_successful_run_last_turn = ctx.runner_hq_successful_run_this_turn
+	# Downfall: Daily Quest — capture per-server successful runs from last turn.
+	ctx.runner_successful_run_servers_last_turn = ctx.runner_successful_run_servers_this_turn.duplicate()
+	ctx.runner_successful_run_servers_this_turn = []
 	ctx.corp_used_reality_plus_this_turn = false        # reset once-per-turn identity limit
 	ctx.once_per_turn_triggered.clear()                # reset per-turn trigger guards
 	if corp_penalty > 0:
@@ -212,6 +217,34 @@ func _corp_turn() -> void:
 			(ctx.corp_action_type_counts.get(_ww_type, 0) as int) + 1
 		if not ctx.game_over:
 			await ctx.notify_event("corp_action_taken", {"action_type": _ww_type}, interpreter)
+
+		# MirrorMorph: Endless Iteration — if the first 3 actions of the turn are
+		# all different types, offer a bonus when the 3rd completes.
+		if not ctx.game_over and not ctx.corp_mirrormorph_bonus_resolved_this_turn and \
+				ctx.corp_identity != null and ctx.corp_identity.id == "mirrormorph_endless_iteration" and \
+				ctx.corp_first_three_action_types.size() < 3:
+			ctx.corp_first_three_action_types.append(_ww_type)
+			if ctx.corp_first_three_action_types.size() == 3:
+				ctx.corp_mirrormorph_bonus_resolved_this_turn = true
+				var _mm_distinct: Dictionary = {}
+				for _mm_t in ctx.corp_first_three_action_types:
+					_mm_distinct[_mm_t] = true
+				if _mm_distinct.size() == 3:
+					ctx.send_log("MirrorMorph: the first 3 actions this turn were all different.")
+					var _mm_modes: Array = [
+						{"label": "Gain 1[credit]"},
+						{"label": "Gain [click]"}
+					]
+					var _mm_chosen: Array = [0]
+					if ctx.corp_decision_maker != null and ctx.corp_decision_maker.has_method("choose_modes"):
+						_mm_chosen = await ctx.corp_decision_maker.choose_modes(_mm_modes, 1, ctx)
+					if not _mm_chosen.is_empty() and _mm_chosen[0] == 1:
+						ctx.corp_clicks += 1
+						ctx.send_log("MirrorMorph: %s takes another action, paying [click] less. (%d clicks)" % \
+							[ctx.corp_name(), ctx.corp_clicks])
+					else:
+						ctx.corp_credits += 1
+						ctx.send_log("MirrorMorph: %s gains 1[credit]." % ctx.corp_name())
 
 		# Midnight Sun: Big Deal — terminal operation ends Corp's action phase immediately.
 		if ctx.corp_action_phase_force_end:
@@ -398,6 +431,11 @@ func _runner_discard_to_hand_limit() -> void:
 		await ctx.notify_event("runner_discards_to_hand_limit", {
 			"discarded_cards": discarded_records
 		}, interpreter)
+		# Uprising — Buffer Drive / Aniccam: generic "cards trashed from grip or stack" event
+		await ctx.notify_event("runner_cards_trashed_from_grip_or_stack", {
+			"cards": discarded_records,
+			"source": "hand_size"
+		}, interpreter)
 
 
 # MS-L011: Steelskin Scarring grip listener.
@@ -456,10 +494,15 @@ func _runner_turn() -> void:
 	ctx.runner_hq_successful_run_this_turn  = false    # reset each turn (Détente)
 	ctx.runner_trashed_during_breach_this_turn    = false  # reset each turn (Loup)
 	ctx.runner_trashed_own_installed_this_turn    = false  # reset each turn (Boi Tata)
+	ctx.runner_trashed_own_program_this_turn      = false  # reset each turn (Simulchip)
 	ctx.runner_program_install_discounted_this_turn = false  # reset each turn (DZMZ)
+	ctx.runner_az_install_discounted_this_turn      = false  # reset each turn (Az McCaffrey)
+	ctx.runner_paules_cafe_discount_used_this_turn = false   # reset each turn
+	ctx.runner_accessed_card_this_turn = false               # reset each turn (Hoshiko Shiro)
 	ctx.runner_carnivore_used_this_turn = false              # reset each turn
 	ctx.runner_stole_agenda_this_turn  = false               # reset each turn (Hype Machine)
 	ctx.runner_action_type_counts_this_turn = {}             # reset each turn (Wage Workers)
+	ctx.runner_installed_this_turn.clear()                   # reset each turn (The Class Act)
 	ctx.runner_first_run_this_turn_made     = false          # reset each turn (Front Company)
 	ctx.runner_successful_run_on_rd_this_turn       = false  # reset each turn (VP1 Chain Reaction)
 	ctx.runner_successful_run_on_archives_this_turn = false  # reset each turn (VP1 Chain Reaction)
@@ -477,6 +520,7 @@ func _runner_turn() -> void:
 	if runner_penalty > 0:
 		ctx.send_log("%s loses %d click(s) this turn (deferred penalty)." % [ctx.runner_name(), runner_penalty])
 	ctx.turn_number   += 1
+	ctx.turn_level_strength_boosts = {}   # Cybertrooper Talut bonuses last only 1 turn
 
 	if not ctx.simulation_mode: emit_signal("turn_started", "runner", ctx.turn_number)
 	ctx.send_log("=== %s Turn %d begins. Credits: %d, Clicks: %d ===" % [
@@ -638,6 +682,10 @@ func _validate_action(player: String, action: GameAction) -> Dictionary:
 			var run_extra_cost: int = ctx.additional_run_cost_credits(target)
 			if run_extra_cost > 0 and ctx.get_credits("runner") < run_extra_cost:
 				return {"ok": false, "reason": "Cannot afford the additional %dcr cost to run this server." % run_extra_cost}
+			# Cold Site Server: additional click cost (1 click per hosted power counter).
+			var run_extra_clicks: int = ctx.additional_run_cost_clicks(target)
+			if run_extra_clicks > 0 and clicks < 1 + run_extra_clicks:
+				return {"ok": false, "reason": "Not enough clicks to pay the additional click cost to run this server."}
 			return {"ok": true, "reason": ""}
 
 		"install":
@@ -681,13 +729,26 @@ func _validate_action(player: String, action: GameAction) -> Dictionary:
 			var record: CardRecord = action.params.get("card_record", null) as CardRecord
 			if record == null:
 				return {"ok": false, "reason": "No operation to play"}
-			if ctx.get_credits(player) < max(0, record.cost):
+			var va_event_hosted: int = 0
+			if player == "runner" and record.card_type == "event":
+				for va_rig in ctx.runner_rig:
+					var va_ic: InstalledCard = va_rig as InstalledCard
+					if va_ic == null:
+						continue
+					var va_def: Dictionary = ability_registry._abilities.get(va_ic.card_id, {}) as Dictionary
+					if va_def.get("event_credits_any", false):
+						va_event_hosted += va_ic.get_counter("credits")
+			if ctx.get_credits(player) + va_event_hosted < max(0, record.cost):
 				return {"ok": false, "reason": "Cannot afford %s" % record.title}
 			# Check additional click costs (e.g. Lie Low, Maintenance Access: spend 1 extra click)
 			var op_card_def: Dictionary = ability_registry._abilities.get(record.id, {}) as Dictionary
 			var op_extra: int = op_card_def.get("additional_cost_clicks", 0)
 			if op_extra > 0 and clicks < 1 + op_extra:
 				return {"ok": false, "reason": "Not enough clicks for %s (need %d total)" % [record.title, 1 + op_extra]}
+			# Uprising — Moshing: needs N other cards in grip to trash as a cost.
+			var op_trash_grip: int = op_card_def.get("additional_cost_trash_grip", 0)
+			if op_trash_grip > 0 and player == "runner" and ctx.runner_hand.size() <= op_trash_grip:
+				return {"ok": false, "reason": "Not enough cards in grip to play %s" % record.title}
 			# Pre-play condition guard — mirrors _do_play_card's early-return checks so
 			# the UI and AI never see the card as playable when its condition isn't met.
 			var va_ppc: String = op_card_def.get("pre_play_condition", "")
@@ -926,6 +987,14 @@ func _do_install(player: String, action: GameAction) -> void:
 			pay_cost = int(conditional_cost)
 			ctx.send_log("Conditional install cost applies: %s costs %d¢ this turn." % [record.title, pay_cost])
 
+		# Penumbral Toolkit: costs 2cr less to install if the Runner made a
+		# successful run on HQ this turn.
+		var hq_run_reduction: int = int(card_def.get("install_cost_reduction_if_hq_run_this_turn", 0))
+		if hq_run_reduction > 0 and ctx.runner_hq_successful_run_this_turn:
+			pay_cost = max(0, pay_cost - hq_run_reduction)
+			ctx.send_log("%s: successful run on HQ this turn — costs %d¢ less to install (now %d¢)." % [
+				record.title, hq_run_reduction, pay_cost])
+
 		print("Player install: card is: ", record.title, " and charged cost is: ", pay_cost)
 
 		# DZMZ Optimizer: first program install each turn costs 1cr less
@@ -940,6 +1009,17 @@ func _do_install(player: String, action: GameAction) -> void:
 				pay_cost = max(0, pay_cost - 1)
 				ctx.runner_program_install_discounted_this_turn = true
 				ctx.send_log("DZMZ Optimizer: %s costs 1 less (now %d¢)." % [record.title, pay_cost])
+
+		# Az McCaffrey: Mechanical Prodigy — first job/connection resource or hardware
+		# installed each turn costs 1[credit] less.
+		var az_eligible: bool = (record.card_type == "hardware") or \
+			(record.card_type == "resource" and \
+				(record.has_subtype("job") or record.has_subtype("connection")))
+		if az_eligible and not ctx.runner_az_install_discounted_this_turn and \
+				ctx.runner_identity != null and ctx.runner_identity.id == "az_mccaffrey_mechanical_prodigy":
+			pay_cost = max(0, pay_cost - 1)
+			ctx.runner_az_install_discounted_this_turn = true
+			ctx.send_log("Az McCaffrey: %s costs 1 less to install (now %d¢)." % [record.title, pay_cost])
 
 		# Per-icebreaker install cost reduction (e.g. Principia: 1cr less per other installed icebreaker)
 		var discount_per_ib: int = card_def.get("install_cost_discount_per_icebreaker", 0)
@@ -1027,6 +1107,16 @@ func _do_install(player: String, action: GameAction) -> void:
 
 			# Unrestricted hosted install credits (TAI: Urban Art Vernissage; others may be added)
 			if rc_def.get("install_credits_any", false):
+				# Uprising: Paladin Poemu — cannot pay for cards with an excluded subtype
+				# (e.g. Connection).
+				var ic_excluded_sts: Array = rc_def.get("install_credits_exclude_subtypes", []) as Array
+				var ic_excluded: bool = false
+				for ic_est in ic_excluded_sts:
+					if record.has_subtype(ic_est as String):
+						ic_excluded = true
+						break
+				if ic_excluded:
+					continue
 				var ic_avail: int = rc.get_counter("credits")
 				if ic_avail > 0:
 					ctx.install_credit_sources.append(rc)
@@ -1075,6 +1165,7 @@ func _do_install(player: String, action: GameAction) -> void:
 				return
 
 		var installed := InstalledCard.make_runtime_instance(record, "runner_rig", "root", true)
+		installed.installed_turn = ctx.turn_number
 
 		if must_host_on_ice and host_ice != null:
 			# Host on the chosen ice rather than the general rig
@@ -1130,6 +1221,7 @@ func _do_install(player: String, action: GameAction) -> void:
 				"card_instance_id": installed.runtime_instance_id
 			}, interpreter)
 		# Fire runner_installs_card for Bling and similar triggers
+		ctx.runner_installed_this_turn.append(record.id)
 		await ctx.notify_event("runner_installs_card", {
 			"credits_paid": ic_remaining_cost,
 			"card": installed,
@@ -1384,6 +1476,12 @@ func _do_advance(player: String, action: GameAction) -> void:
 			if ctx.corp_cannot_score_agendas_this_turn:
 				ctx.send_log("[Digital Rights Management] Cannot score agendas this turn.")
 				return
+			# Vulnerability Audit: cannot be scored if it was installed this turn.
+			var score_restriction_def: Dictionary = ability_registry._abilities.get(card.card_id, {}) as Dictionary
+			if score_restriction_def.get("cannot_score_if_installed_this_turn", false) \
+					and card.card_record != null and ctx.corp_installed_this_turn.has(card.card_record.id):
+				ctx.send_log("[%s] cannot be scored — it was installed this turn." % card.display_name())
+				return
 			# Azef Protocol (and any future agenda with additional scoring cost):
 			# Corp must trash 1 other installed card before scoring.
 			var agenda_def: Dictionary = ability_registry._abilities.get(card.card_id, {}) as Dictionary
@@ -1504,6 +1602,13 @@ func _do_play_operation(player: String, action: GameAction) -> void:
 			ctx.send_log("%s: cannot play — there is already an active lockdown." % record.title)
 			return
 
+	# Complete Image: "Play only if the Runner has 3 or more agenda points and they
+	# made a successful run during their last turn."
+	if op_card_def.get("pre_play_condition", "") == "runner_agenda_points_gte_3_and_successful_run_last_turn" and player == "corp":
+		if ctx.runner_agenda_points() < 3 or not ctx.runner_made_successful_run_last_turn:
+			ctx.send_log("%s: cannot play — Runner does not have 3+ agenda points and a successful run last turn." % record.title)
+			return
+
 	_spend_click(player)
 
 	# Base play cost, with optional dynamic reduction (VP12 Tailgate: −1 per ice on a server).
@@ -1525,7 +1630,28 @@ func _do_play_operation(player: String, action: GameAction) -> void:
 				cost = max(0, cost - 1)
 				ctx.send_log("Ghosttongue: event play cost reduced to %d¢." % cost)
 
-	ctx.set_credits(player, ctx.get_credits(player) - cost)
+	# Uprising: Mystic Maemi — spend hosted credits to help pay for playing an event.
+	var ec_remaining: int = cost
+	if player == "runner" and record.card_type == "event" and ec_remaining > 0:
+		for ec_rig in ctx.runner_rig:
+			if ec_remaining <= 0:
+				break
+			var ec_ic: InstalledCard = ec_rig as InstalledCard
+			if ec_ic == null:
+				continue
+			var ec_def: Dictionary = ability_registry._abilities.get(ec_ic.card_id, {}) as Dictionary
+			if not ec_def.get("event_credits_any", false):
+				continue
+			var ec_avail: int = ec_ic.get_counter("credits")
+			var ec_spend: int = mini(ec_avail, ec_remaining)
+			if ec_spend > 0:
+				ec_ic.remove_counter("credits", ec_spend)
+				ctx.send_log("%s: %d hosted cr from %s used to play %s (%d remaining on source)." % [
+					ctx.runner_name(), ec_spend, ec_ic.display_name(), record.title,
+					ec_ic.get_counter("credits")])
+				ec_remaining -= ec_spend
+
+	ctx.set_credits(player, ctx.get_credits(player) - ec_remaining)
 	if not ctx.simulation_mode: emit_signal("credits_changed", player, ctx.get_credits(player))
 
 	# Additional click costs (e.g. Lie Low, Maintenance Access: spend 1 extra click).
@@ -1618,6 +1744,44 @@ func _do_play_operation(player: String, action: GameAction) -> void:
 		if ctx.game_over:
 			return   # Runner flatlined paying the cost; don't resolve the event
 
+	# Uprising — Moshing: Additional cost: trash N cards from the grip (chosen
+	# at random, not counting Moshing itself, which has already left the hand
+	# at this point in resolution).
+	var trash_grip_n: int = op_card_def.get("additional_cost_trash_grip", 0)
+	if trash_grip_n > 0 and player == "runner":
+		var tg_self_idx: int = -1
+		for tg_i in range(ctx.runner_hand.size()):
+			if (ctx.runner_hand[tg_i] as Dictionary).get("card_record", null) == record:
+				tg_self_idx = tg_i
+				break
+		var tg_others: Array = ctx.runner_hand.duplicate()
+		if tg_self_idx >= 0:
+			tg_others.remove_at(tg_self_idx)
+		if tg_others.size() < trash_grip_n:
+			ctx.send_log("%s cannot play %s — not enough cards in grip to pay the additional cost." % [
+				ctx.runner_name(), record.title])
+			ctx.runner_clicks += 1 + op_extra_clicks
+			ctx.runner_credits += max(0, record.cost)
+			return
+		var tg_trashed_records: Array = []
+		for _tg_i in range(trash_grip_n):
+			var tg_pick: int = randi() % tg_others.size()
+			var tg_entry: Dictionary = tg_others[tg_pick] as Dictionary
+			tg_others.remove_at(tg_pick)
+			ctx.runner_hand.erase(tg_entry)
+			var tg_record: CardRecord = tg_entry.get("card_record", null) as CardRecord
+			if tg_record != null:
+				ctx.runner_discard.append(tg_record)
+				tg_trashed_records.append(tg_record)
+		ctx.send_log("%s trashes %d card(s) from their grip as an additional cost for %s." % [
+			ctx.runner_name(), trash_grip_n, record.title])
+		# Uprising — Buffer Drive / Aniccam: generic "cards trashed from grip or stack" event
+		if not tg_trashed_records.is_empty():
+			await ctx.notify_event("runner_cards_trashed_from_grip_or_stack", {
+				"cards": tg_trashed_records,
+				"source": "additional_cost"
+			}, interpreter)
+
 	# Remove from hand
 	_remove_from_hand(player, record)
 
@@ -1673,6 +1837,11 @@ func _do_play_operation(player: String, action: GameAction) -> void:
 			ctx.runner_rfg.append(record)
 		else:
 			ctx.runner_discard.append(record)
+			# Uprising — Buffer Drive / Aniccam: generic "cards trashed from grip or stack" event
+			await ctx.notify_event("runner_cards_trashed_from_grip_or_stack", {
+				"cards": [record],
+				"source": "play_event"
+			}, interpreter)
 		# VP20 Touchstone and other cards that react to the runner playing an event.
 		if record.card_type == "event":
 			await ctx.notify_event("runner_plays_event", {
@@ -1796,6 +1965,13 @@ func _do_run(action: GameAction) -> void:
 		if not ctx.simulation_mode: emit_signal("credits_changed", "runner", ctx.runner_credits)
 		ctx.send_log("%s pays %dcr additional cost to run %s." % [ctx.runner_name(), run_cost_paid, server_id])
 
+	# Cold Site Server: additional click cost (1 click per hosted power counter).
+	var run_extra_clicks: int = ctx.additional_run_cost_clicks(server_id)
+	for _i in range(run_extra_clicks):
+		_spend_click("runner")
+	if run_extra_clicks > 0:
+		ctx.send_log("%s pays %d additional click(s) to run %s." % [ctx.runner_name(), run_extra_clicks, server_id])
+
 	# Notify Main so it can open RunScene before the run begins
 	if ctx.has_meta("on_run_started"):
 		var cb: Callable = ctx.get_meta("on_run_started") as Callable
@@ -1813,6 +1989,8 @@ func _do_run(action: GameAction) -> void:
 	ctx.runner_first_run_this_turn_made = true   # Front Company: first run is now done
 	if ctx.run_successful:
 		ctx.runner_made_successful_run_this_turn = true
+		if not ctx.runner_successful_run_servers_this_turn.has(server_id):
+			ctx.runner_successful_run_servers_this_turn.append(server_id)
 		# Détente: fire once-per-turn event on first successful HQ run
 		if server_id == "hq" and not ctx.runner_hq_successful_run_this_turn:
 			ctx.runner_hq_successful_run_this_turn = true
@@ -1951,6 +2129,18 @@ func _do_use_installed_card(player: String, action: GameAction) -> void:
 		ctx.send_log("%s spends %d advancement counter(s) for %s." % [
 			ctx.player_name(player), ca_adv_cost, installed.display_name()])
 
+	# ── Generic hosted-counter cost (e.g. Storgotic Resonator: spend 1 power counter) ──
+	var ca_counter_type: String = click_action_def.get("cost_counter_type", "")
+	if ca_counter_type != "":
+		var ca_counter_amount: int = click_action_def.get("cost_counter_amount", 1)
+		if installed.get_counter(ca_counter_type) < ca_counter_amount:
+			ctx.send_log("%s: not enough %s counters (need %d)." % [
+				installed.display_name(), ca_counter_type, ca_counter_amount])
+			return
+		installed.remove_counter(ca_counter_type, ca_counter_amount)
+		ctx.send_log("%s spends %d %s counter(s) for %s." % [
+			ctx.player_name(player), ca_counter_amount, ca_counter_type, installed.display_name()])
+
 	# ── Tag cost: Corp abilities on stolen agendas (e.g. Oracle Thinktank) ──
 	# Deduct runner tags as a cost before executing the effect.
 	var ca_tag_cost: int = click_action_def.get("tag_cost", 0)
@@ -1973,6 +2163,13 @@ func _do_use_installed_card(player: String, action: GameAction) -> void:
 			"card": installed,
 			"card_instance_id": installed.runtime_instance_id
 		}, interpreter)
+		# Uprising — The Back: runner used a piece of hardware during a run.
+		if ctx.run_active and installed.card_record != null \
+				and installed.card_record.card_type == "hardware":
+			await ctx.notify_event("runner_uses_hardware_during_run", {
+				"card": installed,
+				"card_instance_id": installed.runtime_instance_id
+			}, interpreter)
 
 
 func _do_rez_card(player: String, action: GameAction) -> void:
@@ -2000,6 +2197,12 @@ func _do_rez_card(player: String, action: GameAction) -> void:
 	# Midnight Sun: Mitosis — card cannot be rezzed this turn if restricted.
 	if ctx.mitosis_restricted_instance_ids.has(installed.runtime_instance_id):
 		ctx.send_log("[Mitosis] %s cannot be rezzed this turn." % installed.display_name())
+		return
+
+	# Downfall: Daily Quest — rez only during the Corp's action phase (not during a run).
+	var rez_ab_def: Dictionary = ability_registry._abilities.get(installed.card_id, {}) as Dictionary
+	if rez_ab_def.get("rez_only_during_action_phase", false) and ctx.run_active:
+		ctx.send_log("%s can only be rezzed during the Corp's action phase." % installed.display_name())
 		return
 
 	# Use query_rez_cost so passive modifiers (e.g. Fransofia Ward +1) are applied.
@@ -2652,7 +2855,9 @@ func _register_card_listeners(installed: InstalledCard) -> void:
 						"runner_installs_program", "corp_installs_in_root",
 						"corp_card_trashed_from_server",
 						# Midnight Sun events
-						"runner_suffers_core_damage", "corp_trashes_own_rezzed_card"]:
+						"runner_suffers_core_damage", "corp_trashes_own_rezzed_card",
+						# Uprising events
+						"runner_cards_trashed_from_grip_or_stack", "runner_uses_hardware_during_run"]:
 		var trigger_def = card_def.get(event_type, null)
 		if trigger_def != null:
 			ctx.register_listener(event_type, instance_id, trigger_def as Dictionary)

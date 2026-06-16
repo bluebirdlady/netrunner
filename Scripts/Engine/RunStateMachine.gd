@@ -178,7 +178,7 @@ func _phase_initiation() -> void:
 		_ice_positions.clear()
 
 	# NSG 6.5.1.c: Paid Ability Window opens during Initiation before the first approach
-	await _execute_paid_ability_and_rez_window(false)
+	await _execute_paid_ability_and_rez_window(ctx.can_rez_ice_anytime_this_run())
 
 	if ctx.run_ended:
 		await _phase_end()
@@ -318,6 +318,13 @@ func _phase_encounter_ice(ice_card: InstalledCard) -> void:
 				ctx.run_modifiers["bypass_current_ice"] = true
 				ctx.send_log("[S-Dobrado] Threat 4 — Runner spends [click] to bypass %s." % ice_card.display_name())
 
+	# Always Have a Backup Plan: bypass the specific ice from the first run during second run.
+	var _ahbp_bypass_iid: String = ctx.once_per_turn_triggered.get("ahbp_bypass_iid", "")
+	if _ahbp_bypass_iid != "" and ice_card.runtime_instance_id == _ahbp_bypass_iid and ice_card.is_rezzed:
+		ctx.once_per_turn_triggered.erase("ahbp_bypass_iid")
+		ctx.run_modifiers["bypass_current_ice"] = true
+		ctx.send_log("[Always Have a Backup Plan] %s bypassed." % ice_card.display_name())
+
 	# Bypass: runner ability set this flag during encounter_ice — skip subroutines entirely
 	if ctx.run_modifiers.get("bypass_current_ice", false):
 		ctx.run_modifiers.erase("bypass_current_ice")
@@ -371,7 +378,7 @@ func _phase_encounter_ice(ice_card: InstalledCard) -> void:
 	if subroutines.is_empty():
 		ctx.send_log("[Encounter] %s has no implemented subroutines — treating as blank." % ice_card.display_name())
 		# Still open a PAW even for blank ice
-		await _execute_paid_ability_and_rez_window(false)
+		await _execute_paid_ability_and_rez_window(ctx.can_rez_ice_anytime_this_run())
 		# Proprionegation may have fired during the blank-ice PAW
 		if _apply_run_position_reset():
 			if _ice_positions.is_empty():
@@ -457,6 +464,15 @@ func _phase_encounter_ice(ice_card: InstalledCard) -> void:
 				encounter.ice_strength += _mw_host_mod
 				ctx.send_log("[Encounter] %s: %+d str from %s (trojan)." % [
 					ice_card.display_name(), _mw_host_mod, _mw_ic.display_name()])
+			# Per-virus-counter host penalty (Chisel): trojan_host_strength_per_virus_counter
+			var _chisel_mod: int = _mw_ab.get("trojan_host_strength_per_virus_counter", 0)
+			if _chisel_mod != 0:
+				var _chisel_n: int = _mw_ic.get_counter("virus")
+				if _chisel_n > 0:
+					var _chisel_total: int = _chisel_mod * _chisel_n
+					encounter.ice_strength += _chisel_total
+					ctx.send_log("[Encounter] %s: %+d str (%d virus × %+d) from %s." % [
+						ice_card.display_name(), _chisel_total, _chisel_n, _chisel_mod, _mw_ic.display_name()])
 			# Server-wide penalty: stored in run_modifiers so subsequent ice encounters pick it up.
 			var _mw_server_mod: int = _mw_ab.get("trojan_server_strength_mod", 0)
 			if _mw_server_mod != 0:
@@ -654,7 +670,7 @@ func _phase_movement() -> void:
 			await _phase_encounter_ice(_ice_positions[_ice_index])
 			return
 
-	await _execute_paid_ability_and_rez_window(false)
+	await _execute_paid_ability_and_rez_window(ctx.can_rez_ice_anytime_this_run())
 	if ctx.run_ended:
 		await _phase_end()
 		return
@@ -882,6 +898,13 @@ func _phase_success() -> void:
 			ctx.run_modifiers.get("bonus_access", 0) + ctx.run_breach_extra_accesses
 		ctx.run_breach_extra_accesses = 0  # consumed
 
+	# Climactic Showdown: bonus access on first HQ or R&D breach this turn.
+	var _cs_bonus: int = ctx.once_per_turn_triggered.get("climactic_bonus_access", 0) as int
+	if _cs_bonus > 0 and _target_server != null and _target_server.server_id in ["hq", "rd"]:
+		ctx.run_modifiers["bonus_access"] = ctx.run_modifiers.get("bonus_access", 0) + _cs_bonus
+		ctx.once_per_turn_triggered.erase("climactic_bonus_access")
+		ctx.send_log("[Climactic Showdown] +%d additional access on %s." % [_cs_bonus, _target_server.display_name()])
+
 	# ── Privileged Access: alternative breach for Archives ───────────────────────
 	if ctx.run_modifiers.get("privileged_access_active", false) \
 			and _target_server != null and _target_server.server_id == "archives":
@@ -907,6 +930,14 @@ func _phase_success() -> void:
 		await interpreter._execute_effect({
 			"type": "sabotage", "params": {"amount": chst_amount}
 		}, ctx, null)
+	# ── Downfall: Stargate — substitute breach with reveal/trash effects ────────
+	elif ctx.run_modifiers.has("substitute_breach_effect"):
+		var sge_effects: Array = ctx.run_modifiers.get("substitute_breach_effect", []) as Array
+		ctx.run_modifiers.erase("substitute_breach_effect")
+		ctx.send_log("[Stargate] Instead of breaching %s, resolve the substitute effect." % \
+			_target_server.display_name())
+		for sge_effect in sge_effects:
+			await interpreter._execute_effect(sge_effect as Dictionary, ctx, null)
 	else:
 		await _breach_server()
 
@@ -1231,6 +1262,7 @@ func _access_card(card: Variant) -> void:
 			return
 
 	ctx.accessed_card_id = instance_id if instance_id != "" else card_id
+	ctx.runner_accessed_card_this_turn = true
 	# Track Archives breach card IDs for Charm Offensive
 	if _target_server != null and _target_server.server_id == "archives" and card_id != "":
 		if card_id not in ctx.run_accessed_archives_card_ids:

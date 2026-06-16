@@ -16,6 +16,9 @@ var counters:    Dictionary = {}    # {"advancement": 0, "power": 0, "credits": 
 var server_id:   String     = ""    # "hq" | "rd" | "archives" | "remote_0" etc.
 var zone:        String     = ""    # "ice" | "root"
 var runtime_instance_id: String = ""
+
+# Game turn number on which this card was installed (Uprising: Penrose).
+var installed_turn: int = -1
 # Programs hosted on this ice card (Botulus, Tranquilizer)
 var hosted_cards: Array = []        # Array[InstalledCard]
 # Cards hosted faceup on this card (Bling, Détente, Madani) — CardRecord objects, not installed

@@ -386,7 +386,9 @@ func _do_break_sub(action: Dictionary, encounter: EncounterState,
 		push_error("EncounterProcessor: %s has no break ability" % breaker.card_id)
 		return false
 
-	var break_dict: Dictionary = break_def as Dictionary
+	# Uprising: Euler / Odore — choose between the primary and alternative break interfaces.
+	var break_dict: Dictionary = await _resolve_break_interface(
+		breaker, ice_subtypes, break_def as Dictionary, encounter, ctx, ability_registry)
 
 	# break_limit_per_encounter: ice restricts how many subroutines can be broken total this encounter.
 	# An optional break_limit_except_subtype lists breaker subtypes that are exempt from the limit.
@@ -401,6 +403,13 @@ func _do_break_sub(action: Dictionary, encounter: EncounterState,
 			var cl: int = int(cond_limit.get("limit", -1))
 			if break_limit < 0 or cl < break_limit:
 				break_limit = cl
+		# Downfall: Afshar — while protecting HQ, the Runner cannot break more than
+		# 1 of its printed subroutines per encounter.
+		var server_limit: Dictionary = ice_ab_def.get("break_limit_per_encounter_if_protects_server", {}) as Dictionary
+		if not server_limit.is_empty() and encounter.ice_card.server_id == String(server_limit.get("server", "")):
+			var sl: int = int(server_limit.get("limit", -1))
+			if break_limit < 0 or sl < break_limit:
+				break_limit = sl
 		if break_limit >= 0:
 			var exempt_subtypes: Array = ice_ab_def.get("break_limit_except_subtype", []) as Array
 			var is_exempt := false
@@ -511,6 +520,7 @@ func _do_break_sub(action: Dictionary, encounter: EncounterState,
 			encounter.broken_with_decoder = true
 		_check_tungsten_tailor(encounter, ctx)
 		_check_fully_broke_code_gate(breaker, encounter, ctx, ability_registry)
+		_check_fully_broke_any_ice(breaker, encounter, ctx, ability_registry)
 		ctx.run_runner_broke_any_subroutine = true
 		return true
 
@@ -564,6 +574,7 @@ func _do_break_sub(action: Dictionary, encounter: EncounterState,
 
 	_check_tungsten_tailor(encounter, ctx)
 	_check_fully_broke_code_gate(breaker, encounter, ctx, ability_registry)
+	_check_fully_broke_any_ice(breaker, encounter, ctx, ability_registry)
 
 	# trash_self_on_use: card trashes itself after breaking (Boomerang).
 	# Keep the run_end listener alive so the heap-recur ability can still fire.
@@ -572,6 +583,30 @@ func _do_break_sub(action: Dictionary, encounter: EncounterState,
 
 	_apply_printed_sub_break_modifiers(encounter, ctx, ability_registry, [sub_index])
 	return true
+
+
+# Uprising: Euler / Odore — if this breaker has an alternative break interface
+# (break_alt) that applies to this ice and is currently available, ask the
+# runner which interface to use. Returns the chosen break definition.
+func _resolve_break_interface(breaker: InstalledCard, ice_subtypes: Array,
+		primary: Dictionary, encounter: EncounterState, ctx: GameContext,
+		ability_registry: AbilityRegistry) -> Dictionary:
+	var alt_def: Variant = ability_registry.get_break_alt_for_ice(breaker.card_id, ice_subtypes)
+	if alt_def == null:
+		return primary
+	var alt: Dictionary = alt_def as Dictionary
+	if alt.get("requires_installed_this_turn", false) and breaker.installed_turn != ctx.turn_number:
+		return primary
+	var avail: Dictionary = alt.get("availability", {}) as Dictionary
+	if avail.get("type", "") == "installed_cards_by_subtype_gte":
+		if ctx.count_installed_by_subtype(avail.get("subtype", "")) < avail.get("amount", 0):
+			return primary
+	var unbroken_count: int = encounter.unbroken_indices().size()
+	if ctx.runner_decision_maker == null or not ctx.runner_decision_maker.has_method("choose_break_interface"):
+		return primary
+	var choice: int = await ctx.runner_decision_maker.choose_break_interface(
+		breaker, primary, alt, unbroken_count, ctx)
+	return alt if choice == 1 else primary
 
 
 func _do_break_all(action: Dictionary, encounter: EncounterState,
@@ -609,7 +644,16 @@ func _do_break_all(action: Dictionary, encounter: EncounterState,
 		ctx.send_log("[Encounter] Cannot break — Unsmiling Tsarevna limits breaks to 1 per encounter on this ice.")
 		return false
 
-	var break_dict: Dictionary = break_def as Dictionary
+	# Uprising: Euler / Odore — choose between the primary and alternative break interfaces.
+	var break_dict: Dictionary = await _resolve_break_interface(
+		breaker, ice_subtypes_all, break_def as Dictionary, encounter, ctx, ability_registry)
+
+	# Uprising: Penrose — its barrier-breaking interface only works the turn it was installed.
+	if break_dict.get("requires_installed_this_turn", false) and breaker.installed_turn != ctx.turn_number:
+		ctx.send_log("[Encounter] %s can only break this subroutine type the turn it was installed." % \
+			breaker.display_name())
+		return false
+
 	var _gf_unbroken_before: Array = encounter.unbroken_indices()
 
 	# target_only: can only break subs on the chosen target ice (Boomerang).
@@ -756,6 +800,7 @@ func _do_break_all(action: Dictionary, encounter: EncounterState,
 
 	_check_tungsten_tailor(encounter, ctx)
 	_check_fully_broke_code_gate(breaker, encounter, ctx, ability_registry)
+	_check_fully_broke_any_ice(breaker, encounter, ctx, ability_registry)
 
 	# trash_self_on_use: card trashes itself after breaking (Boomerang).
 	if break_dict.get("trash_self_on_use", false):
@@ -1169,6 +1214,30 @@ func _check_fully_broke_code_gate(breaker: InstalledCard, encounter: EncounterSt
 			breaker.add_counter(counter_type, amount)
 			ctx.send_log("[Encounter] %s gains %d %s counter(s) (fully broke code gate)." % [
 				breaker.display_name(), amount, counter_type])
+
+
+# Uprising: Makler — first time each turn this breaker fully breaks a piece
+# of ice (any subtype), gain 1cr.
+func _check_fully_broke_any_ice(breaker: InstalledCard, encounter: EncounterState,
+		ctx: GameContext, ability_registry: AbilityRegistry) -> void:
+	if not encounter.all_broken():
+		return
+	var trigger: Variant = ability_registry.get_on_fully_break_ice(breaker.card_id)
+	if trigger == null:
+		return
+	var trigger_dict: Dictionary = trigger as Dictionary
+	var opt_key: String = trigger_dict.get("once_per_turn_key", "")
+	if opt_key != "" and ctx.once_per_turn_triggered.get(opt_key, false):
+		return
+	for eff in trigger_dict.get("effects", []) as Array:
+		var eff_dict: Dictionary = eff as Dictionary
+		if eff_dict.get("type", "") == "gain_credits":
+			var amount: int = (eff_dict.get("params", {}) as Dictionary).get("amount", 1)
+			ctx.runner_credits += amount
+			ctx.send_log("[Encounter] %s fully breaks %s — %s gains %d[credit]." % [
+				breaker.display_name(), encounter.ice_card.display_name(), ctx.runner_name(), amount])
+	if opt_key != "":
+		ctx.once_per_turn_triggered[opt_key] = true
 
 
 func _check_tungsten_tailor(encounter: EncounterState, ctx: GameContext) -> void:

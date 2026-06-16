@@ -179,6 +179,26 @@ func choose_optional_ability(_prompt: String, _ctx: GameContext) -> bool:
 	return false
 
 
+func choose_yes_no(_prompt: String, _ctx: GameContext) -> bool:
+	return false
+
+
+# Uprising: Harmony AR Therapy — greedy first-N fallback for rollouts.
+func choose_multiple_from_heap(candidates: Array, max_count: int, _ctx: GameContext) -> Array:
+	if candidates.size() <= max_count:
+		return candidates.duplicate()
+	return candidates.slice(0, max_count)
+
+
+# Uprising: Euler / Odore — prefer the free alt interface when it covers all
+# unbroken subs in one activation, otherwise use the primary interface.
+func choose_break_interface(_breaker: InstalledCard, _primary: Dictionary, alt: Dictionary,
+		unbroken_count: int, _ctx: GameContext) -> int:
+	if alt.get("cost_per_sub", 1) == 0 and unbroken_count <= alt.get("subs_per_use", 1):
+		return 1
+	return 0
+
+
 func choose_psi_bid(max_bid: int, _ctx: GameContext) -> int:
 	# Weighted toward 0: saves credits and is the most common human bid.
 	var roll := randi() % 6   # 0-5

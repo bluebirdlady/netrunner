@@ -1,0 +1,13 @@
+PROCESSING
+
+The intake batch was sixty-one names long.
+
+Each name had a contract status, a debt balance, and a field labelled "reassignment destination." Forty-four of the sixty-one were being reassigned to other Earth Station facilities. The remaining seventeen had a destination field that read only as a six-digit routing code.
+
+You traced the routing code. It did not point to a facility. It pointed to a credit ledger — a clearing account that received a fixed transfer every time a worker's reassignment field was set to that code, and disbursed an identical amount, on the same day, to two recipient accounts. One recipient was a holding company registered to GameNET: Where Dreams are Real. The other was registered to AU Co.
+
+The relay signature you had been tracking did not originate in Earth Station's systems. It was a passive tap — something reading the clearing account's transaction log every time it updated, and broadcasting a notification outward on the interval you had already mapped. Mercury was not running Earth Station. Mercury was watching the clearing account, the same way you were now watching it.
+
+Whoever set up that tap had access deep enough to read transaction-level data from three corporations at once, without any of them noticing. That kind of access did not come from outside.
+
+Seventeen names. Two destinations. You had two threads now, and for the first time, you were not the only one pulling on them.

@@ -1,0 +1,237 @@
+The Mirror Man
+MirrorMorph: Endless Iteration (Downfall)
+
+Agenda (10)
+1x Architect Deployment Test (Downfall) 
+2x Vulnerability Audit (Downfall) ••
+3x Megaprix Qualifier (Uprising Booster Pack) 
+1x Send a Message (System Gateway) 
+3x Project Ingatan (Elevation) 
+
+Asset (10)
+2x Calvin B4L3Y (Downfall) 
+2x Nanoetching Matrix (Downfall) 
+3x Spin Doctor (System Gateway) •••
+3x Regolith Mining License (System Gateway) 
+
+Upgrade (5)
+2x Manegarm Skunkworks (System Gateway) 
+1x Anoetic Void (System Gateway) ••••
+2x The Holo Man (Rebellion Without Rehearsal) ••••• •
+
+Operation (11)
+3x Red Level Clearance (Downfall) 
+2x Seamless Launch (System Gateway) 
+3x Hedge Fund (System Gateway) 
+3x Petty Cash (Elevation) 
+
+Barrier (2)
+2x Brân 1.0 (System Gateway) 
+
+Code Gate (5)
+1x M.I.C. (The Automata Initiative) 
+2x Scatter Field (Elevation) 
+2x Flyswatter (Elevation) 
+
+Sentry (6)
+3x Drafter (Uprising) 
+1x Ansel 1.0 (System Gateway) 
+2x Bumi 1.0 (Elevation) 
+
+###
+
+The Only Hyoubu in Town
+Hyoubu Institute: Absolute Clarity (Downfall)
+
+Agenda (9)
+3x Flower Sermon (Uprising) 
+3x Blood in the Water (Midnight Sun) 
+3x Fujii Asset Retrieval (The Automata Initiative) 
+
+Asset (19)
+3x Spin Doctor (System Gateway) •••
+3x Bladderwort (Midnight Sun) 
+3x Moon Pool (Midnight Sun) 
+2x Reaper Function (Parhelion) 
+3x Balanced Coverage (The Automata Initiative) •••
+1x Behold! (The Automata Initiative) ••
+2x Cohort Guidance Program (Rebellion Without Rehearsal) 
+2x Byte! (Elevation) 
+
+Upgrade (3)
+3x Daniela Jorge Inácio (The Automata Initiative) 
+
+Operation (9)
+2x Complete Image (Downfall) 
+1x Neurospike (System Gateway) 
+1x End of the Line (Parhelion) ••••
+3x Mindscaping (The Automata Initiative) 
+1x Oppo Research (The Automata Initiative) ••
+1x Bring Them Home (Rebellion Without Rehearsal) 
+
+Barrier (3)
+3x Semak-samun (Elevation) 
+
+Code Gate (1)
+1x Attini (The Automata Initiative) 
+
+Sentry (5)
+1x Tithe (System Gateway) 
+2x Anemone (Midnight Sun) 
+2x Phoneutria (The Automata Initiative) 
+
+###
+
+Hagen's Cowardice
+Haas-Bioroid: Precision Design (System Gateway)
+
+Agenda (9)
+3x Megaprix Qualifier (Uprising Booster Pack) 
+3x Méliès City Luxury Line (Vantage Point) 
+3x Let Them Dream (Vantage Point) •••
+
+Asset (6)
+3x Spin Doctor (System Gateway) •••
+3x Humanoid Resources (Elevation) 
+
+Upgrade (6)
+3x Tranquility Home Grid (Uprising) 
+2x Manegarm Skunkworks (System Gateway) 
+1x Anoetic Void (System Gateway) ••••
+
+Operation (11)
+3x Seamless Launch (System Gateway) 
+3x Hedge Fund (System Gateway) 
+3x Petty Cash (Elevation) 
+2x Cultivate (Vantage Point) ••
+
+Barrier (4)
+2x Hagen (Downfall) 
+2x Brân 1.0 (System Gateway) 
+
+Code Gate (4)
+1x M.I.C. (The Automata Initiative) 
+1x Flyswatter (Elevation) 
+2x Sleipnir (Vantage Point) 
+
+Sentry (4)
+3x Drafter (Uprising) 
+1x Event Horizon (Vantage Point) •••
+
+###
+
+Live Service
+GameNET: Where Dreams are Real (Uprising)
+
+Agenda (9)
+3x Artificial Cryptocrash (Midnight Sun) 
+1x Embedded Reporting (Elevation) 
+2x Next Big Thing (Elevation) 
+3x Let Them Dream (Vantage Point) •••
+
+Asset (15)
+3x Daily Quest (Downfall) 
+3x Spin Doctor (System Gateway) 
+2x Wage Workers (The Automata Initiative) ••••
+1x The Powers That Be (Rebellion Without Rehearsal) •
+3x Public Access Plaza (Elevation) 
+3x Magistrate Revontulet (Vantage Point) 
+
+Upgrade (3)
+3x The Holo Man (Rebellion Without Rehearsal) 
+
+Operation (7)
+3x Fully Operational (Downfall) ••••• ••••
+2x Hedge Fund (System Gateway) 
+2x Flood the Market (Vantage Point) 
+
+Barrier (6)
+3x Grubber (Vantage Point) 
+3x Paywall (Vantage Point) 
+
+Code Gate (4)
+2x Mestnichestvo (Midnight Sun) 
+2x N-Pot (Elevation) 
+
+Sentry (5)
+3x F2P (Uprising) 
+2x Lamplighter (Elevation) 
+
+###
+
+Prime Time
+Synapse Global: Faster than Thought (Elevation)
+
+Agenda (13)
+1x Tomorrowʼs Headline (System Gateway) 
+3x Post-Truth Dividend (Parhelion) 
+3x Oracle Thinktank (The Automata Initiative) 
+3x Kingmaking (Rebellion Without Rehearsal) 
+3x Let Them Dream (Vantage Point) •••
+
+Asset (8)
+3x Spin Doctor (System Gateway) 
+3x Regolith Mining License (System Gateway) 
+2x Nihilo Agent (Vantage Point) 
+
+Operation (10)
+3x Predictive Planogram (System Gateway) 
+3x Hedge Fund (System Gateway) 
+1x Bigger Picture (Elevation) 
+3x Key Performance Indicators (Elevation) ••••• •
+
+Barrier (3)
+3x Ping (System Gateway) 
+
+Code Gate (6)
+3x N-Pot (Elevation) 
+3x Sleipnir (Vantage Point) ••••• •
+
+Sentry (6)
+3x F2P (Uprising) 
+3x Doomscroll (Elevation) 
+
+Ice (3)
+3x Rime (Downfall)
+
+###
+
+Just Dodge
+BANGUN: When Disaster Strikes (Elevation)
+
+Agenda (14)
+2x Divested Trust (Downfall) 
+3x Eminent Domain (Rebellion Without Rehearsal) 
+3x Greenmail (Elevation) 
+3x Sacrifice Zone Expansion (Vantage Point) 
+3x Let Them Dream (Vantage Point) •••
+
+Asset (3)
+2x Spin Doctor (System Gateway) ••
+1x Regolith Mining License (System Gateway) 
+
+Upgrade (5)
+2x Daniela Jorge Inácio (The Automata Initiative) ••••• •
+3x Angelique Garza Correa (The Automata Initiative) 
+
+Operation (14)
+3x Hedge Fund (System Gateway) 
+2x End of the Line (Parhelion) 
+1x Pivot (The Automata Initiative) 
+2x Measured Response (Elevation) 
+2x Scapegoat (Vantage Point) ••••
+1x Reanimation Protocol (Vantage Point) 
+3x Vulture Fund (Vantage Point) 
+
+Barrier (3)
+3x Maskirovka (Midnight Sun) 
+
+Code Gate (3)
+2x Valentão (The Automata Initiative) 
+1x Tocsin (Vantage Point) 
+
+Sentry (7)
+1x Trebuchet (Downfall) 
+3x Biawak (Elevation) 
+3x Event Horizon (Vantage Point) 
+
