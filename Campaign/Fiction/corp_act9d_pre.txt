@@ -1,0 +1,19 @@
+THE LIBERTADOR
+by Temidayo Okonkwo-Bell
+
+The runner in the coalition registry goes by Mercury. No additional identification. The Syndicate's intelligence division has been building the Mercury file for four months and it remains thinner than any file the division maintains on a runner at this threat tier. What is known: Mercury is fast, Mercury is a Shaper-aligned ideological operator, and the deck called Mystic Shibboleth is built around access tokens — cryptographic constructs that once acquired grant repeated entry through ICE that was designed to be a one-time barrier.
+
+A shibboleth is a password used to distinguish who belongs from who doesn't. Mystic Shibboleth collects them and renders the distinction irrelevant.
+
+The Libertador designation in the mission record refers to Mercury's known position within the coalition: an operator who identifies the Syndicate's systems as illegitimate power structures and approaches each engagement as an act of liberation rather than crime. The intelligence annotation: *sincere. Not performative.*
+
+The Syndicate's identity verification center in the Heinlein administrative node handles authorization for every Syndicate personnel system on the Moon. ICE that validates who has access to what. A runner who collects access tokens and a facility built around the logic of who belongs — the irony is not subtle.
+
+Mercury believes in liberation. The Syndicate believes in authorization.
+
+Only one of them runs this facility.
+
+—
+TARGET: Mercury — Mystic Shibboleth
+FACILITY: Syndicate Identity Verification Center, Heinlein Administrative Node, Authorization Core
+OBJECTIVE: Deny shibboleth collection. Protect authorization infrastructure. Advance identity management agendas.

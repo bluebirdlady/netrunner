@@ -1,0 +1,17 @@
+LIQUIDATION
+by Desh Fuentes-Calloway
+
+The Zwicky Group Archive Node is not a Syndicate facility. This needs to be clear from the outset: Zwicky Group is a competitor. An independent archival services firm operating out of Heinlein's upper data district. The Syndicate is a client of the Zwicky Group, like forty other organizations who have contracted out cold storage to a firm with a solid security reputation and no Haas-Bioroid affiliations.
+
+MuslihaT is a different kind of runner. The incident file uses the word "marketeer" and means it literally — MuslihaT treats unauthorized access as a commercial enterprise. They sell what they find. They are, in effect, a broker: carrying the cargo of whoever contracts the run, delivering to whoever pays the extraction fee.
+
+"Shootin and Lootin" suggests a blunt approach, and the early Zwicky Group traces confirm this. MuslihaT is not trying to be elegant. They're trying to be fast — in, grab anything with a market value, out, sold before the Syndicate can freeze the asset.
+
+What's in the Zwicky cold storage: legacy contracts, decommissioned R&D records, and three archived agenda documents that were moved to cold storage for compliance reasons but whose content remains sensitive. If MuslihaT gets those and finds a buyer, the Syndicate's legal exposure compounds significantly.
+
+Extract the sensitive archive nodes before MuslihaT can touch them.
+
+—
+TARGET: MuslihaT — Shootin and Lootin
+FACILITY: Zwicky Group Archive Node, Heinlein Data District
+OBJECTIVE: Extract sensitive archive agendas. Deny runner access to cold storage. Move legacy contracts.

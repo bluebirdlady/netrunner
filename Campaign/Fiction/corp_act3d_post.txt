@@ -1,0 +1,17 @@
+COMPLIANCE: VERIFIED
+by Ivette Serrano-Park
+
+Zahya's credentials passed the first three validation layers without triggering a single alarm. The runner had invested heavily — the spoofing suite was the best the Syndicate's analysts had seen outside of state-sponsored intelligence operations. Zahya was inside PT Untaian's public-facing network before the monitoring team registered the access as anomalous.
+
+But the inner compliance layer had been restructured at 0200. The architecture behind PT Untaian's legitimate front-end no longer connected to the research database in any path that Zahya's credential tree could predict. The biomedical research existed in a subnet that appeared, from Zahya's position, to be an archival storage node for historical clinical trial data.
+
+The runner spent three hours in PT Untaian's network. They found nine years of historical clinical trial documentation and a drug interaction database that is, in fact, publicly available from the Lunar Health Authority for a nominal licensing fee.
+
+The biomedical research agenda scored at 0418. The second at 0502.
+
+Zahya left a clean exit — no evidence of intrusion in the public-facing logs. Professional. The counterintelligence team respects that, even as they flag the credential profile for investigation.
+
+—
+Zahya had the right ticket.
+The destination had changed.
+The research travels on, unseized, in a direction they cannot follow.

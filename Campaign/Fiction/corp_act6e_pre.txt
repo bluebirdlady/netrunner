@@ -1,0 +1,21 @@
+GHOST PROTOCOL
+by Ivette Serrano-Park
+
+The name Hiram 0mission appears in the Syndicate's incident registry with a red flag — the only color the registry uses above orange. Red flags are reserved for runners whose activities have directly impacted Syndicate operations at the strategic level. There are two red flags in the active roster.
+
+Hiram 0mission was a Haas-Bioroid contractor. The Syndicate has the full employment record, the settlement documents, the NDAs that he appears to regard as aspirational rather than binding. He has, in the time since his departure from the biotech sector, constructed something that the intelligence division is calling a runner coalition — a loose network of affiliated operators who share tools, intelligence, and access infrastructure. The Cybertrooper Pauli configuration is his personal rig.
+
+This is not a standard engagement. Hiram 0mission does not run for profit or sport. He runs to dismantle.
+
+The ghost protocol designation means the engagement is being kept off the main incident registry. No trace in the standard logs. The Syndicate does not want Hiram to know how much attention the Syndicate is paying, because the information that the Syndicate is paying attention is itself information Hiram could use.
+
+Your briefing is verbal. No written record. "Keep the biomedical research division's auxiliary servers dark. Do not let him confirm what's in them."
+
+The auxiliary servers. Project Crow's foundational research layer.
+
+The ghost must not find what it's looking for.
+
+—
+TARGET: Hiram 0mission — Cybertrooper Pauli
+FACILITY: Syndicate Biomedical Research Division, Auxiliary Servers, Lunacent Level 7
+OBJECTIVE: Deny confirmation of server contents. Protect Project Crow foundational research. Engage under ghost protocol.

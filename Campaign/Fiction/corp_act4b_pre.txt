@@ -1,0 +1,19 @@
+STRUCTURAL INTEGRITY
+by Temidayo Okonkwo-Bell
+
+The BANGUN Orbital Platform is the largest physical asset in Project Crow's infrastructure chain. One hundred and forty metric tons of hardware at geostationary orbit above the equatorial ring — antenna arrays, computing substrate, power generation systems, a structural network that has taken four years to build in a location that no Lunar regulatory body has jurisdiction over.
+
+Topan has been busy.
+
+The activist's campaign has evolved past investigative methodology. Topan now has a coalition — the counterintelligence team has identified six other runners involved in what appears to be a coordinated network of information sharing. The runner boards call it "They Are Huge With It," which the threat assessment team interprets as a reference to the coalition's scale.
+
+But scale without access is noise. Topan's coalition can share information, can coordinate approaches, can build the most complete picture of the Syndicate's operations that any runner collective has ever assembled — and none of it matters unless they can reach the Platform.
+
+The Platform's network access is routed through a hardened orbital relay with a three-second communication lag built into its ICE response cycle. It is the Syndicate's most physically remote network node. It was designed to be approached exactly this way — orbital, isolated, hardened.
+
+The coalition's coordination means more runners may follow Topan's attempt. Hold the first line and the rest become irrelevant.
+
+—
+TARGET: Topan — They Are Huge With It
+FACILITY: BANGUN Orbital Platform, Geostationary Equatorial Orbit
+OBJECTIVE: Defend orbital infrastructure. Score Platform agendas. Repel coordinated coalition access attempt.

@@ -1,0 +1,19 @@
+DEEP CARTOGRAPHY
+by Temidayo Okonkwo-Bell
+
+Captain Padma Isbister has updated her configuration. Threading has been replaced by Dr. Nuka — a name the intelligence division traces to an independent cartography system developed outside corporate infrastructure. The implication is deliberate: Isbister has moved from efficient routing to comprehensive mapping. She is no longer threading through the shortest path. She is drawing the entire map.
+
+Dr. Nuka is a deep access deck. It does not rush. It systematically identifies the structure of a facility's server architecture — every server, every ICE layer, every buried asset — and uses that comprehensive map to identify the approach that the conventional threat model would classify as impossible. The map, once drawn, reveals the route that should not exist.
+
+This is a different problem than Threading.
+
+The Syndicate's deep research archive in the Heinlein sub-orbital station is one of the most protected facilities in the Syndicate's territorial infrastructure. The archive holds twelve years of biomedical, materials, and engineering research — the intellectual foundation of Project Crow and every other major Syndicate initiative. It is protected with the understanding that conventional runners should not be able to reach the core.
+
+Captain Isbister is drawing a map that may reveal a different understanding.
+
+Deep cartography finds what should not be findable. The Syndicate needs every layer of that archive to be exactly what it appears to be: impenetrable.
+
+—
+TARGET: Captain Padma Isbister — Dr. Nuka
+FACILITY: Syndicate Deep Research Archive, Heinlein Sub-Orbital Station, Core Level
+OBJECTIVE: Deny comprehensive mapping of archive structure. Protect research core. Advance deep research agendas.

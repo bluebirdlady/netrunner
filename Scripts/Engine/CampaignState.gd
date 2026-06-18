@@ -5,35 +5,43 @@ extends RefCounted
 # Manages campaign progression: missions, fiction, unlocked card pool, current deck.
 # Persists to user://campaign_save.json.
 
-const SAVE_PATH      := "user://campaign_save.json"
-const CAMPAIGN_PATH  := "res://Campaign/campaign.json"
-const FICTION_PATH   := "res://Campaign/Fiction/"
+const SAVE_PATH           := "user://campaign_save.json"
+const CORP_SAVE_PATH      := "user://corp_campaign_save.json"
+const CAMPAIGN_PATH       := "res://Campaign/campaign.json"
+const CORP_CAMPAIGN_PATH  := "res://Campaign/corp_campaign.json"
+const FICTION_PATH        := "res://Campaign/Fiction/"
 
-var _campaign: Dictionary = {}
-var _save:     Dictionary = {}
+var _campaign:  Dictionary = {}
+var _save:      Dictionary = {}
+var _save_path: String     = SAVE_PATH
 
 # ── Load / Save ───────────────────────────────────────────────────────────────
 
-func load_campaign() -> bool:
-	var file := FileAccess.open(CAMPAIGN_PATH, FileAccess.READ)
+func load_campaign(path: String = CAMPAIGN_PATH) -> bool:
+	var file := FileAccess.open(path, FileAccess.READ)
 	if file == null:
-		push_error("CampaignState: cannot open campaign.json")
+		push_error("CampaignState: cannot open " + path)
 		return false
 	var parsed = JSON.parse_string(file.get_as_text())
 	file.close()
 	if parsed == null or not parsed is Dictionary:
-		push_error("CampaignState: campaign.json parse error")
+		push_error("CampaignState: parse error for " + path)
 		return false
 	_campaign = parsed as Dictionary
+	_save_path = CORP_SAVE_PATH if _campaign.get("arc", "runner") == "corp" else SAVE_PATH
 	_load_save()
 	return true
 
 
+func load_corp_campaign() -> bool:
+	return load_campaign(CORP_CAMPAIGN_PATH)
+
+
 func _load_save() -> void:
-	if not FileAccess.file_exists(SAVE_PATH):
+	if not FileAccess.file_exists(_save_path):
 		_save = _fresh_save()
 		return
-	var file := FileAccess.open(SAVE_PATH, FileAccess.READ)
+	var file := FileAccess.open(_save_path, FileAccess.READ)
 	if file == null:
 		_save = _fresh_save()
 		return
@@ -49,7 +57,8 @@ func _load_save() -> void:
 		_save["unlocked_cards"] = migrated
 		persist()
 	# Migrate saves that pre-date identity-as-card: ensure starter identity is present
-	var starter_id: String = _campaign.get("runner_identity", "")
+	var _is_corp: bool = _campaign.get("arc", "runner") == "corp"
+	var starter_id: String = _campaign.get("corp_identity" if _is_corp else "runner_identity", "")
 	if starter_id != "" and not (_save.get("unlocked_cards", {}) as Dictionary).has(starter_id):
 		unlock_card(starter_id, 1)
 		persist()
@@ -57,7 +66,8 @@ func _load_save() -> void:
 	# but are absent from the saved available_missions list.  This handles saves created
 	# before new missions were added to campaign.json — without this, completed missions
 	# whose unlocks_missions entries didn't exist yet would leave those entries frozen out.
-	var _available: Array = _save.get("available_missions", ["act1_hb"])
+	var _start_mission: String = _campaign.get("start_mission", "act1_hb")
+	var _available: Array = _save.get("available_missions", [_start_mission])
 	var _missions_gained := false
 	for _mdef in _campaign.get("missions", []):
 		var _mid: String = (_mdef as Dictionary).get("id", "")
@@ -95,8 +105,13 @@ func _load_save() -> void:
 
 func _fresh_save() -> Dictionary:
 	# Starter deck cards begin fully unlocked at 3 copies (2 for singletons)
+	var is_corp: bool = _campaign.get("arc", "runner") == "corp"
+	var deck_key: String     = "corp_starter_deck"  if is_corp else "runner_starter_deck"
+	var identity_key: String = "corp_identity"       if is_corp else "runner_identity"
+	var start_mission: String = _campaign.get("start_mission", "act1_hb")
+
 	var starter_unlocks: Dictionary = {}
-	for card_id in _campaign.get("runner_starter_deck", []):
+	for card_id in _campaign.get(deck_key, []):
 		if card_id not in starter_unlocks:
 			starter_unlocks[card_id] = 0
 		starter_unlocks[card_id] += 1
@@ -104,7 +119,7 @@ func _fresh_save() -> Dictionary:
 	for k in starter_unlocks:
 		starter_unlocks[k] = min(starter_unlocks[k], 3)
 	# Starter identity is an unlocked card like any other — seed 1 copy
-	var starter_identity: String = _campaign.get("runner_identity", "")
+	var starter_identity: String = _campaign.get(identity_key, "")
 	if starter_identity != "":
 		starter_unlocks[starter_identity] = 1
 
@@ -113,25 +128,28 @@ func _fresh_save() -> Dictionary:
 		"unlocked_fiction":   [],
 		"unlocked_cards":     starter_unlocks,
 		"current_deck":       _default_deck(),
-		"available_missions": ["act1_hb"]
+		"available_missions": [start_mission]
 	}
 
 
 func _default_deck() -> Dictionary:
-	# Build default deck from the campaign's runner_starter_deck list
+	# Build default deck from the campaign's starter deck list (runner or corp)
+	var is_corp: bool = _campaign.get("arc", "runner") == "corp"
+	var deck_key: String     = "corp_starter_deck" if is_corp else "runner_starter_deck"
+	var identity_key: String = "corp_identity"      if is_corp else "runner_identity"
 	var cards: Dictionary = {}
-	for card_id in _campaign.get("runner_starter_deck", []):
+	for card_id in _campaign.get(deck_key, []):
 		if card_id not in cards:
 			cards[card_id] = 0
 		cards[card_id] += 1
 	return {
-		"identity": _campaign.get("runner_identity", ""),
+		"identity": _campaign.get(identity_key, ""),
 		"cards": cards
 	}
 
 
 func persist() -> void:
-	var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
+	var file := FileAccess.open(_save_path, FileAccess.WRITE)
 	if file == null:
 		push_error("CampaignState: cannot write save file")
 		return
@@ -152,6 +170,17 @@ func get_available_missions() -> Array:
 
 func is_mission_complete(mission_id: String) -> bool:
 	return mission_id in _save.get("completed_missions", [])
+
+
+func is_campaign_complete() -> bool:
+	var avail: Array = _save.get("available_missions", [])
+	var done: Array  = _save.get("completed_missions", [])
+	if avail.is_empty():
+		return false
+	for mid in avail:
+		if mid not in done:
+			return false
+	return true
 
 
 # Returns an Array[CardRecord] of cards that were genuinely new at the moment
@@ -254,8 +283,10 @@ func get_runner_identity_id() -> String:
 # This represents the format's full runner card pool — public information
 # the Corp AI can reason from without knowing the player's exact deck.
 func get_full_card_pool() -> Array:
+	var is_corp: bool = _campaign.get("arc", "runner") == "corp"
+	var deck_key: String = "corp_starter_deck" if is_corp else "runner_starter_deck"
 	var seen: Dictionary = {}
-	for entry in _campaign.get("runner_starter_deck", []):
+	for entry in _campaign.get(deck_key, []):
 		var id: String = _entry_to_id(entry)
 		if id != "":
 			seen[id] = true
@@ -265,6 +296,18 @@ func get_full_card_pool() -> Array:
 			if id != "":
 				seen[id] = true
 	return seen.keys()
+
+
+func get_corp_deck() -> Array:
+	return get_runner_deck()
+
+
+func get_corp_identity_id() -> String:
+	return get_runner_identity_id()
+
+
+func is_corp_campaign() -> bool:
+	return _campaign.get("arc", "runner") == "corp"
 
 
 static func _entry_to_id(entry: Variant) -> String:
@@ -308,6 +351,10 @@ func get_mission(mission_id: String) -> Dictionary:
 
 func get_opponent(opponent_id: String) -> Dictionary:
 	return _campaign.get("opponents", {}).get(opponent_id, {}) as Dictionary
+
+
+func get_all_missions() -> Array:
+	return _campaign.get("missions", [])
 
 
 func campaign_title() -> String:

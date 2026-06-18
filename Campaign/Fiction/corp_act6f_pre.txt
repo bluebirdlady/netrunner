@@ -1,0 +1,23 @@
+FLUID ARCHITECTURE
+by Nneka Adewale-Mortimer
+
+Tāo Salonga's record is unusual. The intelligence file is longer than most — not because of the number of engagements but because of the nature of them. Tāo specializes in what the analyst team calls "architecture exploitation": identifying the points at which a facility's ICE configuration contains structural inefficiencies and applying pressure precisely there.
+
+The Daily Plasticity configuration is built around this principle. Tools that reshape access windows, that create approaches where none existed, that turn the facility's own structure against itself.
+
+Your supervisor uses the word fluid when briefing you, and you think the word is chosen carefully. Fluid architecture. The deck adapts to whatever container it finds itself in.
+
+The Syndicate's bioengineering licensing center in Heinlein handles the legal frameworks for six ongoing biomedical product lines. The architecture is layered, which is standard, and the layers were designed to code-spec rather than to threat-model, which is the kind of difference that only matters when someone like Tāo starts looking for gaps.
+
+There are gaps. The Syndicate's internal audit, run last month, found eleven of them. Seven have been patched. Four have not.
+
+Tāo will find the four.
+
+Your task is to advance the licensing agendas before Tāo's fluid approach reaches the core, and to close as many of the remaining gaps as the engagement window allows.
+
+Fluid architecture. You intend to freeze it solid before they swim through.
+
+—
+TARGET: Tāo Salonga — Daily Plasticity
+FACILITY: Syndicate Bioengineering Licensing Center, Heinlein Commercial District
+OBJECTIVE: Advance licensing agendas. Patch architectural vulnerabilities. Deny fluid access to core servers.

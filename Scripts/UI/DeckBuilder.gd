@@ -49,6 +49,8 @@ var _influence_label:      Label
 var _saved_decks_container: VBoxContainer  # list of named builds in the right panel
 var _format_label:         Label              # current format (Gateway / Startup / Standard)
 var _ban_label:            Label              # banned-card warning (hidden when no bans)
+var _type_opts:            OptionButton = null
+var _faction_opts:         OptionButton = null
 
 
 func _ready() -> void:
@@ -85,11 +87,12 @@ func setup(state: CampaignState) -> void:
 	)
 
 	# Set active identity to the saved deck's choice (or first available)
-	var saved_identity_id: String = state.get_runner_identity_id()
+	var saved_identity_id: String = state.get_corp_identity_id() if state.is_corp_campaign() else state.get_runner_identity_id()
 	_identity = CardRegistry.get_card(saved_identity_id)
 	if _identity == null and not _identity_records.is_empty():
 		_identity = _identity_records[0]
 
+	_update_filter_options()
 	_apply_filters()
 	_refresh_stats()
 	_rebuild_saved_decks_panel()
@@ -427,47 +430,77 @@ func _build_filter_bar() -> HBoxContainer:
 	)
 	hbox.add_child(_search_field)
 
-	# Type filter
-	var type_opts := OptionButton.new()
-	type_opts.custom_minimum_size = Vector2(120, 0)
-	for pair in [["All Types", ""], ["Identity", "identity"], ["Event", "event"],
-				 ["Program", "program"], ["Hardware", "hardware"], ["Resource", "resource"]]:
-		type_opts.add_item(pair[0])
-		type_opts.set_item_metadata(type_opts.item_count - 1, pair[1])
-	type_opts.item_selected.connect(func(idx: int):
-		_filter_type = type_opts.get_item_metadata(idx)
+	# Type filter — items populated in _update_filter_options() after arc is known
+	_type_opts = OptionButton.new()
+	_type_opts.custom_minimum_size = Vector2(120, 0)
+	_type_opts.item_selected.connect(func(idx: int):
+		_filter_type = _type_opts.get_item_metadata(idx)
 		_apply_filters()
 	)
-	hbox.add_child(type_opts)
+	hbox.add_child(_type_opts)
 
-	# Faction filter
-	var faction_opts := OptionButton.new()
-	faction_opts.custom_minimum_size = Vector2(130, 0)
-	for pair in [["All Factions", ""], ["Anarch", "anarch"],
-				 ["Criminal", "criminal"], ["Shaper", "shaper"]]:
-		faction_opts.add_item(pair[0])
-		faction_opts.set_item_metadata(faction_opts.item_count - 1, pair[1])
-	faction_opts.item_selected.connect(func(idx: int):
-		_filter_faction = faction_opts.get_item_metadata(idx)
+	# Faction filter — items populated in _update_filter_options() after arc is known
+	_faction_opts = OptionButton.new()
+	_faction_opts.custom_minimum_size = Vector2(150, 0)
+	_faction_opts.item_selected.connect(func(idx: int):
+		_filter_faction = _faction_opts.get_item_metadata(idx)
 		_apply_filters()
 	)
-	hbox.add_child(faction_opts)
+	hbox.add_child(_faction_opts)
 
 	# Clear button
 	var clear_btn := Button.new()
 	clear_btn.text = "✕ Clear"
 	clear_btn.pressed.connect(func():
 		_search_field.text = ""
-		_search_text   = ""
-		_filter_type   = ""
+		_search_text    = ""
+		_filter_type    = ""
 		_filter_faction = ""
-		type_opts.selected   = 0
-		faction_opts.selected = 0
+		if _type_opts != null:   _type_opts.selected   = 0
+		if _faction_opts != null: _faction_opts.selected = 0
 		_apply_filters()
 	)
 	hbox.add_child(clear_btn)
 
 	return hbox
+
+
+# ── Filter option population (arc-aware) ─────────────────────────────────────
+
+func _update_filter_options() -> void:
+	if _type_opts == null or _faction_opts == null:
+		return
+	var is_corp: bool = _state != null and _state.is_corp_campaign()
+
+	_type_opts.clear()
+	var type_pairs: Array
+	if is_corp:
+		type_pairs = [["All Types", ""], ["Identity", "identity"], ["Agenda", "agenda"],
+					  ["Asset", "asset"], ["Upgrade", "upgrade"], ["Operation", "operation"],
+					  ["ICE", "ice"]]
+	else:
+		type_pairs = [["All Types", ""], ["Identity", "identity"], ["Event", "event"],
+					  ["Program", "program"], ["Hardware", "hardware"], ["Resource", "resource"]]
+	for pair in type_pairs:
+		_type_opts.add_item(pair[0])
+		_type_opts.set_item_metadata(_type_opts.item_count - 1, pair[1])
+	_type_opts.selected = 0
+	_filter_type = ""
+
+	_faction_opts.clear()
+	var faction_pairs: Array
+	if is_corp:
+		faction_pairs = [["All Factions", ""], ["Haas-Bioroid", "haas_bioroid"],
+						 ["Jinteki", "jinteki"], ["NBN", "nbn"],
+						 ["Weyland", "weyland_consortium"], ["Neutral", "neutral_corp"]]
+	else:
+		faction_pairs = [["All Factions", ""], ["Anarch", "anarch"],
+						 ["Criminal", "criminal"], ["Shaper", "shaper"]]
+	for pair in faction_pairs:
+		_faction_opts.add_item(pair[0])
+		_faction_opts.set_item_metadata(_faction_opts.item_count - 1, pair[1])
+	_faction_opts.selected = 0
+	_filter_faction = ""
 
 
 # ── Identity section ──────────────────────────────────────────────────────────
@@ -690,7 +723,9 @@ func _rebuild_deck_list() -> void:
 	# Resolve the current ban list once for all deck entries.
 	var dl_banned := BanListManager.get_banned_ids(_current_format())
 
-	var type_order := ["event", "program", "hardware", "resource"]
+	var is_corp_arc: bool = _state != null and _state.is_corp_campaign()
+	var type_order: Array = ["agenda", "asset", "upgrade", "operation", "ice"] if is_corp_arc \
+			else ["event", "program", "hardware", "resource"]
 	for ctype in type_order:
 		if ctype not in by_type:
 			continue
@@ -770,7 +805,8 @@ func _change_count(card_id: String, delta: int) -> void:
 # ── Save / load current deck ──────────────────────────────────────────────────
 
 func _on_save_pressed() -> void:
-	var identity_id: String = _identity.id if _identity != null else _state.get_runner_identity_id()
+	var fallback_id: String = _state.get_corp_identity_id() if _state.is_corp_campaign() else _state.get_runner_identity_id()
+	var identity_id: String = _identity.id if _identity != null else fallback_id
 	_state.save_deck(identity_id, _deck_cards)
 	deck_saved.emit(identity_id, _deck_cards)
 	queue_free()

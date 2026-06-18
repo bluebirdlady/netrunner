@@ -1,0 +1,23 @@
+PARTY ANIMAL
+by Desh Fuentes-Calloway
+
+There is a certain type of runner that prefers chaos to precision. They don't pick the lock — they knock over the whole door and step through the wreckage, grinning.
+
+Loup is that type.
+
+The Syndicate Relay Hub sits above Lunacent's commercial district, routing traffic for forty-three corporate partners across the inner dome. It is not, on paper, a high-value target. It is a transit node. A switchboard. Its value is not in what it holds but in what passes through it — and Loup, apparently, has figured this out.
+
+"Viral footprints on the outer relay," says the security digest at 0630. "Consistent with Anarch deployment patterns. Recommend elevated ICE posture on all transit nodes."
+
+You pull up the Relay Hub's current architecture. The Anarch method is not elegant. Loup will seed the network with viruses — little programs that replicate, corrupt, degrade. They spread like rumors. They cost credits to clean. They cost time.
+
+But Loup makes mistakes. Every Anarch does. They trust their chaos to do the work for them, and sometimes it does. But chaos has no loyalty.
+
+The Hub's agenda stack is full. Three scoring windows in the next two operational cycles, if you move efficiently. Loup will be burning through their install queue. Let them burn.
+
+Efficiency beats entropy. It always has.
+
+—
+TARGET: Loup — Party Animal
+FACILITY: Syndicate Relay Hub, Lunacent Commercial District
+OBJECTIVE: Score three agenda points before viral saturation compromises relay integrity.

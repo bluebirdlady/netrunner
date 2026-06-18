@@ -1,0 +1,19 @@
+COUNTERMEASURES
+by Ivette Serrano-Park
+
+The briefing for Black Site Alpha is delivered in person, by someone whose name does not appear on the Syndicate's organizational chart.
+
+"Magdalene knows the shape of it," they say. "Not the specifics. Not enough to act on. But enough to come back with tools designed specifically for what we have. She went home and she built countermeasures against our countermeasures. That's what sabbaticals are for."
+
+Black Site Alpha is not a data vault or a relay hub or a research campus. It is a coordination node — the network address where Project Crow's operational arms communicate with each other. Destroy it and the project loses coherence. Expose it and the Lunar Commerce Authority begins asking questions that the Syndicate cannot answer without consequences.
+
+Magdalene is running drone warfare now — automated intrusion packages that probe ahead of the runner, that map ICE configurations and report back in real time, that allow Magdalene to make decisions with better information than any runner has brought to a Syndicate server before.
+
+The briefing concludes: "Everything changes now. The project is eighteen months from completion. We are not moving the timeline for a runner, regardless of what tools they show up with. You will hold Black Site Alpha. You will score what is left to score. And you will make sure that when this is over, there is nothing left for anyone to find."
+
+The door closes.
+
+—
+TARGET: Magdalene — Drone Warfare
+FACILITY: Syndicate Black Site Alpha, Classified Location
+OBJECTIVE: Defend Project Crow coordination node. Score remaining agendas. Deny all server access at any cost.

@@ -1,0 +1,17 @@
+HOSTILE ACQUISITION
+by Nneka Adewale-Mortimer
+
+Tao has a new dataset.
+
+The counterintelligence inference team identified it three days ago: a cross-referenced mapping of Syndicate-adjacent network addresses, compiled from the Relay Hub traces, the Research Station intrusion, the Comms Array attempt, and — most troublingly — a partial architecture map that should only have been accessible from inside the Zwicky Group archive during the MuslihaT engagement. Tao and MuslihaT are either working from the same intelligence source, or they are coordinating directly.
+
+Melies City Annex is the Syndicate's physical footprint in Heinlein's western corridor — a small administrative office with a medium-security server room that manages licensing negotiations with Luna's commercial partners. On paper, unremarkable. In the Syndicate's actual network topology, it is a relay point between the Investment Division and PT Untaian's research subnetwork. Pull the thread here, and you can start to map the connections between pieces that should not appear connected.
+
+Tao's approach — "Flow and Ebb" — suggests a runner who attacks in waves: a push forward, a retreat to regroup, another push using data from the first. It is the most patient, most methodical version of the Shaper methodology.
+
+The Annex's licensing agendas must score this cycle. If Tao gets a foothold here, the network topology becomes visible.
+
+—
+TARGET: Tao — Flow and Ebb
+FACILITY: Melies City Annex, Heinlein Western Corridor
+OBJECTIVE: Protect licensing relay architecture. Score agendas. Deny Tao the network topology mapping.

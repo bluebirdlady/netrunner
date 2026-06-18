@@ -1,0 +1,17 @@
+NAILS
+by Temidayo Okonkwo-Bell
+
+Topan is not a runner in the traditional sense. The incident file classifies them as "organizer/activist" — someone who hacks not for personal profit but for the sake of a cause. That makes them, in the Syndicate's assessment, more dangerous than Zahya and more principled than Loup, which is a combination that keeps the counterintelligence team awake at night.
+
+The Heinlein Bazaar District Server Farm is technically a subcontracted node — the Syndicate processes its logistics and retail data here, routing commercial traffic for the bazaar district's twelve hundred registered vendors. To a casual observer, it is completely mundane. To someone who knows what to look for, it is a waypoint in a supply chain that connects directly to Project Crow's material procurement network.
+
+Topan's method — the one the runner community apparently calls "Prick Thyself" — involves deploying data fragments that mirror corporate architectures. Tools that let a runner understand how a network thinks, then turn that thinking against itself. Topan doesn't want to steal from the Syndicate. Topan wants to understand it.
+
+Understanding is the precursor to exposure. Topan is building a file. A case. Whatever the cause is, the Syndicate is part of the story Topan is trying to tell.
+
+Deny them the material. Score the logistics agendas and keep Project Crow's supply chain invisible.
+
+—
+TARGET: Topan — Prick Thyself
+FACILITY: Heinlein Bazaar District Server Farm, Heinlein Commercial Zone
+OBJECTIVE: Protect supply chain data. Score logistics agendas. Deny runner their investigative foothold.

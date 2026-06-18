@@ -1,0 +1,23 @@
+DOWNFALL CASCADE
+by Desh Fuentes-Calloway
+
+The Downfall expansion has been live for eleven days. In that time, the Syndicate's security division has logged forty-seven new runner tool signatures that did not exist in the previous threat matrix. Forty-seven. The analysts have been running double shifts trying to tag and classify them. They are behind.
+
+Your briefing arrives via encrypted packet rather than voice, which means the person sending it does not want a record of the conversation. This is routine now. You have stopped finding it unsettling.
+
+Az McCaffrey. Hardware specialist. The Blueberry Breakers rig is new on the scene — a modular assembly toolkit that allows on-the-fly reconfiguration of installed programs. The analysts' note reads: *McCaffrey adapts mid-run. Do not assume your ICE configuration is stable.*
+
+The Syndicate's server farm in Heinlein High Orbit holds routing infrastructure for seventeen subsidiary operations. It is not glamorous. It is the kind of facility that doesn't make threat reports until someone realizes how much depends on it. The runners have realized.
+
+You pull up the facility schematic. Four central servers. Deep credit reserves. ICE stacked heavy on the archives because that is where the legacy contracts are stored, and legacy contracts are leverage.
+
+McCaffrey will probe the edges before committing. That is the pattern for hardware specialists — they want to know what they're dealing with. You intend to show them something unexpected.
+
+The facility hums in your earpiece. Orbital infrastructure. Cold vacuum two meters beyond every wall. No room for mistakes up here.
+
+Let the cascade begin.
+
+—
+TARGET: Az McCaffrey — Blueberry Breakers
+FACILITY: Syndicate Server Farm, Heinlein High Orbit
+OBJECTIVE: Defend routing infrastructure. Advance legacy contract agendas. Do not allow server breach.

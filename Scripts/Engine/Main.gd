@@ -11,7 +11,8 @@ var turn_manager: TurnManager
 var run_machine: RunStateMachine
 var corp_brain:   Object   # CorpTurnAI (runner mode) or CorpHumanBrain (corp mode)
 var runner_brain: Object   # HumanDecisionMaker (runner mode) or SimRunnerAI (corp mode)
-var _run_scene: RunScene = null
+var _run_scene:  RunScene  = null
+var _corp_scene: CorpScene = null
 
 # ── Campaign mode ─────────────────────────────────────────────────────────────
 var campaign_mode:           bool     = false
@@ -52,6 +53,7 @@ func _init_and_start() -> void:
 		# Human plays Corp; SimRunnerAI plays Runner as opponent.
 		corp_brain   = CorpHumanBrain.new()
 		runner_brain = SimRunnerAI.new()
+		(runner_brain as SimRunnerAI).campaign_runner_mode = true
 	else:
 		# Human plays Runner; CorpTurnAI plays Corp at selected difficulty.
 		match campaign_ai_level:
@@ -89,29 +91,41 @@ func _init_and_start() -> void:
 	ctx.set_meta("ability_registry", ability_registry)
 	ctx.set_meta("register_installed_card", Callable(turn_manager, "_register_card_listeners"))
 
-	game_ui.setup(ctx, turn_manager, run_machine, ability_registry)
-	# In Corp mode the human is never waiting for the AI to "think" —
-	# disconnect the overlay that GameUI wires unconditionally in setup().
-	if corp_mode and turn_manager.corp_thinking.is_connected(game_ui._on_corp_thinking):
-		turn_manager.corp_thinking.disconnect(game_ui._on_corp_thinking)
+	if corp_mode:
+		# Corp mode: hide GameUI (runner-facing) and show Corp-facing CorpScene.
+		game_ui.visible = false
+		_corp_scene = CorpScene.new()
+		add_child(_corp_scene)
+		_corp_scene.setup(ctx, turn_manager, run_machine, ability_registry)
+		_wire_corp_proxies_to_corp_scene(_corp_scene)
 
-	# VP36 Méliès U: refresh the identity card display whenever the identity flips.
-	# The callback fires from flip_melies_u / flip_melies_u_back in AbilityInterpreter.
-	ctx.set_meta("on_melies_u_flip", func(_flipped: bool, _server: String) -> void:
-		game_ui._update_all_displays()
-	)
-
-	# Route UI actions to the active player's brain.
-	# In Corp mode the human plays Corp; in Runner mode the human plays Runner.
-	game_ui.action_requested.connect(func(action: GameAction):
-		if corp_mode:
+		# Route CorpScene action buttons → CorpHumanBrain.action_selected.
+		_corp_scene.action_requested.connect(func(action: GameAction):
 			if ctx.active_player == "corp":
 				(corp_brain as CorpHumanBrain).action_selected.emit(action)
-		else:
+		)
+	else:
+		game_ui.setup(ctx, turn_manager, run_machine, ability_registry)
+		# Disconnect the "Corp is thinking…" overlay — not used in runner mode when Corp is AI.
+		# (It IS connected by GameUI.setup unconditionally, so we leave it; nothing to change here.)
+
+	# VP36 Méliès U: refresh identity display whenever the identity flips.
+	if corp_mode:
+		ctx.set_meta("on_melies_u_flip", func(_flipped: bool, _server: String) -> void:
+			_corp_scene._update_all_displays()
+		)
+	else:
+		ctx.set_meta("on_melies_u_flip", func(_flipped: bool, _server: String) -> void:
+			game_ui._update_all_displays()
+		)
+
+	# Route GameUI action buttons → HumanDecisionMaker (runner mode only).
+	if not corp_mode:
+		game_ui.action_requested.connect(func(action: GameAction):
 			if ctx.active_player == "runner":
 				(runner_brain as HumanDecisionMaker).action_selected.emit(action)
 				_observe_runner_action(action)
-	)
+		)
 
 	# Observe end of runner turn for the Corp AI model (runner mode only).
 	turn_manager.turn_started.connect(func(player: String, _turn_num: int):
@@ -119,11 +133,13 @@ func _init_and_start() -> void:
 			_observe_runner_action(GameAction._make("end_turn", {}))
 	)
 
-	# Default proxies → GameUI (used outside of runs; runner-mode only).
-	# In corp mode there are no runner-brain proxies to wire here;
-	# CorpScene will wire corp_brain proxies in C2.
+	# Default proxies → GameUI (runner mode only).
 	if not corp_mode:
 		_wire_proxies_to_game_ui()
+
+	# Disconnect the "Corp is thinking…" overlay in corp mode.
+	if corp_mode and turn_manager.corp_thinking.is_connected(game_ui._on_corp_thinking):
+		turn_manager.corp_thinking.disconnect(game_ui._on_corp_thinking)
 
 	# Intercept run initiation to open the appropriate run scene.
 	_wire_run_via_turn_manager()
@@ -177,6 +193,38 @@ func _wire_proxies_to_game_ui() -> void:
 		return await game_ui.show_card_order_prompt(cards)
 	runner_brain.choose_top_or_bottom_proxy = func(card: CardRecord, label: String) -> String:
 		return await game_ui.show_top_or_bottom_prompt(card, label)
+
+
+func _wire_corp_proxies_to_corp_scene(cs: CorpScene) -> void:
+	var brain := corp_brain as CorpHumanBrain
+	# C2 prompts
+	brain.choose_rez_proxy = func(card: InstalledCard, ctx_arg: GameContext) -> bool:
+		return await cs.show_corp_rez_prompt(card, ctx_arg)
+	brain.choose_window_action_proxy = func(ctx_arg: GameContext, actor: String, can_rez_ice: bool) -> GameAction:
+		return await cs.show_corp_window_action_prompt(ctx_arg, actor, can_rez_ice)
+	brain.choose_discard_proxy = func(hand: Array, excess: int, ctx_arg: GameContext) -> Variant:
+		return await cs.show_corp_discard_prompt(hand, excess, ctx_arg)
+	# C3 prompts
+	brain.choose_optional_ability_proxy = func(prompt_text: String) -> bool:
+		return await cs.show_corp_optional_prompt(prompt_text, ctx)
+	brain.choose_modes_proxy = func(modes: Array, max_choices: int) -> Array:
+		return await cs.show_corp_modes_prompt(modes, max_choices, ctx)
+	brain.choose_psi_bid_proxy = func(max_bid: int) -> int:
+		return await cs.show_corp_psi_prompt(max_bid, ctx)
+	brain.choose_trace_boost_proxy = func(base_strength: int) -> int:
+		return await cs.show_corp_trace_boost_prompt(base_strength, ctx)
+	brain.choose_server_proxy = func(allowed: Array) -> String:
+		return await cs.show_corp_server_prompt(allowed, ctx)
+	brain.choose_card_from_hand_proxy = func(hand: Array) -> Variant:
+		return await cs.show_corp_card_from_hand_prompt(hand, ctx)
+	brain.choose_forfeit_agenda_proxy = func(agendas: Array, _ctx_arg: GameContext) -> Variant:
+		return await cs.show_corp_forfeit_agenda_prompt(agendas, ctx)
+	brain.choose_trash_from_rig_proxy = func(candidates: Array, _ctx_arg: GameContext) -> InstalledCard:
+		return await cs.show_corp_trash_from_rig_prompt(candidates, ctx)
+	brain.choose_trash_choice_proxy = func(candidates: Array, _ctx_arg: GameContext) -> String:
+		return await cs.show_corp_trash_choice_prompt(candidates, ctx)
+	brain.choose_runner_card_type_proxy = func(types: Array, _ctx_arg: GameContext) -> String:
+		return await cs.show_corp_runner_card_type_prompt(types, ctx)
 
 
 func _wire_proxies_to_run_scene(run_scene: RunScene) -> void:
@@ -299,7 +347,10 @@ func _observe_runner_action(action: GameAction) -> void:
 
 func _start_game_loop() -> void:
 	await turn_manager.run_game()
-	await game_ui.game_over_acknowledged
+	if corp_mode:
+		await _corp_scene.game_over_acknowledged
+	else:
+		await game_ui.game_over_acknowledged
 
 	# Notify campaign controller on game end
 	if campaign_mode and game_over_callback.is_valid():
@@ -313,7 +364,7 @@ func _perform_mulligan_phase() -> void:
 	# Corp decides first, then Runner. Each may shuffle their hand back and redraw 5.
 	var corp_mulligans: bool
 	if corp_mode:
-		corp_mulligans = await game_ui.show_mulligan_prompt(ctx.corp_name(), ctx.corp_hand)
+		corp_mulligans = await _corp_scene.show_mulligan_prompt(ctx.corp_name(), ctx.corp_hand)
 	else:
 		corp_mulligans = _corp_wants_mulligan()
 	if corp_mulligans:

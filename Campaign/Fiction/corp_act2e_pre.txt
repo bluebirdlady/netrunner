@@ -1,0 +1,19 @@
+FIELD TACTICS
+by Nneka Adewale-Mortimer
+
+Tao has been talking to someone.
+
+The inference team at the Syndicate's counterintelligence division arrived at this conclusion after mapping the timing of the Research Station attack against a series of anonymous message drops on a runner-adjacent data board. The messages are encoded — nothing actionable — but the operational tempo matches. Tao is not improvising anymore. They're executing a plan developed with external input.
+
+The Syndicate Comms Array processes encrypted transmissions for forty percent of Lunacent's corporate district. It is not a primary research or financial node — but it is where information travels. And Tao, it seems, has developed an interest in information in transit.
+
+"Street Tricks," the runner community calls this approach: intercept the infrastructure layer, not the data layer. Harvest what passes through the wires rather than what sits in the vault. If Tao can establish a tap inside the Comms Array, they won't need to breach any of the Syndicate's primary servers. The data will walk through their fingers on its own.
+
+The Array's ICE posture has been elevated. Traffic encryption has been reinforced at the packet level. But the Comms Array was not designed as a high-security node — it was designed to move data fast.
+
+Fast and secure are not the same thing. You will need to build the gap closed before Tao finds it.
+
+—
+TARGET: Tao — Street Tricks
+FACILITY: Syndicate Comms Array, Lunacent Corporate District
+OBJECTIVE: Protect transit infrastructure. Score comms-related agendas before runner establishes tap.

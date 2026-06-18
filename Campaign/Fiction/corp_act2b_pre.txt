@@ -1,0 +1,23 @@
+SMOOTH CRIMINAL
+by Ivette Serrano-Park
+
+Zahya doesn't break in. Zahya walks in.
+
+That's the incident analyst's summary, and it's not wrong. The access logs for the Syndicate's Vault 7 show a sequence of perfectly timed intrusions — credentials borrowed from low-clearance contractors, ident spoofs layered three deep, a handshake request that looks, at first pass, like routine maintenance traffic. Zahya had been inside the outer subnet for eleven minutes before the first alarm tripped.
+
+Criminal runners are not reckless. They plan. They invest in information before they invest in action. Whatever Zahya has been paid to find in Vault 7, they've done their homework first.
+
+Vault 7 houses the Syndicate's licensing agreements for the next operational quarter. Standard contracts. Non-disclosure compliance records. Intellectual property filings that have not yet been submitted to the Lunar Commerce Authority. If any of those filings reach a competitor — or worse, a journalist — the quarter closes at a loss.
+
+The Criminal methodology is about efficiency of access. Every credit spent on a run is a business decision. Zahya will not waste resources on a wall they cannot breach economically.
+
+Your job is to make every wall expensive.
+
+ICE up the HQ servers. Protect the R&D pipeline. Make Zahya do the math and decide that the payout isn't worth the overhead.
+
+Make them recalculate.
+
+—
+TARGET: Zahya — Smooth Criminal
+FACILITY: Syndicate Vault 7, Lunacent Lower Commerce Ring
+OBJECTIVE: Protect all licensing data. Deny runner access to HQ, R&D, and Archives.

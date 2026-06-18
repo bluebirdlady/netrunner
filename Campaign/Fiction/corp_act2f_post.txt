@@ -1,0 +1,19 @@
+CLEAN EXIT: DENIED
+by Ivette Serrano-Park
+
+Zahya's rig hit the Deep Facility's outer ICE at 1140 and bounced. Hit again at 1143. Bounced harder. The new hardware was evident in the trace — faster response, cleaner break requests, better credit-per-access efficiency than any previous Zahya engagement on record.
+
+It wasn't enough.
+
+The fabrication specs were already behind the inner firewall by the time Zahya breached the first server layer, and the scoring window on the final agenda closed at 1218, while Zahya was still burning through the second ICE stack. The logs show twenty-three access attempts across three servers. Zero successful steals.
+
+The trace analysis on the rig configuration produced a partial hardware profile. The counterintelligence team cross-referenced it against known Criminal procurement networks and generated three candidate client profiles. All three are being investigated.
+
+Zahya's getaway was clean — the runner disconnected on their own terms, which is notable. Not a rout. A withdrawal.
+
+But withdrawal is not extraction. And extraction is what they were paid for.
+
+—
+The fabrication contracts remain sealed.
+Zahya left empty-handed.
+Somewhere, a client is revising their operational budget and wondering whether to try again.

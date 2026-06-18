@@ -1,0 +1,23 @@
+FIRST DEFENSE
+by Orla Vaszquez-Nkosi
+
+The briefing room on sublevel three is smaller than you expected. One chair, one table, one screen. The Syndicate does not believe in excess — not in furniture, not in sentiment, not in mercy.
+
+Your supervisor's voice arrives through a speaker you cannot locate. "Kaguya Data Vault went live forty-eight hours ago. We've already flagged two unauthorized access attempts on the outer subnet. Nothing landed. The runners out there are feeling us out, probing the edges, looking for a seam."
+
+You have reviewed the access logs. The probes are unsophisticated, tentative. Someone new. Someone who doesn't know yet what they've stumbled against.
+
+"We're giving you the standard loadout," the voice continues. "ICE, credits, assets. You'll learn what works. You'll learn what doesn't. The Vault holds pre-release pharmaceutical data from four subsidiaries. If any of that gets out before our licensing agreements close, we lose approximately sixty million in negotiating leverage. So."
+
+The screen goes dark. That's all the pep talk you're getting.
+
+You settle into the chair and pull up the Vault's architecture. Subroutines nest inside subroutines. Credits flow from R&D into the investment stack. The ice goes up slowly, methodically, like a wall being built one stone at a time.
+
+The runner — they're calling themselves The Catalyst in the incident reports — will be back. They always come back.
+
+Let them come.
+
+—
+TARGET: Convention Breaker — The Catalyst
+FACILITY: Kaguya Data Vault, Lunacent Sublevel 7
+OBJECTIVE: Defend all servers. Advance agendas. Do not let the runner score.

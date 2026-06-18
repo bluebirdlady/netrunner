@@ -1,0 +1,21 @@
+HIGH WATER MARK
+by Desh Fuentes-Calloway
+
+The Deep Archive's sublevel 14 access logs show Tao's approach beginning at 0100 — a slow, patient entry through a peripheral administrative access point that predated the current security architecture by seven years. The counterintelligence team had missed it. The network rotation schedule had missed it. Tao had found it in the three months of accumulated mapping that preceded this engagement.
+
+They made it to the second server.
+
+The founding Project Crow documentation had been moved at 2200 the previous evening, placed behind an emergency quarantine that appeared, from Tao's position, as a hardware failure notification. The quarantine was real — but the reason for it was fabricated. Tao spent forty-one minutes trying to determine whether the quarantine was structural or intentional.
+
+Archive agendas scored at 0312 and 0348.
+
+Tao retreated at 0501. Not a rout. A withdrawal. The monitoring team notes that the runner paused for eleven minutes at the second server before disconnecting — unusual behavior, suggestive of either analysis or frustration or both.
+
+The access point Tao used — the seven-year-old administrative entry — was closed at 0502.
+
+The tide came in. It found the archive walls, measured them, and withdrew.
+
+—
+Three months of patience. Two servers reached. Zero documentation accessed.
+Tao now knows the shape of a wall that will not show them the other side.
+The archive seals. The tide cannot rise higher than the wall.

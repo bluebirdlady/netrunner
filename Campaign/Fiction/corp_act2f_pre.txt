@@ -1,0 +1,19 @@
+ARMS RACE
+by Ivette Serrano-Park
+
+Zahya has upgraded.
+
+The credentials spoofing that worked at Vault 7 — that gap is closed. Zahya knows it, because they stopped trying to use it six operational cycles ago. What shows up in the new access traces is a rig that has been substantially rebuilt. New bypass architectures. A suite of hardware that doesn't match the standard Criminal loadout. More expensive. More capable.
+
+Someone is funding Zahya. Runners at this tier don't upgrade on their own credit — not this fast. There is a client behind the current engagement, and that client has resources.
+
+The Syndicate Deep Facility is not on any public registry. It operates under three shell identities and maintains its network address behind a randomized relay chain. The facility houses the Syndicate's hardware fabrication contracts — the physical substrate for Project Crow's infrastructure layer. Not data. Physical. The kind of thing that, if a runner gets access to the fabrication specifications, can be reverse-engineered, replicated, or sold to the highest bidder.
+
+Zahya's client almost certainly already knows the Deep Facility exists. The Getaway contracts in Zahya's recent history suggest a runner specializing in high-extraction jobs — in, out, clean, fast.
+
+ICE every server. Make every access point expensive. The fabrication specs cannot leave this facility.
+
+—
+TARGET: Zahya — Getaway
+FACILITY: Syndicate Deep Facility, Lunacent Sublevel 12
+OBJECTIVE: Protect hardware fabrication contracts. Deny all server access. Expose runner's backing.

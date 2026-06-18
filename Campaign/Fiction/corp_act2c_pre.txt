@@ -1,0 +1,23 @@
+LATERAL THINKING
+by Nneka Adewale-Mortimer
+
+Tao doesn't come at a server the way other runners do. They come at it sideways.
+
+The Syndicate Research Station Alpha sits in Lunacent's science ring, three sublevels above the transit hub, surrounded by what your security architecture team considers a robust perimeter. Six ICE layers on R&D. Four on HQ. The Archives node triple-firewalled.
+
+Tao's first move is to ignore all of it.
+
+The incident trace begins not at a server access attempt but at a peripheral system — a low-priority asset node, a remote diagnostic terminal that hasn't been audited in eleven months. Tao finds the seam and threads through it, not to steal anything, but to rewrite the network topology from the inside. To bend the servers toward each other. To make the architecture do something it was never designed to do.
+
+Shapers think in structures. They don't fear the wall — they reshape it.
+
+You have three critical research projects nearing completion in the Station's R&D node. The data represents eight months of pharmaceutical modeling and proprietary biosynthesis protocols. Tao isn't here to read it. They're here to understand how you've hidden it.
+
+And understanding is the first step toward access.
+
+Reinforce the peripheral nodes. Don't let Tao find the seam again. Keep your scoring windows moving faster than their rewiring.
+
+—
+TARGET: Tao — Lateral Thinking
+FACILITY: Syndicate Research Station Alpha, Lunacent Science Ring
+OBJECTIVE: Score research agendas before Tao destabilizes the station's network topology.

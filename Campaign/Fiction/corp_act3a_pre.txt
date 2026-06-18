@@ -1,0 +1,21 @@
+SCAVENGER
+by Temidayo Okonkwo-Bell
+
+The AU Co. Orbital Platform drifts at L2, a repurposed cargo hub that the Syndicate acquired eighteen months ago through an intermediary holding company. On paper it belongs to a logistics firm with no Haas-Bioroid affiliations. In practice, it houses the physical infrastructure for Project Crow's orbital relay network — antenna arrays, data routing hardware, power conditioning systems that exist nowhere in the Syndicate's official asset registry.
+
+Loup's Devourer is not a virus. It is a category.
+
+The threat assessment team spent four hours trying to classify it and ultimately concluded: Devourer is a suite of linked viral payloads designed to consume not just data but architecture. It does not steal. It digests. Networking nodes, ICE subroutines, asset management protocols — Devourer is built to eat the structure itself and leave nothing.
+
+Loup found the Orbital Platform. The question is how. The shell company chain should have held for another year. Someone is helping them navigate it.
+
+Three other runners have now been linked through cross-referenced incident logs. This is not individual enterprise anymore. This is coordination.
+
+But you still have defenders. You still have ICE. You still have the Platform's agenda stack, which is moving to secure transfer the moment the windows open.
+
+Whatever Loup is trying to devour, protect it before the first bite lands.
+
+—
+TARGET: Loup — Devourer
+FACILITY: AU Co. Orbital Platform, Earth-Moon L2
+OBJECTIVE: Defend orbital relay infrastructure. Score before viral saturation. Deny architecture access.

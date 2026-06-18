@@ -1,0 +1,21 @@
+ACCESS DENIED
+by Ivette Serrano-Park
+
+PT Untaian Pharmaceutical is the Syndicate's public face in Luna's biomedical market. Licensed drug manufacturing, clinical trial management, regulatory compliance filings with the Lunar Health Authority. Everything above board. Everything auditable. This is, specifically, the point.
+
+Zahya has been probing PT Untaian's network for sixteen days.
+
+The Criminal methodology favors research over brute force, and Zahya has been thorough. The access traces show patient, methodical credential testing — not the kind of hit-and-run engagement that characterized the early Vault 7 attempt. Zahya is looking for something specific, and they have either developed or purchased intelligence about what PT Untaian's servers contain beneath the compliance documentation.
+
+Beneath the compliance documentation: Project Crow's biomedical applications. The pharmaceutical research that PT Untaian ostensibly develops on behalf of legitimate clients is, in its deeper strata, cover for a development program that does not appear in any regulatory filing. Zahya's client — still unidentified — wants that research.
+
+"Tickets Please" is what the runner boards are calling Zahya's current approach: presenting credentials and walking through validated access points, one layer at a time, buying their way through the legitimate facade until they reach whatever is behind it.
+
+You cannot simply refuse entry. PT Untaian's compliance structure requires legitimate access paths to remain open.
+
+Make the inner layers invisible. Keep the research moving.
+
+—
+TARGET: Zahya — Tickets Please
+FACILITY: PT Untaian Pharmaceutical, Heinlein Biomedical Quarter
+OBJECTIVE: Defend research servers. Score biomedical agendas. Prevent Zahya reaching inner compliance layer.

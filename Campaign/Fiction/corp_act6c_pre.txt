@@ -1,0 +1,23 @@
+STRUCTURAL DAMAGE
+by Orla Vaszquez-Nkosi
+
+Topan Ormas runs a deck called Demolished. This is not a name chosen carelessly.
+
+The threat profile is blunt: Topan is a resource-destruction specialist. Tools designed not merely to break through ICE but to leave it broken — to dismantle the Syndicate's infrastructure asset by asset, forcing expensive reconstruction mid-engagement while Topan moves through the gaps left behind. The Demolished configuration is built around this philosophy. It does not just run servers. It takes the facility apart.
+
+The Syndicate's materials processing center in the Heinlein lower ring handles mineral contracts from six asteroid mining subsidiaries. The facility is not glamorous, but the contracts are substantial, and the ICE protecting them was built for the previous generation of runner tools.
+
+That is the problem. The previous generation of tools is no longer the threat.
+
+"We've requested updated countermeasure protocols from the ICE development division," your supervisor says. "They've given us a provisional package. It's not fully tested."
+
+You have worked with untested ICE before. The experience is clarifying.
+
+Topan will arrive and begin systematically pulling the facility apart — rezzed assets, installed ICE, anything that can be trashed or deactivated. Your task is to advance before the demolition reaches what matters, to score agendas while there is still an architecture standing to protect them.
+
+Structural damage is coming. Build fast.
+
+—
+TARGET: Topan Ormas — Demolished
+FACILITY: Syndicate Materials Processing Center, Heinlein Lower Ring
+OBJECTIVE: Advance mineral contract agendas before infrastructure loss becomes critical. Protect core servers.

@@ -1,0 +1,21 @@
+NETWORK EFFECT
+by Desh Fuentes-Calloway
+
+Tao has been in the Syndicate's network for three months.
+
+Not continuously — not a persistent intrusion, nothing the monitoring systems flagged as ongoing unauthorized access. But the inference team has reconstructed a timeline from scattered access traces, anomalous routing events, and behavioral patterns in the ICE response logs, and the picture it produces is unambiguous: Tao has been returning, methodically, to different points in the Syndicate's network, building a map that accumulates with each engagement.
+
+They are not stealing data. They are learning the shape of the whole.
+
+The Syndicate Deep Archive holds legacy documentation for all of the Syndicate's subsidiary projects — including the foundational technical architecture for Project Crow, deposited there three years ago as a compliance measure and not updated since. That three-year-old documentation does not describe what Project Crow has become. But it describes what it started as. And for someone who has spent three months learning the shape of the whole, "what it started as" may be enough.
+
+Tao's runner board designation for this engagement is "A Rising Tide" — the implication being that the accumulated intelligence lifts all their capabilities at once. An architecture that has been slowly, invisibly reconstructing itself will, when it is complete, reveal something.
+
+The Deep Archive must be sealed. The legacy documentation must move to a clean location.
+
+Score everything left to score. The tide cannot be allowed to come in.
+
+—
+TARGET: Tao — A Rising Tide
+FACILITY: Syndicate Deep Archive, Lunacent Sublevel 14
+OBJECTIVE: Protect founding Project Crow documentation. Score all archive agendas. Prevent Tao completing their network map.

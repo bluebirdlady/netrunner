@@ -1,0 +1,21 @@
+VANTAGE POINT
+by Orla Vaszquez-Nkosi
+
+The name in the threat assessment file is Hiram Svensson. The runner identifier is Hiram 0mission. The gap between the two is the most significant thing about him.
+
+Hiram Svensson has a biography: contract security work for three separate Luna-based corporations across twelve years, two commendations from the Heinlein Corporate Safety Authority, a clean professional record that ended abruptly when he took a settlement from a former employer and ceased to appear in any public database. Hiram 0mission is whoever Hiram Svensson became after that.
+
+The settlement was with Haas-Bioroid. The counterintelligence team found this in a sealed arbitration record that required three levels of legal clearance to access.
+
+Hiram 0mission has a private server. Not a runner's staging environment — a legitimate server, registered, maintained, legally housed. It is also, the inference team has concluded, the coordination point for everything that has happened over the past four months. The runners, the coalition, the escalating engagement tempo — Hiram has been orchestrating it. He has been building toward something specific.
+
+The Vantage Point engagement — Hiram's designation for whatever he is planning — involves accessing his own server, which the Syndicate has quietly infiltrated. Meeting him there. On his ground, with his rules, with everything he knows about the Syndicate arrayed against you.
+
+He chose the name. He believes he has the high ground.
+
+Prove otherwise.
+
+—
+TARGET: Hiram 0mission Svensson — former Haas-Bioroid contractor
+FACILITY: Hiram Svensson's Private Server, Heinlein Upper District
+OBJECTIVE: Hold the infiltrated server. Score and secure the evidence of Hiram's coordination. End the campaign.

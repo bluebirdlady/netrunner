@@ -1,0 +1,21 @@
+THE PACK: TURNED BACK
+by Desh Fuentes-Calloway
+
+Loup ran the personnel center with tools that the Syndicate's security division characterized afterward as "elegant and concerning." The social engineering layer of Trickster Paladin functions exactly as the threat profile described: not breaking through ICE but moving around it, finding the gaps between the technical security and the human interfaces that exist at every facility where people log in and out.
+
+Three human-interface gaps were exploited. Two did not lead anywhere productive. The third led to an outer access layer that should not have been reachable from the approach Loup used.
+
+The personnel core did not fall.
+
+The Syndicate's countermeasure was to double the ICE on the personnel core's inner server specifically — not a standard configuration, and one that consumed more credits than the engagement model had projected as optimal, but the personnel core is not a facility where standard configuration is adequate when Trickster Paladin is in the building.
+
+Loup scored two points. Both came through the social engineering layer, through the same outer access gap that the third exploitation had found. The Syndicate's after-action team has logged the gap and scheduled it for closure.
+
+Credential infrastructure intact. Personnel records unmodified. The vector Loup was looking for does not exist in the system.
+
+The wolf left empty-handed. The pack will learn from this.
+
+—
+The trickster found the gaps. The core held anyway.
+Personnel records untouched. Credentials unchanged.
+The door is closed. The pack knows where to knock.

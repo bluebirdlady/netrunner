@@ -1,0 +1,17 @@
+PEER REVIEW
+by Temidayo Okonkwo-Bell
+
+Dewi spent four hours in the R&D Campus's outer network and, according to the monitoring team, appeared to be having a wonderful time.
+
+She found two legacy architecture remnants from a 2041 hardware upgrade that had never been fully decommissioned. She identified a subroutine interaction pattern in the Campus's third ICE layer that the Campus's own network team had not documented. She filed what appeared to be a bug report — a properly formatted one, with reproducible steps and suggested remediation — through a maintenance channel that should not have been accessible from her position.
+
+The R&D agenda scored at hour two, in the gap between Dewi's second and third explorations of the legacy remnants. A second scored at hour three. The Campus's network team used Dewi's unauthorized bug report as the basis for a legitimate patch during the fourth hour.
+
+Dewi never reached the Project Crow research nodes. The architecture she was navigating toward was, by hour two, behind a restructured firewall that presented as a routine data quarantine. She respected the quarantine. Didn't push through. Filed a note in her own access log: "Interesting. Come back."
+
+The Campus network team archived her bug report. Remediated it. Kept it.
+
+—
+Dewi left the Campus more well-documented than she found it.
+That is not what you wanted, but it is not what she came for either.
+The Project Crow nodes remain sealed. For now.

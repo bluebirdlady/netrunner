@@ -1,0 +1,17 @@
+CASE CLOSED
+by Temidayo Okonkwo-Bell
+
+Topan's data fragments found the outer edge of the supply chain routing architecture and began building their mirror. It was elegant work — the kind of investigative tooling that, under different circumstances, the Syndicate's own counterintelligence division might have recruited for.
+
+But the mirror image captured a server farm that had, at 0600 that morning, rerouted all Project Crow-adjacent traffic to a clean relay with no Syndicate designation attached. What Topan built a mirror of was a logistics node for four hundred and twelve bazaar vendors. Fruit importers. Textile distributors. An artisan collective out of Heinlein's east ring.
+
+The logistics agendas scored cleanly at 0734 and 0801. Topan spent two more hours building a portrait of a server farm that sells mushrooms.
+
+When the runner finally disconnected, their data file was complete and thoroughly useless.
+
+In the post-incident debrief, Yemisi Arfewi allows herself a small smile. "Let them have the bazaar data," she says. "It's technically public anyway."
+
+—
+Topan came to build a case.
+You handed them a case with nothing inside.
+The supply chain moved on, invisible, clean.

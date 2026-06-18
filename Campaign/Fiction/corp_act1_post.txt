@@ -1,0 +1,17 @@
+ACCESS DENIED
+by Orla Vaszquez-Nkosi
+
+The runner hit the outermost ICE layer three times before the connection logs show a clean disconnect. No data exfiltrated. No agenda accessed. Just the ghost of a handshake and then silence, the subnet settling back into its steady-state hum.
+
+In the monitoring suite, Yemisi Arfewi pulls up the trace. She studies it for a long moment, then marks the incident report with a single word: CONTAINED.
+
+The Catalyst would have seen the first two walls go up. Would have mapped the outer subnet, maybe, and run the numbers in their head. Would have understood, somewhere in the span of those failed approaches, that whoever was sitting on the other side of this network was not a placeholder.
+
+The pharmaceutical data went to escrow at 0300 as scheduled. The licensing window closes in eight days. The Catalyst cannot touch what they cannot reach.
+
+Yemisi closes the report.
+
+—
+The Vault held.
+Your first agenda scores quietly — a number ticking upward in a column that no one outside this sublevel will ever see.
+This is how it begins.

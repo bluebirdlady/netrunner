@@ -25,7 +25,9 @@ var choose_trace_boost_proxy:      Callable  # func(base: int) -> int
 var choose_window_action_proxy:    Callable  # func(GameContext, String, bool) -> GameAction
 var choose_forfeit_agenda_proxy:   Callable  # func(agendas: Array, GameContext) -> Variant
 var choose_trash_from_rig_proxy:   Callable  # func(candidates: Array, GameContext) -> InstalledCard
-var choose_card_name_proxy:        Callable  # func(GameContext) -> String
+var choose_trash_choice_proxy:     Callable  # func(candidates: Array, GameContext) -> String (instance_id)
+var choose_card_name_proxy:            Callable  # func(GameContext) -> String
+var choose_runner_card_type_proxy:     Callable  # func(types: Array, GameContext) -> String
 
 
 # ── Core action selection ─────────────────────────────────────────────────────
@@ -160,6 +162,20 @@ func choose_trash_from_rig(candidates: Array, ctx: GameContext) -> InstalledCard
 	return candidates[0] as InstalledCard if not candidates.is_empty() else null
 
 
+# ── Trash-by-instance-id (corp card effects that target an installed card) ────
+
+func choose_trash_choice(candidates: Array, ctx: GameContext) -> String:
+	if choose_trash_choice_proxy.is_valid():
+		return await choose_trash_choice_proxy.call(candidates, ctx)
+	# Fallback: pick the first unrezzed card, or candidates[0]
+	for c in candidates:
+		var ic: InstalledCard = c as InstalledCard
+		if ic != null and not ic.is_rezzed:
+			return ic.runtime_instance_id
+	var first: InstalledCard = candidates[0] as InstalledCard if not candidates.is_empty() else null
+	return first.runtime_instance_id if first != null else ""
+
+
 # ── Card name and type choices ────────────────────────────────────────────────
 
 func choose_card_name(ctx: GameContext) -> String:
@@ -168,6 +184,7 @@ func choose_card_name(ctx: GameContext) -> String:
 	return ""
 
 
-func choose_runner_card_type(types: Array, _ctx: GameContext) -> String:
-	# Engram Flush, Saisentan, etc. — stub picks first type until C3.
+func choose_runner_card_type(types: Array, ctx: GameContext) -> String:
+	if choose_runner_card_type_proxy.is_valid():
+		return await choose_runner_card_type_proxy.call(types, ctx)
 	return types[0] if not types.is_empty() else "program"

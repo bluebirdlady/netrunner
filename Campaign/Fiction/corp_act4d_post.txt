@@ -1,0 +1,21 @@
+SETTLEMENT
+by Orla Vaszquez-Nkosi
+
+Hiram 0mission's private server is meticulous. The monitoring team expected a spider's web — a tangled coordination architecture built by someone living in the runner community's informal infrastructure. Instead, they found something that looked like the work of a corporate security professional: clean, documented, structured, backed up.
+
+It is, in retrospect, obvious. He was one.
+
+Hiram entered the server at 0900, found the Syndicate's infiltration package immediately — it had not been particularly well-hidden, the team acknowledges — and spent the first twenty minutes doing nothing. Just assessing. Reading the infiltration's architecture the way a man might read someone else's handwriting on a wall of his own home.
+
+Then he ran.
+
+He was good. Twelve years of corporate security work and four months of runner experience in a campaign that had pushed the Syndicate's defenses further than any previous engagement. He knew how the Syndicate defended, because he had watched it defend, again and again, for four months.
+
+But the server was already compromised, the agendas already positioned, the coordination documentation already moving to the Syndicate's evidence archive. What Hiram ran against was not a defender protecting a network. It was a vault that was being closed around him while he moved.
+
+At 1043, the final agenda scored. At 1044, Hiram 0mission disconnected.
+
+—
+He built a vantage point and found you already there.
+Twelve years of corporate work did not prepare him for this.
+The coordination network is documented, archived, sealed.

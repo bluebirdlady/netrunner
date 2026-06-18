@@ -1,0 +1,19 @@
+FLOW REVERSED
+by Nneka Adewale-Mortimer
+
+Tao's first wave hit the Annex at 1100 and mapped the outer three ICE layers without attempting a breach. A reconnaissance push — the runner gathering data, building their model, committing nothing. The flow.
+
+The ebb came at 1140. Tao withdrew, reprocessed, returned at 1210 with a restructured approach that accounted for the ICE configuration they'd mapped in the first wave.
+
+By 1210, that configuration had been rotated. The Annex's network architecture team spent the forty-minute withdrawal window reordering ICE subroutines and repositioning server access points. The model Tao had built was accurate for a network that no longer existed.
+
+The second wave hit a different wall. Harder. Less familiar. The licensing agenda scored at 1247 while Tao was reorienting. A second at 1312.
+
+The relay connection between the Investment Division and PT Untaian was routed through a temporary secondary path at 1400 and the Annex connection severed entirely. Whatever topology mapping Tao was attempting to build, the Annex is now a dead end in the map.
+
+Tao's third wave, when it came at 1415, found an administrative office with no significant network connections at all.
+
+—
+The topology shifts like water.
+Tao mapped the shape of something that had already moved.
+The Annex is quiet. The connections flow elsewhere, unseen.

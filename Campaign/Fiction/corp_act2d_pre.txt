@@ -1,0 +1,19 @@
+THE LONG GAME
+by Desh Fuentes-Calloway
+
+Loup has been patient. That is the part that concerns the threat analysis team — the patience. The party animal playbook is supposed to be impulsive, reactive, burning through viruses on reflex. But the intrusion traces on the Syndicate Archive Node show something different: deliberate reconnaissance over six operational cycles, probing edges without committing, mapping ICE patterns without triggering them.
+
+Loup found something in the Relay Hub breach. Not data — that was contained. But a thread. A reference in a routing table to a project designation that doesn't appear in the Syndicate's public registry: Project Crow.
+
+The Archive Node is where Project Crow's preliminary documentation lives. Feasibility studies, resource allocation projections, three years of preparatory modeling. Nothing actionable on its own — but enough to tell a runner that there is something worth finding. That there is a there there.
+
+The ICE posture on the Archive Node has been elevated. The agenda stack includes two Crow-adjacent documents that are moving to secure escrow the moment you can advance them. Whatever Loup knows — or suspects — cannot become confirmation.
+
+This is not about one run anymore. Loup is playing a long game. Your job is to end it short.
+
+Keep the Project Crow documentation moving. Don't let the runner hold the thread long enough to pull it.
+
+—
+TARGET: Loup — Project Crow
+FACILITY: Syndicate Archive Node, Lunacent Data Quarter
+OBJECTIVE: Score Project Crow agendas. Deny all Archive access. Sever runner's investigative thread.

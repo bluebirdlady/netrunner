@@ -1,0 +1,21 @@
+MACHINE POLITICS
+by Desh Fuentes-Calloway
+
+The Automata Initiative is not a runner expansion in the conventional sense. The Syndicate's intelligence division classified it, in a memo that has since been restricted to senior clearance, as "a coordinated infrastructure project masquerading as individual capability upgrades." What this means: the Automata Initiative is the runner coalition becoming a machine.
+
+Hiram 0mission's fingerprints are on the design philosophy. The intelligence division has confirmed this with a confidence level of eighty-seven percent.
+
+Ryo is back with Taka's Cookbook — a deck built around automated tool management, systems that trigger and reconfigure without manual input during the run window. Automation. The Cookbook runs itself. Ryo's role is to point it at a target and let the cookbook cook.
+
+Machine politics in the Syndicate means something specific: the machinery of power, the mechanisms by which the Syndicate's influence is maintained. The runner coalition is attempting to build its own machine to counter it.
+
+The Syndicate's policy development center in Lunacent's administrative district generates the internal policy documents that govern every subsidiary operation. If a runner can access the policy layer, they can understand the rules the Syndicate enforces on itself — the vulnerabilities built into the system by design, the exceptions written into policy by people who created exceptions for themselves.
+
+An automated cookbook reading the policy documents.
+
+Shut the kitchen.
+
+—
+TARGET: Ryo — Taka's Cookbook
+FACILITY: Syndicate Policy Development Center, Lunacent Administrative District, Level 12
+OBJECTIVE: Deny automated access to policy layer. Protect internal policy documents. Advance policy infrastructure agendas.

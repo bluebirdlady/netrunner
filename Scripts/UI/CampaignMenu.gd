@@ -16,6 +16,13 @@ var _fiction_viewer: FictionViewer
 var _mission_list_container: VBoxContainer
 var _fiction_list_container: VBoxContainer
 
+# Header button refs — toggled in _refresh() based on arc
+var _starter_btn:    Button = null
+var _deck_btn:       Button = null
+var _tournament_btn: Button = null
+var _title_label:    Label  = null
+var _subtitle_label: Label  = null
+
 const COLOR_BG        := Color(0.04, 0.05, 0.07)
 const COLOR_ACCENT    := Color(0.25, 0.85, 0.45)
 const COLOR_INACTIVE  := Color(0.3, 0.35, 0.3)
@@ -40,32 +47,32 @@ func _refresh() -> void:
 	if _mission_list_container == null:
 		push_error("CampaignMenu: mission list container not found")
 		return
+
+	# Update dynamic header text
+	if _campaign_state != null:
+		if _title_label != null:
+			_title_label.text = _campaign_state.campaign_title()
+		if _subtitle_label != null:
+			_subtitle_label.text = _campaign_state.campaign_subtitle()
+
+	# Show/hide buttons based on arc
+	var is_corp: bool = _campaign_state != null and _campaign_state.is_corp_campaign()
+	if _starter_btn != null:
+		_starter_btn.visible = not is_corp
+	if _deck_btn != null:
+		_deck_btn.visible = true
+	if _tournament_btn != null:
+		_tournament_btn.visible = not is_corp \
+				and _campaign_state != null \
+				and _campaign_state.is_mission_complete("act5c_bangun")
+
 	# Clear existing children
 	for child in _mission_list_container.get_children():
 		child.queue_free()
 	_populate_missions(_mission_list_container)
 	_populate_fiction_archive()
 
-	# Show tournament button once act5c is beaten
-	if _campaign_state != null:
-		var t_btn := _find_tournament_btn()
-		if t_btn != null:
-			t_btn.visible = _campaign_state.is_mission_complete("act5c_bangun")
 
-
-func _find_tournament_btn() -> Button:
-	# Walk the tree to find the named button added in _build_header.
-	return _find_node_by_name(self, "TournamentBtn") as Button
-
-
-func _find_node_by_name(node: Node, target: String) -> Node:
-	if node.name == target:
-		return node
-	for child in node.get_children():
-		var result := _find_node_by_name(child, target)
-		if result != null:
-			return result
-	return null
 
 
 # ── UI Construction ───────────────────────────────────────────────────────────
@@ -191,35 +198,31 @@ func _build_header() -> Control:
 	title_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	hbox.add_child(title_vbox)
 
-	var title_label := Label.new()
-	title_label.text = "CONVENTION BREAKER"
-	title_label.add_theme_font_size_override("font_size", 28)
-	title_label.add_theme_color_override("font_color", COLOR_ACCENT)
-	title_vbox.add_child(title_label)
+	_title_label = Label.new()
+	_title_label.text = "CAMPAIGN"   # overwritten in _refresh()
+	_title_label.add_theme_font_size_override("font_size", 28)
+	_title_label.add_theme_color_override("font_color", COLOR_ACCENT)
+	title_vbox.add_child(_title_label)
 
-	var subtitle_label := Label.new()
-	subtitle_label.text = "A Runner Campaign  //  System Gateway"
-	subtitle_label.add_theme_font_size_override("font_size", 11)
-	subtitle_label.add_theme_color_override("font_color", Color(0.35, 0.5, 0.38))
-	title_vbox.add_child(subtitle_label)
+	_subtitle_label = Label.new()
+	_subtitle_label.text = ""   # overwritten in _refresh()
+	_subtitle_label.add_theme_font_size_override("font_size", 11)
+	_subtitle_label.add_theme_color_override("font_color", Color(0.35, 0.5, 0.38))
+	title_vbox.add_child(_subtitle_label)
 
-	# In _build_header() after the deck builder button
-	var classic_btn := Button.new()
-	classic_btn.text = "// STARTER MATCH"
-	classic_btn.add_theme_color_override("font_color", Color(0.7, 0.7, 0.4))
-	classic_btn.pressed.connect(func(): starter_match_requested.emit())
-	hbox.add_child(classic_btn)
+	_starter_btn = Button.new()
+	_starter_btn.text = "// STARTER MATCH"
+	_starter_btn.add_theme_color_override("font_color", Color(0.7, 0.7, 0.4))
+	_starter_btn.pressed.connect(func(): starter_match_requested.emit())
+	hbox.add_child(_starter_btn)
 
-	# Deck builder button in header
-	var deck_btn := Button.new()
-	deck_btn.text = "// BUILD DECK"
-	deck_btn.add_theme_color_override("font_color", Color(0.4, 0.8, 0.55))
-	deck_btn.pressed.connect(_open_deck_builder)
-	hbox.add_child(deck_btn)
+	_deck_btn = Button.new()
+	_deck_btn.text = "// BUILD DECK"
+	_deck_btn.add_theme_color_override("font_color", Color(0.4, 0.8, 0.55))
+	_deck_btn.pressed.connect(_open_deck_builder)
+	hbox.add_child(_deck_btn)
 
-	# Open Circuit tournament button — visible only after act5c complete
-	var _tournament_btn := Button.new()
-	_tournament_btn.name = "TournamentBtn"
+	_tournament_btn = Button.new()
 	_tournament_btn.text = "// OPEN CIRCUIT"
 	_tournament_btn.add_theme_color_override("font_color", Color(0.85, 0.65, 0.15))
 	_tournament_btn.pressed.connect(func(): tournament_requested.emit())
@@ -247,15 +250,41 @@ func _populate_missions(container: VBoxContainer) -> void:
 		print("CampaignMenu: no campaign state")
 		return
 
+	# Victory banner when every unlocked mission is cleared
+	if _campaign_state.is_campaign_complete():
+		var banner := Label.new()
+		banner.text = "// CAMPAIGN COMPLETE //"
+		banner.add_theme_font_size_override("font_size", 20)
+		banner.add_theme_color_override("font_color", COLOR_ACCENT)
+		banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		container.add_child(banner)
+		var sub_lbl := Label.new()
+		sub_lbl.text = "All missions cleared. Select any below to replay."
+		sub_lbl.add_theme_font_size_override("font_size", 10)
+		sub_lbl.add_theme_color_override("font_color", COLOR_INACTIVE)
+		sub_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		container.add_child(sub_lbl)
+		var banner_sep := HSeparator.new()
+		banner_sep.add_theme_color_override("separation_color", COLOR_BORDER)
+		container.add_child(banner_sep)
+
 	var available := _campaign_state.get_available_missions()
 	print("Available missions count: ", available.size())
+
+	var current_act := -1
 	for mission in available:
 		print(" - ", mission.get("id", "no id"))
+		var act: int = _act_from_id(mission.get("id", ""))
+		if act != current_act:
+			current_act = act
+			if act > 0:
+				var act_lbl := Label.new()
+				act_lbl.text = "── ACT %d ──" % act
+				act_lbl.add_theme_font_size_override("font_size", 11)
+				act_lbl.add_theme_color_override("font_color", Color(0.3, 0.6, 0.35))
+				container.add_child(act_lbl)
 		container.add_child(_make_mission_card(mission))
 
-	# Also show completed missions (greyed out with re-play option)
-	# This ensures nothing is ever blocked off
-	var all_missions: Array = []  # would come from campaign_state if needed
 	if available.is_empty():
 		var empty := Label.new()
 		empty.text = "No runs available."
@@ -264,6 +293,21 @@ func _populate_missions(container: VBoxContainer) -> void:
 
 	# Populate fiction archive
 	_populate_fiction_archive()
+
+
+func _act_from_id(mission_id: String) -> int:
+	# "corp_act3b_jinteki" → 3,  "act5c_bangun" → 5,  "act1_hb" → 1
+	var s: String = mission_id.replace("corp_", "")
+	var start: int = s.find("act")
+	if start < 0:
+		return 0
+	start += 3   # skip "act"
+	var end: int = start
+	while end < s.length() and s[end].is_valid_int():
+		end += 1
+	if end <= start:
+		return 0
+	return int(s.substr(start, end - start))
 
 
 func _make_mission_card(mission: Dictionary) -> Control:
@@ -307,7 +351,8 @@ func _make_mission_card(mission: Dictionary) -> Control:
 		title_row.add_child(badge)
 
 	var ai_level: int = mission.get("ai_level", 0) as int
-	if ai_level >= 1:
+	var is_corp_arc: bool = _campaign_state != null and _campaign_state.is_corp_campaign()
+	if ai_level >= 1 and not is_corp_arc:
 		var ai_badge := Label.new()
 		match ai_level:
 			1: ai_badge.text = "◈ TACTICAL AI"
@@ -393,33 +438,34 @@ func _make_mission_card(mission: Dictionary) -> Control:
 
 
 func _populate_fiction_archive() -> void:
-	if _fiction_list_container == null:
+	if _fiction_list_container == null or _campaign_state == null:
 		return
 	for child in _fiction_list_container.get_children():
 		child.queue_free()
 
-	# Show all fiction ids that are read
-	var fiction_entries := [
-		{"id": "act1_pre",  "title": "Starter",         "act": 1},
-		{"id": "act1_post", "title": "Breach Detected",  "act": 1},
-		{"id": "act2a_pre", "title": "Rush Job",          "act": 2},
-		{"id": "act2a_post","title": "A Helping Hand",    "act": 2},
-		{"id": "act2b_pre", "title": "Gachapon",          "act": 2},
-		{"id": "act2b_post","title": "What You Found",    "act": 2},
-	]
-
-	for entry in fiction_entries:
-		var fid: String = entry["id"]
-		var is_read := _campaign_state.is_fiction_read(fid)
-		var btn := Button.new()
-		btn.text = ("📄  %s" % entry["title"]) if is_read else "//  [ENCRYPTED]"
-		btn.disabled = not is_read
-		btn.add_theme_color_override("font_color",
-			Color(0.6, 0.8, 0.62) if is_read else Color(0.25, 0.3, 0.25))
-		btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		if is_read:
-			btn.pressed.connect(func(): _on_fiction_reread(fid))
-		_fiction_list_container.add_child(btn)
+	# Build archive dynamically from all missions — covers both runner and corp arcs.
+	var seen: Dictionary = {}
+	for mission in _campaign_state.get_all_missions():
+		var m: Dictionary = mission as Dictionary
+		var title: String = m.get("title", "")
+		for fid in [m.get("fiction_pre", ""), m.get("fiction_post", "")]:
+			if fid == "" or seen.has(fid):
+				continue
+			seen[fid] = true
+			var suffix: String = " (pre)" if fid.ends_with("_pre") else " (post)"
+			var display_title: String = title + suffix
+			var is_read: bool = _campaign_state.is_fiction_read(fid)
+			var cap_fid: String = fid
+			var btn := Button.new()
+			btn.text = "»  %s" % display_title if is_read else "//  [ENCRYPTED]"
+			btn.disabled = not is_read
+			btn.add_theme_color_override("font_color",
+				Color(0.6, 0.8, 0.62) if is_read else Color(0.25, 0.3, 0.25))
+			btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
+			btn.add_theme_font_size_override("font_size", 10)
+			if is_read:
+				btn.pressed.connect(func(): _on_fiction_reread(cap_fid))
+			_fiction_list_container.add_child(btn)
 
 
 # ── Event handlers ────────────────────────────────────────────────────────────

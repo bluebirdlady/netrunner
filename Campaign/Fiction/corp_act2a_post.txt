@@ -1,0 +1,15 @@
+VIRAL LOAD: CONTAINED
+by Desh Fuentes-Calloway
+
+The virus strings are still in the subnet when the final agenda scores. They hang there in the relay buffers like smoke after a fire — present, inert, no longer dangerous. Loup had deployed four of them. Three had propagated into the secondary nodes before the ICE pruned the pathways. One mutated into something the security team had not seen before, and that will require a separate analysis.
+
+But the agendas moved. That is the only number that matters.
+
+Loup disconnects mid-run on the third server access attempt. The logs capture the moment: a spike in junk data, a burst transmission to an unregistered relay address, and then nothing. Gone. Taking their viruses and their fury with them.
+
+The relay continues routing traffic for its forty-three partners. Packet loss: negligible. Downtime: zero.
+
+—
+Loup came to start a fire.
+You built the walls before they arrived.
+The Relay Hub hums, indifferent.

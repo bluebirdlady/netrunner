@@ -1,0 +1,21 @@
+LUCKY STRIKE
+by Orla Vaszquez-Nkosi
+
+The name in the file is Barry "Baz" Wong. The handle suggests someone who has been running for a while — long enough to acquire a nickname, long enough for the nickname to appear in official Syndicate incident records. The deck is Lucky Bravado.
+
+The intelligence note on Lucky Bravado is brief and characteristically understated: *high-variance play style. Baz accepts significant risk for high-reward outcomes. Credit-hungry. Threat spikes unpredictably.*
+
+The Syndicate's credit analysts have a phrase for the kind of runner who uses luck as a strategic asset: "volatility operator." Volatility operators are uncomfortable to face not because they are always dangerous but because they are unpredictably dangerous — there is a version of this engagement where Baz does something that the probability models classify as extremely unlikely and it works anyway.
+
+The Syndicate's fuel distribution center in Heinlein Lower Ring processes the logistical infrastructure for seventeen orbital platforms. It is not a facility that benefits from instability. The engines that push fuel through the distribution network require consistent, stable operation.
+
+Baz introduces instability by nature.
+
+Your task is to create a defensive position stable enough that even a lucky strike cannot dislodge it — to stack the facility with enough redundancy that probability in Baz's favor is not sufficient on its own to create a breach.
+
+Luck runs out. Make sure the Syndicate's luck lasts longer.
+
+—
+TARGET: Barry "Baz" Wong — Lucky Bravado
+FACILITY: Syndicate Fuel Distribution Center, Heinlein Lower Ring, Node 4
+OBJECTIVE: Negate volatility advantage. Advance distribution infrastructure agendas. Deny high-risk server runs.

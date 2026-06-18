@@ -12,13 +12,44 @@ extends RefCounted
 #   4. Install first program from hand if any
 #   5. Gain credits (fallback)
 
-const CREDIT_THRESHOLD := 5
-const MIN_HAND_SIZE    := 3
+const CREDIT_THRESHOLD          := 5
+const MIN_HAND_SIZE             := 3
+const CAMPAIGN_CREDIT_THRESHOLD := 8   # more aggressive economy in campaign mode
+const CAMPAIGN_MIN_HAND_SIZE    := 4
+
+# Pure economy events: safe to play whenever credits are below threshold.
+# Excludes draw events (Diesel), run events, and events with adversarial choices (Wildcat Strike).
+const ECONOMY_EVENT_IDS := [
+	"sure_gamble", "hedge_fund", "lucky_find", "bravado", "creative_commission"
+]
+# Approximate net credit gain for ranking; unlisted events default to 2.
+const ECONOMY_EVENT_NET_GAIN := {
+	"sure_gamble": 4, "hedge_fund": 4, "lucky_find": 6, "bravado": 4, "creative_commission": 3
+}
+# Run-enhancing events keyed to their mandatory target server ("" = any server).
+# These are played AS the run action, not before it.
+const RUN_EVENT_SERVERS := {
+	"legwork":            "hq",
+	"wanton_destruction": "hq",
+	"the_makers_eye":     "rd",
+	"dirty_laundry":      "",
+}
+# ICE subtype → required breaker subtype for coverage checks.
+const ICE_TO_BREAKER := {"barrier": "fracter", "code_gate": "decoder", "sentry": "killer"}
+
+# When true, SimRunnerAI acts as a live campaign opponent: plays events,
+# installs programs, and runs both centrals and remotes.
+# When false (default), optimises for MCTS rollout speed: no installs, no events.
+var campaign_runner_mode: bool = false
 
 
 # ── Turn-time interface ───────────────────────────────────────────────────────
 
 func choose_action(ctx: GameContext) -> GameAction:
+	if campaign_runner_mode:
+		return _campaign_choose_action(ctx)
+
+	# ── MCTS rollout path (fast, no installs) ─────────────────────────────────
 	# 1. Run a vulnerable remote (agenda present, affordable or unprotected).
 	var target := _find_run_target(ctx)
 	if target != "":
@@ -43,17 +74,121 @@ func choose_action(ctx: GameContext) -> GameAction:
 	return GameAction.gain_credits()
 
 
+# ── Campaign mode action selection ────────────────────────────────────────────
+
+func _campaign_choose_action(ctx: GameContext) -> GameAction:
+	# 0. If the rig is empty and a program is in hand, install it before anything else.
+	if _count_installed_programs(ctx) == 0:
+		var install_action := _find_installable_program(ctx)
+		if install_action != null:
+			return install_action
+
+	# 1. Play an economy event if credits are below threshold and hand has one.
+	if ctx.runner_credits < CAMPAIGN_CREDIT_THRESHOLD:
+		var event_action := _find_playable_event(ctx)
+		if event_action != null:
+			return event_action
+
+	# 2. Run a vulnerable remote.
+	var remote_target := _find_run_target(ctx)
+	if remote_target != "":
+		return GameAction.run(remote_target)
+
+	# 3. Run a central server (alternate HQ / R&D; skip if run there this turn).
+	var central_target := _find_central_run_target(ctx)
+	if central_target != "":
+		return GameAction.run(central_target)
+
+	# 4. Install a program from hand if we have fewer than 3 installed and can afford it.
+	if _count_installed_programs(ctx) < 3:
+		var install_action := _find_installable_program(ctx)
+		if install_action != null:
+			return install_action
+
+	# 5. Gain credits below threshold.
+	if ctx.runner_credits < CAMPAIGN_CREDIT_THRESHOLD:
+		return GameAction.gain_credits()
+
+	# 6. Draw if hand is small.
+	if ctx.runner_hand.size() < CAMPAIGN_MIN_HAND_SIZE and not ctx.runner_deck.is_empty():
+		return GameAction.draw_card()
+
+	# 7. Fallback.
+	return GameAction.gain_credits()
+
+
+func _find_playable_event(ctx: GameContext) -> GameAction:
+	# Pick the most cost-efficient affordable event in hand.
+	# Lower cost = likely better net gain relative to spend (Sure Gamble, Hedge Fund, etc.)
+	var best_record: CardRecord = null
+	var best_cost: int = 999
+	for entry in ctx.runner_hand:
+		var ed: Dictionary = entry as Dictionary
+		var record: CardRecord = ed.get("card_record", null) as CardRecord
+		if record == null or record.card_type != "event":
+			continue
+		var cost: int = record.cost if record.cost >= 0 else 0
+		if cost <= ctx.runner_credits and cost < best_cost:
+			best_cost    = cost
+			best_record  = record
+	if best_record != null:
+		return GameAction.play_operation(best_record)
+	return null
+
+
+func _find_central_run_target(ctx: GameContext) -> String:
+	# Prefer R&D if not yet run this turn, then HQ.
+	if "rd" not in ctx.runner_centrals_run_this_turn:
+		return "rd"
+	if "hq" not in ctx.runner_centrals_run_this_turn:
+		return "hq"
+	return ""
+
+
+func _count_installed_programs(ctx: GameContext) -> int:
+	var count := 0
+	for ic in ctx.runner_rig:
+		var c: InstalledCard = ic as InstalledCard
+		if c != null and c.card_record != null and c.card_record.card_type == "program":
+			count += 1
+	return count
+
+
+func _find_installable_program(ctx: GameContext) -> GameAction:
+	# Install the cheapest affordable program from hand.
+	var best_record: CardRecord = null
+	var best_cost: int = 999
+	for entry in ctx.runner_hand:
+		var ed: Dictionary = entry as Dictionary
+		var record: CardRecord = ed.get("card_record", null) as CardRecord
+		if record == null or record.card_type != "program":
+			continue
+		var cost: int = record.cost if record.cost >= 0 else 0
+		if cost <= ctx.runner_credits and cost < best_cost:
+			best_cost   = cost
+			best_record = record
+	if best_record != null:
+		return GameAction.install(best_record, "rig", "program")
+	return null
+
+
 func get_pre_click_rez_actions(_ctx: GameContext) -> Array:
 	return []
 
 
 # ── Run-time interface ────────────────────────────────────────────────────────
 
-func choose_jack_out(_ctx: GameContext) -> bool:
+func choose_jack_out(ctx: GameContext) -> bool:
+	if campaign_runner_mode and _count_installed_programs(ctx) == 0:
+		return true
 	return false
 
 
 func choose_encounter_action(encounter: EncounterState, ctx: GameContext) -> Dictionary:
+	if campaign_runner_mode:
+		return _campaign_choose_encounter_action(encounter, ctx)
+
+	# ── MCTS rollout path ─────────────────────────────────────────────────────
 	# MS-L004: Use Endurance to break remaining subs if it has ≥2 power counters
 	# and there are unbroken subroutines. Only as a last resort in simulation rollouts.
 	var unbroken: Array = encounter.unbroken_indices()
@@ -83,8 +218,124 @@ func choose_encounter_action(encounter: EncounterState, ctx: GameContext) -> Dic
 	return {"type": "done"}
 
 
-func choose_break_subroutines(_ice: InstalledCard, _subs: Array, _ctx: GameContext) -> Array:
-	return []
+# ── Campaign encounter action (subtype-aware) ─────────────────────────────────
+
+func _campaign_choose_encounter_action(encounter: EncounterState, ctx: GameContext) -> Dictionary:
+	var unbroken: Array = encounter.unbroken_indices()
+	if unbroken.is_empty():
+		return {"type": "done"}
+
+	# EncounterState.breakers_for_ice() handles fracter/barrier, decoder/code_gate,
+	# killer/sentry, ai/any, fracter_only_break restrictions, same_server_only
+	# trojans, and runtime-granted extra subtypes. Use it as the single source of truth.
+	var matched: Array = encounter.breakers_for_ice()
+	if matched.is_empty():
+		return {"type": "done"}
+
+	for b in matched:
+		var breaker: InstalledCard = b as InstalledCard
+		if breaker == null:
+			continue
+
+		if encounter.breaker_reaches(breaker):
+			# Breaker is at or above ICE strength — break the next unbroken sub.
+			return {"type": "break_subroutine", "card_id": breaker.card_id, "sub_index": unbroken[0]}
+
+		# Breaker is below ICE strength — try to pump it.
+		var boost: Dictionary = _campaign_boost_action(breaker, encounter, ctx)
+		if not boost.is_empty():
+			return boost
+		# This breaker can't be pumped enough; try the next matched breaker.
+
+	return {"type": "done"}
+
+
+func _campaign_boost_action(breaker: InstalledCard, encounter: EncounterState,
+		ctx: GameContext) -> Dictionary:
+	var ab_reg: AbilityRegistry = null
+	if ctx.has_meta("ability_registry"):
+		ab_reg = ctx.get_meta("ability_registry") as AbilityRegistry
+	if ab_reg == null:
+		return {}
+
+	var boost_def: Variant = ab_reg.get_boost(breaker.card_id)
+	if boost_def == null:
+		return {}   # no boost ability at all
+
+	var boost: Dictionary = boost_def as Dictionary
+	var str_gap: int  = encounter.effective_ice_strength() - encounter.get_breaker_strength(breaker)
+	if str_gap <= 0:
+		return {}   # already reaches (caller should not have asked)
+
+	var str_per_use: int = max(1, int(boost.get("strength_gained", 1)))
+	var times: int       = int(ceil(float(str_gap) / float(str_per_use)))
+
+	# ── Power-counter boost (e.g. Propeller: 1 counter → +2 str) ─────────────
+	var pwr_cost: int = int(boost.get("cost_power_counter", 0))
+	if pwr_cost > 0:
+		if breaker.get_counter("power") >= pwr_cost * times:
+			return {"type": "boost_strength", "card_id": breaker.card_id, "times": times}
+		return {}
+
+	# ── Virus-counter boost (e.g. Hantu: 1 virus → +2 str at 0cr cost) ──────
+	var counter_type: String = boost.get("counter", "")
+	if counter_type == "virus":
+		if breaker.get_counter("virus") >= times:
+			return {"type": "boost_strength", "card_id": breaker.card_id, "times": times}
+		return {}
+
+	# ── Standard credit boost (most icebreakers) ──────────────────────────────
+	# Exclude stealth, grip-trash, and other exotic cost types — the AI cannot
+	# easily sequence those without access to stealth credit pools or hand size checks.
+	if boost.get("costs_stealth", false) or boost.has("cost_trash_grip"):
+		return {}
+	var cost: int = int(boost.get("cost", -1))
+	if cost < 0:
+		return {}   # unknown cost format
+	var total_cost: int = cost * times
+	if ctx.runner_available_credits() >= total_cost:
+		return {"type": "boost_strength", "card_id": breaker.card_id, "times": times}
+
+	return {}
+
+
+func choose_break_subroutines(ice: InstalledCard, subs: Array, ctx: GameContext) -> Array:
+	if not campaign_runner_mode:
+		return []
+	if ice == null or ice.card_record == null or subs.is_empty():
+		return []
+
+	# Replicate EncounterState._breaker_matches_ice logic without access to an
+	# EncounterState instance. Merge printed and runtime-granted ICE subtypes.
+	var ice_subtypes: Array = ice.card_record.subtypes.duplicate()
+	for es in ice.extra_subtypes:
+		if not ice_subtypes.has(es):
+			ice_subtypes.append(es)
+
+	const MATCHES: Dictionary = {"fracter": "barrier", "decoder": "code_gate", "killer": "sentry"}
+
+	var has_match: bool = false
+	for rig_card in ctx.runner_rig:
+		var c: InstalledCard = rig_card as InstalledCard
+		if c == null or c.card_record == null or c.card_record.card_type != "program":
+			continue
+		var b_subs: Array = c.card_record.subtypes
+		for bt in MATCHES:
+			if b_subs.has(bt) and ice_subtypes.has(MATCHES[bt]):
+				has_match = true
+				break
+		if not has_match and b_subs.has("ai"):
+			has_match = true
+		if has_match:
+			break
+
+	if not has_match:
+		return []
+
+	var indices: Array = []
+	for i in range(subs.size()):
+		indices.append(i)
+	return indices
 
 
 func choose_spend_click_to_continue(ctx: GameContext) -> bool:

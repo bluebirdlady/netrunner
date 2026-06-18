@@ -1,0 +1,17 @@
+SIGNAL INTEGRITY: MAINTAINED
+by Nneka Adewale-Mortimer
+
+The tap attempt came at 0214. Tao had been watching the Array's traffic patterns for six hours prior, building a timing model precise enough to identify a seventeen-second window in the encryption cycle where packet-level interception was theoretically viable.
+
+Theoretically.
+
+The window had been closed at 2300 the previous evening, during a standard maintenance cycle that was, on this occasion, not standard at all. The Syndicate's counterintelligence division had received the inference team's report at 1800. By 2300, the gap was gone.
+
+Tao hit a sealed wall at 0214 and spent the next forty minutes trying to find another way in. The comms-related agendas scored at 0251 and 0309. By 0340, the Array had processed ninety thousand packets of corporate traffic without a single interception event.
+
+The anonymous message drops on the runner board went quiet after that. Whoever had been feeding Tao the tactical analysis had, apparently, run out of useful things to say.
+
+—
+The wire held.
+Whatever Tao was supposed to find in the Array's traffic — it wasn't there.
+The signal passed clean, sealed, untouchable, as it always should have been.

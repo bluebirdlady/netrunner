@@ -1,0 +1,17 @@
+THREAD SEVERED
+by Desh Fuentes-Calloway
+
+Loup found the Archive Node's outer firewall on the third approach. By then it had been reinforced twice — and the subroutines that had been present in the Relay Hub, the familiar patterns Loup might have been hoping to exploit, had been rotated out and replaced.
+
+The virus suite deployed faster than in the previous engagement. Loup had been saving credit. Preparing. But the Archive Node architecture did not behave the way the Relay Hub had, and the ICE encountered different rig configurations. There was hesitation in the access logs — three seconds here, two seconds there. A runner recalculating.
+
+The Crow documents moved to secure escrow before Loup reached the second server. By the time they hit the inner firewall, the thread was gone. The routing table had been purged and rebuilt. Project Crow does not appear in any node they can access.
+
+Loup disconnected without a clean handshake — unusual, indicative of a rig under memory stress.
+
+In the archive debrief, Yemisi Arfewi adds a note to the Project Crow file: RUNNER AWARENESS — ELEVATED. COMPARTMENTALIZATION PROTOCOL: ACTIVE.
+
+—
+Loup pulled the thread.
+It came away clean in their hand — attached to nothing.
+Project Crow remains yours.

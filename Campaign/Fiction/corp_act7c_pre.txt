@@ -1,0 +1,21 @@
+THE PACK
+by Desh Fuentes-Calloway
+
+René "Loup" Arcemont. The handle means wolf in a language the Syndicate does not widely speak, and the intelligence division's cultural annotation notes this with the same dry precision it brings to everything: *a runner who has chosen a predator's name. Approach accordingly.*
+
+Trickster Paladin is a social engineering deck — not purely technical. Loup's tools include elements that exploit the Syndicate's own personnel infrastructure: systems that intercept the human-facing layers of security, tools that create false access permissions in the windows between ICE layers. A runner who tricks rather than breaks.
+
+This is a coalition player. The Syndicate's intelligence team has placed Loup in the inner circle of Hiram 0mission's network — not a contractor but a collaborator. Someone who knows the coalition's long-term objectives.
+
+The Syndicate's personnel management center in Lunacent Sublevel 9 handles employee access credentials, performance reviews, internal audit reports. A social engineering specialist in the personnel system is a particular kind of nightmare: the damage is not in what they take but in what they can change, and changed access credentials persist beyond the engagement window.
+
+"If Loup gets into the personnel core, we're not dealing with a single breach," your supervisor says. "We're dealing with a vector that stays open."
+
+The pack hunts with the pack's strategy. A lone wolf in our systems is already not alone.
+
+Shut the door before the pack comes through.
+
+—
+TARGET: René "Loup" Arcemont — Trickster Paladin
+FACILITY: Syndicate Personnel Management Center, Lunacent Sublevel 9
+OBJECTIVE: Deny personnel core access. Protect credential infrastructure. Advance HR management agendas.
