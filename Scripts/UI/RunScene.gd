@@ -13,6 +13,7 @@ extends CanvasLayer
 class_name RunScene
 
 signal run_complete
+signal run_phase_end_started   # fires synchronously when phase changes to END, before the display pause
 
 # ── Signals used for async decision resolution ────────────────────────────────
 signal encounter_action_resolved(action: Dictionary)
@@ -390,6 +391,11 @@ func _on_phase_changed(phase: RunStateMachine.Phase) -> void:
 		# Remove the display callback so it doesn't reference this freed scene
 		if ctx.has_meta("on_card_display_done"):
 			ctx.remove_meta("on_card_display_done")
+		# Restore decision proxies to GameUI immediately (synchronously) so that
+		# any run_end triggers (e.g. Boomerang recur) use GameUI prompts rather
+		# than RunScene prompts — RunScene will be freed after the display pause
+		# and its signals would never resolve if awaited past that point.
+		run_phase_end_started.emit()
 		await get_tree().create_timer(0.8).timeout
 		run_complete.emit()
 

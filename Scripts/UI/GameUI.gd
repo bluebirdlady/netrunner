@@ -2717,10 +2717,10 @@ func show_mu_trash_prompt(programs: Array, excess_mu: int) -> Array:
 		)
 
 	vbox.add_child(confirm_btn)
-	var done := false
-	confirm_btn.pressed.connect(func(): done = true)
+	var done := [false]
+	confirm_btn.pressed.connect(func(): done[0] = true)
 
-	while not done:
+	while not done[0]:
 		await get_tree().process_frame
 
 	backdrop.queue_free()

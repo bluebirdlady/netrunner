@@ -42,6 +42,10 @@ const ICE_TO_BREAKER := {"barrier": "fracter", "code_gate": "decoder", "sentry":
 # When false (default), optimises for MCTS rollout speed: no installs, no events.
 var campaign_runner_mode: bool = false
 
+# Lazy-initialised; only created when campaign_runner_mode is first used.
+var _evaluator: RunnerStateEvaluator = null
+var _planner:   RunnerTurnPlanner    = null
+
 
 # ── Turn-time interface ───────────────────────────────────────────────────────
 
@@ -77,71 +81,70 @@ func choose_action(ctx: GameContext) -> GameAction:
 # ── Campaign mode action selection ────────────────────────────────────────────
 
 func _campaign_choose_action(ctx: GameContext) -> GameAction:
-	# 0. If the rig is empty and a program is in hand, install it before anything else.
-	if _count_installed_programs(ctx) == 0:
-		var install_action := _find_installable_program(ctx)
-		if install_action != null:
-			return install_action
-
-	# 1. Play an economy event if credits are below threshold and hand has one.
-	if ctx.runner_credits < CAMPAIGN_CREDIT_THRESHOLD:
-		var event_action := _find_playable_event(ctx)
-		if event_action != null:
-			return event_action
-
-	# 2. Run a vulnerable remote.
-	var remote_target := _find_run_target(ctx)
-	if remote_target != "":
-		return GameAction.run(remote_target)
-
-	# 3. Run a central server (alternate HQ / R&D; skip if run there this turn).
-	var central_target := _find_central_run_target(ctx)
-	if central_target != "":
-		return GameAction.run(central_target)
-
-	# 4. Install a program from hand if we have fewer than 3 installed and can afford it.
-	if _count_installed_programs(ctx) < 3:
-		var install_action := _find_installable_program(ctx)
-		if install_action != null:
-			return install_action
-
-	# 5. Gain credits below threshold.
-	if ctx.runner_credits < CAMPAIGN_CREDIT_THRESHOLD:
+	# Delegate to the turn planner, which evaluates all remaining clicks as a
+	# unit via beam search and returns the first action of the best sequence.
+	if _evaluator == null:
+		_evaluator = RunnerStateEvaluator.new()
+	if _planner == null:
+		_planner = RunnerTurnPlanner.new(_evaluator)
+	var snap: Dictionary = _evaluator.snapshot(ctx)
+	if (snap.get("runner_clicks_left", 0) as int) <= 0:
 		return GameAction.gain_credits()
-
-	# 6. Draw if hand is small.
-	if ctx.runner_hand.size() < CAMPAIGN_MIN_HAND_SIZE and not ctx.runner_deck.is_empty():
-		return GameAction.draw_card()
-
-	# 7. Fallback.
-	return GameAction.gain_credits()
+	return _planner.plan_first_action(snap, ctx)
 
 
-func _find_playable_event(ctx: GameContext) -> GameAction:
-	# Pick the most cost-efficient affordable event in hand.
-	# Lower cost = likely better net gain relative to spend (Sure Gamble, Hedge Fund, etc.)
+func _find_economy_event(ctx: GameContext) -> GameAction:
+	# Play the highest net-gain affordable economy event from hand.
 	var best_record: CardRecord = null
-	var best_cost: int = 999
+	var best_net: int = -999
 	for entry in ctx.runner_hand:
 		var ed: Dictionary = entry as Dictionary
 		var record: CardRecord = ed.get("card_record", null) as CardRecord
 		if record == null or record.card_type != "event":
 			continue
+		if record.id not in ECONOMY_EVENT_IDS:
+			continue
 		var cost: int = record.cost if record.cost >= 0 else 0
-		if cost <= ctx.runner_credits and cost < best_cost:
-			best_cost    = cost
-			best_record  = record
+		if cost > ctx.runner_credits:
+			continue
+		var net: int = ECONOMY_EVENT_NET_GAIN.get(record.id, 2)
+		if net > best_net:
+			best_net    = net
+			best_record = record
 	if best_record != null:
 		return GameAction.play_operation(best_record)
 	return null
 
 
+func _find_run_event_for_server(ctx: GameContext, server_id: String) -> GameAction:
+	# Returns a run-enhancing event to play AS the run action on the given server.
+	# Events with target "" work on any server (e.g. Dirty Laundry).
+	for entry in ctx.runner_hand:
+		var ed: Dictionary = entry as Dictionary
+		var record: CardRecord = ed.get("card_record", null) as CardRecord
+		if record == null or record.card_type != "event":
+			continue
+		if not RUN_EVENT_SERVERS.has(record.id):
+			continue
+		var cost: int = record.cost if record.cost >= 0 else 0
+		if cost > ctx.runner_credits:
+			continue
+		var target: String = RUN_EVENT_SERVERS[record.id] as String
+		if target == "" or target == server_id:
+			return GameAction.play_operation(record)
+	return null
+
+
 func _find_central_run_target(ctx: GameContext) -> String:
-	# Prefer R&D if not yet run this turn, then HQ.
-	if "rd" not in ctx.runner_centrals_run_this_turn:
-		return "rd"
-	if "hq" not in ctx.runner_centrals_run_this_turn:
-		return "hq"
+	# Prefer R&D, then HQ; skip servers where we lack breaker coverage (campaign mode).
+	for server_id in ["rd", "hq"]:
+		if server_id in ctx.runner_centrals_run_this_turn:
+			continue
+		if campaign_runner_mode:
+			var s: Server = ctx.servers.get(server_id, null) as Server
+			if s != null and not _can_runner_break_server(s, ctx):
+				continue
+		return server_id
 	return ""
 
 
@@ -155,8 +158,39 @@ func _count_installed_programs(ctx: GameContext) -> int:
 
 
 func _find_installable_program(ctx: GameContext) -> GameAction:
-	# Install the cheapest affordable program from hand.
+	# Score candidates by gap-filling priority:
+	#   2 = fills a missing breaker type against currently rezzed ICE
+	#   1 = any icebreaker subtype (future proofing)
+	#   0 = utility program (Rezeki, etc.)
+	# Within the same score tier, prefer lower cost.
+
+	# Build the set of breaker subtypes already installed.
+	var covered: Array = []
+	for rig_any in ctx.runner_rig:
+		var b: InstalledCard = rig_any as InstalledCard
+		if b == null or b.card_record == null or b.card_record.card_type != "program":
+			continue
+		for sub in b.card_record.subtypes:
+			if sub not in covered:
+				covered.append(sub)
+
+	# Determine which breaker subtypes are actually needed (rezzed ICE present, no matching breaker).
+	var needed: Array = []
+	for key in ctx.servers:
+		var s: Server = ctx.servers[key] as Server
+		if s == null:
+			continue
+		for ice_any in s.ice:
+			var ic: InstalledCard = ice_any as InstalledCard
+			if ic == null or not ic.is_rezzed or ic.card_record == null:
+				continue
+			for subtype in ic.card_record.subtypes:
+				var req: String = ICE_TO_BREAKER.get(subtype, "")
+				if req != "" and req not in covered and req not in needed:
+					needed.append(req)
+
 	var best_record: CardRecord = null
+	var best_score: int = -1
 	var best_cost: int = 999
 	for entry in ctx.runner_hand:
 		var ed: Dictionary = entry as Dictionary
@@ -164,11 +198,21 @@ func _find_installable_program(ctx: GameContext) -> GameAction:
 		if record == null or record.card_type != "program":
 			continue
 		var cost: int = record.cost if record.cost >= 0 else 0
-		if cost <= ctx.runner_credits and cost < best_cost:
+		if cost > ctx.runner_credits:
+			continue
+		var score := 0
+		for sub in record.subtypes:
+			if sub in needed:
+				score = 2
+				break
+			if sub in ["fracter", "decoder", "killer", "ai"]:
+				score = maxi(score, 1)
+		if score > best_score or (score == best_score and cost < best_cost):
+			best_score  = score
 			best_cost   = cost
 			best_record = record
 	if best_record != null:
-		return GameAction.install(best_record, "rig", "program")
+		return GameAction.install(best_record, "runner_rig", "program")
 	return null
 
 
@@ -178,9 +222,9 @@ func get_pre_click_rez_actions(_ctx: GameContext) -> Array:
 
 # ── Run-time interface ────────────────────────────────────────────────────────
 
-func choose_jack_out(ctx: GameContext) -> bool:
-	if campaign_runner_mode and _count_installed_programs(ctx) == 0:
-		return true
+func choose_jack_out(_ctx: GameContext) -> bool:
+	# Never jack out mid-run in campaign mode — run quality is filtered at choose_action
+	# time by _can_runner_break_server before the run starts.
 	return false
 
 
@@ -633,6 +677,48 @@ func choose_card_to_charge(candidates: Array, _ctx: GameContext) -> InstalledCar
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
+func _has_breaker_for_ice(ic: InstalledCard, ctx: GameContext) -> bool:
+	# Returns true if the runner has a rig program that can break this ICE's subroutines.
+	# AI breakers handle all types. For others, any one subtype match is sufficient.
+	if ic == null or ic.card_record == null:
+		return true
+	for rig_any in ctx.runner_rig:
+		var b: InstalledCard = rig_any as InstalledCard
+		if b != null and b.card_record != null and b.card_record.subtypes.has("ai"):
+			return true
+	for subtype in ic.card_record.subtypes:
+		var needed: String = ICE_TO_BREAKER.get(subtype, "")
+		if needed == "":
+			continue
+		for rig_any in ctx.runner_rig:
+			var b: InstalledCard = rig_any as InstalledCard
+			if b != null and b.card_record != null and b.card_record.subtypes.has(needed):
+				return true
+	for subtype in ic.card_record.subtypes:
+		if ICE_TO_BREAKER.has(subtype):
+			return false  # classifiable subtype present but no matching breaker found
+	return true  # no classifiable subtypes — assume passable
+
+
+func _can_runner_break_server(server: Server, ctx: GameContext) -> bool:
+	# Returns true if the runner has breaker coverage for every rezzed ICE on the server
+	# and enough credits to cover estimated break costs plus an unrezzed ICE buffer.
+	# Budget: 2cr per rezzed piece (break cost) + 1cr per unrezzed (Corp may rez during the run).
+	var rezzed_count := 0
+	var unrezzed_count := 0
+	for ice_any in server.ice:
+		var ic: InstalledCard = ice_any as InstalledCard
+		if ic == null:
+			continue
+		if not ic.is_rezzed:
+			unrezzed_count += 1
+			continue
+		rezzed_count += 1
+		if not _has_breaker_for_ice(ic, ctx):
+			return false
+	return ctx.runner_credits >= rezzed_count * 2 + unrezzed_count
+
+
 func _find_run_target(ctx: GameContext) -> String:
 	for key in ctx.servers:
 		var s: Server = ctx.servers[key] as Server
@@ -641,8 +727,12 @@ func _find_run_target(ctx: GameContext) -> String:
 		var agenda: InstalledCard = s.get_agenda_or_asset()
 		if agenda == null or agenda.card_record == null or not agenda.card_record.is_agenda():
 			continue
-		# Consider the remote runnable if it has no ice or the runner has enough credits.
-		var ice_count: int = s.ice_count()
-		if ice_count == 0 or ctx.runner_credits >= ice_count * 2:
-			return s.server_id
+		if campaign_runner_mode:
+			if not _can_runner_break_server(s, ctx):
+				continue
+		else:
+			var ice_count: int = s.ice_count()
+			if not (ice_count == 0 or ctx.runner_credits >= ice_count * 2):
+				continue
+		return s.server_id
 	return ""

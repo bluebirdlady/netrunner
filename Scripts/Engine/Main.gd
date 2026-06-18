@@ -299,6 +299,10 @@ func _open_run_scene(server_id: String) -> void:
 	_run_scene = RunScene.new()
 	add_child(_run_scene)
 	_run_scene.setup(ctx, ability_registry, run_machine)
+	# Restore decision proxies to GameUI as soon as the run enters END phase so
+	# that run_end triggers (e.g. Boomerang recur) use GameUI prompts, which
+	# persist past RunScene's 0.8-second display pause and queue_free.
+	_run_scene.run_phase_end_started.connect(_on_run_phase_end_started, CONNECT_ONE_SHOT)
 	_run_scene.run_complete.connect(_on_run_scene_complete, CONNECT_ONE_SHOT)
 
 	# Redirect all runner decisions to RunScene
@@ -308,12 +312,22 @@ func _open_run_scene(server_id: String) -> void:
 	_run_scene.start_run(server_id)
 
 
+func _on_run_phase_end_started() -> void:
+	# Called synchronously when RunScene enters END phase, before its 0.8-second
+	# display pause. Restoring proxies here ensures run_end ability triggers that
+	# require player input (e.g. Boomerang recur) use GameUI prompts rather than
+	# RunScene prompts, which will be freed after the display pause.
+	_wire_proxies_to_game_ui()
+
+
 func _on_run_scene_complete() -> void:
 	if _run_scene != null:
 		_run_scene.queue_free()
 		_run_scene = null
 
-	# Restore proxies to GameUI
+	# Proxies were already restored in _on_run_phase_end_started; call again to
+	# ensure they're correct in case the run ended without passing through END
+	# phase (e.g. jack-out paths that bypass _on_phase_changed).
 	_wire_proxies_to_game_ui()
 	game_ui._update_all_displays()
 
