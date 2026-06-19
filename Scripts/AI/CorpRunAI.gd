@@ -59,7 +59,9 @@ func _should_rez_ice(card: InstalledCard, ctx: GameContext) -> bool:
 		return false
 
 	# Gate 2: will we stay above the credit floor?
-	if ctx.corp_credits - rez_cost < CREDIT_FLOOR:
+	# Exception: never refuse to rez ICE that is the only thing standing between
+	# the runner and an immediate agenda steal — a stolen agenda is permanent.
+	if ctx.corp_credits - rez_cost < CREDIT_FLOOR and not _ice_protects_agenda_remote(card, ctx):
 		_log("AI: rezzing %s would drop below credit floor — holding." % record.title)
 		return false
 
@@ -153,6 +155,23 @@ func _log(message: String) -> void:
 		print("[CorpRunAI] " + message)
 
 
+# Returns true when this ICE is the outermost layer protecting a remote server
+# that contains an unscored agenda.  Used to bypass the credit floor: the Corp
+# should always rez ICE in front of an accessible agenda rather than let the
+# runner steal it for free just to preserve a credit buffer.
+func _ice_protects_agenda_remote(ice: InstalledCard, ctx: GameContext) -> bool:
+	if ice.server_id in ["rd", "hq", "archives"]:
+		return false   # centrals: apply floor normally
+	var server: Server = ctx.get_server(ice.server_id)
+	if server == null:
+		return false
+	for card_any in server.root:
+		var ic: InstalledCard = card_any as InstalledCard
+		if ic != null and ic.card_record != null and ic.card_record.is_agenda():
+			return true
+	return false
+
+
 # ── Lifetime-value ice rezzing ────────────────────────────────────────────────
 #
 # Ice that is rezzed persists. Every future run through this server will have
@@ -178,7 +197,11 @@ func should_rez_ice(ice: InstalledCard, ctx: GameContext) -> bool:
 		return false
 
 	# Hard gate: must stay above dynamic credit floor.
-	if ctx.corp_credits - rez_cost < _dynamic_credit_floor(ctx):
+	# Exception: never hold a rez just to maintain liquidity when the runner is
+	# approaching a server with an agenda — a stolen agenda is worth far more
+	# than any credit buffer.
+	if ctx.corp_credits - rez_cost < _dynamic_credit_floor(ctx) \
+			and not _ice_protects_agenda_remote(ice, ctx):
 		_log("AI: rezzing %s would breach credit floor — holding." % ice.card_record.title)
 		return false
 

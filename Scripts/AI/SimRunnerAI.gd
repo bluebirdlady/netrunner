@@ -282,8 +282,22 @@ func _campaign_choose_encounter_action(encounter: EncounterState, ctx: GameConte
 			continue
 
 		if encounter.breaker_reaches(breaker):
-			# Breaker is at or above ICE strength — break the next unbroken sub.
-			return {"type": "break_subroutine", "card_id": breaker.card_id, "sub_index": unbroken[0]}
+			# Breaker is at or above ICE strength — break the next unbroken sub,
+			# but only if the runner can actually afford the cost. Returning a
+			# break the runner can't pay causes an infinite loop in the encounter
+			# window (the engine logs "Cannot afford" and loops without advancing).
+			var _crb_ab_reg: AbilityRegistry = ctx.get_meta("ability_registry") as AbilityRegistry \
+				if ctx.has_meta("ability_registry") else null
+			var _crb_cost: int = 1
+			if _crb_ab_reg != null:
+				var _crb_ice_subs: Array = encounter.ice_card.card_record.subtypes \
+					if encounter.ice_card != null and encounter.ice_card.card_record != null else []
+				var _crb_bdef: Variant = _crb_ab_reg.get_break_for_ice(breaker.card_id, _crb_ice_subs)
+				if _crb_bdef != null:
+					_crb_cost = (_crb_bdef as Dictionary).get("cost_per_sub", 1)
+			if ctx.runner_available_credits() >= _crb_cost:
+				return {"type": "break_subroutine", "card_id": breaker.card_id, "sub_index": unbroken[0]}
+			# Can't afford this breaker's sub cost — try the next matched breaker.
 
 		# Breaker is below ICE strength — try to pump it.
 		var boost: Dictionary = _campaign_boost_action(breaker, encounter, ctx)

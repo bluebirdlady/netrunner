@@ -59,6 +59,14 @@ var _ctx:         GameContext
 var _turn_count:  int = 0
 var _action_count: int = 0
 var _click_index: int = 0
+var _last_beat_msec: int = 0
+
+func _process(_delta: float) -> void:
+	var now := Time.get_ticks_msec()
+	if now - _last_beat_msec >= 5000:
+		_last_beat_msec = now
+		print("[heartbeat] alive — turn %d, actions %d, time %ds" % [
+			_turn_count, _action_count, now / 1000])
 
 
 # ── Entry point ───────────────────────────────────────────────────────────────
@@ -113,6 +121,9 @@ func _run_game() -> void:
 	_ctx.servers["archives"] = Server.make("archives")
 
 	var corp_brain   := CorpTurnAI_MCTS.new(ab)
+	# Reduce MCTS iterations for self-play — 20 is enough to observe strategic behavior
+	# without the ~1s-per-action cost of the full 100-iteration search.
+	corp_brain._turn_tree.iterations = 20
 	var runner_brain := SimRunnerAI.new()
 	runner_brain.campaign_runner_mode = true
 	_ctx.corp_decision_maker   = corp_brain

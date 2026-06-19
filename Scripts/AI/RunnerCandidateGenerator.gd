@@ -1,6 +1,8 @@
 class_name RunnerCandidateGenerator
 extends RefCounted
 
+const AiCardHints = preload("res://Scripts/AI/AiCardHints.gd")
+
 # ── RunnerCandidateGenerator ──────────────────────────────────────────────────
 # Generates legal Runner click actions from a SimState snapshot without access
 # to a live GameContext.  Mirrors SnapshotCandidateGenerator for the runner.
@@ -47,9 +49,25 @@ static func _add_basic(out: Array, snap: Dictionary) -> void:
 	# Gain credits — always available (capped to prevent infinite credit plans)
 	if (snap.get("runner_credits", 0) as int) < 20:
 		out.append(GameAction.gain_credits())
-	# Draw — available if stack has cards and grip is below max
-	if (snap.get("runner_deck", 0) as int) > 0 \
-			and (snap.get("runner_hand_size", 0) as int) < 8:
+	# Draw — the ceiling depends on whether the runner currently lacks breakers.
+	# Normally we stop at the hand limit (drawing past it just produces a discard
+	# at turn end with no net gain).  When no breakers are installed the runner
+	# is locked out of defended servers and must cycle the deck to find one;
+	# drawing over the limit is then productive (one of those cards could be a
+	# breaker worth ~40 utility points), so we raise the ceiling to allow
+	# multi-click search sequences across turns.  The evaluator clamps grip reward
+	# at +4 above MIN_HAND (= 8 cards at default limit), so using hand_lim+3 as
+	# the search ceiling matches the highest-rewarded state without generating
+	# candidates the evaluator can't distinguish anyway.
+	var hand_sz: int   = snap.get("runner_hand_size",  0) as int
+	var hand_lim: int  = snap.get("runner_hand_limit", 5) as int
+	var has_dead: bool = snap.get("runner_has_dead_card", false) as bool
+	var needs_breaker: bool = not (snap.get("runner_has_fracter", false) as bool) \
+		and not (snap.get("runner_has_decoder", false) as bool) \
+		and not (snap.get("runner_has_killer",  false) as bool) \
+		and not (snap.get("runner_has_ai",      false) as bool)
+	var draw_ceiling: int = (hand_lim + 3) if needs_breaker else hand_lim
+	if (snap.get("runner_deck", 0) as int) > 0 and (hand_sz < draw_ceiling or has_dead):
 		out.append(GameAction.draw_card())
 
 
@@ -70,9 +88,18 @@ static func _add_events(out: Array, snap: Dictionary) -> void:
 			out.append(GameAction.play_operation(record))
 			continue
 
-		# Draw events: candidate when grip is below maximum
+		# Draw events (Diesel, Quality Time): normally only offered below the hand
+		# limit.  When searching for breakers, allow up to hand_lim+2 so the runner
+		# can invest a click+card into finding one even at a full grip.
 		if DRAW_NET.has(record.id):
-			if (snap.get("runner_hand_size", 0) as int) < 6:
+			var ev_hand_lim: int = snap.get("runner_hand_limit", 5) as int
+			var ev_needs_breaker: bool = \
+				not (snap.get("runner_has_fracter", false) as bool) \
+				and not (snap.get("runner_has_decoder", false) as bool) \
+				and not (snap.get("runner_has_killer",  false) as bool) \
+				and not (snap.get("runner_has_ai",      false) as bool)
+			var ev_ceiling: int = (ev_hand_lim + 2) if ev_needs_breaker else ev_hand_lim
+			if (snap.get("runner_hand_size", 0) as int) < ev_ceiling:
 				out.append(GameAction.play_operation(record))
 			continue
 
@@ -93,9 +120,16 @@ static func _add_events(out: Array, snap: Dictionary) -> void:
 				if target not in ran:
 					out.append(GameAction.play_operation(record))
 
+		# Hint-based events: offered when all declared conditions are met
+		elif AiCardHints.has_hint(record.id):
+			if AiCardHints.condition_met(record.id, snap):
+				out.append(GameAction.play_operation(record))
+
 
 static func _add_installs(out: Array, snap: Dictionary) -> void:
-	var cr: int = snap.get("runner_credits", 0) as int
+	var cr: int      = snap.get("runner_credits", 0) as int
+	var mu_used: int = snap.get("runner_mu_used",  0) as int
+	var mu_max: int  = snap.get("runner_mu_max",   4) as int
 	# Cap total programs to prevent rig overflow in simulation
 	if (snap.get("runner_prg_count", 0) as int) >= 4:
 		return
@@ -106,30 +140,43 @@ static func _add_installs(out: Array, snap: Dictionary) -> void:
 		var cost: int = maxi(0, record.cost)
 		if cost > cr:
 			continue
+		# MU check: don't offer installs that would exceed memory limit.
+		var mu_cost: int = record.memory_cost if record.memory_cost > 0 else 1
+		if mu_used + mu_cost > mu_max:
+			continue
 		out.append(GameAction.install(record, "runner_rig", "program"))
 
 
 static func _add_runs(out: Array, snap: Dictionary) -> void:
-	var cr:          int  = snap.get("runner_credits", 0) as int
-	var ran:         Array = snap.get("centrals_run",   []) as Array
-	var has_fracter: bool = snap.get("runner_has_fracter", false) as bool
-	var has_decoder: bool = snap.get("runner_has_decoder", false) as bool
-	var has_killer:  bool = snap.get("runner_has_killer",  false) as bool
-	var has_ai:      bool = snap.get("runner_has_ai",      false) as bool
-	var has_any:     bool = has_fracter or has_decoder or has_killer or has_ai
+	var cr:          int   = snap.get("runner_credits",   0) as int
+	var corp_cr:     int   = snap.get("corp_credits",     0) as int
+	var ran:         Array = snap.get("centrals_run",    []) as Array
+	var has_fracter: bool  = snap.get("runner_has_fracter", false) as bool
+	var has_decoder: bool  = snap.get("runner_has_decoder", false) as bool
+	var has_killer:  bool  = snap.get("runner_has_killer",  false) as bool
+	var has_ai:      bool  = snap.get("runner_has_ai",      false) as bool
+	var has_any:     bool  = has_fracter or has_decoder or has_killer or has_ai
+
+	# Per-piece cost for unrezzed ICE, scaled by Corp credits.
+	# A wealthy Corp is essentially certain to rez on approach.
+	var unrez_per_ice: int = _unrezzed_ice_cost(corp_cr)
 
 	# R&D run
 	if "rd" not in ran:
-		var rd_cost: int = (snap.get("rd_rezzed", 0) as int) * 2 \
-			+ (snap.get("rd_unrezzed", 0) as int)
+		var rd_rezzed_cost: int = snap.get("break_cost_rd",
+			(snap.get("rd_rezzed", 0) as int) * 2) as int
+		var rd_cost: int = rd_rezzed_cost \
+			+ (snap.get("rd_unrezzed", 0) as int) * unrez_per_ice
 		var rd_breakable: bool = (snap.get("rd_rezzed", 0) as int) == 0 or has_any
 		if cr >= rd_cost and rd_breakable:
 			out.append(GameAction.run("rd"))
 
 	# HQ run
 	if "hq" not in ran:
-		var hq_cost: int = (snap.get("hq_rezzed", 0) as int) * 2 \
-			+ (snap.get("hq_unrezzed", 0) as int)
+		var hq_rezzed_cost: int = snap.get("break_cost_hq",
+			(snap.get("hq_rezzed", 0) as int) * 2) as int
+		var hq_cost: int = hq_rezzed_cost \
+			+ (snap.get("hq_unrezzed", 0) as int) * unrez_per_ice
 		var hq_breakable: bool = (snap.get("hq_rezzed", 0) as int) == 0 or has_any
 		if cr >= hq_cost and hq_breakable:
 			out.append(GameAction.run("hq"))
@@ -140,13 +187,24 @@ static func _add_runs(out: Array, snap: Dictionary) -> void:
 		var server_id: String = rd.get("server_id", "") as String
 		if not rd.get("has_agenda", false) or server_id in ran:
 			continue
-		var cost: int = (rd.get("rezzed_count", 0) as int) * 2 \
-			+ (rd.get("unrezzed_count", 0) as int)
+		var remote_rezzed_cost: int = rd.get("break_cost",
+			(rd.get("rezzed_count", 0) as int) * 2) as int
+		var cost: int = remote_rezzed_cost \
+			+ (rd.get("unrezzed_count", 0) as int) * unrez_per_ice
 		if cr < cost:
 			continue
 		if not _remote_breakable(rd, has_fracter, has_decoder, has_killer, has_ai):
 			continue
 		out.append(GameAction.run(server_id))
+
+
+# Per-piece credit cost to budget for unrezzed ICE, scaled by Corp credits.
+# Mirrors RunnerStateEvaluator._unrezzed_ice_cost_per_piece — must stay in sync.
+static func _unrezzed_ice_cost(corp_cr: int) -> int:
+	if corp_cr < 4:  return 1
+	if corp_cr < 8:  return 2
+	if corp_cr < 12: return 3
+	return 4
 
 
 static func _remote_breakable(

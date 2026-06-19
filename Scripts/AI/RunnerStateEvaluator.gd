@@ -1,6 +1,8 @@
 class_name RunnerStateEvaluator
 extends RefCounted
 
+const AiCardHints = preload("res://Scripts/AI/AiCardHints.gd")
+
 # ── RunnerStateEvaluator ──────────────────────────────────────────────────────
 # Converts a live GameContext into a lightweight SimState snapshot and
 # evaluates runner turn plans from the runner's perspective.
@@ -81,30 +83,54 @@ func snapshot(ctx: GameContext) -> Dictionary:
 	snap["runner_deck"]        = ctx.runner_deck.size()
 	snap["runner_score"]       = ctx.runner_agenda_points()
 	snap["corp_score"]         = ctx.corp_agenda_points()
+	snap["corp_credits"]       = ctx.corp_credits
 	snap["pts_to_win"]         = ctx.agenda_points_to_win
 	snap["runner_clicks_left"] = ctx.runner_clicks
 	snap["centrals_run"]       = ctx.runner_centrals_run_this_turn.duplicate()
 	snap["agenda_pts_accrued"] = 0.0
 
-	# Hand cards — store CardRecord references (cheap; not cloned)
+	# Hand cards — store CardRecord references (cheap; not cloned).
+	# Also track composition flags needed by AiCardHints condition evaluator.
 	var hand_cards: Array = []
+	var hand_has_prg_hw    := false
+	var hand_has_resource  := false
+	var installable_count  := 0
 	for entry in ctx.runner_hand:
 		var rec: CardRecord = (entry as Dictionary).get("card_record", null) as CardRecord
-		if rec != null:
-			hand_cards.append(rec)
-	snap["runner_hand_cards"] = hand_cards
+		if rec == null:
+			continue
+		hand_cards.append(rec)
+		match rec.card_type:
+			"program", "hardware":
+				hand_has_prg_hw = true
+				if maxi(0, rec.cost) <= ctx.runner_credits:
+					installable_count += 1
+			"resource":
+				hand_has_resource = true
+				if maxi(0, rec.cost) <= ctx.runner_credits:
+					installable_count += 1
+	snap["runner_hand_cards"]             = hand_cards
+	snap["runner_hand_has_prg_hw"]        = hand_has_prg_hw
+	snap["runner_hand_has_resource"]      = hand_has_resource
+	snap["runner_installable_hand_count"] = installable_count
 
-	# Rig breaker coverage
+	# Rig breaker coverage + MU usage
 	var has_fracter := false
 	var has_decoder := false
 	var has_killer  := false
 	var has_ai      := false
 	var prg_count   := 0
+	var mu_used     := 0
 	for rig_any in ctx.runner_rig:
 		var b: InstalledCard = rig_any as InstalledCard
 		if b == null or b.card_record == null or b.card_record.card_type != "program":
 			continue
 		prg_count += 1
+		var mc: int = b.card_record.memory_cost
+		if mc > 0:
+			mu_used += mc
+		else:
+			mu_used += 1   # programs that don't specify MU still cost 1
 		for sub in b.card_record.subtypes:
 			match sub:
 				"fracter": has_fracter = true
@@ -116,14 +142,75 @@ func snapshot(ctx: GameContext) -> Dictionary:
 	snap["runner_has_killer"]  = has_killer
 	snap["runner_has_ai"]      = has_ai
 	snap["runner_prg_count"]   = prg_count
+	snap["runner_mu_used"]     = mu_used
+	snap["runner_mu_max"]      = ctx.runner_total_mu()
 
-	# Central server ICE counts
+	# Max count of installed cards that share the same printed cost (used by Khusyuk).
+	var cost_groups: Dictionary = {}
+	for rig_k in ctx.runner_rig:
+		var ic_k: InstalledCard = rig_k as InstalledCard
+		if ic_k == null or ic_k.card_record == null:
+			continue
+		var c: int = ic_k.card_record.cost
+		cost_groups[c] = (cost_groups.get(c, 0) as int) + 1
+	var max_cost_group: int = 0
+	for cnt in cost_groups.values():
+		if (cnt as int) > max_cost_group:
+			max_cost_group = cnt as int
+	snap["runner_max_cost_installed"] = max_cost_group
+
+	# Dead-hand detection: true when the grip contains a card that is worthless
+	# to keep — either a duplicate of an already-installed program, or a second
+	# copy of a unique card that is already installed anywhere in the rig.
+	# When true, a draw click has cycling value even above the hand limit.
+	var installed_ids: Dictionary = {}
+	for rig_any2 in ctx.runner_rig:
+		var rc2: InstalledCard = rig_any2 as InstalledCard
+		if rc2 != null and rc2.card_record != null:
+			installed_ids[rc2.card_id] = true
+	var has_dead_card := false
+	for hand_entry in ctx.runner_hand:
+		var hand_rec: CardRecord = (hand_entry as Dictionary).get("card_record", null) as CardRecord
+		if hand_rec == null:
+			continue
+		if installed_ids.has(hand_rec.id):
+			# Duplicate of an installed card — worthless if unique or already covers
+			# the breaker type we need.
+			if hand_rec.is_unique or hand_rec.card_type == "program":
+				has_dead_card = true
+				break
+	snap["runner_has_dead_card"] = has_dead_card
+	snap["runner_hand_limit"]   = ctx.runner_max_hand_size()
+
+	# Tag count and heap state for AiCardHints conditions.
+	snap["runner_tags"]      = ctx.runner_tags
+	snap["runner_heap_size"] = ctx.runner_discard.size()
+	var heap_has_prg := false
+	for h_entry in ctx.runner_discard:
+		var h_rec: CardRecord = h_entry as CardRecord
+		if h_rec != null and h_rec.card_type == "program":
+			heap_has_prg = true
+			break
+	snap["runner_heap_has_program"] = heap_has_prg
+
+	# Agenda-stolen flag: starts false; set to true by _apply_run when a remote
+	# agenda is accessed in this projection sequence (enables Reprise).
+	snap["runner_stole_agenda_this_turn"] = false
+
+	# Ability registry — used to compute actual break costs for rezzed ICE.
+	var ab_reg: AbilityRegistry = null
+	if ctx.has_meta("ability_registry"):
+		ab_reg = ctx.get_meta("ability_registry") as AbilityRegistry
+
+	# Central server ICE counts + actual rezzed break costs
 	var hq: Server = ctx.servers.get("hq", null) as Server
 	var rd: Server = ctx.servers.get("rd", null) as Server
-	snap["hq_rezzed"]   = _count_rezzed(hq)
-	snap["hq_unrezzed"] = _count_unrezzed(hq)
-	snap["rd_rezzed"]   = _count_rezzed(rd)
-	snap["rd_unrezzed"] = _count_unrezzed(rd)
+	snap["hq_rezzed"]    = _count_rezzed(hq)
+	snap["hq_unrezzed"]  = _count_unrezzed(hq)
+	snap["rd_rezzed"]    = _count_rezzed(rd)
+	snap["rd_unrezzed"]  = _count_unrezzed(rd)
+	snap["break_cost_hq"] = _rezzed_server_break_cost(hq, ctx.runner_rig, ab_reg)
+	snap["break_cost_rd"] = _rezzed_server_break_cost(rd, ctx.runner_rig, ab_reg)
 
 	# Remote servers
 	var remotes: Array = []
@@ -159,6 +246,7 @@ func snapshot(ctx: GameContext) -> Dictionary:
 			"rezzed_types":   rez_types,
 			"has_agenda":     has_agenda,
 			"agenda_pts":     pts,
+			"break_cost":     _rezzed_server_break_cost(s, ctx.runner_rig, ab_reg),
 		})
 	snap["remotes"] = remotes
 
@@ -270,6 +358,10 @@ func project_runner_action(snap: Dictionary, action: GameAction) -> Dictionary:
 					s["runner_credits"] = maxi(0, (snap.get("runner_credits", 0) as int) - cost)
 					var target: String = _resolve_run_event_target(rec.id, snap)
 					_apply_run(s, target)
+				# Hint-based event: pay cost then apply the data-driven snap delta.
+				elif AiCardHints.has_hint(rec.id):
+					s["runner_credits"] = maxi(0, (snap.get("runner_credits", 0) as int) - cost)
+					_apply_hint_delta(s, AiCardHints.get_hint(rec.id), snap)
 				else:
 					s["runner_credits"] = maxi(0, (snap.get("runner_credits", 0) as int) - cost)
 
@@ -281,6 +373,8 @@ func project_runner_action(snap: Dictionary, action: GameAction) -> Dictionary:
 				var cost: int = maxi(0, rec.cost)
 				s["runner_credits"]  = maxi(0, (snap.get("runner_credits", 0) as int) - cost)
 				s["runner_prg_count"] = (snap.get("runner_prg_count", 0) as int) + 1
+				var mu_cost: int = rec.memory_cost if rec.memory_cost > 0 else 1
+				s["runner_mu_used"] = (snap.get("runner_mu_used", 0) as int) + mu_cost
 				for sub in rec.subtypes:
 					match sub:
 						"fracter": s["runner_has_fracter"] = true
@@ -322,25 +416,110 @@ func _apply_run(s: Dictionary, server_id: String) -> void:
 			if rd.get("server_id", "") == server_id and rd.get("has_agenda", false):
 				var pts: int = rd.get("agenda_pts", 2) as int
 				s["runner_score"] = (s.get("runner_score", 0) as int) + pts
+				s["runner_stole_agenda_this_turn"] = true
 				break
 
 
 func _break_cost(server_id: String, snap: Dictionary) -> int:
+	var unrez_cost: int = _unrezzed_ice_cost_per_piece(snap)
 	match server_id:
 		"hq":
-			return (snap.get("hq_rezzed", 0) as int) * 2 \
-				+ (snap.get("hq_unrezzed", 0) as int)
+			# Actual break cost for rezzed ICE (precomputed); scaled estimate for unrezzed.
+			var rezzed_cost: int = snap.get("break_cost_hq",
+				(snap.get("hq_rezzed", 0) as int) * 2) as int
+			return rezzed_cost + (snap.get("hq_unrezzed", 0) as int) * unrez_cost
 		"rd":
-			return (snap.get("rd_rezzed", 0) as int) * 2 \
-				+ (snap.get("rd_unrezzed", 0) as int)
+			var rezzed_cost: int = snap.get("break_cost_rd",
+				(snap.get("rd_rezzed", 0) as int) * 2) as int
+			return rezzed_cost + (snap.get("rd_unrezzed", 0) as int) * unrez_cost
 		"archives":
 			return 0
 	for r in snap.get("remotes", []) as Array:
 		var rd: Dictionary = r as Dictionary
 		if rd.get("server_id", "") == server_id:
-			return (rd.get("rezzed_count", 0) as int) * 2 \
-				+ (rd.get("unrezzed_count", 0) as int)
+			var rezzed_cost: int = rd.get("break_cost",
+				(rd.get("rezzed_count", 0) as int) * 2) as int
+			return rezzed_cost + (rd.get("unrezzed_count", 0) as int) * unrez_cost
 	return 0
+
+
+# Per-piece credit cost the Runner should budget for each unrezzed ICE piece,
+# scaled by Corp credits.  A wealthy Corp is essentially certain to rez on
+# approach; a broke Corp may not be able to afford it.
+func _unrezzed_ice_cost_per_piece(snap: Dictionary) -> int:
+	var corp_cr: int = snap.get("corp_credits", 0) as int
+	if corp_cr < 4:  return 1   # Corp is tight — most ICE stays face-down
+	if corp_cr < 8:  return 2   # Corp can rez medium ICE (Tithe, Palisade)
+	if corp_cr < 12: return 3   # Corp rezzes most ICE
+	return 4                    # Corp is flush — treat every piece as a real obstacle
+
+
+func _apply_hint_delta(s: Dictionary, hint: Dictionary, _orig: Dictionary) -> void:
+	var delta: Dictionary = hint.get("snap_delta", {}) as Dictionary
+
+	# Credit gain (GROSS — card cost already deducted by the caller).
+	var cr_gain: int = delta.get("credits_delta", 0) as int
+	if cr_gain != 0:
+		s["runner_credits"] = maxi(0, (s.get("runner_credits", 0) as int) + cr_gain)
+
+	# Cards drawn.
+	var draw: int = delta.get("cards_drawn", 0) as int
+	if draw > 0:
+		s["runner_hand_size"] = (s.get("runner_hand_size", 0) as int) + draw
+		s["runner_deck"]      = maxi(0, (s.get("runner_deck", 0) as int) - draw)
+
+	# Extra click cost (negative = costs additional clicks beyond the base).
+	var click_adj: int = delta.get("clicks_delta", 0) as int
+	if click_adj != 0:
+		s["runner_clicks_left"] = maxi(0, (s.get("runner_clicks_left", 0) as int) + click_adj)
+
+	# Generic program install: increment program count and MU usage.
+	if delta.get("installs_program", false) as bool:
+		s["runner_prg_count"] = (s.get("runner_prg_count", 0) as int) + 1
+		s["runner_mu_used"]   = (s.get("runner_mu_used",   0) as int) + 1
+
+	# Tutor install: project the most-needed missing breaker type onto the rig.
+	if delta.get("installs_breaker_if_need", false) as bool:
+		s["runner_prg_count"] = (s.get("runner_prg_count", 0) as int) + 1
+		s["runner_mu_used"]   = (s.get("runner_mu_used",   0) as int) + 1
+		if not (s.get("runner_has_fracter", false) as bool):
+			s["runner_has_fracter"] = true
+		elif not (s.get("runner_has_decoder", false) as bool):
+			s["runner_has_decoder"] = true
+		elif not (s.get("runner_has_killer", false) as bool):
+			s["runner_has_killer"]  = true
+
+	# Deck deduction for install-from-deck effects.
+	if delta.get("install_from_deck", false) as bool:
+		s["runner_deck"] = maxi(0, (s.get("runner_deck", 0) as int) - 1)
+
+	# Run a server.
+	var runs: String = delta.get("runs_server", "") as String
+	if runs != "":
+		var target: String = _resolve_hint_run_target(runs, s)
+		if target != "":
+			_apply_run(s, target)
+
+
+func _resolve_hint_run_target(runs: String, snap: Dictionary) -> String:
+	var ran: Array = snap.get("centrals_run", []) as Array
+	match runs:
+		"rd":       return "rd"
+		"hq":       return "hq"
+		"archives": return "archives"
+		"any_central":
+			if "rd" not in ran: return "rd"
+			if "hq" not in ran: return "hq"
+			return ""
+		"any":
+			if "rd" not in ran: return "rd"
+			if "hq" not in ran: return "hq"
+			for r in snap.get("remotes", []) as Array:
+				var rd: Dictionary = r as Dictionary
+				if rd.get("has_agenda", false):
+					return rd.get("server_id", "") as String
+			return "archives"
+	return runs
 
 
 func _resolve_run_event_target(card_id: String, snap: Dictionary) -> String:
@@ -363,6 +542,72 @@ func _remove_from_hand(s: Dictionary, rec: CardRecord) -> void:
 	var hand: Array = s.get("runner_hand_cards", []) as Array
 	hand.erase(rec)
 	s["runner_hand_cards"] = hand
+
+
+# Returns the total credit cost for the runner to break all currently-rezzed
+# ICE on a server, using the cheapest available breaker for each piece.
+# Unrezzed ICE is excluded — callers add a heuristic for those separately.
+func _rezzed_server_break_cost(server: Server, rig: Array, ab_reg: AbilityRegistry) -> int:
+	if server == null:
+		return 0
+	var total := 0
+	for ice_any in server.ice:
+		var ic: InstalledCard = ice_any as InstalledCard
+		if ic == null or not ic.is_rezzed or ic.card_record == null:
+			continue
+		total += _single_ice_break_cost(ic, rig, ab_reg)
+	return total
+
+
+# Estimate the runner's cheapest credit cost to break a single rezzed ICE piece.
+# Uses the ability registry for exact boost+break costs when available; falls
+# back to a penalty estimate when no matching breaker is installed.
+func _single_ice_break_cost(ice: InstalledCard, rig: Array, ab_reg: AbilityRegistry) -> int:
+	var record: CardRecord = ice.card_record
+	var strength: int      = record.strength
+	var sub_count: int     = ab_reg.get_subroutines(ice.card_id).size() if ab_reg != null else 1
+	if sub_count <= 0:
+		sub_count = 1
+
+	var best_cost: float = INF
+
+	for rig_any in rig:
+		var breaker: InstalledCard = rig_any as InstalledCard
+		if breaker == null or breaker.card_record == null \
+				or breaker.card_record.card_type != "program":
+			continue
+		if ab_reg == null:
+			continue
+		var break_def: Variant = ab_reg.get_break_for_ice(breaker.card_id, record.subtypes)
+		if break_def == null:
+			continue
+
+		# Boost cost: credits to reach the ICE's strength from the breaker's base.
+		var boost_cost: float = 0.0
+		var boost_def: Variant = ab_reg.get_boost(breaker.card_id)
+		if boost_def != null:
+			var bd: Dictionary     = boost_def as Dictionary
+			var cost_per_boost: float = float(bd.get("cost", 1))
+			var str_per_boost: float  = float(bd.get("strength_gained", 1))
+			var str_needed: int = maxi(0, strength - breaker.card_record.strength)
+			if str_per_boost > 0.0:
+				boost_cost = ceil(float(str_needed) / str_per_boost) * cost_per_boost
+
+		# Break cost: credits to break all subroutines.
+		var bk: Dictionary       = break_def as Dictionary
+		var cost_per_sub: float  = float(bk.get("cost_per_sub", 1))
+		var break_cost: float    = float(sub_count) * cost_per_sub
+
+		var total: float = boost_cost + break_cost
+		if total < best_cost:
+			best_cost = total
+
+	if best_cost == INF:
+		# No breaker for this ICE type — runner must jack out or eat subs.
+		# Penalty: enough to discourage the run unless very credits-rich.
+		return maxi(2, strength + sub_count)
+
+	return maxi(1, int(best_cost))
 
 
 static func _count_rezzed(server: Server) -> int:

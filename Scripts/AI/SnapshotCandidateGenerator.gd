@@ -64,8 +64,18 @@ static func _add_basic_actions(out: Array, snap: Dictionary) -> void:
 
 
 static func _add_operations(out: Array, snap: Dictionary) -> void:
-	var corp_cr: int   = snap.get("corp_credits", 0) as int
+	var corp_cr: int    = snap.get("corp_credits", 0) as int
 	var ppc: Dictionary = snap.get("corp_hand_ppc", {}) as Dictionary
+	var remotes: Array  = snap.get("remotes", []) as Array
+
+	# Pre-compute whether any remote currently has an installed agenda — needed
+	# to gate advance-placement operations (Seamless Launch) that are useless
+	# without a target.
+	var has_installed_agenda: bool = false
+	for _rn in remotes:
+		if (_rn as Dictionary).get("has_agenda", false):
+			has_installed_agenda = true
+			break
 
 	for entry in snap.get("corp_hand_cards", []) as Array:
 		var c: CardRecord = entry as CardRecord
@@ -75,6 +85,11 @@ static func _add_operations(out: Array, snap: Dictionary) -> void:
 			continue
 		# Pre-play condition guard (e.g. Oppo Research, Active Policing).
 		if not (ppc.get(c.id, true) as bool):
+			continue
+		# Advance-placement operations are useless without an installed agenda.
+		# Offering them when no agenda is installed wastes a click and a card,
+		# and causes the MCTS to advance non-agenda cards (e.g. ICE) for no benefit.
+		if c.id == "seamless_launch" and not has_installed_agenda:
 			continue
 		out.append(GameAction.play_operation(c))
 
@@ -90,13 +105,17 @@ static func _add_ice_installs(out: Array, snap: Dictionary) -> void:
 		if c == null or not c.is_ice():
 			continue
 
+		# Central: R&D first — leaving R&D open is strictly more dangerous than
+		# leaving HQ open because every R&D run hits the top card directly, while
+		# HQ runs hit a random card that may not be an agenda.  When both centrals
+		# are equally unprotected, generating R&D before HQ makes R&D the default
+		# winner of evaluator tiebreaks without needing a separate score delta.
+		if rd_ice < ICE_MAX and corp_cr >= rd_ice:
+			out.append(GameAction.install(c, "rd", "ice"))
+
 		# Central: HQ — positional cost = number of existing HQ ice.
 		if hq_ice < ICE_MAX and corp_cr >= hq_ice:
 			out.append(GameAction.install(c, "hq", "ice"))
-
-		# Central: RD
-		if rd_ice < ICE_MAX and corp_cr >= rd_ice:
-			out.append(GameAction.install(c, "rd", "ice"))
 
 		# Best remote target (at most one, priority-ordered).
 		var best_remote: String = _best_ice_remote(remotes, corp_cr)
@@ -124,8 +143,19 @@ static func _add_agenda_installs(out: Array, snap: Dictionary) -> void:
 				if placed >= 3:
 					break
 
-		# Always offer new_remote; evaluator penalises if it ends up naked.
-		out.append(GameAction.install(c, "new_remote", "root"))
+		# Offer new_remote only when no naked agenda is already exposed and there
+		# are clicks remaining to add ICE protection.  On the final click there
+		# is no opportunity to ice the new server before the runner's turn, so a
+		# naked new_remote install is always immediately stealable.
+		var has_naked_agenda: bool = false
+		for rn in remotes:
+			var rnd: Dictionary = rn as Dictionary
+			if rnd.get("has_agenda", false) and (rnd.get("ice_count", 0) as int) == 0:
+				has_naked_agenda = true
+				break
+		var clicks_left: int = snap.get("corp_clicks_left", 0) as int
+		if not has_naked_agenda and clicks_left > 1:
+			out.append(GameAction.install(c, "new_remote", "root"))
 
 
 static func _add_asset_installs(out: Array, snap: Dictionary) -> void:

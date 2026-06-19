@@ -646,6 +646,17 @@ func evaluate(s: Dictionary) -> float:
 	var urgency_mult:    float = clampf(
 		1.0 + runner_fraction * 1.5 + corp_lag * 0.5, 1.0, 3.0)
 
+	# Count ICE in hand once so the per-agenda loop can track how many
+	# naked agendas have "consumed" a mitigation slot.  One ICE in hand
+	# can only protect one server this turn; a second naked agenda beyond
+	# what the Corp can protect in remaining clicks still deserves the
+	# full −25 penalty.
+	var ice_in_hand_count: int = 0
+	for nhic in s.get("corp_hand_cards", []) as Array:
+		if (nhic as CardRecord) != null and (nhic as CardRecord).is_ice():
+			ice_in_hand_count += 1
+	var mitigated_naked: int = 0   # naked agendas that consumed a mitigation slot
+
 	for remote in s.get("remotes", []) as Array:
 		var r: Dictionary = remote as Dictionary
 		if not r.get("has_agenda", false):
@@ -659,24 +670,25 @@ func evaluate(s: Dictionary) -> float:
 		# An agenda with zero ice is trivially stolen on the runner's next turn.
 		# Full −25 when no ice is available to fix it.
 		#
-		# Reduced to −5 when the Corp still has ice in hand: within a single Corp
-		# turn the runner cannot act, so "advance → install ice" is just as safe
-		# as "install ice → advance" for runner-access purposes.  The full penalty
-		# on intermediate beam states would otherwise kill "advance-then-ice"
-		# sequences, causing the beam to prefer "gain credits → install ice" (no
-		# advancement progress this turn) over "advance → install ice" (progress
-		# plus protection by turn end).
+		# Reduced to −5 when the Corp still has ice in hand AND this is the
+		# first naked agenda (i.e. there is a free ICE slot to protect it):
+		# within a single Corp turn the runner cannot act, so "advance → install
+		# ice" is just as safe as "install ice → advance" for runner-access
+		# purposes.  But the second naked agenda — beyond what the Corp's hand
+		# can protect — always gets the full −25, even if ICE exists in hand,
+		# because only one server can be protected per ICE installed.
 		if ice == 0:
-			var nhic_in_hand: bool = false
-			for nhic in s.get("corp_hand_cards", []) as Array:
-				if (nhic as CardRecord) != null and (nhic as CardRecord).is_ice():
-					nhic_in_hand = true
-					break
+			# Mitigation is only valid while clicks remain — if the turn is already
+			# over (clicks_left == 0) the ICE in hand cannot be installed and the
+			# runner will steal the agenda freely on their very next action.
+			var can_mitigate: bool = clicks_left > 0 and mitigated_naked < ice_in_hand_count
+			if can_mitigate:
+				mitigated_naked += 1
 			# Scale penalty by advancement: a 2/4 naked agenda is far more dangerous
 			# than a 0/4 one — the runner has every reason to run it immediately.
 			# adv=0 → ×1.0,  adv=1 → ×2.5,  adv=2 → ×4.0,  adv=3 → ×5.5
 			var adv_danger: float = 1.0 + float(adv) * 1.5
-			score -= (5.0 if nhic_in_hand else 25.0) * adv_danger
+			score -= (5.0 if can_mitigate else 25.0) * adv_danger
 
 		# ── Scoring urgency (clicks-aware, pressure-scaled) ────────────────────
 		# Base urgency depends on how many advances remain vs. clicks available;
@@ -1141,26 +1153,21 @@ func project_corp_action(s: Dictionary, action: GameAction, _ctx: GameContext) -
 
 			elif card.is_agenda():
 				var ag_server: String = action.params.get("server_id", "new_remote") as String
-				# Projected ice: does Corp have ice in hand to protect a new remote?
-				var proj_ice := 0
-				for phcc in (ns.get("corp_hand_cards", []) as Array):
-					if (phcc as CardRecord) != null and (phcc as CardRecord).is_ice():
-						proj_ice = 1
-						break
-				if proj_ice == 0 and _ctx != null:
-					for hentry in _ctx.corp_hand:
-						var hc: CardRecord = (hentry as Dictionary).get("card_record", null) as CardRecord
-						if hc != null and hc.is_ice():
-							proj_ice = 1
-							break
-				if identity == "jinteki_replicating_perfection":
-					proj_ice = max(proj_ice, 1)
+				# New agenda remotes always start naked (ice_count=0).
+				# The evaluator's can_mitigate logic reduces the naked penalty to −5
+				# when ICE is in hand and clicks remain, so Install-Agenda→Install-ICE
+				# sequences still look attractive without phantom projected ICE.
+				# The old proj_ice optimization was causing two bugs:
+				#   1. Overcounting: phantom +1 then real install +1 = 2 layers reported.
+				#   2. has_naked_agenda bypass: the projected remote appeared protected,
+				#      so the candidate gen would offer a second new_remote install
+				#      without detecting the first agenda was still naked.
 				var remotes_copy: Array = (ns.get("remotes", []) as Array).duplicate(true)
 				if ag_server == "new_remote" or ag_server == "projected":
-					# Create a new projected remote entry.
+					# Create a new projected remote entry — always naked at creation.
 					remotes_copy.append({
 						"server_id":       _next_proj_server_id(remotes_copy),
-						"ice_count":       proj_ice,
+						"ice_count":       0,
 						"has_agenda":      true,
 						"adv":             0,
 						"req":             card.advancement_requirement,

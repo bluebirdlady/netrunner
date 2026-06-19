@@ -2532,9 +2532,14 @@ func _execute_encounter_window(encounter: EncounterState) -> void:
 				if action.get("type", "") == "done":
 					consecutive_passes += 1
 				else:
-					consecutive_passes = 0
-					await interpreter.process_encounter_action(action, encounter, ctx, ability_registry)
+					var enc_ok: bool = await interpreter.process_encounter_action(action, encounter, ctx, ability_registry)
 					emit_signal("encounter_updated", encounter)
+					if enc_ok:
+						consecutive_passes = 0
+					else:
+						# Action failed (e.g. runner attempted a break they couldn't afford).
+						# Treat as a pass so the encounter closes rather than looping.
+						consecutive_passes += 1
 		else:
 			var dm = ctx.corp_decision_maker
 			if dm == null or not dm.has_method("choose_window_action"):

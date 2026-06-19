@@ -249,6 +249,145 @@ func get_on_encounter_self(card_id: String) -> Array:
 	return [result]
 
 
+# ── AI Projection ─────────────────────────────────────────────────────────────
+
+# Returns an AI projection dict for the given card's on_play effects, or null
+# if the card has no entry or no auto-projectable effects.
+#
+# The dict always contains a "complete" key:
+#   true  — every effect was modelled; the projector can trust the dict fully.
+#   false — some effects are unmodelable; callers should supplement from
+#           AiCardHints (the fallback hint layer).
+#
+# IMPORTANT: credits_delta reflects the ability's gross credit gain/loss.
+# The card's play cost is NOT deducted here — the caller must deduct rec.cost
+# separately, exactly as the action mechanism already does for installs/runs.
+#
+# Example: Sure Gamble (cost 5, gain 9) → credits_delta: +9, complete: true
+#          Caller deducts 5 → net +4.
+func get_ai_projection(card_id: String) -> Variant:
+	if not _abilities.has(card_id):
+		return null
+	var card_def: Dictionary = _abilities[card_id] as Dictionary
+	var op: Variant = card_def.get("on_play", null)
+	if op == null:
+		return null
+	var effects: Array = (op as Dictionary).get("effects", []) as Array
+	if effects.is_empty():
+		return null
+
+	var proj: Dictionary = {
+		"complete":          true,
+		"credits_delta":     0,
+		"cards_drawn":       0,
+		"clicks_gained":     0,
+		"tags_added":        0,
+		"bad_pub_given":     0,
+		"installs_program":  false,
+		"installs_hardware": false,
+		"installs_resource": false,
+		"install_from_deck": false,
+		"program_subtype":   "",
+		"runs_server":       "",
+		"run_is_replaced":   false,
+		"value_bonus":       0.0,
+	}
+
+	for eff_any in effects:
+		var eff: Dictionary    = eff_any as Dictionary
+		var etype: String      = eff.get("type", "") as String
+		var params: Dictionary = eff.get("params", {}) as Dictionary
+
+		match etype:
+			"gain_credits":
+				# Only model runner self-gain; corp-side effects are irrelevant here.
+				if (params.get("subject", "runner") as String) == "runner":
+					proj["credits_delta"] = (proj["credits_delta"] as int) \
+						+ (params.get("amount", 0) as int)
+			"draw_cards":
+				proj["cards_drawn"] = (proj["cards_drawn"] as int) \
+					+ (params.get("amount", 0) as int)
+			"gain_clicks", "runner_gain_clicks":
+				proj["clicks_gained"] = (proj["clicks_gained"] as int) \
+					+ (params.get("amount", 0) as int)
+			"add_tags":
+				proj["tags_added"] = (proj["tags_added"] as int) \
+					+ (params.get("amount", 0) as int)
+			"give_bad_pub":
+				proj["bad_pub_given"] = (proj["bad_pub_given"] as int) \
+					+ (params.get("amount", 1) as int)
+			"lose_clicks_next_turn":
+				# Affects next turn — not capturable in the current-turn snapshot.
+				# Apply a value_bonus penalty to partially offset the loss.
+				proj["value_bonus"] = (proj["value_bonus"] as float) \
+					- float(params.get("amount", 0) as int) * 2.0
+				proj["complete"] = false
+			"install_from_grip":
+				match (params.get("card_type", "") as String):
+					"program":  proj["installs_program"]  = true
+					"hardware": proj["installs_hardware"] = true
+					"resource": proj["installs_resource"] = true
+					_:          proj["complete"] = false
+			"initiate_run":
+				var sv: String = params.get("server", "") as String
+				if sv != "":
+					proj["runs_server"] = sv
+				else:
+					proj["complete"] = false
+			"search_deck":
+				# Tutor — result depends on deck contents, can't be fully resolved.
+				# Mark incomplete; populate install flags so the hint layer can refine.
+				proj["install_from_deck"] = true
+				proj["installs_program"]  = true
+				var subtypes: Array = params.get("subtypes", []) as Array
+				if "fracter" in subtypes or "decoder" in subtypes or "killer" in subtypes:
+					proj["program_subtype"] = "icebreaker"
+				proj["complete"] = false
+			_:
+				# Unrecognised or complex effect (custom _play types, choose_and_run,
+				# set_run_modifier, psi_game, etc.) — partial projection only.
+				proj["complete"] = false
+
+	# If no useful delta was produced, return null — every effect was unmodelable
+	# and the card should fall through entirely to AiCardHints.
+	if (proj["credits_delta"] as int) == 0 \
+			and (proj["cards_drawn"] as int) == 0 \
+			and (proj["clicks_gained"] as int) == 0 \
+			and not (proj["installs_program"] as bool) \
+			and not (proj["installs_hardware"] as bool) \
+			and not (proj["installs_resource"] as bool) \
+			and (proj["runs_server"] as String) == "" \
+			and (proj["value_bonus"] as float) == 0.0:
+		return null
+
+	return proj
+
+
+# Diagnostic: logs auto-projection coverage across the full loaded ability set.
+# Call once at startup (or from a test scene) to audit which events are covered.
+func log_projection_coverage() -> void:
+	var full: Array  = []
+	var partial: Array = []
+	var null_proj: Array = []
+
+	for card_id in _abilities.keys():
+		var card_def: Dictionary = _abilities[card_id] as Dictionary
+		if not card_def.has("on_play"):
+			continue
+		var proj: Variant = get_ai_projection(card_id)
+		if proj == null:
+			null_proj.append(card_id)
+		elif (proj as Dictionary).get("complete", false):
+			full.append(card_id)
+		else:
+			partial.append(card_id)
+
+	print("AbilityRegistry AI projection coverage:")
+	print("  Full  (%d): %s" % [full.size(),     ", ".join(full)])
+	print("  Part. (%d): %s" % [partial.size(),  ", ".join(partial)])
+	print("  Null  (%d): %s" % [null_proj.size(), ", ".join(null_proj)])
+
+
 # ── Internal ──────────────────────────────────────────────────────────────────
 
 func _get_trigger(card_id: String, trigger: String) -> Variant:
