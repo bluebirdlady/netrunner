@@ -10,11 +10,12 @@ A solo-playable implementation of **Null Signal Games' Netrunner** built in **Go
 
 - **Format**: NSG Standard (with optional Startup ban list)
 - **Card pool**: 2 054 cards across all Standard-legal sets:
-  - System Gateway · Salvaged Memories
+  - System Gateway
   - Ashes cycle: Uprising, Downfall
   - Borealis cycle: Midnight Sun, Parhelion
-  - Liberation cycle: Rebellion Without Rehearsal
-  - Elevation cycle: Automata Initiative, Vantage Point
+  - Liberation cycle: The Automata Initiative, Rebellion Without Rehearsal
+  - Elevation
+  - Vantage Point
 - Card data sourced from NetrunnerDB; ability effects implemented in `Data/abilities.json`
 
 ---
