@@ -30,6 +30,9 @@ const AiCardHints = preload("res://Scripts/AI/AiCardHints.gd")
 #   remotes           : Array[Dictionary]
 #                       each: {server_id, rezzed_count, unrezzed_count, rezzed_types, has_agenda, agenda_pts}
 #   agenda_pts_accrued: float  — expected agenda value from central accesses in this plan
+#   runner_event_projections: Dictionary  — card_id → merged projection (see _merge_projection)
+#                              built once per snapshot; P4 projector reads from here instead
+#                              of re-querying AbilityRegistry/AiCardHints each step.
 # ─────────────────────────────────────────────────────────────────────────────
 
 const WIN_VALUE  :=  10000.0
@@ -86,8 +89,9 @@ func snapshot(ctx: GameContext) -> Dictionary:
 	snap["corp_credits"]       = ctx.corp_credits
 	snap["pts_to_win"]         = ctx.agenda_points_to_win
 	snap["runner_clicks_left"] = ctx.runner_clicks
-	snap["centrals_run"]       = ctx.runner_centrals_run_this_turn.duplicate()
-	snap["agenda_pts_accrued"] = 0.0
+	snap["centrals_run"]          = ctx.runner_centrals_run_this_turn.duplicate()
+	snap["agenda_pts_accrued"]    = 0.0
+	snap["event_value_accrued"]   = 0.0
 
 	# Hand cards — store CardRecord references (cheap; not cloned).
 	# Also track composition flags needed by AiCardHints condition evaluator.
@@ -197,10 +201,25 @@ func snapshot(ctx: GameContext) -> Dictionary:
 	# agenda is accessed in this projection sequence (enables Reprise).
 	snap["runner_stole_agenda_this_turn"] = false
 
-	# Ability registry — used to compute actual break costs for rezzed ICE.
+	# Ability registry — used for break-cost computation and event projections.
 	var ab_reg: AbilityRegistry = null
 	if ctx.has_meta("ability_registry"):
 		ab_reg = ctx.get_meta("ability_registry") as AbilityRegistry
+
+	# Pre-compute projections for every event card currently in hand.
+	# Merges AbilityRegistry auto-projection (Layer 1) with AiCardHints (Layer 2).
+	# Stored once here so the beam-search projector can read without re-querying.
+	var event_projections: Dictionary = {}
+	for ep_rec in hand_cards:
+		var ep_card: CardRecord = ep_rec as CardRecord
+		if ep_card == null or ep_card.card_type != "event":
+			continue
+		var auto_proj: Variant = ab_reg.get_ai_projection(ep_card.id) if ab_reg != null else null
+		var hint: Dictionary = AiCardHints.get_hint(ep_card.id)
+		var merged: Variant = _merge_projection(auto_proj, hint)
+		if merged != null:
+			event_projections[ep_card.id] = merged
+	snap["runner_event_projections"] = event_projections
 
 	# Central server ICE counts + actual rezzed break costs
 	var hq: Server = ctx.servers.get("hq", null) as Server
@@ -273,6 +292,9 @@ func evaluate(snap: Dictionary) -> float:
 	# Expected agenda value accrued from central accesses in this plan
 	u += snap.get("agenda_pts_accrued", 0.0) as float
 
+	# Strategic value bonus accumulated from events played during this plan
+	u += snap.get("event_value_accrued", 0.0) as float
+
 	# Credit surplus above safety floor
 	var cr: int = snap.get("runner_credits", 0) as int
 	u += CREDIT_SURPLUS_VAL * clampf(float(cr - CREDIT_FLOOR), -8.0, 12.0)
@@ -342,28 +364,10 @@ func project_runner_action(snap: Dictionary, action: GameAction) -> Dictionary:
 				_remove_from_hand(s, rec)
 				s["runner_hand_size"] = maxi(0, (snap.get("runner_hand_size", 0) as int) - 1)
 				var cost: int = maxi(0, rec.cost)
-				# Economy event: overrides simple cost deduction with net gain.
-				var net: int = ECONOMY_NET.get(rec.id, 0)
-				if net > 0:
-					s["runner_credits"] = (snap.get("runner_credits", 0) as int) + net
-				# Draw event: free, adds cards to grip.
-				elif DRAW_NET.has(rec.id):
-					s["runner_credits"] = (snap.get("runner_credits", 0) as int) - cost
-					s["runner_hand_size"] = (s.get("runner_hand_size", 0) as int) \
-						+ (DRAW_NET.get(rec.id, 0) as int)
-					s["runner_deck"] = maxi(0, (snap.get("runner_deck", 0) as int) \
-						- (DRAW_NET.get(rec.id, 0) as int))
-				# Run event: pay cost, accrue run value on the target server.
-				elif RUN_EVENT_SERVER.has(rec.id):
-					s["runner_credits"] = maxi(0, (snap.get("runner_credits", 0) as int) - cost)
-					var target: String = _resolve_run_event_target(rec.id, snap)
-					_apply_run(s, target)
-				# Hint-based event: pay cost then apply the data-driven snap delta.
-				elif AiCardHints.has_hint(rec.id):
-					s["runner_credits"] = maxi(0, (snap.get("runner_credits", 0) as int) - cost)
-					_apply_hint_delta(s, AiCardHints.get_hint(rec.id), snap)
-				else:
-					s["runner_credits"] = maxi(0, (snap.get("runner_credits", 0) as int) - cost)
+				s["runner_credits"] = maxi(0, (snap.get("runner_credits", 0) as int) - cost)
+				var projs: Dictionary = snap.get("runner_event_projections", {}) as Dictionary
+				if projs.has(rec.id):
+					_apply_projection(s, projs[rec.id] as Dictionary)
 
 		"install":
 			var rec: CardRecord = action.params.get("card_record", null) as CardRecord
@@ -454,51 +458,121 @@ func _unrezzed_ice_cost_per_piece(snap: Dictionary) -> int:
 	return 4                    # Corp is flush — treat every piece as a real obstacle
 
 
-func _apply_hint_delta(s: Dictionary, hint: Dictionary, _orig: Dictionary) -> void:
-	var delta: Dictionary = hint.get("snap_delta", {}) as Dictionary
+func _merge_projection(auto_proj: Variant, hint: Dictionary) -> Variant:
+	# Start with the canonical projection schema (same shape as get_ai_projection).
+	var proj: Dictionary = {
+		"complete":          false,
+		"credits_delta":     0,
+		"cards_drawn":       0,
+		"clicks_gained":     0,
+		"tags_added":        0,
+		"bad_pub_given":     0,
+		"installs_program":  false,
+		"installs_hardware": false,
+		"installs_resource": false,
+		"install_from_deck": false,
+		"program_subtype":   "",
+		"runs_server":       "",
+		"run_is_replaced":   false,
+		"value_bonus":       0.0,
+	}
+	var has_anything := false
 
+	# Layer 1: auto-projection from abilities.json.
+	if auto_proj != null:
+		for k in (auto_proj as Dictionary):
+			proj[k] = (auto_proj as Dictionary)[k]
+		has_anything = true
+
+	# Layer 2: AiCardHints fills gaps and always stacks value_bonus.
+	if not hint.is_empty():
+		var delta: Dictionary = hint.get("snap_delta", {}) as Dictionary
+
+		if (proj["credits_delta"] as int) == 0 and delta.has("credits_delta"):
+			proj["credits_delta"] = delta["credits_delta"] as int
+		if (proj["cards_drawn"] as int) == 0 and delta.has("cards_drawn"):
+			proj["cards_drawn"] = delta["cards_drawn"] as int
+		# hint clicks_delta is negative for extra click cost; stored as clicks_gained
+		if (proj["clicks_gained"] as int) == 0 and delta.has("clicks_delta"):
+			proj["clicks_gained"] = delta["clicks_delta"] as int
+		if (proj["runs_server"] as String) == "" and delta.has("runs_server"):
+			proj["runs_server"] = delta["runs_server"] as String
+		if not (proj["installs_program"] as bool):
+			if delta.get("installs_program", false) as bool:
+				proj["installs_program"] = true
+			elif delta.get("installs_breaker_if_need", false) as bool:
+				proj["installs_program"] = true
+				if (proj["program_subtype"] as String) == "":
+					proj["program_subtype"] = "icebreaker"
+		if not (proj["installs_resource"] as bool) and delta.get("installs_resource", false) as bool:
+			proj["installs_resource"] = true
+		if not (proj["install_from_deck"] as bool) and delta.get("install_from_deck", false) as bool:
+			proj["install_from_deck"] = true
+
+		proj["value_bonus"] = (proj["value_bonus"] as float) \
+			+ (hint.get("value_bonus", 0.0) as float)
+		has_anything = true
+
+	if not has_anything:
+		return null
+
+	# Discard projections with no useful modelled effect.
+	if (proj["credits_delta"] as int) == 0 \
+			and (proj["cards_drawn"] as int) == 0 \
+			and (proj["clicks_gained"] as int) == 0 \
+			and not (proj["installs_program"] as bool) \
+			and not (proj["installs_hardware"] as bool) \
+			and not (proj["installs_resource"] as bool) \
+			and (proj["runs_server"] as String) == "" \
+			and (proj["value_bonus"] as float) == 0.0:
+		return null
+
+	return proj
+
+
+func _apply_projection(s: Dictionary, proj: Dictionary) -> void:
 	# Credit gain (GROSS — card cost already deducted by the caller).
-	var cr_gain: int = delta.get("credits_delta", 0) as int
+	var cr_gain: int = proj.get("credits_delta", 0) as int
 	if cr_gain != 0:
 		s["runner_credits"] = maxi(0, (s.get("runner_credits", 0) as int) + cr_gain)
 
-	# Cards drawn.
-	var draw: int = delta.get("cards_drawn", 0) as int
+	# Card draw.
+	var draw: int = proj.get("cards_drawn", 0) as int
 	if draw > 0:
 		s["runner_hand_size"] = (s.get("runner_hand_size", 0) as int) + draw
 		s["runner_deck"]      = maxi(0, (s.get("runner_deck", 0) as int) - draw)
 
-	# Extra click cost (negative = costs additional clicks beyond the base).
-	var click_adj: int = delta.get("clicks_delta", 0) as int
-	if click_adj != 0:
-		s["runner_clicks_left"] = maxi(0, (s.get("runner_clicks_left", 0) as int) + click_adj)
+	# Click adjustment: negative = additional cost, positive = extra click gained.
+	var clicks: int = proj.get("clicks_gained", 0) as int
+	if clicks != 0:
+		s["runner_clicks_left"] = maxi(0, (s.get("runner_clicks_left", 0) as int) + clicks)
 
-	# Generic program install: increment program count and MU usage.
-	if delta.get("installs_program", false) as bool:
+	# Program install: increment program count and MU usage.
+	# Icebreaker tutors also set the most-needed missing breaker flag.
+	if proj.get("installs_program", false) as bool:
 		s["runner_prg_count"] = (s.get("runner_prg_count", 0) as int) + 1
 		s["runner_mu_used"]   = (s.get("runner_mu_used",   0) as int) + 1
-
-	# Tutor install: project the most-needed missing breaker type onto the rig.
-	if delta.get("installs_breaker_if_need", false) as bool:
-		s["runner_prg_count"] = (s.get("runner_prg_count", 0) as int) + 1
-		s["runner_mu_used"]   = (s.get("runner_mu_used",   0) as int) + 1
-		if not (s.get("runner_has_fracter", false) as bool):
-			s["runner_has_fracter"] = true
-		elif not (s.get("runner_has_decoder", false) as bool):
-			s["runner_has_decoder"] = true
-		elif not (s.get("runner_has_killer", false) as bool):
-			s["runner_has_killer"]  = true
+		if (proj.get("program_subtype", "") as String) == "icebreaker":
+			if not (s.get("runner_has_fracter", false) as bool):
+				s["runner_has_fracter"] = true
+			elif not (s.get("runner_has_decoder", false) as bool):
+				s["runner_has_decoder"] = true
+			elif not (s.get("runner_has_killer", false) as bool):
+				s["runner_has_killer"]  = true
 
 	# Deck deduction for install-from-deck effects.
-	if delta.get("install_from_deck", false) as bool:
+	if proj.get("install_from_deck", false) as bool:
 		s["runner_deck"] = maxi(0, (s.get("runner_deck", 0) as int) - 1)
 
 	# Run a server.
-	var runs: String = delta.get("runs_server", "") as String
+	var runs: String = proj.get("runs_server", "") as String
 	if runs != "":
-		var target: String = _resolve_hint_run_target(runs, s)
-		if target != "":
-			_apply_run(s, target)
+		_apply_run(s, _resolve_hint_run_target(runs, s))
+
+	# Accumulate strategic value bonus for the evaluator to pick up.
+	var vb: float = proj.get("value_bonus", 0.0) as float
+	if vb != 0.0:
+		s["event_value_accrued"] = (s.get("event_value_accrued", 0.0) as float) + vb
 
 
 func _resolve_hint_run_target(runs: String, snap: Dictionary) -> String:
@@ -520,22 +594,6 @@ func _resolve_hint_run_target(runs: String, snap: Dictionary) -> String:
 					return rd.get("server_id", "") as String
 			return "archives"
 	return runs
-
-
-func _resolve_run_event_target(card_id: String, snap: Dictionary) -> String:
-	# Dirty Laundry can target any server — pick best unrun central or remote.
-	if card_id == "dirty_laundry":
-		var ran: Array = snap.get("centrals_run", []) as Array
-		if "rd" not in ran:
-			return "rd"
-		if "hq" not in ran:
-			return "hq"
-		for r in snap.get("remotes", []) as Array:
-			var rd: Dictionary = r as Dictionary
-			if rd.get("has_agenda", false):
-				return rd.get("server_id", "archives") as String
-		return "archives"
-	return RUN_EVENT_SERVER.get(card_id, "rd") as String
 
 
 func _remove_from_hand(s: Dictionary, rec: CardRecord) -> void:

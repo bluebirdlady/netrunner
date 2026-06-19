@@ -130,6 +130,67 @@ static func _has_run_target(runs: String, snap: Dictionary) -> bool:
 
 const HINTS: Dictionary = {
 
+	# ── Staple events (no abilities.json on_play entry) ──────────────────────
+	# These were previously handled by hardcoded ECONOMY_NET / DRAW_NET /
+	# RUN_EVENT_SERVER dicts in the evaluator.  Hints here replace those dicts
+	# once the unified projection dispatch (P4) is active.
+
+	# Diesel: draw 3 cards
+	"diesel": {
+		"conditions": {},
+		"snap_delta": {"cards_drawn": 3},
+		"value_bonus": 0.0,
+	},
+
+	# Quality Time: draw 5 cards (costs 3[c])
+	"quality_time": {
+		"conditions": {},
+		"snap_delta": {"cards_drawn": 5},
+		"value_bonus": 0.0,
+	},
+
+	# Lucky Find: as an additional cost, lose [click]; gain 9[c]
+	"lucky_find": {
+		"conditions": {},
+		"snap_delta": {"credits_delta": 9, "clicks_delta": -1},
+		"value_bonus": 0.0,
+	},
+
+	# Bravado: make a run on a protected server; if successful, gain 6[c]
+	"bravado": {
+		"conditions": {},
+		"snap_delta": {"runs_server": "any", "credits_delta": 6},
+		"value_bonus": 0.0,
+	},
+
+	# Legwork: run HQ; if successful, access 2 additional cards
+	"legwork": {
+		"conditions": {},
+		"snap_delta": {"runs_server": "hq"},
+		"value_bonus": 8.0,
+	},
+
+	# The Maker's Eye: run RD; if successful, access 2 additional cards
+	"the_makers_eye": {
+		"conditions": {},
+		"snap_delta": {"runs_server": "rd"},
+		"value_bonus": 8.0,
+	},
+
+	# Wanton Destruction: run HQ; if successful, spend [click]s to force Corp discards
+	"wanton_destruction": {
+		"conditions": {},
+		"snap_delta": {"runs_server": "hq"},
+		"value_bonus": 5.0,
+	},
+
+	# Dirty Laundry: make a run; if successful, gain 5[c]
+	"dirty_laundry": {
+		"conditions": {},
+		"snap_delta": {"runs_server": "any", "credits_delta": 5},
+		"value_bonus": 0.0,
+	},
+
 	# ── Economy ──────────────────────────────────────────────────────────────
 
 	# Easy Mark: gain 3[c]
