@@ -41,13 +41,16 @@ const WIN_VALUE  :=  10000.0
 const LOSE_VALUE := -10000.0
 
 const CREDIT_FLOOR       := 5
-const BREAKER_VALUE      := 40.0   # per covered breaker type
 const AI_BREAKER_BONUS   := 40.0   # extra for AI covering all types
-const UNCOVERED_ICE_COST := 25.0   # penalty per rezzed ICE type with no breaker
-const CREDIT_SURPLUS_VAL := 2.0    # per credit above floor (clamped)
-const GRIP_SURPLUS_VAL   := 3.0    # per card above MIN_HAND (clamped)
-const CENTRAL_RUN_VALUE  := 12.0   # per central visited this plan
 const MIN_HAND           := 4
+
+# Tunable evaluation weights — overrideable via apply_weights().
+var BREAKER_VALUE      := 40.0   # per covered breaker type
+var UNCOVERED_ICE_COST := 25.0   # penalty per rezzed ICE type with no breaker
+var CREDIT_SURPLUS_VAL := 2.0    # per credit above floor (clamped)
+var GRIP_SURPLUS_VAL   := 3.0    # per card above MIN_HAND (clamped)
+var CENTRAL_RUN_VALUE  := 12.0   # per central visited this plan
+var tag_penalty_per_tag := 20.0  # utility penalty per tag held
 
 # Expected agenda points per single card accessed on a central server.
 const RD_EXPECTED_PTS_PER_ACCESS := 0.12
@@ -76,6 +79,17 @@ const RUN_EVENT_SERVER: Dictionary = {
 const ICE_TO_BREAKER: Dictionary = {
 	"barrier": "fracter", "code_gate": "decoder", "sentry": "killer"
 }
+
+
+# ── Weight overrides (for evolutionary tuner) ────────────────────────────────
+
+func apply_weights(weights: Dictionary) -> void:
+	if weights.has("BREAKER_VALUE"):      BREAKER_VALUE      = float(weights["BREAKER_VALUE"])
+	if weights.has("UNCOVERED_ICE_COST"): UNCOVERED_ICE_COST = float(weights["UNCOVERED_ICE_COST"])
+	if weights.has("CREDIT_SURPLUS_VAL"): CREDIT_SURPLUS_VAL = float(weights["CREDIT_SURPLUS_VAL"])
+	if weights.has("GRIP_SURPLUS_VAL"):   GRIP_SURPLUS_VAL   = float(weights["GRIP_SURPLUS_VAL"])
+	if weights.has("CENTRAL_RUN_VALUE"):  CENTRAL_RUN_VALUE  = float(weights["CENTRAL_RUN_VALUE"])
+	if weights.has("tag_penalty_per_tag"): tag_penalty_per_tag = float(weights["tag_penalty_per_tag"])
 
 
 # ── Snapshot builder ──────────────────────────────────────────────────────────
@@ -312,7 +326,7 @@ func evaluate(snap: Dictionary) -> float:
 	# Tags are a kill threat — each one makes the runner a flatline target.
 	var tags: int = snap.get("runner_tags", 0) as int
 	if tags > 0:
-		u -= 20.0 * float(tags)
+		u -= tag_penalty_per_tag * float(tags)
 
 	# Breaker suite completeness
 	var has_fracter: bool = snap.get("runner_has_fracter", false) as bool

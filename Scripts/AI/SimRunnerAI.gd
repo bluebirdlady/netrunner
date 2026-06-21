@@ -47,6 +47,18 @@ var _evaluator: RunnerStateEvaluator = null
 var _planner:   RunnerTurnPlanner    = null
 
 
+# ── Weight overrides (for evolutionary tuner) ────────────────────────────────
+
+func apply_weights(weights: Dictionary) -> void:
+	if _evaluator == null:
+		_evaluator = RunnerStateEvaluator.new()
+	_evaluator.apply_weights(weights)
+	if weights.has("runner_beam_width"):
+		if _planner == null:
+			_planner = RunnerTurnPlanner.new(_evaluator)
+		_planner.beam_width = maxi(1, int(weights["runner_beam_width"] as float))
+
+
 # ── Turn-time interface ───────────────────────────────────────────────────────
 
 func choose_action(ctx: GameContext) -> GameAction:

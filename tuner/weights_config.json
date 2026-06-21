@@ -1,0 +1,29 @@
+{
+  "_comment": "Chromosome definition for the evolutionary AI tuner. Each entry has: initial (starting value), lo/hi (hard bounds clamped before passing to Godot), sigma (initial CMA-ES step size, ~1/3 of the plausible range).",
+
+  "corp": {
+    "w_phase_econ_mult":            { "initial": 1.3,  "lo": 0.5,  "hi": 3.0,  "sigma": 0.4 },
+    "w_rd_bare_penalty":            { "initial": 10.0, "lo": 0.0,  "hi": 30.0, "sigma": 5.0 },
+    "w_hq_bare_penalty":            { "initial": 6.0,  "lo": 0.0,  "hi": 20.0, "sigma": 3.0 },
+    "w_breached_1ice_penalty":      { "initial": 15.0, "lo": 0.0,  "hi": 40.0, "sigma": 6.0 },
+    "w_breached_multi_ice_penalty": { "initial": 6.0,  "lo": 0.0,  "hi": 20.0, "sigma": 3.0 },
+    "w_proven_access_boost":        { "initial": 0.20, "lo": 0.0,  "hi": 0.5,  "sigma": 0.08 },
+    "mcts_iterations":              { "initial": 100,  "lo": 20,   "hi": 200,  "sigma": 30.0 }
+  },
+
+  "runner": {
+    "BREAKER_VALUE":      { "initial": 40.0, "lo": 10.0, "hi": 100.0, "sigma": 12.0 },
+    "UNCOVERED_ICE_COST": { "initial": 25.0, "lo": 5.0,  "hi": 60.0,  "sigma": 9.0  },
+    "CREDIT_SURPLUS_VAL": { "initial": 2.0,  "lo": 0.5,  "hi": 8.0,   "sigma": 1.2  },
+    "GRIP_SURPLUS_VAL":   { "initial": 3.0,  "lo": 0.5,  "hi": 10.0,  "sigma": 1.5  },
+    "CENTRAL_RUN_VALUE":  { "initial": 12.0, "lo": 2.0,  "hi": 30.0,  "sigma": 4.5  },
+    "tag_penalty_per_tag":{ "initial": 20.0, "lo": 5.0,  "hi": 60.0,  "sigma": 8.0  },
+    "runner_beam_width":  { "initial": 5,    "lo": 2,    "hi": 12,    "sigma": 2.0  }
+  },
+
+  "matchups": [
+    { "corp": "nbn_reality_plus_tags",    "runner": "runner_arissana_lilypad_gamble" },
+    { "corp": "ob_weyland_fast_advance",  "runner": "runner_convention_breaker"      },
+    { "corp": "jinteki_regenesis",        "runner": "runner_zahya_versatile_smuggler"}
+  ]
+}

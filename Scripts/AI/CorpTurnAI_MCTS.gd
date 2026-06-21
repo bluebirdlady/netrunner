@@ -30,6 +30,16 @@ func _init(ability_registry: AbilityRegistry) -> void:
 	_turn_tree.rollout_beam_width  = 2
 
 
+# ── Weight overrides (for evolutionary tuner) ────────────────────────────────
+
+func apply_weights(weights: Dictionary) -> void:
+	_evaluator.apply_weights(weights)
+	if weights.has("mcts_iterations"):
+		_turn_tree.iterations = maxi(10, int(weights["mcts_iterations"] as float))
+	if weights.has("rollout_beam_width"):
+		_turn_tree.rollout_beam_width = maxi(1, int(weights["rollout_beam_width"] as float))
+
+
 # ── Card pool wiring ──────────────────────────────────────────────────────────
 
 # Called by Main.gd with the full format pool so DeterminizationSampler can

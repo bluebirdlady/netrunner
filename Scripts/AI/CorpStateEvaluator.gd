@@ -47,6 +47,14 @@ extends RefCounted
 const WIN_VALUE  :=  10000.0
 const LOSE_VALUE := -10000.0
 
+# Tunable evaluation weights — overrideable via apply_weights().
+var w_phase_econ_mult            := 1.3
+var w_rd_bare_penalty            := 10.0
+var w_hq_bare_penalty            := 6.0
+var w_breached_1ice_penalty      := 15.0
+var w_breached_multi_ice_penalty := 6.0
+var w_proven_access_boost        := 0.20
+
 # Operations that deal direct damage — used when computing corp_net_damage_potential.
 const DAMAGE_OP_IDS := ["neurospike", "measured_response", "punitive_counterstrike", "boom", "scorched_earth",
 	"end_of_the_line",
@@ -324,6 +332,17 @@ static func _snap_runner_resources(ctx: GameContext) -> Array:
 				"cost":        max(0, ic.card_record.cost),
 			})
 	return result
+
+
+# ── Weight overrides (for evolutionary tuner) ────────────────────────────────
+
+func apply_weights(weights: Dictionary) -> void:
+	if weights.has("w_phase_econ_mult"):            w_phase_econ_mult            = float(weights["w_phase_econ_mult"])
+	if weights.has("w_rd_bare_penalty"):            w_rd_bare_penalty            = float(weights["w_rd_bare_penalty"])
+	if weights.has("w_hq_bare_penalty"):            w_hq_bare_penalty            = float(weights["w_hq_bare_penalty"])
+	if weights.has("w_breached_1ice_penalty"):      w_breached_1ice_penalty      = float(weights["w_breached_1ice_penalty"])
+	if weights.has("w_breached_multi_ice_penalty"): w_breached_multi_ice_penalty = float(weights["w_breached_multi_ice_penalty"])
+	if weights.has("w_proven_access_boost"):        w_proven_access_boost        = float(weights["w_proven_access_boost"])
 
 
 # ── Snapshot ──────────────────────────────────────────────────────────────────
@@ -634,7 +653,7 @@ func evaluate(s: Dictionary) -> float:
 
 	if turn <= 6:
 		# Setup phase: economy and ice are the foundations; score urgency is low.
-		phase_econ_mult  = 1.3
+		phase_econ_mult  = w_phase_econ_mult
 		phase_score_mult = 0.7
 	elif turn >= 14:
 		# Late game: urgency spikes; falling behind compounds each turn.
@@ -665,9 +684,9 @@ func evaluate(s: Dictionary) -> float:
 	# These penalties dwarf Hedge Fund (+5.85 early) so the MCTS strongly
 	# prefers installing first ice over economy on turn 1.
 	if (s.get("rd_ice", 0) as int) == 0:
-		score -= 10.0 * phase_econ_mult
+		score -= w_rd_bare_penalty * phase_econ_mult
 	if (s.get("hq_ice", 0) as int) == 0:
-		score -= 6.0 * phase_econ_mult
+		score -= w_hq_bare_penalty * phase_econ_mult
 
 	# ── Remote scoring opportunities ───────────────────────────────────────────
 	# clicks_left: Corp clicks remaining in the snapshot (decremented by
@@ -739,9 +758,9 @@ func evaluate(s: Dictionary) -> float:
 		var breached: Array = s.get("breached_servers_last_turn", []) as Array
 		if ice > 0 and r.get("server_id", "") in breached:
 			if ice == 1:
-				score -= 15.0   # effectively as dangerous as a naked agenda
+				score -= w_breached_1ice_penalty
 			else:
-				score -= 6.0    # meaningful but runner still has to pay twice
+				score -= w_breached_multi_ice_penalty
 
 		# ── Scoring urgency (clicks-aware, pressure-scaled) ────────────────────
 		# Base urgency depends on how many advances remain vs. clicks available;
@@ -2045,9 +2064,9 @@ func project_runner_response(s: Dictionary, threat_server: String, _ctx: GameCon
 					svr_sentry    = (remote as Dictionary).get("has_sentry",    false) as bool
 					svr_code_gate = (remote as Dictionary).get("has_code_gate", false) as bool
 					break
-		if svr_barrier   and not has_fracter: base_prob -= 0.20
-		if svr_sentry    and not has_killer:  base_prob -= 0.20
-		if svr_code_gate and not has_decoder: base_prob -= 0.20
+		if svr_barrier   and not has_fracter: base_prob -= w_proven_access_boost
+		if svr_sentry    and not has_killer:  base_prob -= w_proven_access_boost
+		if svr_code_gate and not has_decoder: base_prob -= w_proven_access_boost
 		base_prob = maxf(base_prob, 0.05)
 
 	# ── Proven-access boost ────────────────────────────────────────────────────
@@ -2056,7 +2075,7 @@ func project_runner_response(s: Dictionary, threat_server: String, _ctx: GameCon
 	# reflect that the ice is no longer a surprise or an unknown cost.
 	var breached_svrs: Array = s.get("breached_servers_last_turn", []) as Array
 	if threat_server in breached_svrs:
-		base_prob = minf(base_prob + 0.20, 0.95)
+		base_prob = minf(base_prob + w_proven_access_boost, 0.95)
 
 	var success_prob: float = base_prob
 

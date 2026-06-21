@@ -38,17 +38,15 @@ Search parameters:
 
 ## Fitness Function
 
-Primary objective: **balance**. Neither side should have a systematic structural advantage.
+Primary objective: **Win rate for a given AI**. Since both AIs will be competing, optimizing individual win rate will tend to improve both sides and work toward balance while improving both the Corp and Runner AIs individually. In real gameplay, humans will play against one or the other, so balance per se is not the goal; competence is.
 
 ```
-fitness = -abs(corp_win_rate - 0.50)         # closeness to 50/50
+fitness = this_model_win_rate                # competence
         - 0.1 * abs(avg_turns - 14.0)        # reasonable game length
         - 0.05 * flatline_rate               # low flatlines = more strategic games
 ```
 
 Evaluated over N self-play games (suggest N=30 per evaluation for reasonable signal).
-
-Secondary constraint: **competence floor**. A configuration that achieves 50/50 by both sides playing randomly is not useful. This can be enforced by requiring the winner's avg turn count to be below a ceiling (long games = neither side doing anything productive).
 
 ## Architecture
 

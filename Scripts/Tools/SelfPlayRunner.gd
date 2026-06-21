@@ -77,6 +77,7 @@ var _last_beat_msec: int = 0
 var _batch_mode:    bool  = false
 var _batch_verbose: bool  = false
 var _batch_total:   int   = 1
+var _weights:       Dictionary = {}   # optional weight overrides from --weights <json>
 var _batch_index:   int   = 0
 var _batch_results: Array = []   # Array of {winner, reason, turns, actions}
 
@@ -140,6 +141,10 @@ func _ready() -> void:
 				if i + 1 < args.size():
 					_runner_deck_ids = Array((args[i + 1] as String).split(","))
 					i += 1
+			"--weights":
+				if i + 1 < args.size():
+					_load_weights(args[i + 1] as String)
+					i += 1
 		i += 1
 
 	if _batch_mode:
@@ -147,6 +152,22 @@ func _ready() -> void:
 	else:
 		await _run_game()
 		get_tree().quit()
+
+
+func _load_weights(path: String) -> void:
+	var resolved: String = path if path.begins_with("res://") or path.is_absolute_path() \
+		else "res://" + path
+	var f := FileAccess.open(resolved, FileAccess.READ)
+	if f == null:
+		print("SelfPlayRunner: WARNING — cannot open weights file: %s" % resolved)
+		return
+	var parsed: Variant = JSON.parse_string(f.get_as_text())
+	f.close()
+	if parsed == null or not (parsed is Dictionary):
+		print("SelfPlayRunner: WARNING — weights file is not valid JSON: %s" % resolved)
+		return
+	_weights = parsed as Dictionary
+	print("SelfPlayRunner: loaded %d weight overrides from %s" % [_weights.size(), resolved])
 
 
 func _load_campaign_opponent(opponent_id: String, side: String) -> void:
@@ -315,11 +336,12 @@ func _run_game_with_registry(ab: AbilityRegistry) -> void:
 	_ctx.servers["archives"] = Server.make("archives")
 
 	var corp_brain   := CorpTurnAI_MCTS.new(ab)
-	# Reduce MCTS iterations for self-play — 20 is enough to observe strategic behavior
-	# without the ~1s-per-action cost of the full 100-iteration search.
 	corp_brain._turn_tree.iterations = 100
 	var runner_brain := SimRunnerAI.new()
 	runner_brain.campaign_runner_mode = true
+	if not _weights.is_empty():
+		corp_brain.apply_weights(_weights)
+		runner_brain.apply_weights(_weights)
 	_ctx.corp_decision_maker   = corp_brain
 	_ctx.runner_decision_maker = runner_brain
 
