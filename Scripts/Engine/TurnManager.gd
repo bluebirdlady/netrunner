@@ -1795,8 +1795,10 @@ func _do_play_operation(player: String, action: GameAction) -> void:
 	var on_play_def = ability_registry.get_on_play(record.id)
 	if on_play_def != null:
 		ctx.current_ability_source_card_type = record.card_type   # "operation" or "event"
+		ctx.current_ability_source_card_id   = record.id
 		await interpreter.execute_trigger(on_play_def as Dictionary, ctx)
 		ctx.current_ability_source_card_type = ""
+		ctx.current_ability_source_card_id   = ""
 	ctx.remove_meta("current_op_card_record")
 	ctx.current_operation_play_source = ""
 
@@ -1878,8 +1880,9 @@ func _do_play_from_archives(player: String, action: GameAction) -> void:
 	ctx.send_log("%s plays %s from Archives." % [ctx.player_name(player), record.title])
 
 	# Tag play source and ability source for downstream effects
-	ctx.current_operation_play_source  = "archives"
+	ctx.current_operation_play_source    = "archives"
 	ctx.current_ability_source_card_type = "operation"
+	ctx.current_ability_source_card_id   = card_id
 
 	# Execute on_play trigger
 	var on_play_def = ability_registry.get_on_play(card_id)
@@ -1888,6 +1891,7 @@ func _do_play_from_archives(player: String, action: GameAction) -> void:
 
 	ctx.current_operation_play_source    = ""
 	ctx.current_ability_source_card_type = ""
+	ctx.current_ability_source_card_id   = ""
 
 	# Remove from Archives and place in the RFG zone (not back to discard)
 	ctx.corp_discard.erase(record)
@@ -2154,9 +2158,11 @@ func _do_use_installed_card(player: String, action: GameAction) -> void:
 	# Tag source card type for Zwicky Group credit-gain tracking.
 	if installed.card_record != null:
 		ctx.current_ability_source_card_type = installed.card_record.card_type
+		ctx.current_ability_source_card_id   = installed.card_record.id
 	await interpreter.execute_trigger(click_action_def, ctx)
 	ctx.current_event_data = {}
 	ctx.current_ability_source_card_type = ""
+	ctx.current_ability_source_card_id   = ""
 	# Notify JML and similar: runner used an installed rig card's paid ability.
 	if player == "runner":
 		await ctx.notify_event("runner_rig_action", {
@@ -2551,9 +2557,11 @@ func _score_agenda(card: InstalledCard) -> void:
 			"excess_advancement": excess
 		}
 		ctx.current_ability_source_card_type = "agenda"
+		ctx.current_ability_source_card_id   = record.id
 		await interpreter.execute_trigger(on_score_def as Dictionary, ctx)
 		ctx.current_event_data = {}
 		ctx.current_ability_source_card_type = ""
+		ctx.current_ability_source_card_id   = ""
 
 	# Register ongoing event listeners for the scored agenda's ongoing abilities
 	# (e.g. Lightning Lab run_start, corp_turn_end; Basalt Spire click_action).

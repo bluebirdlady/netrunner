@@ -826,6 +826,8 @@ func _execute_effect(effect: Dictionary, ctx: GameContext, chosen_target: Varian
 			var amount: int     = params.get("amount", 0)
 			ctx.set_credits(subject, ctx.get_credits(subject) + amount)
 			ctx.send_log("%s gains %d credits." % [ctx.player_name(subject), amount])
+			if not ctx.simulation_mode and amount != 0:
+				ctx.ability_resolved.emit(ctx.current_ability_source_card_id, subject, "credits", amount)
 			# The Zwicky Group: fire event when Corp gains credits via agenda/operation ability.
 			if subject == "corp" and amount > 0 and \
 					ctx.current_ability_source_card_type in ["operation", "agenda"]:
@@ -838,6 +840,8 @@ func _execute_effect(effect: Dictionary, ctx: GameContext, chosen_target: Varian
 			var lost: int       = min(amount, current)  # can't go below 0
 			ctx.set_credits(subject, current - lost)
 			ctx.send_log("%s loses %d credits." % [ctx.player_name(subject), lost])
+			if not ctx.simulation_mode and lost != 0:
+				ctx.ability_resolved.emit(ctx.current_ability_source_card_id, subject, "credits", -lost)
 			# GameNET: Where Dreams are Real — Corp gains 1cr whenever a Corp card
 			# ability causes the Runner to spend/lose 1+cr during a run.
 			if subject == "runner" and lost > 0 and ctx.run_active:
@@ -853,6 +857,11 @@ func _execute_effect(effect: Dictionary, ctx: GameContext, chosen_target: Varian
 			ctx.send_log("Transfer of Wealth: %s loses %d cr; %s gains %d cr." % [
 				ctx.corp_name(), tow_lost, ctx.runner_name(), tow_gained
 			])
+			if not ctx.simulation_mode:
+				if tow_lost > 0:
+					ctx.ability_resolved.emit(ctx.current_ability_source_card_id, "corp", "credits", -tow_lost)
+				if tow_gained > 0:
+					ctx.ability_resolved.emit(ctx.current_ability_source_card_id, "runner", "credits", tow_gained)
 
 		"tag_or_spend_click":
 			# Jaguarundi (TAI): Runner must spend 1 click or take 1 tag.
@@ -1031,6 +1040,8 @@ func _execute_effect(effect: Dictionary, ctx: GameContext, chosen_target: Varian
 			var subject: String = params.get("subject", "runner")
 			var amount: int     = params.get("amount", 1)
 			_draw_cards(subject, amount, ctx)
+			if not ctx.simulation_mode and amount > 0:
+				ctx.ability_resolved.emit(ctx.current_ability_source_card_id, subject, "hand", amount)
 
 		"draw_cards_optional":
 			# Subject may choose to draw N cards.  AI defaults to always drawing.
@@ -2864,6 +2875,8 @@ func _execute_effect(effect: Dictionary, ctx: GameContext, chosen_target: Varian
 			else:
 				ctx.runner_hand_size_bonus += amount
 				ctx.send_log("%s max hand size increased to %d." % [ctx.runner_name(), ctx.runner_max_hand_size()])
+			if not ctx.simulation_mode and amount != 0:
+				ctx.ability_resolved.emit(ctx.current_ability_source_card_id, subject, "hand_size", amount)
 
 		"add_self_counter_if_server":
 			# Add a counter to self only if the run is on a specific server.
@@ -4013,6 +4026,8 @@ func _execute_effect(effect: Dictionary, ctx: GameContext, chosen_target: Varian
 			else:
 				ctx.runner_clicks += gc_amount
 				ctx.send_log("%s gains %d click(s). (%d total)" % [ctx.runner_name(), gc_amount, ctx.runner_clicks])
+			if not ctx.simulation_mode:
+				ctx.ability_resolved.emit(ctx.current_ability_source_card_id, gc_subject, "clicks", gc_amount)
 
 		# ── Chrysopoeian Skimming: Corp gains a click ────────────────────────
 
@@ -4190,9 +4205,11 @@ func _execute_effect(effect: Dictionary, ctx: GameContext, chosen_target: Varian
 						"excess_advancement":  aaci_excess
 					}
 					ctx.current_ability_source_card_type = "agenda"
+					ctx.current_ability_source_card_id   = aaci_record.id
 					await execute_trigger(aaci_on_score as Dictionary, ctx)
 					ctx.current_event_data = {}
 					ctx.current_ability_source_card_type = ""
+					ctx.current_ability_source_card_id   = ""
 
 			# Notify listeners (Malapert, Phat Gioan, etc.)
 			await ctx.notify_event("corp_scores_agenda", {
@@ -4280,9 +4297,11 @@ func _execute_effect(effect: Dictionary, ctx: GameContext, chosen_target: Varian
 								"excess_advancement": aacim_excess2
 							}
 							ctx.current_ability_source_card_type = "agenda"
+							ctx.current_ability_source_card_id   = aacim_rec.id
 							await execute_trigger(aacim_on_score as Dictionary, ctx)
 							ctx.current_event_data = {}
 							ctx.current_ability_source_card_type = ""
+							ctx.current_ability_source_card_id   = ""
 					await ctx.notify_event("corp_scores_agenda", {
 						"agenda_id":     aacim_rec.id,
 						"agenda_points": aacim_rec.agenda_points,
@@ -12285,9 +12304,11 @@ func _execute_effect(effect: Dictionary, ctx: GameContext, chosen_target: Varian
 						"excess_advancement": 0
 					}
 					ctx.current_ability_source_card_type = "agenda"
+					ctx.current_ability_source_card_id   = safh_record.id
 					await execute_trigger(safh_on_score as Dictionary, ctx)
 					ctx.current_event_data = {}
 					ctx.current_ability_source_card_type = ""
+					ctx.current_ability_source_card_id   = ""
 
 			# Broadcast so reactive cards (Pantograph, Lamplighter, etc.) can respond.
 			await ctx.notify_event("corp_scores_agenda", {
@@ -12545,9 +12566,11 @@ func _execute_effect(effect: Dictionary, ctx: GameContext, chosen_target: Varian
 							"excess_advancement": crpa_excess
 						}
 						ctx.current_ability_source_card_type = "agenda"
+						ctx.current_ability_source_card_id   = crpa_record.id
 						await execute_trigger(crpa_on_score as Dictionary, ctx)
 						ctx.current_event_data = {}
 						ctx.current_ability_source_card_type = ""
+						ctx.current_ability_source_card_id   = ""
 				await ctx.notify_event("corp_scores_agenda", {
 					"agenda_id":     crpa_record.id,
 					"agenda_points": crpa_record.agenda_points,
@@ -13505,6 +13528,8 @@ func _execute_effect(effect: Dictionary, ctx: GameContext, chosen_target: Varian
 				ctx.runner_clicks = max(0, ctx.runner_clicks - lc_amount)
 				ctx.send_log("%s loses %d click(s). (%d remaining)" % [
 					ctx.runner_name(), lc_amount, ctx.runner_clicks])
+			if not ctx.simulation_mode:
+				ctx.ability_resolved.emit(ctx.current_ability_source_card_id, lc_subject, "clicks", -lc_amount)
 
 		# ── VP39 ezaM sub 1: look at top of R&D, may move to bottom ───────────────
 

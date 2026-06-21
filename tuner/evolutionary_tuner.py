@@ -74,9 +74,11 @@ def run_batch(godot: str, project: str, weights_path: str,
             args,
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=GODOT_TIMEOUT,
         )
-        stdout = result.stdout + result.stderr
+        stdout = (result.stdout or "") + (result.stderr or "")
     except subprocess.TimeoutExpired:
         print("  [WARN] Godot batch timed out — skipping")
         return None

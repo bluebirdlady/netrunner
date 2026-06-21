@@ -109,6 +109,11 @@ func setup(ctx: GameContext, turn_manager: TurnManager, run_machine: RunStateMac
 		_update_all_displays()
 	)
 
+	# Resource-change visual feedback overlay — must be added last so it renders on top
+	var fx := ResourceFX.new()
+	add_child(fx)
+	fx.setup(ctx, resource_label, corp_hand_container, runner_hand_container)
+
 	# Initialize visual configurations
 	resource_label.meta_clicked.connect(_on_score_area_clicked)
 	_update_all_displays()

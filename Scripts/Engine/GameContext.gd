@@ -346,6 +346,13 @@ var current_event_data: Dictionary = {}
 # Used by AbilityInterpreter to tag Corp credit gains as "from an agenda/operation ability"
 # so The Zwicky Group's trigger can fire correctly.  Values: "operation", "agenda", or "".
 var current_ability_source_card_type: String = ""
+# Card ID of the card currently executing an ability — used by ResourceFX to display
+# the source card when a resource change occurs. Empty string when no ability is active.
+var current_ability_source_card_id: String = ""
+
+# Emitted (non-simulation mode only) when a card ability changes credits, hand,
+# clicks, or hand size.  Consumed by ResourceFX for visual feedback.
+signal ability_resolved(source_card_id: String, player: String, resource: String, delta: int)
 
 # Once-per-turn trigger guard.
 # Key: "<card_instance_id>:<once_per_turn_key>" → true when this trigger has already
@@ -1817,8 +1824,9 @@ func clone_for_sim() -> GameContext:
 	c.corp_cards_added_to_archives_this_turn    = corp_cards_added_to_archives_this_turn
 
 	# Transient execution fields — always reset for sim
-	c.current_event_data              = {}
+	c.current_event_data               = {}
 	c.current_ability_source_card_type = ""
+	c.current_ability_source_card_id   = ""
 	c.current_operation_play_source    = ""
 
 	# ── Listener registry — deep-copy so sim mutations don't bleed back ────────
