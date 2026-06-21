@@ -25,8 +25,10 @@ const AiCardHints = preload("res://Scripts/AI/AiCardHints.gd")
 #   centrals_run      : Array[String]
 #   hq_rezzed         : int
 #   hq_unrezzed       : int
+#   hq_rezzed_types   : Array[String]  — subtypes of rezzed ICE on HQ
 #   rd_rezzed         : int
 #   rd_unrezzed       : int
+#   rd_rezzed_types   : Array[String]  — subtypes of rezzed ICE on RD
 #   remotes           : Array[Dictionary]
 #                       each: {server_id, rezzed_count, unrezzed_count, rezzed_types, has_agenda, agenda_pts}
 #   agenda_pts_accrued: float  — expected agenda value from central accesses in this plan
@@ -90,6 +92,8 @@ func snapshot(ctx: GameContext) -> Dictionary:
 	snap["pts_to_win"]         = ctx.agenda_points_to_win
 	snap["runner_clicks_left"] = ctx.runner_clicks
 	snap["centrals_run"]          = ctx.runner_centrals_run_this_turn.duplicate()
+	var corp_id: String = ctx.corp_identity.id if ctx.corp_identity != null else ""
+	snap["corp_requires_central_first"] = corp_id == "jinteki_replicating_perfection"
 	snap["agenda_pts_accrued"]    = 0.0
 	snap["event_value_accrued"]   = 0.0
 
@@ -224,12 +228,14 @@ func snapshot(ctx: GameContext) -> Dictionary:
 	# Central server ICE counts + actual rezzed break costs
 	var hq: Server = ctx.servers.get("hq", null) as Server
 	var rd: Server = ctx.servers.get("rd", null) as Server
-	snap["hq_rezzed"]    = _count_rezzed(hq)
-	snap["hq_unrezzed"]  = _count_unrezzed(hq)
-	snap["rd_rezzed"]    = _count_rezzed(rd)
-	snap["rd_unrezzed"]  = _count_unrezzed(rd)
-	snap["break_cost_hq"] = _rezzed_server_break_cost(hq, ctx.runner_rig, ab_reg)
-	snap["break_cost_rd"] = _rezzed_server_break_cost(rd, ctx.runner_rig, ab_reg)
+	snap["hq_rezzed"]       = _count_rezzed(hq)
+	snap["hq_unrezzed"]     = _count_unrezzed(hq)
+	snap["hq_rezzed_types"] = _rezzed_server_types(hq)
+	snap["rd_rezzed"]       = _count_rezzed(rd)
+	snap["rd_unrezzed"]     = _count_unrezzed(rd)
+	snap["rd_rezzed_types"] = _rezzed_server_types(rd)
+	snap["break_cost_hq"]   = _rezzed_server_break_cost(hq, ctx.runner_rig, ab_reg)
+	snap["break_cost_rd"]   = _rezzed_server_break_cost(rd, ctx.runner_rig, ab_reg)
 
 	# Remote servers
 	var remotes: Array = []
@@ -302,6 +308,11 @@ func evaluate(snap: Dictionary) -> float:
 	# Grip health
 	var grip: int = snap.get("runner_hand_size", 0) as int
 	u += GRIP_SURPLUS_VAL * clampf(float(grip - MIN_HAND), -4.0, 4.0)
+
+	# Tags are a kill threat — each one makes the runner a flatline target.
+	var tags: int = snap.get("runner_tags", 0) as int
+	if tags > 0:
+		u -= 20.0 * float(tags)
 
 	# Breaker suite completeness
 	var has_fracter: bool = snap.get("runner_has_fracter", false) as bool
@@ -389,6 +400,10 @@ func project_runner_action(snap: Dictionary, action: GameAction) -> Dictionary:
 		"run":
 			var server_id: String = action.params.get("server_id", "") as String
 			_apply_run(s, server_id)
+
+		"remove_tag":
+			s["runner_credits"] = maxi(0, (s.get("runner_credits", 0) as int) - 2)
+			s["runner_tags"]    = maxi(0, (s.get("runner_tags",    0) as int) - 1)
 
 	return s
 
@@ -582,12 +597,17 @@ func _resolve_hint_run_target(runs: String, snap: Dictionary) -> String:
 		"hq":       return "hq"
 		"archives": return "archives"
 		"any_central":
+			# Prefer the breakable central; fall back to unbreakable only as last resort.
+			if "rd" not in ran and _central_breakable("rd", snap): return "rd"
+			if "hq" not in ran and _central_breakable("hq", snap): return "hq"
 			if "rd" not in ran: return "rd"
 			if "hq" not in ran: return "hq"
 			return ""
 		"any":
-			if "rd" not in ran: return "rd"
-			if "hq" not in ran: return "hq"
+			# Prefer breakable unrun centrals; fall back to archives rather than
+			# steering into ICE the runner cannot break.
+			if "rd" not in ran and _central_breakable("rd", snap): return "rd"
+			if "hq" not in ran and _central_breakable("hq", snap): return "hq"
 			for r in snap.get("remotes", []) as Array:
 				var rd: Dictionary = r as Dictionary
 				if rd.get("has_agenda", false):
@@ -666,6 +686,45 @@ func _single_ice_break_cost(ice: InstalledCard, rig: Array, ab_reg: AbilityRegis
 		return maxi(2, strength + sub_count)
 
 	return maxi(1, int(best_cost))
+
+
+static func _central_breakable(server_id: String, snap: Dictionary) -> bool:
+	var types_key: String = "hq_rezzed_types" if server_id == "hq" else "rd_rezzed_types"
+	var rezzed_types: Array = snap.get(types_key, []) as Array
+	if rezzed_types.is_empty():
+		return true
+	if snap.get("runner_has_ai", false) as bool:
+		return true
+	var has_fracter: bool = snap.get("runner_has_fracter", false) as bool
+	var has_decoder: bool = snap.get("runner_has_decoder", false) as bool
+	var has_killer:  bool = snap.get("runner_has_killer",  false) as bool
+	for sub in rezzed_types:
+		var needed: String = ICE_TO_BREAKER.get(sub, "") as String
+		if needed == "":
+			continue
+		var covered: bool
+		match needed:
+			"fracter": covered = has_fracter
+			"decoder": covered = has_decoder
+			"killer":  covered = has_killer
+			_:         covered = false
+		if not covered:
+			return false
+	return true
+
+
+static func _rezzed_server_types(server: Server) -> Array:
+	if server == null:
+		return []
+	var types: Array = []
+	for ice_any in server.ice:
+		var ic: InstalledCard = ice_any as InstalledCard
+		if ic == null or not ic.is_rezzed or ic.card_record == null:
+			continue
+		for sub in ic.card_record.subtypes:
+			if sub not in types:
+				types.append(sub)
+	return types
 
 
 static func _count_rezzed(server: Server) -> int:

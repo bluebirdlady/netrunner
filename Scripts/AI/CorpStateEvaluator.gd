@@ -263,6 +263,10 @@ static func _snap_click_assets(ctx: GameContext, ab_reg: AbilityRegistry) -> Arr
 			var ca_def: Dictionary = ic_def.get("click_action", {}) as Dictionary
 			if ca_def.is_empty():
 				continue
+			# Respect advancement-counter cost (e.g. Drago Ivanov needs 2).
+			var adv_cost: int = ca_def.get("cost_advancement_counters", 0) as int
+			if adv_cost > 0 and ic.get_counter("advancement") < adv_cost:
+				continue
 			# Respect once-per-turn guard.
 			var opt_key: String = ca_def.get("once_per_turn_key", "") as String
 			if opt_key != "":
@@ -288,6 +292,21 @@ static func _snap_runner_virus_total(ctx: GameContext) -> int:
 		if ic.card_record.has_subtype("virus"):
 			total += ic.get_counter("virus")
 	return total
+
+
+# True when at least one remote agenda was installed in a PREVIOUS Corp turn.
+# Used to gate Seamless Launch and Big Deal, which have exclude_installed_this_turn.
+static func _snap_has_pre_existing_agenda(ctx: GameContext) -> bool:
+	for key in ctx.servers:
+		var s: Server = ctx.servers[key] as Server
+		if s == null or not s.is_remote():
+			continue
+		for c in s.root:
+			var ic: InstalledCard = c as InstalledCard
+			if ic != null and ic.card_record != null and ic.card_record.is_agenda() \
+					and not ctx.corp_installed_this_turn.has(ic.card_id):
+				return true
+	return false
 
 
 # Installed runner resources visible to the Corp (all installed resources).
@@ -478,6 +497,8 @@ func snapshot(ctx: GameContext) -> Dictionary:
 				snap_met = ctx.runner_stole_or_trashed_last_runner_turn
 			"corp_scored_non_installed_agenda_this_turn":
 				snap_met = ctx.corp_scored_agenda_not_installed_this_turn
+			"runner_agenda_points_gte_3_and_successful_run_last_turn":
+				snap_met = ctx.runner_agenda_points() >= 3 and ctx.runner_made_successful_run_last_turn
 			"runner_made_successful_run_last_turn":
 				snap_met = ctx.runner_made_successful_run_last_turn
 			# Parhelion
@@ -487,6 +508,10 @@ func snapshot(ctx: GameContext) -> Dictionary:
 				snap_met = ctx.runner_tags >= 2
 			"runner_is_tagged":
 				snap_met = ctx.runner_tags > 0
+			"no_active_lockdown":
+				snap_met = ctx.no_active_lockdown()
+			"runner_no_hq_successful_run_last_turn":
+				snap_met = not ctx.runner_hq_successful_run_last_turn
 			_: snap_met = false   # unknown condition — conservative
 		hand_ppc[snap_hc.id] = snap_met
 
@@ -555,7 +580,11 @@ func snapshot(ctx: GameContext) -> Dictionary:
 		"runner_resources":               _snap_runner_resources(ctx),
 		"runner_core_damage":             ctx.runner_core_damage_taken,
 		"corp_identity_power_counters":   ctx.corp_identity_counters.get("power", 0),
+		"runner_ran_last_turn":           ctx.runner_made_successful_run_last_turn,
+		"breached_servers_last_turn":     ctx.runner_successful_run_servers_last_turn.duplicate(),
 		"remotes":                        remotes,
+		"has_pre_existing_agenda":        _snap_has_pre_existing_agenda(ctx),
+		"has_active_lockdown":            not ctx.no_active_lockdown(),
 	}
 
 
@@ -627,8 +656,18 @@ func evaluate(s: Dictionary) -> float:
 	score -= float(s.get("runner_credits", 0)) * 0.3
 
 	# ── Ice coverage on centrals ───────────────────────────────────────────────
+	# Per-piece value for stacking (diminishing benefit beyond first ice).
 	score += float(s.get("hq_ice", 0)) * 1.5 * phase_econ_mult
 	score += float(s.get("rd_ice", 0)) * 1.5 * phase_econ_mult
+	# Bare-central penalty: an unprotected central lets the Runner access for free
+	# every run. The first ice is categorically more valuable than the second.
+	# R&D penalty is larger because it has a fixed agenda density; HQ varies.
+	# These penalties dwarf Hedge Fund (+5.85 early) so the MCTS strongly
+	# prefers installing first ice over economy on turn 1.
+	if (s.get("rd_ice", 0) as int) == 0:
+		score -= 10.0 * phase_econ_mult
+	if (s.get("hq_ice", 0) as int) == 0:
+		score -= 6.0 * phase_econ_mult
 
 	# ── Remote scoring opportunities ───────────────────────────────────────────
 	# clicks_left: Corp clicks remaining in the snapshot (decremented by
@@ -689,6 +728,20 @@ func evaluate(s: Dictionary) -> float:
 			# adv=0 → ×1.0,  adv=1 → ×2.5,  adv=2 → ×4.0,  adv=3 → ×5.5
 			var adv_danger: float = 1.0 + float(adv) * 1.5
 			score -= (5.0 if can_mitigate else 25.0) * adv_danger
+
+		# ── Proven-access penalty ─────────────────────────────────────────────
+		# If the Runner successfully ran this server last turn, they have already
+		# demonstrated they can get through its current ice. Treat the server as
+		# substantially less secure than its ice_count alone suggests.
+		# ice == 0 is already penalised by the naked-agenda block above.
+		# ice == 1: the runner cleared it once and will do so again — near-naked.
+		# ice >= 2: harder to repeat but still a proven breach path; smaller hit.
+		var breached: Array = s.get("breached_servers_last_turn", []) as Array
+		if ice > 0 and r.get("server_id", "") in breached:
+			if ice == 1:
+				score -= 15.0   # effectively as dangerous as a naked agenda
+			else:
+				score -= 6.0    # meaningful but runner still has to pay twice
 
 		# ── Scoring urgency (clicks-aware, pressure-scaled) ────────────────────
 		# Base urgency depends on how many advances remain vs. clicks available;
@@ -1236,7 +1289,10 @@ func project_corp_action(s: Dictionary, action: GameAction, _ctx: GameContext) -
 				else:
 					var new_adv: int = (adv_r.get("adv", 0) as int) + 1
 					var adv_req: int = adv_r.get("req", 1) as int
-					if new_adv >= adv_req:
+					# mitosis_restricted: agenda was installed this turn by Mitosis —
+					# the Corp may not score it this turn regardless of counter count.
+					var restricted: bool = adv_r.get("mitosis_restricted", false) as bool
+					if new_adv >= adv_req and not restricted:
 						# Agenda is scored — update corp_score and remove the remote.
 						var pts: int = adv_r.get("agenda_points", 2) as int
 						ns["corp_score"] = (ns.get("corp_score", 0) as int) + pts
@@ -1442,10 +1498,453 @@ func project_corp_action(s: Dictionary, action: GameAction, _ctx: GameContext) -
 					# Net: hand size roughly unchanged; deck refreshed from Archives.
 					# Approximate as neutral hand effect (cost is the 4cr).
 					pass
+				"mitosis":
+					# Additional cost: 1 extra click (total [click][click]).
+					ns["corp_clicks_left"] = max(0, (ns.get("corp_clicks_left", 0) as int) - 1)
+					var mit_hand: Array = (ns.get("corp_hand_cards", []) as Array).duplicate()
+					var mit_remotes: Array = (ns.get("remotes", []) as Array).duplicate(true)
+					var mit_installed: int = 0
+					var mit_remove: Array = []
+					# Pass 1: prefer agendas — the primary scoring payload.
+					for mi in range(mit_hand.size()):
+						if mit_installed >= 2:
+							break
+						var mc: CardRecord = mit_hand[mi] as CardRecord
+						if mc == null or mc.card_type != "agenda":
+							continue
+						mit_remotes.append({
+							"server_id":          "mitosis_%d" % mit_remotes.size(),
+							"has_agenda":         true,
+							"agenda_card_id":     mc.id,
+							"adv":                2,
+							"req":                mc.advancement_requirement,
+							"agenda_points":      mc.agenda_points,
+							"has_trap":           false,
+							"ice_count":          0,
+							"rezzed_count":       0,
+							"unrezzed_count":     0,
+							"rezzed_types":       [],
+							"break_cost":         0,
+							"mitosis_restricted": true,
+						})
+						mit_remove.append(mi)
+						mit_installed += 1
+					# Pass 2: assets / upgrades fill remaining slots (shell-game threats).
+					for mi in range(mit_hand.size()):
+						if mit_installed >= 2:
+							break
+						if mi in mit_remove:
+							continue
+						var mc: CardRecord = mit_hand[mi] as CardRecord
+						if mc == null or mc.card_type not in ["asset", "upgrade"]:
+							continue
+						mit_remotes.append({
+							"server_id":          "mitosis_%d" % mit_remotes.size(),
+							"has_agenda":         false,
+							"has_trap":           true,
+							"adv":                2,
+							"req":                4,
+							"agenda_points":      0,
+							"ice_count":          0,
+							"rezzed_count":       0,
+							"unrezzed_count":     0,
+							"rezzed_types":       [],
+							"break_cost":         0,
+							"mitosis_restricted": true,
+						})
+						mit_remove.append(mi)
+						mit_installed += 1
+					# Remove installed cards from the hand copy (high-index first).
+					mit_remove.sort()
+					mit_remove.reverse()
+					for ri in mit_remove:
+						mit_hand.remove_at(ri)
+					ns["corp_hand_cards"] = mit_hand
+					ns["corp_hand"] = max(0, (ns.get("corp_hand", 0) as int) - mit_installed)
+					ns["remotes"] = mit_remotes
+				"business_as_usual":
+					# Mode 1 (always): place 1 counter on each of up to 2 advanceable
+					# cards. Snap models agenda remotes only; Vladisibirsk City Grid
+					# counter interaction (1+1 → trigger → +2 on agenda) is not modeled
+					# because the snap doesn't track per-upgrade advancement counters.
+					_apply_bau_advance(ns)
+					# Threat 3+: also resolve Mode 2 — remove all virus counters from
+					# 1 installed card. Snap has no per-card virus counter; approximate
+					# as a modest runner credit hit (disrupts Conduit/Leech value).
+					var bau_threat: bool = (ns.get("corp_score",   0) as int) >= 3 \
+						or              (ns.get("runner_score", 0) as int) >= 3
+					if bau_threat:
+						ns["runner_credits"] = max(0, (ns.get("runner_credits", 0) as int) - 2)
+				# ── Tier 1: simple explicit cases ────────────────────────────────────
+				"sprint":
+					# Draw 3, then put 1 back. Net: +2 new cards.
+					# Auto-projection sees +3 draws and misses the put-back; this corrects it.
+					ns["corp_hand"] = (ns.get("corp_hand", 0) as int) + 2
+				"vulture_fund":
+					# Gain 14cr; take 1 bad pub. Bad pub ≈ +2 runner credits ongoing value.
+					ns["corp_credits"]   = (ns.get("corp_credits",   0) as int) + 14
+					ns["runner_credits"] = (ns.get("runner_credits", 0) as int) + 2
+				"corporate_hospitality":
+					# Double (additional click cost); gain 6cr; draw 2 cards.
+					ns["corp_clicks_left"] = max(0, (ns.get("corp_clicks_left", 0) as int) - 1)
+					ns["corp_credits"]     = (ns.get("corp_credits", 0) as int) + 6
+					ns["corp_hand"]        = (ns.get("corp_hand",    0) as int) + 2
+				"nanomanagement":
+					# Gain 2 Corp clicks immediately (net +1 after the play click).
+					ns["corp_clicks_left"] = (ns.get("corp_clicks_left", 0) as int) + 2
+				"your_digital_life":
+					# Gain 1cr per card remaining in HQ (corp_hand already decremented for this op).
+					ns["corp_credits"] = (ns.get("corp_credits", 0) as int) + (ns.get("corp_hand", 0) as int)
+				"fully_operational":
+					# Gain 2cr per qualifying remote (ice + root card). Prefer credits over draw.
+					var fo_rs: Array = (ns.get("remotes", []) as Array)
+					var fo_count: int = 0
+					for _fo in fo_rs:
+						var _fod: Dictionary = _fo as Dictionary
+						if (_fod.get("ice_count", 0) as int) > 0 \
+								and (_fod.get("root_type", "") as String) != "":
+							fo_count += 1
+					ns["corp_credits"] = (ns.get("corp_credits", 0) as int) + fo_count * 2
+				"oppo_research":
+					# Terminal. Give Runner 2 tags. Threat 3: pay 5cr for 2 more tags.
+					ns["runner_tags"] = (ns.get("runner_tags", 0) as int) + 2
+					var opp_threat: bool = (ns.get("corp_score",   0) as int) >= 3 \
+						or               (ns.get("runner_score", 0) as int) >= 3
+					if opp_threat and (ns.get("corp_credits", 0) as int) >= 5:
+						ns["corp_credits"] = max(0, (ns.get("corp_credits", 0) as int) - 5)
+						ns["runner_tags"]  = (ns.get("runner_tags", 0) as int) + 2
+					ns["corp_clicks_left"] = 0
+				"backroom_machinations":
+					# Additional cost: remove 1 Runner tag (SCG gates on runner_has_tag).
+					# Score self as 1-point agenda.
+					ns["runner_tags"] = max(0, (ns.get("runner_tags", 0) as int) - 1)
+					ns["corp_score"]  = (ns.get("corp_score",  0) as int) + 1
+				"complete_image":
+					# Terminal. Net damage chain — approximate as -2 runner hand.
+					ns["runner_hand"]      = max(0, (ns.get("runner_hand", 0) as int) - 2)
+					ns["corp_clicks_left"] = 0
+				"measured_response":
+					# Effect fires only when Threat 4 AND runner ran last turn.
+					var mr_threat4: bool = (ns.get("corp_score",   0) as int) >= 4 \
+						or              (ns.get("runner_score", 0) as int) >= 4
+					var mr_ran: bool = ns.get("runner_ran_last_turn", false) as bool
+					if mr_threat4 and mr_ran:
+						# 4 meat damage unless runner pays 8cr.
+						if (ns.get("runner_credits", 0) as int) >= 8:
+							ns["runner_credits"] = max(0, (ns.get("runner_credits", 0) as int) - 8)
+						else:
+							ns["runner_hand"] = max(0, (ns.get("runner_hand", 0) as int) - 4)
+				# ── Tier 2: moderate explicit cases ──────────────────────────────────
+				"bring_them_home":
+					# Terminal. Move 2 grip cards to stack top — model as -2 runner hand.
+					ns["runner_hand"]      = max(0, (ns.get("runner_hand", 0) as int) - 2)
+					ns["corp_clicks_left"] = 0
+				"public_trail":
+					# Give Runner 1 tag unless they pay 8cr (only fires if runner ran last turn).
+					if ns.get("runner_ran_last_turn", false) as bool:
+						if (ns.get("runner_credits", 0) as int) >= 8:
+							ns["runner_credits"] = max(0, (ns.get("runner_credits", 0) as int) - 8)
+						else:
+							ns["runner_tags"] = (ns.get("runner_tags", 0) as int) + 1
+				"scapenet":
+					# Trace[7]: remove from game 1 installed chip or virtual card.
+					ns["runner_rig"] = max(0, (ns.get("runner_rig", 0) as int) - 1)
+				"trust_operation":
+					# Trash 1 runner resource; install+rez 1 Archives card free (≈+2cr tempo).
+					ns["runner_rig"]     = max(0, (ns.get("runner_rig",     0) as int) - 1)
+					ns["corp_credits"]   = (ns.get("corp_credits", 0) as int) + 2
+				"scapegoat":
+					# Runner chooses: Corp removes 2 bad pub OR bounce 1 runner installed card.
+					# Runner prefers bouncing (keeps Corp's bad pub) — model as -1 runner_rig.
+					ns["runner_rig"] = max(0, (ns.get("runner_rig", 0) as int) - 1)
+				"realloc":
+					# Additional cost: 1 extra click (total [click][click]).
+					ns["corp_clicks_left"] = max(0, (ns.get("corp_clicks_left", 0) as int) - 1)
+					# Derez 2 ice and gain their printed rez costs. Approximate: +8cr (2 × ~4cr).
+					ns["corp_credits"] = (ns.get("corp_credits", 0) as int) + 8
+				"caveat_emptor":
+					# Runner chooses: Runner +1 click OR Corp -1 click next turn.
+					# Runner always picks the free click (≈ +2cr runner value).
+					ns["runner_credits"] = (ns.get("runner_credits", 0) as int) + 2
+				"active_policing":
+					# Terminal. Install 1 card from HQ; Runner -1 click next turn (≈ -2cr).
+					# Threat 3: pay 2cr for -1 more runner click.
+					ns["corp_hand"]      = max(0, (ns.get("corp_hand",      0) as int) - 1)
+					ns["runner_credits"] = max(0, (ns.get("runner_credits", 0) as int) - 2)
+					var ap_threat: bool = (ns.get("corp_score",   0) as int) >= 3 \
+						or             (ns.get("runner_score", 0) as int) >= 3
+					if ap_threat and (ns.get("corp_credits", 0) as int) >= 2:
+						ns["corp_credits"]   = max(0, (ns.get("corp_credits",   0) as int) - 2)
+						ns["runner_credits"] = max(0, (ns.get("runner_credits", 0) as int) - 2)
+					ns["corp_clicks_left"] = 0
+				"game_over":
+					# Trash runner installed cards of chosen type unless they pay 3cr each.
+					# Approximate: -1 runner_rig, -3 runner_credits (one card saved at cost).
+					ns["runner_rig"]     = max(0, (ns.get("runner_rig",     0) as int) - 1)
+					ns["runner_credits"] = max(0, (ns.get("runner_credits", 0) as int) - 3)
+				"touch_ups":
+					# Additional cost: 1 extra click (total [click][click]).
+					ns["corp_clicks_left"] = max(0, (ns.get("corp_clicks_left", 0) as int) - 1)
+					# Place 2 advancement counters on the best agenda remote.
+					_apply_advance_counters(ns, 2)
+					# Runner discard: approximate as -1 runner hand card (expected value
+					# of the type-selection step — event 2/3, resource 1/3).
+					ns["runner_hand"] = max(0, (ns.get("runner_hand", 0) as int) - 1)
+				"flood_the_market":
+					# Additional cost: 1 extra click (total [click][click]).
+					ns["corp_clicks_left"] = max(0, (ns.get("corp_clicks_left", 0) as int) - 1)
+					# Count qualifying remotes: at least 1 ICE and a card in root.
+					var ftm_rs: Array = (ns.get("remotes", []) as Array)
+					var ftm_count: int = 0
+					for _fr in ftm_rs:
+						var _frd: Dictionary = _fr as Dictionary
+						if (_frd.get("ice_count", 0) as int) > 0 \
+								and (_frd.get("root_type", "") as String) != "":
+							ftm_count += 1
+					_apply_advance_counters(ns, ftm_count)
+				# ── Tier 3: Setup / recursion ────────────────────────────────────────
+				"cultivate":
+					# Look at top 5 of R&D; trash 1, add 1 to HQ, arrange rest.
+					# Net: a filtered draw — the best of 5 lands in hand.
+					ns["corp_hand"] = (ns.get("corp_hand", 0) as int) + 1
+				"digital_rights_management":
+					# Tutor 1 agenda from R&D to HQ; may install 1 HQ card in a remote.
+					# Cannot score agendas for the rest of this turn (modeled by clearing
+					# advance opportunities — MCTS won't try to score after this).
+					# Approximate: a new iced remote with an agenda is created (the tutor
+					# finds one and the optional install places it).
+					var drm_remotes: Array = (ns.get("remotes", []) as Array).duplicate(true)
+					drm_remotes.append({
+						"server_id":   "new_remote",
+						"has_agenda":  true,
+						"has_trap":    false,
+						"adv":         0,
+						"req":         3,
+						"agenda_card_id": "__drm_agenda__",
+						"agenda_points": 2,
+						"ice_count":   0,
+						"root_type":   "agenda",
+						"mitosis_restricted": false,
+					})
+					ns["remotes"] = drm_remotes
+					# Block scoring this turn — the snap has no dedicated flag so we
+					# clear corp_clicks_left to 0 to stop the MCTS from planning further
+					# scoring advances after DRM (conservative; DRM is a setup play).
+					ns["corp_clicks_left"] = 0
+				"retirement_plan":
+					# Additional cost: 1 extra click.  Install 1 agenda/asset/ice from
+					# Archives.  Approximate as recycling an ice (most common useful target).
+					ns["corp_clicks_left"] = max(0, (ns.get("corp_clicks_left", 0) as int) - 1)
+					# Value: if archives is non-empty, treat as gaining 1 remote ice layer.
+					if (ns.get("corp_discard_sz", 0) as int) > 0:
+						var rp_remotes: Array = (ns.get("remotes", []) as Array)
+						var rp_placed := false
+						for _rr in rp_remotes:
+							var _rrd: Dictionary = _rr as Dictionary
+							if _rrd.get("has_agenda", false) and (_rrd.get("ice_count", 0) as int) < 3:
+								(_rrd as Dictionary)["ice_count"] = (_rrd.get("ice_count", 0) as int) + 1
+								rp_placed = true
+								break
+						if not rp_placed:
+							ns["rd_ice"] = min(3, (ns.get("rd_ice", 0) as int) + 1)
+				"reanimation_protocol":
+					# Install and rez 1 ice from Archives at 10cr discount.
+					# If archives is non-empty, treat as a free ice rez on R&D.
+					if (ns.get("corp_discard_sz", 0) as int) > 0:
+						ns["rd_ice"] = min(3, (ns.get("rd_ice", 0) as int) + 1)
+				"secure_and_protect":
+					# Additional cost: 1 extra click.  Tutor 1 ice from R&D, install on
+					# a central at 3cr discount.  Model as gaining a central ice layer.
+					ns["corp_clicks_left"] = max(0, (ns.get("corp_clicks_left", 0) as int) - 1)
+					if (ns.get("rd_ice", 0) as int) < 3:
+						ns["rd_ice"] = (ns.get("rd_ice", 0) as int) + 1
+					elif (ns.get("hq_ice", 0) as int) < 3:
+						ns["hq_ice"] = (ns.get("hq_ice", 0) as int) + 1
+				"pivot":
+					# Additional cost: 1 extra click.  Tutor 1 op or agenda from R&D to
+					# HQ.  At Threat 3: immediately play or install it (paying costs).
+					# Approximate: net +1 card in HQ (the tutored card).
+					ns["corp_clicks_left"] = max(0, (ns.get("corp_clicks_left", 0) as int) - 1)
+					ns["corp_hand"] = (ns.get("corp_hand", 0) as int) + 1
+				"myoshu":
+					# Score self as a 2-point agenda (no install, no advance required).
+					# Only playable after scoring a non-installed agenda this turn.
+					ns["corp_score"] = (ns.get("corp_score", 0) as int) + 2
+				"big_deal":
+					# Place 4 advancement counters on 1 installed card; may score it.
+					# Action phase ends after — modeled implicitly since MCTS won't generate
+					# further actions after this (the click is consumed and no clicks remain).
+					_apply_advance_counters(ns, 4)
+				"unleash":
+					# Additional cost: remove 1 Runner tag (already gated in SCG).
+					# Rez 1 installed ice ignoring all costs; optionally fire 1 subroutine.
+					# Model: save the average ice rez cost (~3cr) and model the sub-fire
+					# as a modest runner credit drain (subroutine tax).
+					ns["corp_credits"]   = (ns.get("corp_credits",   0) as int) + 3
+					ns["runner_credits"] = max(0, (ns.get("runner_credits", 0) as int) - 2)
+				# ── Tier 5: Complex / narrow-use ─────────────────────────────────────
+				"kakurenbo":
+					# Additional cost: 2 extra clicks (3 total). Installs 1 card from
+					# Archives in a remote root with 2 advancement counters already placed.
+					# Model: pay the extra clicks, then simulate the IAA from Archives.
+					ns["corp_clicks_left"] = max(0, (ns.get("corp_clicks_left", 0) as int) - 2)
+					if (ns.get("corp_discard_sz", 0) as int) > 0:
+						var kk_remotes: Array = (ns.get("remotes", []) as Array).duplicate(true)
+						kk_remotes.append({
+							"server_id":    "new_remote",
+							"has_agenda":   true,
+							"has_trap":     false,
+							"adv":          2,
+							"req":          3,
+							"agenda_card_id": "__kakurenbo_agenda__",
+							"agenda_points": 2,
+							"ice_count":    0,
+							"root_type":    "agenda",
+							"mitosis_restricted": false,
+						})
+						ns["remotes"] = kk_remotes
+						ns["corp_discard_sz"] = max(0, (ns.get("corp_discard_sz", 0) as int) - 1)
+				"focus_group":
+					# Reveal grip; count cards of chosen type (events 2/3, resources 1/3);
+					# place up to that many advancement counters on 1 installed card.
+					# Conservative model: 2 counters on average (runner grip of ~5 cards
+					# typically yields 1-2 events or 1 resource).
+					_apply_advance_counters(ns, 2)
+				"mutually_assured_destruction":
+					# Additional cost: 2 extra clicks (3 total). Trash own rezzed cards;
+					# gain 1 runner tag per card trashed. Only valuable when the Corp can
+					# exploit the resulting tags immediately (Hypoxia, End of the Line, etc.).
+					ns["corp_clicks_left"] = max(0, (ns.get("corp_clicks_left", 0) as int) - 2)
+					ns["runner_tags"]  = (ns.get("runner_tags",  0) as int) + 2
+					# Opportunity cost: trashing 2 rezzed cards loses their future value.
+					ns["corp_credits"] = max(0, (ns.get("corp_credits", 0) as int) - 4)
+				# ── Tier 4: Lockdowns ─────────────────────────────────────────────────
+				# Lockdowns cost 0cr, last until the Corp's next turn, and deter the runner
+				# in faction-specific ways.  The snap has no persistent lockdown field so
+				# each is approximated as a one-shot runner resource/hand hit reflecting
+				# the expected value of the deterrent over the runner's turn.
+				"napd_cordon":
+					# Additional steal cost: 4cr + 2cr per advancement counter on the
+					# stolen agenda.  Runner will pay or forgo steals.  Approximate: drain
+					# 4 runner credits (minimum additional cost for any steal attempt).
+					ns["runner_credits"] = max(0, (ns.get("runner_credits", 0) as int) - 4)
+				"sync_rerouting":
+					# Every run start: 1 tag unless Runner pays 4cr.  Assume runner pays
+					# to avoid tag most of the time → 3cr average drain per run attempt,
+					# rounded to one run (conservative; runner may not run every turn).
+					ns["runner_credits"] = max(0, (ns.get("runner_credits", 0) as int) - 3)
+				"next_activation_command":
+					# All ice +2 strength; non-icebreaker sub-breaking disabled.
+					# Approximate as 2cr harder to break through any iced server.
+					ns["runner_credits"] = max(0, (ns.get("runner_credits", 0) as int) - 2)
+				"argus_crackdown":
+					# 2 meat damage per successful run on an iced server.  Runner will
+					# either avoid iced servers or take damage.  Approximate as 2 hand
+					# damage (one run worth of damage).
+					ns["runner_hand"] = max(0, (ns.get("runner_hand", 0) as int) - 2)
+				"hyoubu_precog_manifold":
+					# On each successful run on the chosen server, play a psi game;
+					# bids differ → end run (≈50% hit).  Weakest lockdown; model as
+					# 1cr drain (runner over-spends slightly to guarantee the run).
+					ns["runner_credits"] = max(0, (ns.get("runner_credits", 0) as int) - 1)
 				_:
-					ns["corp_credits"] = (ns.get("corp_credits", 0) as int) + 2
+					# Auto-derive from AbilityRegistry for Corp ops not explicitly handled.
+					var snap_ab: AbilityRegistry = null
+					if _ctx != null and _ctx.has_meta("ability_registry"):
+						snap_ab = _ctx.get_meta("ability_registry") as AbilityRegistry
+					var auto_applied := false
+					if snap_ab != null:
+						var corp_proj: Variant = snap_ab.get_corp_ai_projection(card.id)
+						if corp_proj != null:
+							var p: Dictionary = corp_proj as Dictionary
+							ns["corp_credits"]   = (ns.get("corp_credits",   0) as int) + (p.get("credits_delta",        0) as int)
+							ns["runner_credits"] = (ns.get("runner_credits", 0) as int) + (p.get("runner_credits_delta", 0) as int)
+							var c_drawn: int = p.get("cards_drawn", 0) as int
+							if c_drawn > 0:
+								var c_lim: int = ns.get("corp_hand_limit", 5) as int
+								ns["corp_hand"] = min((ns.get("corp_hand", 0) as int) + c_drawn, c_lim)
+								ns["corp_deck"] = max(0, (ns.get("corp_deck", 0) as int) - c_drawn)
+							var adv_add: int = p.get("advancement_counters", 0) as int
+							if adv_add > 0:
+								_apply_advance_counters(ns, adv_add)
+							auto_applied = true
+					if not auto_applied:
+						ns["corp_credits"] = (ns.get("corp_credits", 0) as int) + 2
 
 	return ns
+
+
+# Applies `amount` advancement counters to the installed agenda closest to
+# scoring (highest adv/req ratio).  Scores it if the new total meets req.
+static func _apply_advance_counters(ns: Dictionary, amount: int) -> void:
+	var remotes: Array = (ns.get("remotes", []) as Array).duplicate(true)
+	var best_i: int    = -1
+	var best_ratio: float = -1.0
+	for i in range(remotes.size()):
+		var r: Dictionary = remotes[i] as Dictionary
+		if not r.get("has_agenda", false):
+			continue
+		var adv: int = r.get("adv", 0) as int
+		var req: int = r.get("req", 1) as int
+		var ratio: float = float(adv) / float(max(req, 1))
+		if ratio > best_ratio:
+			best_ratio = ratio
+			best_i = i
+	if best_i == -1:
+		return
+	var target: Dictionary = (remotes[best_i] as Dictionary).duplicate()
+	var new_adv: int = (target.get("adv", 0) as int) + amount
+	var req: int     = target.get("req", 1) as int
+	if new_adv >= req:
+		var pts: int = target.get("agenda_points", 2) as int
+		ns["corp_score"] = (ns.get("corp_score", 0) as int) + pts
+		remotes.remove_at(best_i)
+	else:
+		target["adv"] = new_adv
+		remotes[best_i] = target
+	ns["remotes"] = remotes
+
+
+# Applies 1 advancement counter to each of the top 2 agenda remotes (sorted by
+# adv/req ratio).  Used by Business As Usual, which distributes across different
+# installed cards rather than stacking on one.
+static func _apply_bau_advance(ns: Dictionary) -> void:
+	var remotes: Array = (ns.get("remotes", []) as Array).duplicate(true)
+
+	# Collect agenda remotes and sort by closeness to scoring.
+	var candidates: Array = []
+	for i in range(remotes.size()):
+		var r: Dictionary = remotes[i] as Dictionary
+		if not r.get("has_agenda", false):
+			continue
+		var adv: int = r.get("adv", 0) as int
+		var req: int = max(r.get("req", 1) as int, 1)
+		candidates.append({"idx": i, "ratio": float(adv) / float(req)})
+	candidates.sort_custom(func(a, b): return (a["ratio"] as float) > (b["ratio"] as float))
+
+	# Apply 1 counter to each of the top 2 candidates; track scored indices.
+	var scored_indices: Array = []
+	for ci in range(min(2, candidates.size())):
+		var ri: int = candidates[ci]["idx"] as int
+		var r: Dictionary = (remotes[ri] as Dictionary).duplicate()
+		var new_adv: int = (r.get("adv", 0) as int) + 1
+		var req: int     = r.get("req", 1) as int
+		var restricted: bool = r.get("mitosis_restricted", false) as bool
+		if new_adv >= req and not restricted:
+			var pts: int = r.get("agenda_points", 2) as int
+			ns["corp_score"] = (ns.get("corp_score", 0) as int) + pts
+			scored_indices.append(ri)
+		else:
+			r["adv"] = new_adv
+			remotes[ri] = r
+
+	# Remove scored agendas high-index-first to keep earlier indices valid.
+	scored_indices.sort()
+	scored_indices.reverse()
+	for si in scored_indices:
+		remotes.remove_at(si)
+
+	ns["remotes"] = remotes
 
 
 # ── Runner response projection ────────────────────────────────────────────────
@@ -1550,6 +2049,14 @@ func project_runner_response(s: Dictionary, threat_server: String, _ctx: GameCon
 		if svr_sentry    and not has_killer:  base_prob -= 0.20
 		if svr_code_gate and not has_decoder: base_prob -= 0.20
 		base_prob = maxf(base_prob, 0.05)
+
+	# ── Proven-access boost ────────────────────────────────────────────────────
+	# If the runner breached this specific server last turn they already have
+	# the right breakers and economy lined up. Raise success probability to
+	# reflect that the ice is no longer a surprise or an unknown cost.
+	var breached_svrs: Array = s.get("breached_servers_last_turn", []) as Array
+	if threat_server in breached_svrs:
+		base_prob = minf(base_prob + 0.20, 0.95)
 
 	var success_prob: float = base_prob
 

@@ -82,7 +82,8 @@ func choose_action(ctx: GameContext) -> GameAction:
 
 	# Whole-turn beam search at beam_width=3.
 	var snap:   Dictionary = _base_evaluator.snapshot(ctx)
-	var action: GameAction = _base_planner.plan_first_action(snap, "rd", ctx)
+	var action: GameAction = _resolve_sim_action(
+		_base_planner.plan_first_action(snap, "rd", ctx), ctx)
 	if not ctx.simulation_mode:
 		DecisionLogger.log_heuristic(ctx, action)
 	return action
@@ -1411,20 +1412,48 @@ func choose_card_name(ctx: GameContext) -> String:
 	return best_name if best_name != "" else "Sure Gamble"
 
 
-func choose_runner_card_type(types: Array, ctx: GameContext) -> String:
-	# Touch-ups: pick the card type most represented in the runner's grip.
-	var counts: Dictionary = {}
-	for entry in ctx.runner_hand:
-		var r: CardRecord = (entry as Dictionary).get("card_record", null) as CardRecord
-		if r != null:
-			counts[r.card_type] = counts.get(r.card_type, 0) + 1
-	var best := 0
-	var best_type := ""
-	for t in types:
-		if counts.get(t, 0) > best:
-			best = counts.get(t, 0)
-			best_type = t
-	return best_type if best_type != "" else types[0]
+func choose_runner_card_type(types: Array, _ctx: GameContext) -> String:
+	# Events are ~2× more likely than resources in a typical runner grip.
+	# 2/3 event, 1/3 resource — used by Focus Group, Touch-Ups, and similar.
+	var prefer_event: bool = randf() < 2.0 / 3.0
+	if prefer_event and "event" in types:
+		return "event"
+	if "resource" in types:
+		return "resource"
+	if "event" in types:
+		return "event"
+	if not types.is_empty():
+		return types[0] as String
+	return "event"
+
+
+func choose_installed_card(candidates: Array, _ctx: GameContext) -> InstalledCard:
+	# Called when placing advancement counters on an installed card (Seamless Launch,
+	# Touch-Ups, etc.).  Prefer the agenda closest to its scoring threshold; fall
+	# back to the first advanceable non-agenda (traps), then the first candidate.
+	if candidates.is_empty():
+		return null
+	var best_agenda: InstalledCard = null
+	var best_gap: int = 999
+	var first_non_agenda: InstalledCard = null
+	for cand_any in candidates:
+		var cand: InstalledCard = cand_any as InstalledCard
+		if cand == null or cand.card_record == null:
+			continue
+		if cand.card_record.is_agenda():
+			var req: int = cand.card_record.advancement_requirement
+			var cur: int = cand.get_counter("advancement")
+			var gap: int = req - cur
+			if gap > 0 and gap < best_gap:
+				best_gap  = gap
+				best_agenda = cand
+		elif first_non_agenda == null and not cand.card_record.is_ice():
+			first_non_agenda = cand
+	if best_agenda != null:
+		return best_agenda
+	if first_non_agenda != null:
+		return first_non_agenda
+	return candidates[0] as InstalledCard
 
 
 func choose_target(candidates: Array, context: Dictionary) -> Variant:
@@ -1433,7 +1462,7 @@ func choose_target(candidates: Array, context: Dictionary) -> Variant:
 	# MS-L007: for advancement counter placement (Pravdivost, Vasilisa, etc.),
 	# prefer the agenda closest to its scoring threshold.
 	var reason: String = (context as Dictionary).get("reason", "") if context is Dictionary else ""
-	if reason in ["advance_optional", "advance_required"]:
+	if reason in ["advance_optional", "advance_required", "target", "focus_group_advance"]:
 		var best: InstalledCard = null
 		var best_gap: int = 999
 		for cand_any in candidates:
@@ -1469,3 +1498,29 @@ func choose_activate_clearinghouse(card: InstalledCard, ctx: GameContext) -> boo
 
 	# Otherwise hold — let it grow more threatening
 	return false
+
+
+# Translates snap-level sentinel card IDs to real installed-card IDs before the
+# action is handed to the game engine.
+#
+# "__sim_trap__"   — represents "advance a non-agenda advanceable card in a
+#                    protected remote" in the MCTS/beam snap.  The engine cannot
+#                    find a literal card with that ID, so we resolve it to the
+#                    actual card's card_id here.
+func _resolve_sim_action(action: GameAction, ctx: GameContext) -> GameAction:
+	if action == null or action.type != "advance":
+		return action
+	var card_id: String = action.params.get("card_id", "") as String
+	if card_id != "__sim_trap__":
+		return action
+	# Walk protected remotes to find the actual advanceable non-agenda.
+	for srv_key in ctx.servers:
+		var srv: Server = ctx.servers[srv_key] as Server
+		if srv == null or not srv.is_remote() or srv.ice.size() == 0:
+			continue
+		for root_c in srv.root:
+			var ic: InstalledCard = root_c as InstalledCard
+			if ic != null and ic.card_record != null \
+					and not ic.card_record.is_agenda() and ic.can_be_advanced():
+				return GameAction.advance(ic.card_id)
+	return GameAction.gain_credits()

@@ -69,6 +69,9 @@ static func _add_basic(out: Array, snap: Dictionary) -> void:
 	var draw_ceiling: int = (hand_lim + 3) if needs_breaker else hand_lim
 	if (snap.get("runner_deck", 0) as int) > 0 and (hand_sz < draw_ceiling or has_dead):
 		out.append(GameAction.draw_card())
+	# Remove 1 tag (2cr) — offered when tagged and affordable.
+	if (snap.get("runner_tags", 0) as int) > 0 and (snap.get("runner_credits", 0) as int) >= 2:
+		out.append(GameAction.remove_tag())
 
 
 static func _add_events(out: Array, snap: Dictionary) -> void:
@@ -155,7 +158,6 @@ static func _add_runs(out: Array, snap: Dictionary) -> void:
 	var has_decoder: bool  = snap.get("runner_has_decoder", false) as bool
 	var has_killer:  bool  = snap.get("runner_has_killer",  false) as bool
 	var has_ai:      bool  = snap.get("runner_has_ai",      false) as bool
-	var has_any:     bool  = has_fracter or has_decoder or has_killer or has_ai
 
 	# Per-piece cost for unrezzed ICE, scaled by Corp credits.
 	# A wealthy Corp is essentially certain to rez on approach.
@@ -167,8 +169,8 @@ static func _add_runs(out: Array, snap: Dictionary) -> void:
 			(snap.get("rd_rezzed", 0) as int) * 2) as int
 		var rd_cost: int = rd_rezzed_cost \
 			+ (snap.get("rd_unrezzed", 0) as int) * unrez_per_ice
-		var rd_breakable: bool = (snap.get("rd_rezzed", 0) as int) == 0 or has_any
-		if cr >= rd_cost and rd_breakable:
+		var rd_types: Array = snap.get("rd_rezzed_types", []) as Array
+		if cr >= rd_cost and _types_breakable(rd_types, has_fracter, has_decoder, has_killer, has_ai):
 			out.append(GameAction.run("rd"))
 
 	# HQ run
@@ -177,11 +179,15 @@ static func _add_runs(out: Array, snap: Dictionary) -> void:
 			(snap.get("hq_rezzed", 0) as int) * 2) as int
 		var hq_cost: int = hq_rezzed_cost \
 			+ (snap.get("hq_unrezzed", 0) as int) * unrez_per_ice
-		var hq_breakable: bool = (snap.get("hq_rezzed", 0) as int) == 0 or has_any
-		if cr >= hq_cost and hq_breakable:
+		var hq_types: Array = snap.get("hq_rezzed_types", []) as Array
+		if cr >= hq_cost and _types_breakable(hq_types, has_fracter, has_decoder, has_killer, has_ai):
 			out.append(GameAction.run("hq"))
 
-	# Remote runs (agenda only)
+	# Remote runs (agenda only) — blocked when corp identity requires a central run first
+	# and no central has been run yet this turn (mirrors TurnManager enforcement).
+	var central_first: bool = snap.get("corp_requires_central_first", false) as bool
+	if central_first and ran.is_empty():
+		return
 	for r in snap.get("remotes", []) as Array:
 		var rd: Dictionary = r as Dictionary
 		var server_id: String = rd.get("server_id", "") as String
@@ -213,9 +219,19 @@ static func _remote_breakable(
 		has_decoder: bool,
 		has_killer:  bool,
 		has_ai:      bool) -> bool:
-	if has_ai:
+	return _types_breakable(rd.get("rezzed_types", []) as Array,
+		has_fracter, has_decoder, has_killer, has_ai)
+
+
+static func _types_breakable(
+		types:       Array,
+		has_fracter: bool,
+		has_decoder: bool,
+		has_killer:  bool,
+		has_ai:      bool) -> bool:
+	if types.is_empty() or has_ai:
 		return true
-	for sub in rd.get("rezzed_types", []) as Array:
+	for sub in types:
 		var needed: String = ICE_TO_BREAKER.get(sub, "") as String
 		if needed == "":
 			continue

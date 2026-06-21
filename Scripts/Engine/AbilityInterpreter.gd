@@ -11838,19 +11838,9 @@ func _execute_effect(effect: Dictionary, ctx: GameContext, chosen_target: Varian
 					ctx.corp_decision_maker.has_method("choose_runner_card_type"):
 				tu_chosen_type = await ctx.corp_decision_maker.choose_runner_card_type(tu_all_types, ctx)
 			if tu_chosen_type == "":
-				# AI default: pick most-represented type in grip (maximum disruption)
-				var tu_counts: Dictionary = {}
-				for tu_e in ctx.runner_hand:
-					var tu_r: CardRecord = (tu_e as Dictionary).get("card_record", null) as CardRecord
-					if tu_r != null:
-						tu_counts[tu_r.card_type] = tu_counts.get(tu_r.card_type, 0) + 1
-				var tu_best := 0
-				for t in tu_all_types:
-					if tu_counts.get(t, 0) > tu_best:
-						tu_best = tu_counts.get(t, 0)
-						tu_chosen_type = t
-			if tu_chosen_type == "":
-				tu_chosen_type = tu_all_types[0]
+				# AI default: events are ~2× more common in runner grips than resources,
+				# so weight 2/3 event, 1/3 resource.
+				tu_chosen_type = "event" if randf() < 2.0 / 3.0 else "resource"
 			ctx.send_log("Touch-ups: %s chooses type '%s' and reveals %s's grip:" % [
 				ctx.corp_name(), tu_chosen_type, ctx.runner_name()
 			])
@@ -12521,6 +12511,52 @@ func _execute_effect(effect: Dictionary, ctx: GameContext, chosen_target: Varian
 			crpa_target.add_counter("advancement", crpa_count)
 			ctx.send_log("Flood the Market: placed %d advancement counter(s) on %s." % [
 				crpa_count, crpa_target.display_name()])
+
+			# Score inline if the target is an agenda now meeting its requirement
+			# (Corp scores during the paid ability window; no extra click needed).
+			if crpa_target.card_record != null and crpa_target.card_record.is_agenda() \
+					and crpa_target.meets_advancement_requirement() \
+					and not ctx.mitosis_restricted_instance_ids.has(crpa_target.runtime_instance_id) \
+					and not ctx.corp_cannot_score_agendas_this_turn:
+				var crpa_record: CardRecord = crpa_target.card_record
+				ctx.send_log("%s scores %s! (%d agenda point%s)" % [
+					ctx.corp_name(), crpa_record.title, crpa_record.agenda_points,
+					"s" if crpa_record.agenda_points != 1 else ""])
+				var crpa_server: Server = ctx.get_server(crpa_target.server_id)
+				if crpa_server != null:
+					crpa_server.remove_from_root(crpa_target)
+					if crpa_server.is_empty() and crpa_server.is_remote():
+						ctx.remove_empty_remote_servers()
+				ctx.corp_score_area.append(crpa_record)
+				ctx.corp_score_area_cards.append(crpa_target)
+				ctx.corp_last_scored_agenda_points  = crpa_record.agenda_points
+				ctx.corp_agendas_scored_this_turn  += 1
+				var crpa_excess: int = maxi(0,
+					crpa_target.get_counter("advancement") - crpa_record.advancement_requirement)
+				var crpa_ab_reg: AbilityRegistry = null
+				if ctx.has_meta("ability_registry"):
+					crpa_ab_reg = ctx.get_meta("ability_registry") as AbilityRegistry
+				if crpa_ab_reg != null:
+					var crpa_on_score = crpa_ab_reg.get_on_score(crpa_record.id)
+					if crpa_on_score != null:
+						ctx.current_event_data = {
+							"card":               crpa_target,
+							"card_instance_id":   crpa_target.runtime_instance_id,
+							"excess_advancement": crpa_excess
+						}
+						ctx.current_ability_source_card_type = "agenda"
+						await execute_trigger(crpa_on_score as Dictionary, ctx)
+						ctx.current_event_data = {}
+						ctx.current_ability_source_card_type = ""
+				await ctx.notify_event("corp_scores_agenda", {
+					"agenda_id":     crpa_record.id,
+					"agenda_points": crpa_record.agenda_points,
+					"server_id":     crpa_target.server_id
+				}, self)
+				if ctx.corp_agenda_points() >= ctx.agenda_points_to_win:
+					ctx.send_log("%s wins!" % ctx.corp_name())
+					ctx.game_over = true
+					ctx.winner    = "corp"
 
 		# ── VP32 Caveat Emptor: gain/lose clicks next turn ────────────────────────
 

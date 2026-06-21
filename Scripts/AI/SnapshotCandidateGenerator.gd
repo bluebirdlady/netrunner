@@ -69,13 +69,47 @@ static func _add_operations(out: Array, snap: Dictionary) -> void:
 	var remotes: Array  = snap.get("remotes", []) as Array
 
 	# Pre-compute whether any remote currently has an installed agenda — needed
-	# to gate advance-placement operations (Seamless Launch) that are useless
-	# without a target.
+	# to gate advance-placement operations (Seamless Launch, Big Deal) that are
+	# useless without a target.
 	var has_installed_agenda: bool = false
 	for _rn in remotes:
 		if (_rn as Dictionary).get("has_agenda", false):
 			has_installed_agenda = true
 			break
+
+	# Pre-compute whether the Runner is tagged — needed to gate ops whose
+	# additional cost is removing a Runner tag (Unleash, Backroom Machinations).
+	var runner_has_tag: bool = (snap.get("runner_tags", 0) as int) >= 1
+
+	# Pre-compute how many non-ice / non-operation cards are in HQ — needed to
+	# gate Mitosis, which installs from HQ and is useless if nothing is there.
+	var installable_in_hq: int = 0
+	for _hc in snap.get("corp_hand_cards", []) as Array:
+		var _hcr: CardRecord = _hc as CardRecord
+		if _hcr != null and _hcr.card_type not in ["ice", "operation", "identity"]:
+			installable_in_hq += 1
+
+	# Pre-compute qualifying FtM/FullyOp remotes: ICE + root card present.
+	# FtM places 1 counter per qualifying remote (worthwhile at 3+).
+	# Fully Operational gains 2cr per qualifying remote (worthwhile at 1+).
+	var ftm_qualifying: int = 0
+	for _fr in remotes:
+		var _frd: Dictionary = _fr as Dictionary
+		if (_frd.get("ice_count", 0) as int) > 0 \
+				and (_frd.get("root_type", "") as String) != "":
+			ftm_qualifying += 1
+
+	# Pre-compute threat and run flags for conditional operation gates.
+	var corp_sc: int  = snap.get("corp_score",   0) as int
+	var run_sc:  int  = snap.get("runner_score", 0) as int
+	var threat4: bool = corp_sc >= 4 or run_sc >= 4
+	var runner_ran_last_turn: bool = snap.get("runner_ran_last_turn", false) as bool
+
+	# Seamless Launch and Big Deal use add_counters_to_target with
+	# exclude_installed_this_turn — they cannot target an agenda installed this
+	# very Corp turn.  has_pre_existing_agenda is baked into the snap at turn
+	# start so it reflects only agendas that were already installed then.
+	var has_pre_existing_agenda: bool = snap.get("has_pre_existing_agenda", false) as bool
 
 	for entry in snap.get("corp_hand_cards", []) as Array:
 		var c: CardRecord = entry as CardRecord
@@ -89,7 +123,52 @@ static func _add_operations(out: Array, snap: Dictionary) -> void:
 		# Advance-placement operations are useless without an installed agenda.
 		# Offering them when no agenda is installed wastes a click and a card,
 		# and causes the MCTS to advance non-agenda cards (e.g. ICE) for no benefit.
-		if c.id == "seamless_launch" and not has_installed_agenda:
+		if c.id in ["seamless_launch", "big_deal"] and not has_pre_existing_agenda:
+			continue
+		if c.id in ["business_as_usual", "touch_ups"] and not has_installed_agenda:
+			continue
+		# Mitosis installs up to 2 cards from HQ — pointless if fewer than 2
+		# non-operation cards are available to install.
+		if c.id == "mitosis" and installable_in_hq < 2:
+			continue
+		# Flood the Market places 1 counter per qualifying remote; only worthwhile
+		# when at least 3 qualifying remotes exist and an agenda is already installed.
+		if c.id == "flood_the_market" and (not has_installed_agenda or ftm_qualifying < 3):
+			continue
+		# Fully Operational gives 0 benefit with no qualifying remotes.
+		if c.id == "fully_operational" and ftm_qualifying < 1:
+			continue
+		# Measured Response only fires at Threat 4 (AND runner ran last turn — checked
+		# in projection since that field is not available in the pre-play gate).
+		if c.id == "measured_response" and not threat4:
+			continue
+		# Public Trail only fires if the runner made a successful run last turn.
+		if c.id == "public_trail" and not runner_ran_last_turn:
+			continue
+		# Ops whose additional cost is removing a Runner tag (Unleash, Backroom Machinations).
+		if c.id in ["unleash", "backroom_machinations"] and not runner_has_tag:
+			continue
+		# Double operations (additional_cost_clicks: 1) require 2 clicks total.
+		if c.id in ["retirement_plan", "secure_and_protect", "pivot"] \
+				and (snap.get("corp_clicks_left", 0) as int) < 2:
+			continue
+		# Reanimation Protocol is only useful if archives has at least 1 card.
+		if c.id == "reanimation_protocol" and (snap.get("corp_discard_sz", 0) as int) < 1:
+			continue
+		# Focus Group advances an installed card — useless without an agenda target.
+		if c.id == "focus_group" and not has_installed_agenda:
+			continue
+		# Triple operations (additional_cost_clicks: 2) require 3 clicks total.
+		if c.id in ["kakurenbo", "mutually_assured_destruction"] \
+				and (snap.get("corp_clicks_left", 0) as int) < 3:
+			continue
+		# Kakurenbo installs from Archives — useless if Archives is empty.
+		if c.id == "kakurenbo" and (snap.get("corp_discard_sz", 0) as int) < 1:
+			continue
+		# MAD only worthwhile when the Corp can immediately exploit the resulting
+		# tags — gate on tag exploit being in hand.
+		if c.id == "mutually_assured_destruction" \
+				and not (snap.get("tag_exploit_in_hand", false) as bool):
 			continue
 		out.append(GameAction.play_operation(c))
 

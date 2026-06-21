@@ -106,23 +106,45 @@ static func _eval_condition(key: String, expected, snap: Dictionary) -> bool:
 				and not (snap.get("runner_has_killer",  false) as bool) \
 				and not (snap.get("runner_has_ai",      false) as bool)
 			return nb == (expected as bool)
+		"corp_central_has_rezzed_ice":
+			var has_ice: bool = (snap.get("hq_rezzed", 0) as int) > 0 \
+				or (snap.get("rd_rezzed", 0) as int) > 0
+			return has_ice == (expected as bool)
 	return true  # unknown condition key — pass through
 
 
 static func _has_run_target(runs: String, snap: Dictionary) -> bool:
 	var ran: Array = snap.get("centrals_run", []) as Array
 	match runs:
-		"rd":          return "rd" not in ran
-		"hq":          return "hq" not in ran
-		"archives":    return true
-		"any_central": return ("rd" not in ran) or ("hq" not in ran)
+		"rd":       return "rd" not in ran
+		"hq":       return "hq" not in ran
+		"archives": return true
+		"any_central":
+			# Only valid if at least one unrun central has breakable rezzed ICE.
+			if "rd" not in ran and _snap_central_breakable("rd", snap): return true
+			if "hq" not in ran and _snap_central_breakable("hq", snap): return true
+			return false
 		"any":
-			if ("rd" not in ran) or ("hq" not in ran):
-				return true
-			for r in snap.get("remotes", []) as Array:
-				if (r as Dictionary).get("has_agenda", false):
-					return true
-			return true   # archives always reachable
+			# Archives is always reachable and has no ICE — always a valid target.
+			return true
+	return true
+
+
+static func _snap_central_breakable(server_id: String, snap: Dictionary) -> bool:
+	var types_key: String = "hq_rezzed_types" if server_id == "hq" else "rd_rezzed_types"
+	var rezzed_types: Array = snap.get(types_key, []) as Array
+	if rezzed_types.is_empty():
+		return true
+	if snap.get("runner_has_ai", false) as bool:
+		return true
+	var has_fracter: bool = snap.get("runner_has_fracter", false) as bool
+	var has_decoder: bool = snap.get("runner_has_decoder", false) as bool
+	var has_killer:  bool = snap.get("runner_has_killer",  false) as bool
+	for sub in rezzed_types:
+		match sub:
+			"barrier":   if not has_fracter: return false
+			"code_gate": if not has_decoder: return false
+			"sentry":    if not has_killer:  return false
 	return true
 
 
@@ -539,6 +561,60 @@ const HINTS: Dictionary = {
 		"value_bonus": 0.0,
 	},
 
+	# ── Auto (partial) corrections ───────────────────────────────────────────
+	# These cards have a partial auto-projection from abilities.json that already
+	# models the primary economic effect.  The hint fills in what the auto-
+	# projection misses (click penalties, run side-effects, tutor installs, etc.).
+
+	# Creative Commission: gain 5cr — but lose 1 click next turn.
+	# Auto-proj captures +5cr; hint corrects for the hidden click cost (~2cr value).
+	"creative_commission": {
+		"conditions": {},
+		"snap_delta": {},
+		"value_bonus": -2.0,
+	},
+
+	# VRcation: draw 4 cards — but lose 1 click next turn.
+	# Auto-proj captures +4 draws; hint corrects for the hidden click cost.
+	"vrcation": {
+		"conditions": {"runner_deck_size_gte": 4},
+		"snap_delta": {},
+		"value_bonus": -2.0,
+	},
+
+	# Mutual Favor: search stack for any icebreaker; add to grip; if successful
+	# run this turn, may install it for free.
+	# Auto-proj partial on search_deck; hint models the key install-from-deck value.
+	"mutual_favor": {
+		"conditions": {"runner_deck_size_gte": 1},
+		"snap_delta": {"installs_breaker_if_need": true, "install_from_deck": true},
+		"value_bonus": 8.0,
+	},
+
+	# Aircheck: gain 4cr; run HQ or R&D; if successful, may run a remote (RFG self).
+	# Auto-proj captures +4cr; hint adds the mandatory central run component.
+	"aircheck": {
+		"conditions": {},
+		"snap_delta": {"runs_server": "any_central"},
+		"value_bonus": 4.0,
+	},
+
+	# Carpe Diem: identify mark; gain 4cr; may run mark server.
+	# Auto-proj captures +4cr; hint adds the optional run on a central mark.
+	"carpe_diem": {
+		"conditions": {},
+		"snap_delta": {"runs_server": "any_central"},
+		"value_bonus": 3.0,
+	},
+
+	# Ashen Epilogue: shuffle grip + heap into stack; RFG top 5; draw 5; RFG self.
+	# Only worth playing when the heap is substantial and the stack is running low.
+	"ashen_epilogue": {
+		"conditions": {"runner_heap_size_gte": 5, "runner_deck_size_lt": 15},
+		"snap_delta": {"cards_drawn": 5},
+		"value_bonus": 3.0,
+	},
+
 	# ── Complex events from spec ──────────────────────────────────────────────
 
 	# Harmony AR Therapy: shuffle up to 5 named cards from heap back into stack
@@ -575,6 +651,45 @@ const HINTS: Dictionary = {
 	"reprise": {
 		"conditions": {"runner_stole_agenda": true},
 		"snap_delta": {},
+		"value_bonus": 8.0,
+	},
+
+	# ── Vantage Point runner events ───────────────────────────────────────────
+
+	# Chain Reaction: trash 2 Corp installed cards; Corp trashes 1 runner installed card
+	# Requires successful runs on HQ, R&D, and Archives this turn.
+	# Play whenever all three centrals have been successfully run (the demanding gate
+	# implies late-game; Corp almost certainly has 2+ installed cards worth trashing).
+	"chain_reaction": {
+		"conditions": {"runner_centrals_all_run": true},
+		"snap_delta": {},
+		"value_bonus": 12.0,
+	},
+
+	# Kompromat: run any iced server; Corp must derez 1 ice on that server or take 1 bad pub
+	# Corp will almost always derez rather than accept bad pub, weakening their ice stack.
+	# Gate on the Corp having rezzed ice on a central — that's where the derez is most painful.
+	"kompromat": {
+		"conditions": {"corp_central_has_rezzed_ice": true},
+		"snap_delta": {"runs_server": "any"},
+		"value_bonus": 6.0,
+	},
+
+	# Tailgate: run HQ; if successful, access 2 additional cards (same as Legwork)
+	# Play cost decreases by 1 per ice on HQ; value is pure HQ multiaccess.
+	"tailgate": {
+		"conditions": {},
+		"snap_delta": {"runs_server": "hq"},
+		"value_bonus": 8.0,
+	},
+
+	# Take a Dive: run HQ or R&D; if successful AND a subroutine resolved, Corp gets 1 bad pub
+	# Play when a central has rezzed ice so a subroutine can fire. The runner deliberately
+	# lets a non-punitive sub resolve. Breakable ice is a reasonable proxy — if the runner
+	# can break it, the sub is likely taxing but not devastating.
+	"take_a_dive": {
+		"conditions": {"corp_central_has_rezzed_ice": true},
+		"snap_delta": {"runs_server": "any_central"},
 		"value_bonus": 8.0,
 	},
 }

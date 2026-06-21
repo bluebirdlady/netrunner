@@ -451,8 +451,8 @@ func choose_take_tag_or_end_run(_amount: int, _ctx: GameContext) -> bool:
 	return false  # end the run
 
 
-func choose_pay_to_avoid_tag(_cost: int, _ctx: GameContext) -> bool:
-	return false
+func choose_pay_to_avoid_tag(cost: int, ctx: GameContext) -> bool:
+	return ctx.runner_credits - cost >= 2
 
 
 func choose_pay_to_avoid_damage(_cost: int, _damage: int, _damage_type: String, _ctx: GameContext) -> bool:

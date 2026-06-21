@@ -363,6 +363,73 @@ func get_ai_projection(card_id: String) -> Variant:
 	return proj
 
 
+# Corp-perspective projection of an operation's on-play effects.
+# Mirrors get_ai_projection() but models subject="corp" effects instead of runner effects.
+# Used by CorpStateEvaluator.project_corp_action() to auto-derive economy/draw ops.
+# Returns null when no useful Corp-side effects are auto-derivable.
+# Schema:
+#   credits_delta        : int   — Corp credit gain (gross; caller already deducted play cost)
+#   runner_credits_delta : int   — Runner credit gain from Corp ops that give the runner credits
+#   cards_drawn          : int   — Corp cards drawn
+#   complete             : bool  — true only if every effect was fully modelled
+func get_corp_ai_projection(card_id: String) -> Variant:
+	if not _abilities.has(card_id):
+		return null
+	var card_def: Dictionary = _abilities[card_id] as Dictionary
+	var op_entry: Variant = card_def.get("on_play", null)
+	if op_entry == null:
+		return null
+	var op: Dictionary = op_entry as Dictionary
+	var effects: Array = op.get("effects", []) as Array
+	if effects.is_empty():
+		# Modal operations — use the first mode's effects as a conservative estimate.
+		var modes: Array = op.get("modes", []) as Array
+		if not modes.is_empty():
+			effects = ((modes[0] as Dictionary).get("effects", []) as Array)
+	if effects.is_empty():
+		return null
+
+	var proj: Dictionary = {
+		"complete":              true,
+		"credits_delta":         0,
+		"runner_credits_delta":  0,
+		"cards_drawn":           0,
+		"advancement_counters":  0,
+	}
+
+	for eff_any in effects:
+		var eff: Dictionary    = eff_any as Dictionary
+		var etype: String      = eff.get("type",   "") as String
+		var params: Dictionary = eff.get("params", {}) as Dictionary
+		match etype:
+			"gain_credits":
+				var subject: String = params.get("subject", "corp") as String
+				var amount: int     = params.get("amount",  0)      as int
+				if   subject == "corp":   proj["credits_delta"]        = (proj["credits_delta"]        as int) + amount
+				elif subject == "runner": proj["runner_credits_delta"] = (proj["runner_credits_delta"] as int) + amount
+				else:                     proj["complete"] = false
+			"draw_cards":
+				if (params.get("subject", "corp") as String) == "corp":
+					proj["cards_drawn"] = (proj["cards_drawn"] as int) + (params.get("amount", 0) as int)
+				else:
+					proj["complete"] = false
+			"add_counters_to_target":
+				if (params.get("counter_type", "") as String) == "advancement":
+					proj["advancement_counters"] = (proj["advancement_counters"] as int) + (params.get("amount", 0) as int)
+				else:
+					proj["complete"] = false
+			_:
+				proj["complete"] = false
+
+	if (proj["credits_delta"]        as int) == 0 \
+			and (proj["runner_credits_delta"] as int) == 0 \
+			and (proj["cards_drawn"]          as int) == 0 \
+			and (proj["advancement_counters"] as int) == 0:
+		return null
+
+	return proj
+
+
 # Diagnostic: logs auto-projection coverage across the full loaded ability set.
 # Call once at startup (or from a test scene) to audit which events are covered.
 func log_projection_coverage() -> void:

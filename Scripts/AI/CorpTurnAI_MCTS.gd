@@ -73,7 +73,7 @@ func choose_action(ctx: GameContext) -> GameAction:
 
 	var t_start: int = Time.get_ticks_msec()
 
-	var action: GameAction = _turn_tree.search(ctx)
+	var action: GameAction = _resolve_sim_action(_turn_tree.search(ctx), ctx)
 
 	var elapsed: int = Time.get_ticks_msec() - t_start
 	if elapsed >= SLOW_MS and not ctx.simulation_mode:

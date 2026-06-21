@@ -3,12 +3,24 @@ extends Node
 # ── SelfPlayRunner ────────────────────────────────────────────────────────────
 # Headless AI-vs-AI self-play harness.
 #
-# Usage:
+# Usage (single game, starter decks):
 #   godot --headless res://Scenes/SelfPlay.tscn
 #
-# Corp AI (CorpTurnAI_Strategic) vs Runner AI (SimRunnerAI campaign mode).
+# Usage (batch — prints per-game results and a win-rate summary):
+#   godot --headless res://Scenes/SelfPlay.tscn -- --batch 50
+#   godot --headless res://Scenes/SelfPlay.tscn -- --batch 50 --verbose
+#
+# Deck selection flags (can be combined with --batch):
+#   --corp-opponent  <id>          load Corp identity+deck from campaign.json
+#   --runner-opponent <id>         load Runner identity+deck from corp_campaign.json
+#   --corp-identity  <card_id>     override Corp identity card
+#   --corp-deck      <id,id,...>   override Corp deck (comma-separated card IDs)
+#   --runner-identity <card_id>    override Runner identity card
+#   --runner-deck    <id,id,...>   override Runner deck (comma-separated card IDs)
+#
+# Corp AI (CorpTurnAI_MCTS) vs Runner AI (SimRunnerAI campaign mode).
 # Both AIs are synchronous, so the game runs at maximum speed.
-# Each action is printed to stdout in a human-readable format for debugging.
+# In single-game mode every action is printed; in batch mode only results are.
 # ─────────────────────────────────────────────────────────────────────────────
 
 const MAX_TURNS := 80  # Safety cap — a game shouldn't need more than this
@@ -53,57 +65,239 @@ const RUNNER_DECK_IDS: Array = [
 	"mayfly", "mayfly",
 ]
 
-# ── State for logging ─────────────────────────────────────────────────────────
+# ── State ─────────────────────────────────────────────────────────────────────
 
-var _ctx:         GameContext
-var _turn_count:  int = 0
+var _ctx:          GameContext
+var _turn_count:   int = 0
 var _action_count: int = 0
-var _click_index: int = 0
+var _click_index:  int = 0
 var _last_beat_msec: int = 0
+
+# Batch-mode state
+var _batch_mode:    bool  = false
+var _batch_verbose: bool  = false
+var _batch_total:   int   = 1
+var _batch_index:   int   = 0
+var _batch_results: Array = []   # Array of {winner, reason, turns, actions}
+
+# Current-game result captured by the game_over signal
+var _game_result: Dictionary = {}
+
+# Active deck configuration (resolved from args; defaults to starter decks)
+var _corp_identity_id:  String = "the_syndicate_profit_over_principle"
+var _runner_identity_id: String = "the_catalyst_convention_breaker"
+var _corp_deck_ids:     Array  = CORP_DECK_IDS
+var _runner_deck_ids:   Array  = RUNNER_DECK_IDS
 
 func _process(_delta: float) -> void:
 	var now := Time.get_ticks_msec()
 	if now - _last_beat_msec >= 5000:
 		_last_beat_msec = now
-		print("[heartbeat] alive — turn %d, actions %d, time %ds" % [
-			_turn_count, _action_count, now / 1000])
+		if _batch_mode:
+			print("[heartbeat] game %d/%d — turn %d, time %ds" % [
+				_batch_index + 1, _batch_total, _turn_count, now / 1000])
+		else:
+			print("[heartbeat] alive — turn %d, actions %d, time %ds" % [
+				_turn_count, _action_count, now / 1000])
 
 
 # ── Entry point ───────────────────────────────────────────────────────────────
 
 func _ready() -> void:
-	_run_game()
+	var args: Array = OS.get_cmdline_user_args()
+	var i := 0
+	while i < args.size():
+		var a: String = args[i] as String
+		match a:
+			"--batch":
+				if i + 1 < args.size():
+					_batch_mode  = true
+					_batch_total = maxi(1, int(args[i + 1] as String))
+					i += 1
+			"--verbose":
+				_batch_verbose = true
+			"--corp-opponent":
+				if i + 1 < args.size():
+					_load_campaign_opponent(args[i + 1] as String, "corp")
+					i += 1
+			"--runner-opponent":
+				if i + 1 < args.size():
+					_load_campaign_opponent(args[i + 1] as String, "runner")
+					i += 1
+			"--corp-identity":
+				if i + 1 < args.size():
+					_corp_identity_id = args[i + 1] as String
+					i += 1
+			"--corp-deck":
+				if i + 1 < args.size():
+					_corp_deck_ids = Array((args[i + 1] as String).split(","))
+					i += 1
+			"--runner-identity":
+				if i + 1 < args.size():
+					_runner_identity_id = args[i + 1] as String
+					i += 1
+			"--runner-deck":
+				if i + 1 < args.size():
+					_runner_deck_ids = Array((args[i + 1] as String).split(","))
+					i += 1
+		i += 1
 
-func _run_game() -> void:
+	if _batch_mode:
+		await _run_batch()
+	else:
+		await _run_game()
+		get_tree().quit()
+
+
+func _load_campaign_opponent(opponent_id: String, side: String) -> void:
+	# Corp opponents live in campaign.json (runner campaign);
+	# Runner opponents live in corp_campaign.json (corp campaign).
+	var json_path: String = "res://Campaign/campaign.json" if side == "corp" \
+		else "res://Campaign/corp_campaign.json"
+	var f := FileAccess.open(json_path, FileAccess.READ)
+	if f == null:
+		print("ERROR: cannot open %s" % json_path)
+		get_tree().quit(1)
+		return
+	var parsed: Variant = JSON.parse_string(f.get_as_text())
+	f.close()
+	if parsed == null:
+		print("ERROR: failed to parse %s" % json_path)
+		get_tree().quit(1)
+		return
+	var opponents: Dictionary = (parsed as Dictionary).get("opponents", {}) as Dictionary
+	if not opponents.has(opponent_id):
+		print("ERROR: opponent '%s' not found in %s" % [opponent_id, json_path])
+		print("Available opponents:")
+		var keys: Array = opponents.keys()
+		keys.sort()
+		for k in keys:
+			var o: Dictionary = opponents[k] as Dictionary
+			print("  %-30s  %s" % [k, o.get("name", "")])
+		get_tree().quit(1)
+		return
+	var opp: Dictionary = opponents[opponent_id] as Dictionary
+	var deck_raw: Array = opp.get("deck", []) as Array
+	var deck_ids: Array = []
+	for entry in deck_raw:
+		deck_ids.append(entry as String)
+	if side == "corp":
+		_corp_identity_id = opp.get("identity", _corp_identity_id) as String
+		_corp_deck_ids    = deck_ids
+	else:
+		_runner_identity_id = opp.get("identity", _runner_identity_id) as String
+		_runner_deck_ids    = deck_ids
+	print("SelfPlayRunner: loaded %s opponent '%s' — %s (%d cards)" % [
+		side, opponent_id,
+		_corp_identity_id if side == "corp" else _runner_identity_id,
+		deck_ids.size(),
+	])
+
+
+func _run_batch() -> void:
 	print("╔══════════════════════════════════════════════════════╗")
-	print("║          NETRUNNER SELF-PLAY (AI vs AI)              ║")
-	print("║  Corp: The Syndicate  vs  Runner: The Catalyst       ║")
-	print("║  Starter decks — playing to 6 agenda points          ║")
+	print("║     NETRUNNER SELF-PLAY — BATCH MODE (%3d games)     ║" % _batch_total)
 	print("╚══════════════════════════════════════════════════════╝")
-	print("")
 
 	var ab := AbilityRegistry.new()
 	if not ab.load_from_file("res://Data/abilities.json"):
 		print("ERROR: failed to load abilities.json")
 		get_tree().quit()
 		return
-	print("Loaded %d ability definitions." % ab._abilities.size())
 
+	for i in range(_batch_total):
+		_batch_index   = i
+		_turn_count    = 0
+		_action_count  = 0
+		_click_index   = 0
+		_game_result   = {}
+		await _run_game_with_registry(ab)
+		_batch_results.append(_game_result)
+		var r: Dictionary = _game_result
+		print("  [%3d/%3d]  %-8s  %-32s  %2d turns" % [
+			i + 1, _batch_total,
+			(r.get("winner", "?") as String).to_upper(),
+			r.get("reason", ""),
+			r.get("turns",  0),
+		])
+
+	_print_batch_summary()
+	get_tree().quit()
+
+
+func _print_batch_summary() -> void:
+	var corp_wins:   int = 0
+	var runner_wins: int = 0
+	var draws:       int = 0
+	var total_turns: int = 0
+	var reasons:     Dictionary = {}
+
+	for r in _batch_results:
+		var w: String = r.get("winner", "draw") as String
+		var reason: String = r.get("reason", "") as String
+		match w:
+			"corp":   corp_wins   += 1
+			"runner": runner_wins += 1
+			_:        draws       += 1
+		total_turns += r.get("turns", 0) as int
+		reasons[reason] = (reasons.get(reason, 0) as int) + 1
+
+	var n: int = _batch_results.size()
+	var avg_turns: float = float(total_turns) / float(maxi(1, n))
+
+	print("")
+	print("╔══════════════════════════════════════════════════════╗")
+	print("║  BATCH SUMMARY  (%d games)                           " % n)
+	print("╠══════════════════════════════════════════════════════╣")
+	print("║  Corp   wins : %3d  (%5.1f%%)                        " % [corp_wins,   100.0 * corp_wins   / n])
+	print("║  Runner wins : %3d  (%5.1f%%)                        " % [runner_wins, 100.0 * runner_wins / n])
+	print("║  Draws       : %3d  (%5.1f%%)                        " % [draws,       100.0 * draws       / n])
+	print("║  Avg turns   : %.1f                                  " % avg_turns)
+	print("╠══════════════════════════════════════════════════════╣")
+	print("║  Win reasons:")
+	var sorted_reasons: Array = reasons.keys()
+	sorted_reasons.sort()
+	for reason in sorted_reasons:
+		print("║    %-32s  %3d" % [reason, reasons[reason]])
+	print("╚══════════════════════════════════════════════════════╝")
+
+
+func _run_game() -> void:
+	var ab := AbilityRegistry.new()
+	if not ab.load_from_file("res://Data/abilities.json"):
+		print("ERROR: failed to load abilities.json")
+		get_tree().quit()
+		return
+	await _run_game_with_registry(ab)
+
+
+func _run_game_with_registry(ab: AbilityRegistry) -> void:
 	_ctx = GameContext.new()
 	_ctx.corp_credits   = 5
 	_ctx.runner_credits = 5
 	_ctx.corp_clicks    = 3
 	_ctx.runner_clicks  = 0
 
-	_ctx.corp_identity   = CardRegistry.get_card("the_syndicate_profit_over_principle")
-	_ctx.runner_identity = CardRegistry.get_card("the_catalyst_convention_breaker")
+	_ctx.corp_identity   = CardRegistry.get_card(_corp_identity_id)
+	_ctx.runner_identity = CardRegistry.get_card(_runner_identity_id)
 	if _ctx.corp_identity == null or _ctx.runner_identity == null:
-		print("ERROR: identity cards not found in registry")
+		print("ERROR: identity cards not found — corp='%s' runner='%s'" % [
+			_corp_identity_id, _runner_identity_id])
 		get_tree().quit()
 		return
 
-	_load_deck(CORP_DECK_IDS,   _ctx.corp_deck)
-	_load_deck(RUNNER_DECK_IDS, _ctx.runner_deck)
+	if not _batch_mode or _batch_verbose:
+		print("╔══════════════════════════════════════════════════════╗")
+		print("║          NETRUNNER SELF-PLAY (AI vs AI)              ║")
+		print("║  Corp:   %-43s║" % (_ctx.corp_identity.title + "  "))
+		print("║  Runner: %-43s║" % (_ctx.runner_identity.title + "  "))
+		print("║  Playing to 6 agenda points                          ║")
+		print("╚══════════════════════════════════════════════════════╝")
+		print("")
+		print("Loaded %d ability definitions." % ab._abilities.size())
+
+	_load_deck(_corp_deck_ids,   _ctx.corp_deck)
+	_load_deck(_runner_deck_ids, _ctx.runner_deck)
 	_ctx.corp_deck.shuffle()
 	_ctx.runner_deck.shuffle()
 
@@ -123,7 +317,7 @@ func _run_game() -> void:
 	var corp_brain   := CorpTurnAI_MCTS.new(ab)
 	# Reduce MCTS iterations for self-play — 20 is enough to observe strategic behavior
 	# without the ~1s-per-action cost of the full 100-iteration search.
-	corp_brain._turn_tree.iterations = 20
+	corp_brain._turn_tree.iterations = 100
 	var runner_brain := SimRunnerAI.new()
 	runner_brain.campaign_runner_mode = true
 	_ctx.corp_decision_maker   = corp_brain
@@ -138,39 +332,56 @@ func _run_game() -> void:
 	_wire_logging(tm)
 
 	# ── Mulligan ──────────────────────────────────────────────────────────────
-	print("── Opening hands ──")
-	print("  Corp:   %s" % _hand_summary(_ctx.corp_hand))
-	print("  Runner: %s" % _hand_summary(_ctx.runner_hand))
+	var verbose: bool = not _batch_mode or _batch_verbose
+	if verbose:
+		print("── Opening hands ──")
+		print("  Corp:   %s" % _hand_summary(_ctx.corp_hand))
+		print("  Runner: %s" % _hand_summary(_ctx.runner_hand))
 
 	if _corp_wants_mulligan():
 		_mulligan_corp()
-		print("  Corp mulligans → %s" % _hand_summary(_ctx.corp_hand))
+		if verbose:
+			print("  Corp mulligans → %s" % _hand_summary(_ctx.corp_hand))
 	else:
-		print("  Corp keeps.")
+		if verbose:
+			print("  Corp keeps.")
 
 	if _runner_wants_mulligan():
 		_mulligan_runner()
-		print("  Runner mulligans → %s" % _hand_summary(_ctx.runner_hand))
+		if verbose:
+			print("  Runner mulligans → %s" % _hand_summary(_ctx.runner_hand))
 	else:
-		print("  Runner keeps.")
-	print("")
+		if verbose:
+			print("  Runner keeps.")
+	if verbose:
+		print("")
 
 	await tm.run_game(MAX_TURNS)
-	# game_over signal fires before run_game returns; get_tree().quit() called there.
-	# If we hit MAX_TURNS without a winner, report a draw.
+	# game_over signal fires and populates _game_result before run_game returns.
+	# If we hit MAX_TURNS without a winner, record a draw.
 	if not _ctx.game_over:
-		print("\n=== TURN LIMIT REACHED (no winner after %d turns) ===" % MAX_TURNS)
-		print("Score: Corp %d — Runner %d" % [
-			_ctx.corp_agenda_points(), _ctx.runner_agenda_points()])
-	get_tree().quit()
+		if verbose:
+			print("\n=== TURN LIMIT REACHED (no winner after %d turns) ===" % MAX_TURNS)
+			print("Score: Corp %d — Runner %d" % [
+				_ctx.corp_agenda_points(), _ctx.runner_agenda_points()])
+		_game_result = {
+			"winner": "draw",
+			"reason": "turn limit (%d turns)" % MAX_TURNS,
+			"turns":  _turn_count,
+			"actions": _action_count,
+		}
 
 
 # ── Logging wiring ────────────────────────────────────────────────────────────
 
 func _wire_logging(tm: TurnManager) -> void:
+	var verbose: bool = not _batch_mode or _batch_verbose
+
 	tm.turn_started.connect(func(player: String, turn_number: int) -> void:
 		_turn_count  = turn_number
 		_click_index = 0
+		if not verbose:
+			return
 		var header := "\n══ Turn %d — %s  [Corp: %dcr %d✋ | Runner: %dcr %d✋]" % [
 			turn_number,
 			"CORP" if player == "corp" else "RUNNER",
@@ -186,11 +397,21 @@ func _wire_logging(tm: TurnManager) -> void:
 
 	tm.action_executed.connect(func(player: String, action: GameAction) -> void:
 		_action_count += 1
-		_click_index += 1
+		_click_index  += 1
+		if not verbose:
+			return
 		print("  %d. [%s] %s" % [_click_index, player, _describe_action(action)])
 	)
 
 	tm.game_over.connect(func(winner: String, reason: String) -> void:
+		_game_result = {
+			"winner":  winner,
+			"reason":  reason,
+			"turns":   _turn_count,
+			"actions": _action_count,
+		}
+		if not verbose:
+			return
 		print("\n╔══════════════════════════════════════════════════════╗")
 		print("║  GAME OVER                                           ║")
 		print("║  Winner : %-42s ║" % winner.to_upper())

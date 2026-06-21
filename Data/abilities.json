@@ -5532,8 +5532,8 @@
 		}
 	},
 	"unleash": {
-		"_note": "Runner event VP44. Additional cost: remove 1 tag. On play: rez 1 installed ice for free; Corp may optionally resolve 1 subroutine on it.",
-		"additional_cost_remove_tag": true,
+		"_note": "Corp operation (Gray Ops). Additional cost: remove 1 Runner tag. Rez 1 installed ice, ignoring all costs. Corp may resolve 1 subroutine on that ice.",
+		"additional_cost_remove_runner_tag": true,
 		"on_play": {
 			"effects": [
 				{
