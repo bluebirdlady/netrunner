@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://424dn876t6qc"
+
+[deps]
+
+files=["res://tuner/tuner_log.fitness.translation", "res://tuner/tuner_log.corp.translation", "res://tuner/tuner_log.runner.translation", "res://tuner/tuner_log.avg.translation", "res://tuner/tuner_log.flatline.translation", "res://tuner/tuner_log.w.translation", "res://tuner/tuner_log.w.translation", "res://tuner/tuner_log.w.translation", "res://tuner/tuner_log.w.translation", "res://tuner/tuner_log.w.translation", "res://tuner/tuner_log.w.translation", "res://tuner/tuner_log.mcts.translation"]
+
+source_file="res://tuner/tuner_log.csv"
+dest_files=["res://tuner/tuner_log.fitness.translation", "res://tuner/tuner_log.corp.translation", "res://tuner/tuner_log.runner.translation", "res://tuner/tuner_log.avg.translation", "res://tuner/tuner_log.flatline.translation", "res://tuner/tuner_log.w.translation", "res://tuner/tuner_log.w.translation", "res://tuner/tuner_log.w.translation", "res://tuner/tuner_log.w.translation", "res://tuner/tuner_log.w.translation", "res://tuner/tuner_log.w.translation", "res://tuner/tuner_log.mcts.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

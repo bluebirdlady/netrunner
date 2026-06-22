@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://bp2sxrdn1ooig"
+
+[deps]
+
+files=["res://coverage_elevation.ID.translation", "res://coverage_elevation.Type.translation", "res://coverage_elevation.Side.translation", "res://coverage_elevation.Coverage.translation", "res://coverage_elevation.Notes.translation"]
+
+source_file="res://coverage_elevation.csv"
+dest_files=["res://coverage_elevation.ID.translation", "res://coverage_elevation.Type.translation", "res://coverage_elevation.Side.translation", "res://coverage_elevation.Coverage.translation", "res://coverage_elevation.Notes.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

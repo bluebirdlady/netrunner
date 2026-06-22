@@ -1,0 +1,8 @@
+"Name","ID","Type","Side","Coverage","Notes"
+"Cayambe Grid","cayambe_grid","upgrade","corp","Installable","SCG installs; defensive value approximated in evaluate()"
+"Cybertrooper Talut","cybertrooper_talut","resource","runner","Installable","Runner install AI handles selection"
+"Digital Rights Management","digital_rights_management","operation","corp","Explicit","Specific projection in project_corp_action match block"
+"La Costa Grid","la_costa_grid","upgrade","corp","Installable","SCG installs; defensive value approximated in evaluate()"
+"Megaprix Qualifier","megaprix_qualifier","agenda","corp","Installable","SCG installs, advances, scores; on-score effects not projected"
+"Mystic Maemi","mystic_maemi","resource","runner","Installable","Runner install AI handles selection"
+"Swift","swift","hardware","runner","Installable","Runner install AI handles selection"

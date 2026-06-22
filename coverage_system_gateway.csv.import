@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://6hj4w6tx8on8"
+
+[deps]
+
+files=["res://coverage_system_gateway.ID.translation", "res://coverage_system_gateway.Type.translation", "res://coverage_system_gateway.Side.translation", "res://coverage_system_gateway.Coverage.translation", "res://coverage_system_gateway.Notes.translation"]
+
+source_file="res://coverage_system_gateway.csv"
+dest_files=["res://coverage_system_gateway.ID.translation", "res://coverage_system_gateway.Type.translation", "res://coverage_system_gateway.Side.translation", "res://coverage_system_gateway.Coverage.translation", "res://coverage_system_gateway.Notes.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

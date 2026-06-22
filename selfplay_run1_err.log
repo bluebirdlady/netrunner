@@ -1,0 +1,64 @@
+ERROR: AbilityInterpreter: unknown effect type 'run_server_access_other_root'
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _execute_effect (res://Scripts/Engine/AbilityInterpreter.gd:16988)
+       [1] execute_trigger (res://Scripts/Engine/AbilityInterpreter.gd:47)
+       [2] _do_play_operation (res://Scripts/Engine/TurnManager.gd:1798)
+       [3] _execute_action (res://Scripts/Engine/TurnManager.gd:582)
+       [4] _runner_turn (res://Scripts/Engine/TurnManager.gd:543)
+       [5] run_game (res://Scripts/Engine/TurnManager.gd:97)
+       [6] _corp_turn (res://Scripts/Engine/TurnManager.gd:269)
+ERROR: AbilityInterpreter: unknown effect type 'run_server_access_other_root'
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _execute_effect (res://Scripts/Engine/AbilityInterpreter.gd:16988)
+       [1] execute_trigger (res://Scripts/Engine/AbilityInterpreter.gd:47)
+       [2] _do_play_operation (res://Scripts/Engine/TurnManager.gd:1798)
+       [3] _execute_action (res://Scripts/Engine/TurnManager.gd:582)
+       [4] _runner_turn (res://Scripts/Engine/TurnManager.gd:543)
+       [5] run_game (res://Scripts/Engine/TurnManager.gd:97)
+       [6] _corp_turn (res://Scripts/Engine/TurnManager.gd:269)
+ERROR: AbilityInterpreter: unknown effect type 'run_server_access_other_root'
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _execute_effect (res://Scripts/Engine/AbilityInterpreter.gd:16988)
+       [1] execute_trigger (res://Scripts/Engine/AbilityInterpreter.gd:47)
+       [2] _do_play_operation (res://Scripts/Engine/TurnManager.gd:1798)
+       [3] _execute_action (res://Scripts/Engine/TurnManager.gd:582)
+       [4] _runner_turn (res://Scripts/Engine/TurnManager.gd:543)
+       [5] run_game (res://Scripts/Engine/TurnManager.gd:97)
+       [6] _corp_turn (res://Scripts/Engine/TurnManager.gd:269)
+ERROR: AbilityInterpreter: unknown effect type 'run_server_access_other_root'
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _execute_effect (res://Scripts/Engine/AbilityInterpreter.gd:16988)
+       [1] execute_trigger (res://Scripts/Engine/AbilityInterpreter.gd:47)
+       [2] _do_play_operation (res://Scripts/Engine/TurnManager.gd:1798)
+       [3] _execute_action (res://Scripts/Engine/TurnManager.gd:582)
+       [4] _runner_turn (res://Scripts/Engine/TurnManager.gd:543)
+       [5] run_game (res://Scripts/Engine/TurnManager.gd:97)
+       [6] _corp_turn (res://Scripts/Engine/TurnManager.gd:269)
+ERROR: AbilityInterpreter: unknown effect type 'run_server_access_other_root'
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _execute_effect (res://Scripts/Engine/AbilityInterpreter.gd:16988)
+       [1] execute_trigger (res://Scripts/Engine/AbilityInterpreter.gd:47)
+       [2] _do_play_operation (res://Scripts/Engine/TurnManager.gd:1798)
+       [3] _execute_action (res://Scripts/Engine/TurnManager.gd:582)
+       [4] _runner_turn (res://Scripts/Engine/TurnManager.gd:543)
+       [5] run_game (res://Scripts/Engine/TurnManager.gd:97)
+       [6] _corp_turn (res://Scripts/Engine/TurnManager.gd:269)
+ERROR: AbilityInterpreter: unknown effect type 'run_server_access_other_root'
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _execute_effect (res://Scripts/Engine/AbilityInterpreter.gd:16988)
+       [1] execute_trigger (res://Scripts/Engine/AbilityInterpreter.gd:47)
+       [2] _do_play_operation (res://Scripts/Engine/TurnManager.gd:1798)
+       [3] _execute_action (res://Scripts/Engine/TurnManager.gd:582)
+       [4] _runner_turn (res://Scripts/Engine/TurnManager.gd:543)
+       [5] run_game (res://Scripts/Engine/TurnManager.gd:97)
+       [6] _corp_turn (res://Scripts/Engine/TurnManager.gd:269)
+WARNING: ObjectDB instances leaked at exit (run with --verbose for details).
+   at: cleanup (core/object/object.cpp:2641)
+ERROR: 24 resources still in use at exit (run with --verbose for details).
+   at: clear (core/io/resource.cpp:810)

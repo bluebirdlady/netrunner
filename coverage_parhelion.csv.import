@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://ctvhmy1pmjeao"
+
+[deps]
+
+files=["res://coverage_parhelion.ID.translation", "res://coverage_parhelion.Type.translation", "res://coverage_parhelion.Side.translation", "res://coverage_parhelion.Coverage.translation", "res://coverage_parhelion.Notes.translation"]
+
+source_file="res://coverage_parhelion.csv"
+dest_files=["res://coverage_parhelion.ID.translation", "res://coverage_parhelion.Type.translation", "res://coverage_parhelion.Side.translation", "res://coverage_parhelion.Coverage.translation", "res://coverage_parhelion.Notes.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

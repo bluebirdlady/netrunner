@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://c8swf6uoioo1g"
+
+[deps]
+
+files=["res://coverage_automata_initiative.ID.translation", "res://coverage_automata_initiative.Type.translation", "res://coverage_automata_initiative.Side.translation", "res://coverage_automata_initiative.Coverage.translation", "res://coverage_automata_initiative.Notes.translation"]
+
+source_file="res://coverage_automata_initiative.csv"
+dest_files=["res://coverage_automata_initiative.ID.translation", "res://coverage_automata_initiative.Type.translation", "res://coverage_automata_initiative.Side.translation", "res://coverage_automata_initiative.Coverage.translation", "res://coverage_automata_initiative.Notes.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

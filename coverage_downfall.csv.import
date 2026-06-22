@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://bs6m6n1m36cl4"
+
+[deps]
+
+files=["res://coverage_downfall.ID.translation", "res://coverage_downfall.Type.translation", "res://coverage_downfall.Side.translation", "res://coverage_downfall.Coverage.translation", "res://coverage_downfall.Notes.translation"]
+
+source_file="res://coverage_downfall.csv"
+dest_files=["res://coverage_downfall.ID.translation", "res://coverage_downfall.Type.translation", "res://coverage_downfall.Side.translation", "res://coverage_downfall.Coverage.translation", "res://coverage_downfall.Notes.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

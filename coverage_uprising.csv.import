@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://bpxihpw4iy1ir"
+
+[deps]
+
+files=["res://coverage_uprising.ID.translation", "res://coverage_uprising.Type.translation", "res://coverage_uprising.Side.translation", "res://coverage_uprising.Coverage.translation", "res://coverage_uprising.Notes.translation"]
+
+source_file="res://coverage_uprising.csv"
+dest_files=["res://coverage_uprising.ID.translation", "res://coverage_uprising.Type.translation", "res://coverage_uprising.Side.translation", "res://coverage_uprising.Coverage.translation", "res://coverage_uprising.Notes.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

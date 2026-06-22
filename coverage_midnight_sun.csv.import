@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://d3ftb56vsbuvb"
+
+[deps]
+
+files=["res://coverage_midnight_sun.ID.translation", "res://coverage_midnight_sun.Type.translation", "res://coverage_midnight_sun.Side.translation", "res://coverage_midnight_sun.Coverage.translation", "res://coverage_midnight_sun.Notes.translation"]
+
+source_file="res://coverage_midnight_sun.csv"
+dest_files=["res://coverage_midnight_sun.ID.translation", "res://coverage_midnight_sun.Type.translation", "res://coverage_midnight_sun.Side.translation", "res://coverage_midnight_sun.Coverage.translation", "res://coverage_midnight_sun.Notes.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

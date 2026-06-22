@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://dm7w5xg1d1xyk"
+
+[deps]
+
+files=["res://coverage_rebellion_without_rehearsal.ID.translation", "res://coverage_rebellion_without_rehearsal.Type.translation", "res://coverage_rebellion_without_rehearsal.Side.translation", "res://coverage_rebellion_without_rehearsal.Coverage.translation", "res://coverage_rebellion_without_rehearsal.Notes.translation"]
+
+source_file="res://coverage_rebellion_without_rehearsal.csv"
+dest_files=["res://coverage_rebellion_without_rehearsal.ID.translation", "res://coverage_rebellion_without_rehearsal.Type.translation", "res://coverage_rebellion_without_rehearsal.Side.translation", "res://coverage_rebellion_without_rehearsal.Coverage.translation", "res://coverage_rebellion_without_rehearsal.Notes.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

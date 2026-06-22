@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://sufbt0yjd24x"
+
+[deps]
+
+files=["res://coverage_midnight_sun_booster.ID.translation", "res://coverage_midnight_sun_booster.Type.translation", "res://coverage_midnight_sun_booster.Side.translation", "res://coverage_midnight_sun_booster.Coverage.translation", "res://coverage_midnight_sun_booster.Notes.translation"]
+
+source_file="res://coverage_midnight_sun_booster.csv"
+dest_files=["res://coverage_midnight_sun_booster.ID.translation", "res://coverage_midnight_sun_booster.Type.translation", "res://coverage_midnight_sun_booster.Side.translation", "res://coverage_midnight_sun_booster.Coverage.translation", "res://coverage_midnight_sun_booster.Notes.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

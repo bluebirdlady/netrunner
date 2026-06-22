@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://b7foox6if15hr"
+
+[deps]
+
+files=["res://coverage_vantage_point.ID.translation", "res://coverage_vantage_point.Type.translation", "res://coverage_vantage_point.Side.translation", "res://coverage_vantage_point.Coverage.translation", "res://coverage_vantage_point.Notes.translation"]
+
+source_file="res://coverage_vantage_point.csv"
+dest_files=["res://coverage_vantage_point.ID.translation", "res://coverage_vantage_point.Type.translation", "res://coverage_vantage_point.Side.translation", "res://coverage_vantage_point.Coverage.translation", "res://coverage_vantage_point.Notes.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

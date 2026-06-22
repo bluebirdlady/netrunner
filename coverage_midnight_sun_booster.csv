@@ -1,0 +1,8 @@
+"Name","ID","Type","Side","Coverage","Notes"
+"Anemone","anemone","ice","corp","Installable","SCG installs; CorpRunAI handles encounters; subtype tracked in snap"
+"Azef Protocol","azef_protocol","agenda","corp","Installable","SCG installs, advances, scores; on-score effects not projected"
+"Deep Dive","deep_dive","event","runner","Hint","Fully modeled via AiCardHints snap_delta + conditions"
+"Hákarl 1.0","hakarl_1_0","ice","corp","Installable","SCG installs; CorpRunAI handles encounters; subtype tracked in snap"
+"Light the Fire!","light_the_fire","resource","runner","Installable","Runner install AI handles selection"
+"Revolver","revolver","program","runner","Installable","Runner install AI handles selection and MU tracking"
+"Vladisibirsk City Grid","vladisibirsk_city_grid","upgrade","corp","Installable","SCG installs; defensive value approximated in evaluate()"

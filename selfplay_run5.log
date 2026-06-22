@@ -1,0 +1,2807 @@
+Godot Engine v4.6.2.stable.mono.official.71f334935 - https://godotengine.org
+
+CardRegistry: loaded 2054 cards
+SelfPlayRunner: loaded runner opponent 'runner_zahya_versatile_smuggler' — zahya_sadeghi_versatile_smuggler (40 cards)
+SelfPlayRunner: loaded corp opponent 'jinteki_regenesis' — jinteki_replicating_perfection (38 cards)
+╔══════════════════════════════════════════════════════╗
+║     NETRUNNER SELF-PLAY — BATCH MODE ( 10 games)     ║
+╚══════════════════════════════════════════════════════╝
+AbilityRegistry: loaded definitions for 630 cards
+[GameContext] Replicating Perfection draws Hedge Fund.
+[GameContext] === Replicating Perfection Turn 1 begins. Credits: 5, Clicks: 3 ===
+[GameContext] [MCTS] slow search: 605 ms (100 iterations, depth 3)
+[DecisionLogger] user data dir : C:/Users/jnsno/AppData/Roaming/Godot/app_userdata/Netrunner Solo
+[DecisionLogger] logs dir      : C:/Users/jnsno/AppData/Roaming/Godot/app_userdata/Netrunner Solo/logs
+[DecisionLogger] opening       : C:/Users/jnsno/AppData/Roaming/Godot/app_userdata/Netrunner Solo/logs/corp_ai_20260620_211336.log
+[DecisionLogger] log file ready.
+[GameContext] Replicating Perfection installs Envelopment in R&D.
+[GameContext] [MCTS] slow search: 550 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection installs Anemone in HQ.
+[GameContext] [MCTS] slow search: 527 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection gains 9 credits.
+[GameContext] Replicating Perfection plays Hedge Fund.
+[heartbeat] game 1/10 — turn 1, time 5s
+[GameContext] === Versatile Smuggler Turn 2 begins. Credits: 5, Clicks: 4 ===
+[GameContext] --- Run on R&D begins ---
+[GameContext] [Initiation] Run declared on R&D.
+[GameContext] [Approach] Runner approaches unrezzed ice (position 0).
+[CorpRunAI] AI: Envelopment — rez_cost=5  tax/enc=9.0  enc=3.0  LTV=27.0
+[GameContext] [Rez] Corp rezzes Envelopment for 5 credits.
+[GameContext] Placed 4 power counter(s) on Envelopment.
+[GameContext] [Encounter] Runner encounters Envelopment.
+[GameContext] [Encounter] Envelopment: 4 dynamic ETR sub(s) from power counters.
+[GameContext] Run ended.
+[GameContext] [Encounter] Run ended by subroutine.
+[GameContext] [End] Run ended unsuccessfully.
+Player install: card is: Carmen and charged cost is: 5
+[GameContext] Versatile Smuggler installs Carmen. [MU: 1/4 used]
+[GameContext] Run modifier set: bonus_access = 1
+[GameContext] --- Run on HQ begins ---
+[GameContext] [Initiation] Run declared on HQ.
+[GameContext] [Approach] Runner approaches unrezzed ice (position 0).
+[CorpRunAI] AI: rezzing Anemone would breach credit floor — holding.
+[GameContext] [Approach] Corp declines to rez. Runner passes unrezzed ice.
+[GameContext] [Movement] Runner approaches the server root.
+[GameContext] [Success] Run successful on HQ!
+[GameContext] [Debug/gain_on_success] run_modifiers at success: { "bonus_access": 1, "run_event_active": 1 }
+[GameContext] [Breach] Runner breaches HQ.
+[GameContext] [Breach] Bonus access: 1 extra card(s).
+[GameContext] [Access] Runner accesses: Bladderwort
+[GameContext] [Access] Runner may trash Bladderwort for 3 credits (Runner has 0 total).
+[GameContext] [Access] Runner cannot afford to trash.
+[GameContext] [Access] Runner accesses: Send a Message
+[GameContext] [Access] Runner steals Send a Message! (3 agenda points)
+[GameContext] Rezzed Anemone for free.
+[GameContext] [End] Run ended successfully.
+[GameContext] Versatile Smuggler plays Jailbreak.
+Player install: card is: Marjanah and charged cost is: 0
+[GameContext] Versatile Smuggler installs Marjanah. [MU: 2/4 used]
+[GameContext] Replicating Perfection draws Moon Pool.
+[GameContext] === Replicating Perfection Turn 2 begins. Credits: 4, Clicks: 3 ===
+[GameContext] Replicating Perfection gains 1 credit. (5 total)
+[GameContext] Replicating Perfection draws Blood in the Water.
+[GameContext] Replicating Perfection installs Anoetic Void in HQ.
+[GameContext] === Versatile Smuggler Turn 3 begins. Credits: 0, Clicks: 4 ===
+[GameContext] Versatile Smuggler gains 1 credit. (1 total)
+[GameContext] Versatile Smuggler gains 1 credit. (2 total)
+[GameContext] --- Run on R&D begins ---
+[GameContext] [Initiation] Run declared on R&D.
+[GameContext] [Approach] Runner approaches Envelopment (position 0).
+[GameContext] [Encounter] Runner encounters Envelopment.
+[GameContext] [Encounter] Envelopment: 4 dynamic ETR sub(s) from power counters.
+[GameContext] Run ended.
+[GameContext] [Encounter] Run ended by subroutine.
+[GameContext] [End] Run ended unsuccessfully.
+[GameContext] --- Run on HQ begins ---
+[GameContext] [Initiation] Run declared on HQ.
+[GameContext] [Rez] Corp rezzes Anoetic Void for 0 credits.
+[GameContext] [Approach] Runner approaches Anemone (position 0).
+[GameContext] [Encounter] Runner encounters Anemone.
+[GameContext] [Encounter] Carmen breaks 'Do 1 net damage.' for 1 cr.
+[GameContext] [Encounter] Subroutine 0 broken.
+[GameContext] Placed 1 power counter(s) on Marjanah.
+[GameContext] [Movement] Runner approaches the server root.
+[GameContext] [Success] Run successful on HQ!
+[GameContext] [Debug/gain_on_success] run_modifiers at success: { "overclock_credits": 0, "concerto_credits": 0, "bad_pub_credits": 0 }
+[GameContext] [Breach] Runner breaches HQ.
+[GameContext] Anoetic Void: Corp declines.
+[GameContext] [Access] Runner accesses: Anoetic Void
+[GameContext] [Access] Runner may trash Anoetic Void for 1 credits (Runner has 1 total).
+[GameContext] [Access] Runner accesses: Moon Pool
+[GameContext] [Access] Runner may trash Moon Pool for 3 credits (Runner has 1 total).
+[GameContext] [Access] Runner cannot afford to trash.
+[GameContext] [End] Run ended successfully.
+[GameContext] Replicating Perfection draws Bathynomus.
+[GameContext] === Replicating Perfection Turn 3 begins. Credits: 5, Clicks: 3 ===
+[GameContext] Replicating Perfection draws Send a Message.
+[GameContext] Replicating Perfection installs Blood in the Water in Server 0.
+[GameContext] [MCTS] Scoring line detected — executing: Advance blood_in_the_water
+[GameContext] Replicating Perfection advances Blood in the Water (1 counters).
+[GameContext] Replicating Perfection scores Blood in the Water! (2 agenda points)
+[GameContext] === Versatile Smuggler Turn 4 begins. Credits: 1, Clicks: 4 ===
+[GameContext] Versatile Smuggler gains 1 credit. (2 total)
+[GameContext] --- Run on R&D begins ---
+[GameContext] [Initiation] Run declared on R&D.
+[GameContext] [Approach] Runner approaches Envelopment (position 0).
+[GameContext] [Encounter] Runner encounters Envelopment.
+[GameContext] [Encounter] Envelopment: 4 dynamic ETR sub(s) from power counters.
+[GameContext] Run ended.
+[GameContext] [Encounter] Run ended by subroutine.
+[GameContext] [End] Run ended unsuccessfully.
+[GameContext] --- Run on HQ begins ---
+[GameContext] [Initiation] Run declared on HQ.
+[GameContext] [Approach] Runner approaches Anemone (position 0).
+[GameContext] [Encounter] Runner encounters Anemone.
+[GameContext] [Encounter] Carmen breaks 'Do 1 net damage.' for 1 cr.
+[GameContext] [Encounter] Subroutine 0 broken.
+[GameContext] Placed 1 power counter(s) on Marjanah.
+[GameContext] [Movement] Runner approaches the server root.
+[GameContext] [Success] Run successful on HQ!
+[GameContext] [Debug/gain_on_success] run_modifiers at success: { "overclock_credits": 0, "concerto_credits": 0, "bad_pub_credits": 0 }
+[GameContext] [Breach] Runner breaches HQ.
+[GameContext] Anoetic Void: Corp trashes Bladderwort from HQ.
+[GameContext] Anoetic Void: Corp trashes Moon Pool from HQ.
+[GameContext] Anoetic Void: Breach ended before access.
+[GameContext] [Breach] Breach ended before access (Corp ability).
+[GameContext] [End] Run ended successfully.
+[GameContext] Versatile Smuggler draws VRcation.
+[GameContext] Replicating Perfection draws Mitosis.
+[GameContext] === Replicating Perfection Turn 4 begins. Credits: 2, Clicks: 3 ===
+[GameContext] Replicating Perfection installs Send a Message in Server 0.
+[GameContext] Replicating Perfection advances Send a Message (1 counters).
+[heartbeat] game 1/10 — turn 4, time 10s
+[GameContext] Replicating Perfection installs Bathynomus in Server 0.
+[GameContext] === Versatile Smuggler Turn 5 begins. Credits: 1, Clicks: 4 ===
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler: too many consecutive invalid actions — ending turn.
+[GameContext] Replicating Perfection draws Ivik.
+[GameContext] === Replicating Perfection Turn 5 begins. Credits: 1, Clicks: 3 ===
+[GameContext] Replicating Perfection gains 1 credit. (2 total)
+[GameContext] Replicating Perfection advances Send a Message (2 counters).
+[GameContext] Replicating Perfection advances Send a Message (3 counters).
+[GameContext] === Versatile Smuggler Turn 6 begins. Credits: 1, Clicks: 4 ===
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler: too many consecutive invalid actions — ending turn.
+[GameContext] Replicating Perfection draws Longevity Serum.
+[GameContext] === Replicating Perfection Turn 6 begins. Credits: 0, Clicks: 3 ===
+[GameContext] Replicating Perfection gains 1 credit. (1 total)
+[GameContext] Replicating Perfection advances Send a Message (4 counters).
+[GameContext] Replicating Perfection gains 1 credit. (1 total)
+[GameContext] === Versatile Smuggler Turn 7 begins. Credits: 1, Clicks: 4 ===
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler: too many consecutive invalid actions — ending turn.
+[GameContext] Replicating Perfection draws Hedge Fund.
+[GameContext] === Replicating Perfection Turn 7 begins. Credits: 1, Clicks: 3 ===
+[GameContext] [MCTS] Scoring line detected — executing: Advance send_a_message
+[GameContext] Replicating Perfection advances Send a Message (5 counters).
+[GameContext] Replicating Perfection scores Send a Message! (3 agenda points)
+[GameContext] Rezzed Bathynomus for free.
+[GameContext] Replicating Perfection installs Longevity Serum in Server 0.
+[heartbeat] game 1/10 — turn 7, time 15s
+[GameContext] Replicating Perfection gains 1 credit. (1 total)
+[GameContext] === Versatile Smuggler Turn 8 begins. Credits: 1, Clicks: 4 ===
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler: too many consecutive invalid actions — ending turn.
+[GameContext] Replicating Perfection draws Karunā.
+[GameContext] === Replicating Perfection Turn 8 begins. Credits: 1, Clicks: 3 ===
+[GameContext] Replicating Perfection pays 1 credit(s) to install ice.
+[GameContext] Replicating Perfection installs Ivik in R&D.
+[GameContext] Replicating Perfection draws Regenesis.
+[GameContext] Replicating Perfection gains 1 credit. (1 total)
+[GameContext] === Versatile Smuggler Turn 9 begins. Credits: 1, Clicks: 4 ===
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler: too many consecutive invalid actions — ending turn.
+[GameContext] Replicating Perfection draws Anoetic Void.
+[GameContext] === Replicating Perfection Turn 9 begins. Credits: 1, Clicks: 3 ===
+[GameContext] Replicating Perfection installs Anoetic Void in R&D.
+[GameContext] Replicating Perfection pays 1 credit(s) to install ice.
+[GameContext] Replicating Perfection installs Karunā in HQ.
+[GameContext] Replicating Perfection gains 1 credit. (1 total)
+[GameContext] === Versatile Smuggler Turn 10 begins. Credits: 1, Clicks: 4 ===
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler: too many consecutive invalid actions — ending turn.
+[GameContext] Replicating Perfection draws Bladderwort.
+[GameContext] === Replicating Perfection Turn 10 begins. Credits: 1, Clicks: 3 ===
+[GameContext] Replicating Perfection rezzes Anoetic Void for 0 cr.
+[GameContext] [◆ Unique] Duplicate Anoetic Void trashed (cannot be prevented).
+[GameContext] Replicating Perfection advances Longevity Serum (1 counters).
+[GameContext] Replicating Perfection gains 1 credit. (1 total)
+[heartbeat] game 1/10 — turn 10, time 20s
+[GameContext] Replicating Perfection advances Longevity Serum (2 counters).
+[GameContext] === Versatile Smuggler Turn 11 begins. Credits: 1, Clicks: 4 ===
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler: too many consecutive invalid actions — ending turn.
+[GameContext] Replicating Perfection draws Regenesis.
+[GameContext] === Replicating Perfection Turn 11 begins. Credits: 0, Clicks: 3 ===
+[GameContext] Replicating Perfection gains 1 credit. (1 total)
+[GameContext] [MCTS] Scoring line detected — executing: Advance longevity_serum
+[GameContext] Replicating Perfection advances Longevity Serum (3 counters).
+[GameContext] Replicating Perfection scores Longevity Serum! (2 agenda points)
+[GameContext] Game over — Replicating Perfection wins. Replicating Perfection scored 7 agenda points
+  [  1/ 10]  CORP      Replicating Perfection scored 7 agenda points  11 turns
+[GameContext] Replicating Perfection draws Envelopment.
+[GameContext] === Replicating Perfection Turn 1 begins. Credits: 5, Clicks: 3 ===
+[GameContext] [MCTS] slow search: 435 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection installs Envelopment in R&D.
+[GameContext] [MCTS] slow search: 396 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection installs Karunā in HQ.
+[GameContext] [MCTS] slow search: 366 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection gains 1 credit. (6 total)
+[GameContext] === Versatile Smuggler Turn 2 begins. Credits: 5, Clicks: 4 ===
+[GameContext] --- Run on R&D begins ---
+[GameContext] [Initiation] Run declared on R&D.
+[GameContext] [Approach] Runner approaches unrezzed ice (position 0).
+[CorpRunAI] AI: rezzing Envelopment would breach credit floor — holding.
+[GameContext] [Approach] Corp declines to rez. Runner passes unrezzed ice.
+[GameContext] [Movement] Runner approaches the server root.
+[GameContext] [Success] Run successful on R&D!
+[GameContext] [Debug/gain_on_success] run_modifiers at success: {  }
+[GameContext] [Breach] Runner breaches R&D.
+[GameContext] [Access] Runner accesses: Moon Pool
+[GameContext] [Access] Runner may trash Moon Pool for 3 credits (Runner has 5 total).
+[GameContext] [Access] Runner trashes Moon Pool.
+[GameContext] [End] Run ended successfully.
+[GameContext] Versatile Smuggler draws 4 card(s).
+[GameContext] Versatile Smuggler will lose 1 click(s) next turn.
+[GameContext] Versatile Smuggler plays VRcation.
+[GameContext] Run modifier set: bonus_access = 1
+[GameContext] --- Run on HQ begins ---
+[GameContext] [Initiation] Run declared on HQ.
+[GameContext] [Approach] Runner approaches unrezzed ice (position 0).
+[CorpRunAI] AI: Karunā — rez_cost=4  tax/enc=9.0  enc=3.0  LTV=27.0
+[GameContext] [Rez] Corp rezzes Karunā for 4 credits.
+[GameContext] [Encounter] Runner encounters Karunā.
+[GameContext] Runner takes 2 net damage.
+[GameContext]   Trashed from grip: mutual_favor
+[GameContext]   Trashed from grip: docklands_pass
+[GameContext] 2 card(s) trashed from Versatile Smuggler's grip.
+[GameContext] Run ended.
+[GameContext] [Encounter] Run ended by subroutine.
+[GameContext] [End] Run ended unsuccessfully.
+[GameContext] Versatile Smuggler plays Jailbreak.
+[GameContext] Run modifier set: overclock_credits = 5
+[GameContext] --- Run on HQ begins ---
+[GameContext] [Initiation] Run declared on HQ.
+[GameContext] [Approach] Runner approaches Karunā (position 0).
+[GameContext] [Encounter] Runner encounters Karunā.
+[GameContext] Runner takes 2 net damage.
+[GameContext]   Trashed from grip: pennyshaver
+[GameContext]   Trashed from grip: smartware_distributor
+[GameContext] 2 card(s) trashed from Versatile Smuggler's grip.
+[GameContext] Run ended.
+[GameContext] [Encounter] Run ended by subroutine.
+[GameContext] [End] Run ended unsuccessfully.
+[GameContext] Overclock: 5 unspent credit(s) returned to the bank.
+[GameContext] Versatile Smuggler plays Overclock.
+[GameContext] Replicating Perfection draws Bathynomus.
+[GameContext] === Replicating Perfection Turn 2 begins. Credits: 2, Clicks: 3 ===
+[GameContext] [MCTS] slow search: 354 ms (100 iterations, depth 3)
+[heartbeat] game 2/10 — turn 2, time 25s
+[GameContext] Replicating Perfection installs Bathynomus in Server 0.
+[GameContext] [MCTS] slow search: 391 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection gains 1 credit. (3 total)
+[GameContext] [MCTS] slow search: 440 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection installs Blood in the Water in Server 0.
+[GameContext] Versatile Smuggler loses 1 click(s) this turn (deferred penalty).
+[GameContext] === Versatile Smuggler Turn 3 begins. Credits: 0, Clicks: 3 ===
+[GameContext] Versatile Smuggler gains 1 credit. (1 total)
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler: too many consecutive invalid actions — ending turn.
+[GameContext] Replicating Perfection draws Longevity Serum.
+[GameContext] === Replicating Perfection Turn 3 begins. Credits: 3, Clicks: 3 ===
+[GameContext] [MCTS] Scoring line detected — executing: Advance blood_in_the_water
+[GameContext] Replicating Perfection advances Blood in the Water (1 counters).
+[GameContext] Replicating Perfection scores Blood in the Water! (2 agenda points)
+[GameContext] [MCTS] slow search: 475 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection installs Longevity Serum in Server 0.
+[GameContext] [MCTS] slow search: 450 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection advances Longevity Serum (1 counters).
+[GameContext] === Versatile Smuggler Turn 4 begins. Credits: 1, Clicks: 4 ===
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler: too many consecutive invalid actions — ending turn.
+[GameContext] Replicating Perfection draws Ivik.
+[GameContext] === Replicating Perfection Turn 4 begins. Credits: 1, Clicks: 3 ===
+[GameContext] [MCTS] slow search: 417 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection pays 1 credit(s) to install ice.
+[GameContext] Replicating Perfection installs Bathynomus in HQ.
+[heartbeat] game 2/10 — turn 4, time 30s
+[GameContext] [MCTS] slow search: 415 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection draws Envelopment.
+[GameContext] [MCTS] slow search: 504 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection gains 1 credit. (1 total)
+[GameContext] === Versatile Smuggler Turn 5 begins. Credits: 1, Clicks: 4 ===
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler: too many consecutive invalid actions — ending turn.
+[GameContext] Replicating Perfection draws Mavirus.
+[GameContext] === Replicating Perfection Turn 5 begins. Credits: 1, Clicks: 3 ===
+[GameContext] [MCTS] slow search: 464 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection advances Longevity Serum (2 counters).
+[GameContext] [MCTS] slow search: 457 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection gains 1 credit. (1 total)
+[GameContext] [MCTS] Scoring line detected — executing: Advance longevity_serum
+[GameContext] Replicating Perfection advances Longevity Serum (3 counters).
+[GameContext] Replicating Perfection scores Longevity Serum! (2 agenda points)
+[GameContext] === Versatile Smuggler Turn 6 begins. Credits: 1, Clicks: 4 ===
+[GameContext] --- Run on R&D begins ---
+[GameContext] [Initiation] Run declared on R&D.
+[GameContext] [Approach] Runner approaches unrezzed ice (position 0).
+[GameContext] [Approach] Corp declines to rez. Runner passes unrezzed ice.
+[GameContext] [Movement] Runner approaches the server root.
+[GameContext] [Success] Run successful on R&D!
+[GameContext] [Debug/gain_on_success] run_modifiers at success: {  }
+[GameContext] [Breach] Runner breaches R&D.
+[GameContext] [Access] Runner accesses: Anemone
+[GameContext] [End] Run ended successfully.
+[GameContext] Versatile Smuggler draws Mutual Favor.
+[GameContext] Versatile Smuggler reveals and takes Carmen from their deck.
+[GameContext] Versatile Smuggler's deck is shuffled.
+[GameContext] Versatile Smuggler plays Mutual Favor.
+[GameContext] Versatile Smuggler draws Conduit.
+[GameContext] Replicating Perfection draws Anemone.
+[GameContext] === Replicating Perfection Turn 6 begins. Credits: 0, Clicks: 3 ===
+[GameContext] [MCTS] slow search: 439 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection gains 1 credit. (1 total)
+[heartbeat] game 2/10 — turn 6, time 35s
+[GameContext] [MCTS] slow search: 476 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection installs Mavirus in R&D.
+[GameContext] [MCTS] slow search: 502 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection pays 1 credit(s) to install ice.
+[GameContext] Replicating Perfection installs Ivik in R&D.
+[GameContext] === Versatile Smuggler Turn 7 begins. Credits: 1, Clicks: 4 ===
+[GameContext] Versatile Smuggler gains 1 credit. (2 total)
+[GameContext] --- Run on R&D begins ---
+[GameContext] [Initiation] Run declared on R&D.
+[GameContext] [Approach] Runner approaches unrezzed ice (position 0).
+[GameContext] [Approach] Corp declines to rez. Runner passes unrezzed ice.
+[GameContext] [Approach] Runner approaches unrezzed ice (position 1).
+[GameContext] [Approach] Corp declines to rez. Runner passes unrezzed ice.
+[GameContext] [Movement] Runner approaches the server root.
+[GameContext] [Success] Run successful on R&D!
+[GameContext] [Debug/gain_on_success] run_modifiers at success: {  }
+[GameContext] [Breach] Runner breaches R&D.
+[GameContext] [Access] Runner accesses: Mavirus
+[GameContext] [Access] Runner may trash Mavirus for 0 credits (Runner has 2 total).
+[GameContext] [Access] Runner accesses: Moon Pool
+[GameContext] [Access] Runner may trash Moon Pool for 3 credits (Runner has 2 total).
+[GameContext] [Access] Runner cannot afford to trash.
+[GameContext] [End] Run ended successfully.
+[GameContext] Versatile Smuggler draws Red Team.
+[GameContext] Versatile Smuggler draws Overclock.
+[GameContext] Versatile Smuggler discards Red Team to hand limit. (5 cards remaining)
+[GameContext] Replicating Perfection draws Moon Pool.
+[GameContext] === Replicating Perfection Turn 7 begins. Credits: 0, Clicks: 3 ===
+[GameContext] [MCTS] slow search: 591 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection installs Envelopment in Server 1.
+[GameContext] [MCTS] slow search: 506 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection gains 1 credit. (1 total)
+[GameContext] [MCTS] slow search: 509 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection gains 1 credit. (2 total)
+[heartbeat] game 2/10 — turn 7, time 40s
+[GameContext] === Versatile Smuggler Turn 8 begins. Credits: 2, Clicks: 4 ===
+[GameContext] Versatile Smuggler gains 1 credit. (3 total)
+[GameContext] Run modifier set: overclock_credits = 5
+[GameContext] --- Run on HQ begins ---
+[GameContext] [Initiation] Run declared on HQ.
+[GameContext] [Approach] Runner approaches unrezzed ice (position 0).
+[GameContext] [Approach] Corp declines to rez. Runner passes unrezzed ice.
+[GameContext] [Approach] Runner approaches Karunā (position 1).
+[GameContext] [Encounter] Runner encounters Karunā.
+[GameContext] Runner takes 2 net damage.
+[GameContext]   Trashed from grip: pennyshaver
+[GameContext]   Trashed from grip: sure_gamble
+[GameContext] 2 card(s) trashed from Versatile Smuggler's grip.
+[GameContext] Run ended.
+[GameContext] [Encounter] Run ended by subroutine.
+[GameContext] [End] Run ended unsuccessfully.
+[GameContext] Overclock: 5 unspent credit(s) returned to the bank.
+[GameContext] Versatile Smuggler plays Overclock.
+[GameContext] --- Run on R&D begins ---
+[GameContext] [Initiation] Run declared on R&D.
+[GameContext] [Approach] Runner approaches unrezzed ice (position 0).
+[GameContext] [Approach] Corp declines to rez. Runner passes unrezzed ice.
+[GameContext] [Approach] Runner approaches unrezzed ice (position 1).
+[GameContext] [Approach] Corp declines to rez. Runner passes unrezzed ice.
+[GameContext] [Movement] Runner approaches the server root.
+[GameContext] [Success] Run successful on R&D!
+[GameContext] [Debug/gain_on_success] run_modifiers at success: {  }
+[GameContext] [Breach] Runner breaches R&D.
+[GameContext] [Access] Runner accesses: Mavirus
+[GameContext] [Access] Runner may trash Mavirus for 0 credits (Runner has 2 total).
+[GameContext] [Access] Runner accesses: Send a Message
+[GameContext] [Access] Runner steals Send a Message! (3 agenda points)
+[GameContext] Rezzed Bathynomus for free.
+[GameContext] [End] Run ended successfully.
+[GameContext] Versatile Smuggler draws Smartware Distributor.
+[GameContext] Replicating Perfection draws Spin Doctor.
+[GameContext] === Replicating Perfection Turn 8 begins. Credits: 2, Clicks: 3 ===
+[GameContext] [MCTS] slow search: 590 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection gains 1 credit. (3 total)
+[GameContext] [MCTS] slow search: 545 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection gains 1 credit. (4 total)
+[GameContext] [MCTS] slow search: 565 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection installs Anemone in Server 2.
+[GameContext] === Versatile Smuggler Turn 9 begins. Credits: 2, Clicks: 4 ===
+[GameContext] Versatile Smuggler gains 1 credit. (3 total)
+[GameContext] Versatile Smuggler gains 1 credit. (4 total)
+[GameContext] --- Run on R&D begins ---
+[GameContext] [Initiation] Run declared on R&D.
+[GameContext] [Rez] Corp rezzes Mavirus for 3 credits.
+[GameContext] [Approach] Runner approaches unrezzed ice (position 0).
+[GameContext] [Approach] Corp declines to rez. Runner passes unrezzed ice.
+[GameContext] [Approach] Runner approaches unrezzed ice (position 1).
+[GameContext] [Approach] Corp declines to rez. Runner passes unrezzed ice.
+[GameContext] [Movement] Runner approaches the server root.
+[GameContext] [Success] Run successful on R&D!
+[GameContext] [Debug/gain_on_success] run_modifiers at success: {  }
+[GameContext] [Breach] Runner breaches R&D.
+[GameContext] [Access] Runner accesses: Mavirus
+[GameContext] [Mavirus] Rezzed — deals 1 net damage.
+[GameContext] Runner takes 1 net damage.
+[GameContext]   Trashed from grip: smartware_distributor
+[GameContext] 1 card(s) trashed from Versatile Smuggler's grip.
+[GameContext] [Access] Runner may trash Mavirus for 0 credits (Runner has 4 total).
+[GameContext] [Access] Runner accesses: Bladderwort
+[GameContext] [Access] Runner may trash Bladderwort for 3 credits (Runner has 4 total).
+[GameContext] [Access] Runner trashes Bladderwort.
+[GameContext] [End] Run ended successfully.
+[GameContext] Versatile Smuggler draws Jailbreak.
+[GameContext] Replicating Perfection draws Regenesis.
+[GameContext] === Replicating Perfection Turn 9 begins. Credits: 1, Clicks: 3 ===
+[GameContext] [MCTS] slow search: 1306 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection installs Regenesis in Server 0.
+[heartbeat] game 2/10 — turn 9, time 45s
+[GameContext] [MCTS] slow search: 1049 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection advances Regenesis (1 counters).
+[GameContext] [MCTS] slow search: 917 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection gains 1 credit. (1 total)
+[GameContext] === Versatile Smuggler Turn 10 begins. Credits: 1, Clicks: 4 ===
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler: too many consecutive invalid actions — ending turn.
+[GameContext] Replicating Perfection draws Anemone.
+[GameContext] === Replicating Perfection Turn 10 begins. Credits: 1, Clicks: 3 ===
+[GameContext] [MCTS] slow search: 1141 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection installs Spin Doctor in Server 3.
+[GameContext] [MCTS] slow search: 798 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection gains 1 credit. (2 total)
+[heartbeat] game 2/10 — turn 10, time 50s
+[GameContext] [MCTS] slow search: 915 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection advances Regenesis (2 counters).
+[GameContext] === Versatile Smuggler Turn 11 begins. Credits: 1, Clicks: 4 ===
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler: too many consecutive invalid actions — ending turn.
+[GameContext] Replicating Perfection draws Longevity Serum.
+[GameContext] === Replicating Perfection Turn 11 begins. Credits: 1, Clicks: 3 ===
+[GameContext] Replicating Perfection draws 2 card(s).
+[GameContext] Replicating Perfection rezzes Spin Doctor for 0 cr.
+[GameContext] [MCTS] Scoring line detected — executing: Advance regenesis
+[GameContext] Replicating Perfection advances Regenesis (3 counters).
+[GameContext] Replicating Perfection scores Regenesis! (1 agenda points)
+[GameContext] [Regenesis] No facedown agendas in Archives.
+[GameContext] [MCTS] slow search: 590 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection installs Longevity Serum in Server 0.
+[GameContext] [MCTS] slow search: 997 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection installs Regenesis in Server 1.
+[GameContext] === Versatile Smuggler Turn 12 begins. Credits: 1, Clicks: 4 ===
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler: too many consecutive invalid actions — ending turn.
+[GameContext] Replicating Perfection draws Bladderwort.
+[GameContext] === Replicating Perfection Turn 12 begins. Credits: 0, Clicks: 3 ===
+[GameContext] Spin Doctor: shuffled 2 card(s) from Archives into R&D.
+[GameContext] Spin Doctor is trashed.
+[heartbeat] game 2/10 — turn 12, time 55s
+[GameContext] [MCTS] slow search: 974 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection gains 1 credit. (1 total)
+[GameContext] [MCTS] slow search: 780 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection advances Longevity Serum (1 counters).
+[GameContext] Replicating Perfection discards Mitosis to hand limit.
+[GameContext] === Versatile Smuggler Turn 13 begins. Credits: 1, Clicks: 4 ===
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler: too many consecutive invalid actions — ending turn.
+[GameContext] Replicating Perfection draws Blood in the Water.
+[GameContext] === Replicating Perfection Turn 13 begins. Credits: 0, Clicks: 3 ===
+[GameContext] Replicating Perfection gains 1 credit. (1 total)
+[GameContext] Replicating Perfection installs Blood in the Water in Server 3.
+[GameContext] [MCTS] Scoring line detected — executing: Advance blood_in_the_water
+[GameContext] Replicating Perfection advances Blood in the Water (1 counters).
+[GameContext] Replicating Perfection scores Blood in the Water! (2 agenda points)
+[GameContext] Game over — Replicating Perfection wins. Replicating Perfection scored 7 agenda points
+  [  2/ 10]  CORP      Replicating Perfection scored 7 agenda points  13 turns
+[GameContext] Replicating Perfection draws Moon Pool.
+[GameContext] === Replicating Perfection Turn 1 begins. Credits: 5, Clicks: 3 ===
+[GameContext] [MCTS] slow search: 394 ms (100 iterations, depth 3)
+[heartbeat] game 3/10 — turn 1, time 60s
+[GameContext] Replicating Perfection installs Anemone in R&D.
+[GameContext] [MCTS] slow search: 383 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection gains 9 credits.
+[GameContext] Replicating Perfection plays Hedge Fund.
+[GameContext] [MCTS] slow search: 342 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection installs Karunā in HQ.
+[GameContext] === Versatile Smuggler Turn 2 begins. Credits: 5, Clicks: 4 ===
+[GameContext] Run modifier set: overclock_credits = 5
+[GameContext] --- Run on HQ begins ---
+[GameContext] [Initiation] Run declared on HQ.
+[GameContext] [Approach] Runner approaches unrezzed ice (position 0).
+[CorpRunAI] AI: Karunā — rez_cost=4  tax/enc=9.0  enc=3.0  LTV=27.0
+[GameContext] [Rez] Corp rezzes Karunā for 4 credits.
+[GameContext] [Encounter] Runner encounters Karunā.
+[GameContext] Runner takes 2 net damage.
+[GameContext]   Trashed from grip: tread_lightly
+[GameContext]   Trashed from grip: overclock
+[GameContext] 2 card(s) trashed from Versatile Smuggler's grip.
+[GameContext] Run ended.
+[GameContext] [Encounter] Run ended by subroutine.
+[GameContext] [End] Run ended unsuccessfully.
+[GameContext] Overclock: 5 unspent credit(s) returned to the bank.
+[GameContext] Versatile Smuggler plays Overclock.
+[GameContext] --- Run on R&D begins ---
+[GameContext] [Initiation] Run declared on R&D.
+[GameContext] [Approach] Runner approaches unrezzed ice (position 0).
+[CorpRunAI] AI: Anemone — rez_cost=3  tax/enc=6.0  enc=3.0  LTV=18.0
+[GameContext] [Rez] Corp rezzes Anemone for 3 credits.
+[GameContext] [Encounter] Runner encounters Anemone.
+[GameContext] Runner takes 1 net damage.
+[GameContext]   Trashed from grip: buzzsaw
+[GameContext] 1 card(s) trashed from Versatile Smuggler's grip.
+[GameContext] [Movement] Runner approaches the server root.
+[GameContext] [Success] Run successful on R&D!
+[GameContext] [Debug/gain_on_success] run_modifiers at success: {  }
+[GameContext] [Breach] Runner breaches R&D.
+[GameContext] [Access] Runner accesses: Longevity Serum
+[GameContext] [Access] Runner steals Longevity Serum! (2 agenda points)
+[GameContext] [End] Run ended successfully.
+[GameContext] Versatile Smuggler draws Conduit.
+[GameContext] Versatile Smuggler draws Tread Lightly.
+[GameContext] Replicating Perfection draws Bladderwort.
+[GameContext] === Replicating Perfection Turn 2 begins. Credits: 2, Clicks: 3 ===
+[GameContext] [MCTS] slow search: 488 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection installs Blood in the Water in Server 0.
+[GameContext] [MCTS] Scoring line detected — executing: Advance blood_in_the_water
+[GameContext] Replicating Perfection advances Blood in the Water (1 counters).
+[GameContext] Replicating Perfection scores Blood in the Water! (2 agenda points)
+[GameContext] [MCTS] slow search: 373 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection gains 1 credit. (2 total)
+[GameContext] === Versatile Smuggler Turn 3 begins. Credits: 4, Clicks: 4 ===
+[GameContext] Versatile Smuggler draws Tread Lightly.
+[GameContext] Versatile Smuggler draws Red Team.
+[GameContext] Versatile Smuggler draws Jailbreak.
+[GameContext] Versatile Smuggler draws VRcation.
+[GameContext] Versatile Smuggler discards Smartware Distributor to hand limit. (5 cards remaining)
+[GameContext] Versatile Smuggler discards Red Team to hand limit. (5 cards remaining)
+[GameContext] Replicating Perfection draws Spin Doctor.
+[GameContext] === Replicating Perfection Turn 3 begins. Credits: 2, Clicks: 3 ===
+[GameContext] [MCTS] slow search: 570 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection gains 1 credit. (3 total)
+[heartbeat] game 3/10 — turn 3, time 65s
+[GameContext] [MCTS] slow search: 557 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection gains 1 credit. (4 total)
+[GameContext] [MCTS] slow search: 559 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection gains 1 credit. (5 total)
+[GameContext] === Versatile Smuggler Turn 4 begins. Credits: 4, Clicks: 4 ===
+[GameContext] Versatile Smuggler draws Verbal Plasticity.
+[GameContext] Versatile Smuggler draws Sure Gamble.
+[GameContext] Versatile Smuggler gains 1 credit. (5 total)
+[GameContext] Versatile Smuggler gains 9 credits.
+[GameContext] Versatile Smuggler plays Sure Gamble.
+[GameContext] Versatile Smuggler discards Verbal Plasticity to hand limit. (5 cards remaining)
+[GameContext] Replicating Perfection draws Ivik.
+[GameContext] === Replicating Perfection Turn 4 begins. Credits: 5, Clicks: 3 ===
+[GameContext] [MCTS] slow search: 510 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection installs Ivik in Server 0.
+[GameContext] [MCTS] slow search: 416 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection gains 1 credit. (6 total)
+[GameContext] [MCTS] slow search: 452 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection gains 1 credit. (7 total)
+[heartbeat] game 3/10 — turn 4, time 70s
+[GameContext] === Versatile Smuggler Turn 5 begins. Credits: 9, Clicks: 4 ===
+[GameContext] Versatile Smuggler draws Pennyshaver.
+[GameContext] Versatile Smuggler draws Red Team.
+[GameContext] Versatile Smuggler draws Smartware Distributor.
+[GameContext] Versatile Smuggler gains 1 credit. (10 total)
+[GameContext] Versatile Smuggler discards Smartware Distributor to hand limit. (5 cards remaining)
+[GameContext] Versatile Smuggler discards Red Team to hand limit. (5 cards remaining)
+[GameContext] Versatile Smuggler discards Jailbreak to hand limit. (5 cards remaining)
+[GameContext] Replicating Perfection draws Mavirus.
+[GameContext] === Replicating Perfection Turn 5 begins. Credits: 7, Clicks: 3 ===
+[GameContext] [MCTS] slow search: 607 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection installs Mavirus in HQ.
+[GameContext] [MCTS] slow search: 421 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection gains 1 credit. (8 total)
+[GameContext] [MCTS] slow search: 455 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection gains 1 credit. (9 total)
+[GameContext] === Versatile Smuggler Turn 6 begins. Credits: 10, Clicks: 4 ===
+[GameContext] Versatile Smuggler draws Marjanah.
+[GameContext] Versatile Smuggler draws 4 card(s).
+[GameContext] Versatile Smuggler will lose 1 click(s) next turn.
+[GameContext] Versatile Smuggler plays VRcation.
+Player install: card is: Marjanah and charged cost is: 0
+[GameContext] Versatile Smuggler installs Marjanah. [MU: 1/4 used]
+[GameContext] Run modifier set: overclock_credits = 5
+[GameContext] --- Run on HQ begins ---
+[GameContext] [Initiation] Run declared on HQ.
+[GameContext] [Rez] Corp rezzes Mavirus for 3 credits.
+[GameContext] [Approach] Runner approaches Karunā (position 0).
+[GameContext] [Encounter] Runner encounters Karunā.
+[GameContext] Runner takes 2 net damage.
+[GameContext]   Trashed from grip: pennyshaver
+[GameContext]   Trashed from grip: tread_lightly
+[GameContext] 2 card(s) trashed from Versatile Smuggler's grip.
+[GameContext] Run ended.
+[GameContext] [Encounter] Run ended by subroutine.
+[GameContext] [End] Run ended unsuccessfully.
+[GameContext] Overclock: 5 unspent credit(s) returned to the bank.
+[GameContext] Versatile Smuggler plays Overclock.
+[GameContext] Replicating Perfection draws Bathynomus.
+[GameContext] === Replicating Perfection Turn 6 begins. Credits: 6, Clicks: 3 ===
+[GameContext] [MCTS] slow search: 635 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection pays 1 credit(s) to install ice.
+[GameContext] Replicating Perfection installs Bathynomus in HQ.
+[GameContext] [MCTS] slow search: 418 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection gains 1 credit. (6 total)
+[GameContext] [MCTS] slow search: 484 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection gains 1 credit. (7 total)
+[heartbeat] game 3/10 — turn 6, time 76s
+[GameContext] Versatile Smuggler loses 1 click(s) this turn (deferred penalty).
+[GameContext] === Versatile Smuggler Turn 7 begins. Credits: 8, Clicks: 3 ===
+[GameContext] Versatile Smuggler gains 1 credit. (9 total)
+[GameContext] Versatile Smuggler gains 1 credit. (10 total)
+[GameContext] Versatile Smuggler gains 1 credit. (11 total)
+[GameContext] Replicating Perfection draws Moon Pool.
+[GameContext] === Replicating Perfection Turn 7 begins. Credits: 7, Clicks: 3 ===
+[GameContext] [MCTS] slow search: 588 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection gains 1 credit. (8 total)
+[GameContext] [MCTS] slow search: 604 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection installs Bladderwort in Server 1.
+[GameContext] [MCTS] slow search: 479 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection gains 1 credit. (9 total)
+[GameContext] === Versatile Smuggler Turn 8 begins. Credits: 11, Clicks: 4 ===
+[GameContext] Versatile Smuggler gains 1 credit. (12 total)
+[GameContext] Versatile Smuggler gains 1 credit. (13 total)
+[GameContext] Versatile Smuggler gains 1 credit. (14 total)
+[GameContext] Versatile Smuggler gains 1 credit. (15 total)
+[GameContext] Replicating Perfection draws Regenesis.
+[GameContext] === Replicating Perfection Turn 8 begins. Credits: 9, Clicks: 3 ===
+[GameContext] Replicating Perfection rezzes Bladderwort for 1 cr.
+[GameContext] [MCTS] slow search: 1123 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection installs Regenesis in Server 0.
+[GameContext] [MCTS] slow search: 1081 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection advances Regenesis (1 counters).
+[heartbeat] game 3/10 — turn 8, time 82s
+[GameContext] [MCTS] slow search: 1060 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection advances Regenesis (2 counters).
+[GameContext] === Versatile Smuggler Turn 9 begins. Credits: 15, Clicks: 4 ===
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler: too many consecutive invalid actions — ending turn.
+[GameContext] Replicating Perfection draws Anoetic Void.
+[GameContext] === Replicating Perfection Turn 9 begins. Credits: 6, Clicks: 3 ===
+[GameContext] [MCTS] Scoring line detected — executing: Advance regenesis
+[GameContext] Replicating Perfection advances Regenesis (3 counters).
+[GameContext] Replicating Perfection scores Regenesis! (1 agenda points)
+[GameContext] [Regenesis] No facedown agendas in Archives.
+[GameContext] [MCTS] slow search: 646 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection installs Anoetic Void in Server 2.
+[GameContext] [MCTS] slow search: 649 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection gains 1 credit. (6 total)
+[GameContext] === Versatile Smuggler Turn 10 begins. Credits: 15, Clicks: 4 ===
+[GameContext] Run modifier set: extra_rez_cost = 3
+[GameContext] --- Run on HQ begins ---
+[GameContext] [Initiation] Run declared on HQ.
+[GameContext] [Approach] Runner approaches unrezzed ice (position 0).
+[CorpRunAI] AI: rezzing Bathynomus would breach credit floor — holding.
+[GameContext] [Approach] Corp declines to rez. Runner passes unrezzed ice.
+[GameContext] Placed 1 power counter(s) on Marjanah.
+[GameContext] [Approach] Runner approaches Karunā (position 1).
+[CorpRunAI] AI: rezzing Bathynomus would breach credit floor — holding.
+[GameContext] [Encounter] Runner encounters Karunā.
+[GameContext] Runner takes 2 net damage.
+[GameContext]   Trashed from grip: jailbreak
+[GameContext]   Trashed from grip: pennyshaver
+[GameContext] 2 card(s) trashed from Versatile Smuggler's grip.
+[GameContext] Run ended.
+[GameContext] [Encounter] Run ended by subroutine.
+[GameContext] [End] Run ended unsuccessfully.
+[GameContext] Versatile Smuggler plays Tread Lightly.
+[GameContext] Versatile Smuggler draws T400 Memory Diamond.
+[GameContext] Versatile Smuggler draws Mutual Favor.
+[GameContext] Versatile Smuggler reveals and takes Carmen from their deck.
+[GameContext] Versatile Smuggler's deck is shuffled.
+[GameContext] Versatile Smuggler plays Mutual Favor.
+[GameContext] Replicating Perfection draws Mavirus.
+[GameContext] === Replicating Perfection Turn 10 begins. Credits: 6, Clicks: 3 ===
+[GameContext] Replicating Perfection rezzes Anoetic Void for 0 cr.
+[GameContext] [MCTS] slow search: 867 ms (100 iterations, depth 3)
+[heartbeat] game 3/10 — turn 10, time 87s
+[GameContext] Replicating Perfection gains 1 credit. (7 total)
+[GameContext] [MCTS] slow search: 902 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection installs Mavirus in HQ.
+[GameContext] [MCTS] slow search: 620 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection gains 1 credit. (8 total)
+[GameContext] === Versatile Smuggler Turn 11 begins. Credits: 14, Clicks: 4 ===
+Player install: card is: Carmen and charged cost is: 5
+[GameContext] Versatile Smuggler installs Carmen. [MU: 2/4 used]
+[GameContext] --- Run on R&D begins ---
+[GameContext] [Initiation] Run declared on R&D.
+[GameContext] [Approach] Runner approaches Anemone (position 0).
+[GameContext] [Encounter] Runner encounters Anemone.
+[GameContext] [Encounter] Carmen breaks 'Do 1 net damage.' for 1 cr.
+[GameContext] [Encounter] Subroutine 0 broken.
+[GameContext] Placed 1 power counter(s) on Marjanah.
+[GameContext] [Movement] Runner approaches the server root.
+[GameContext] [Success] Run successful on R&D!
+[GameContext] [Debug/gain_on_success] run_modifiers at success: { "overclock_credits": 0, "concerto_credits": 0, "bad_pub_credits": 0 }
+[GameContext] [Breach] Runner breaches R&D.
+[GameContext] [Access] Runner accesses: Ivik
+[GameContext] [End] Run ended successfully.
+[GameContext] --- Run on HQ begins ---
+[GameContext] [Initiation] Run declared on HQ.
+[GameContext] [Rez] Corp rezzes Mavirus for 3 credits.
+[GameContext] [Approach] Runner approaches unrezzed ice (position 0).
+[CorpRunAI] AI: Bathynomus — rez_cost=3  tax/enc=1.0  enc=3.0  LTV=3.0
+[GameContext] [Rez] Corp rezzes Bathynomus for 3 credits.
+[GameContext] [Encounter] Runner encounters Bathynomus.
+[GameContext] [Encounter] Carmen breaks 'Do 3 net damage.' for 1 cr.
+[GameContext] [Encounter] Subroutine 0 broken.
+[GameContext] Placed 1 power counter(s) on Marjanah.
+[GameContext] [Approach] Runner approaches Karunā (position 1).
+[GameContext] [Encounter] Runner encounters Karunā.
+[GameContext] [Encounter] Carmen boosted  +3 str (now 5). Cost: 1 cr.
+[GameContext] [Encounter] Carmen breaks 'Do 2 net damage. The Runner may jack out.' for 1 cr.
+[GameContext] [Encounter] Carmen breaks 'End the run.' for 1 cr.
+[GameContext] [Encounter] Subroutine 0 broken.
+[GameContext] [Encounter] Subroutine 1 broken.
+[GameContext] Placed 1 power counter(s) on Marjanah.
+[GameContext] [Movement] Runner approaches the server root.
+[GameContext] [Success] Run successful on HQ!
+[GameContext] [Debug/gain_on_success] run_modifiers at success: { "overclock_credits": 0, "concerto_credits": 0, "bad_pub_credits": 0 }
+[GameContext] [Breach] Runner breaches HQ.
+[GameContext] [Access] Runner accesses: Mavirus
+[GameContext] [Mavirus] Rezzed — deals 1 net damage.
+[GameContext] Runner takes 1 net damage.
+[GameContext]   Trashed from grip: conduit
+[GameContext] 1 card(s) trashed from Versatile Smuggler's grip.
+[GameContext] [Access] Runner may trash Mavirus for 0 credits (Runner has 4 total).
+[GameContext] [Access] Runner accesses: Mavirus
+[GameContext] [Mavirus] Rezzed — deals 1 net damage.
+[GameContext] Runner takes 1 net damage.
+[GameContext]   Trashed from grip: docklands_pass
+[GameContext] 1 card(s) trashed from Versatile Smuggler's grip.
+[GameContext] [Access] Runner may trash Mavirus for 0 credits (Runner has 4 total).
+[GameContext] [Access] Runner accesses: Mitosis
+[GameContext] [End] Run ended successfully.
+[GameContext] Versatile Smuggler draws Sure Gamble.
+[GameContext] Replicating Perfection draws Ivik.
+[GameContext] === Replicating Perfection Turn 11 begins. Credits: 2, Clicks: 3 ===
+[GameContext] [MCTS] slow search: 348 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection pays 1 credit(s) to install ice.
+[GameContext] Replicating Perfection installs Ivik in R&D.
+[GameContext] [MCTS] slow search: 245 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection gains 1 credit. (2 total)
+[GameContext] [MCTS] slow search: 252 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection gains 1 credit. (3 total)
+[heartbeat] game 3/10 — turn 11, time 92s
+[GameContext] === Versatile Smuggler Turn 12 begins. Credits: 4, Clicks: 4 ===
+[GameContext] --- Run on R&D begins ---
+[GameContext] [Initiation] Run declared on R&D.
+[GameContext] [Approach] Runner approaches unrezzed ice (position 0).
+[GameContext] [Approach] Corp declines to rez. Runner passes unrezzed ice.
+[GameContext] Placed 1 power counter(s) on Marjanah.
+[GameContext] [Approach] Runner approaches Anemone (position 1).
+[GameContext] [Encounter] Runner encounters Anemone.
+[GameContext] [Encounter] Carmen breaks 'Do 1 net damage.' for 1 cr.
+[GameContext] [Encounter] Subroutine 0 broken.
+[GameContext] Placed 1 power counter(s) on Marjanah.
+[GameContext] [Movement] Runner approaches the server root.
+[GameContext] [Success] Run successful on R&D!
+[GameContext] [Debug/gain_on_success] run_modifiers at success: { "overclock_credits": 0, "concerto_credits": 0, "bad_pub_credits": 0 }
+[GameContext] [Breach] Runner breaches R&D.
+[GameContext] [Access] Runner accesses: Mitosis
+[GameContext] [End] Run ended successfully.
+[GameContext] Versatile Smuggler gains 1 credit. (4 total)
+[GameContext] --- Run on HQ begins ---
+[GameContext] [Initiation] Run declared on HQ.
+[GameContext] [Approach] Runner approaches Bathynomus (position 0).
+[GameContext] [Encounter] Runner encounters Bathynomus.
+[GameContext] [Encounter] Carmen breaks 'Do 3 net damage.' for 1 cr.
+[GameContext] [Encounter] Subroutine 0 broken.
+[GameContext] Placed 1 power counter(s) on Marjanah.
+[GameContext] [Approach] Runner approaches Karunā (position 1).
+[GameContext] [Encounter] Runner encounters Karunā.
+[GameContext] [Encounter] Carmen boosted  +3 str (now 5). Cost: 1 cr.
+[GameContext] [Encounter] Carmen breaks 'Do 2 net damage. The Runner may jack out.' for 1 cr.
+[GameContext] [Encounter] Carmen breaks 'End the run.' for 1 cr.
+[GameContext] [Encounter] Subroutine 0 broken.
+[GameContext] [Encounter] Subroutine 1 broken.
+[GameContext] Placed 1 power counter(s) on Marjanah.
+[GameContext] [Movement] Runner approaches the server root.
+[GameContext] [Success] Run successful on HQ!
+[GameContext] [Debug/gain_on_success] run_modifiers at success: { "overclock_credits": 0, "concerto_credits": 0, "bad_pub_credits": 0 }
+[GameContext] [Breach] Runner breaches HQ.
+[GameContext] [Access] Runner accesses: Mavirus
+[GameContext] [Mavirus] Rezzed — deals 1 net damage.
+[GameContext] Runner takes 1 net damage.
+[GameContext]   Trashed from grip: sure_gamble
+[GameContext] 1 card(s) trashed from Versatile Smuggler's grip.
+[GameContext] [Access] Runner may trash Mavirus for 0 credits (Runner has 0 total).
+[GameContext] [Access] Runner accesses: Mavirus
+[GameContext] [Mavirus] Rezzed — deals 1 net damage.
+[GameContext] Runner takes 1 net damage.
+[GameContext]   Trashed from grip: t400_memory_diamond
+[GameContext] 1 card(s) trashed from Versatile Smuggler's grip.
+[GameContext] [Access] Runner may trash Mavirus for 0 credits (Runner has 0 total).
+[GameContext] [Access] Runner accesses: Moon Pool
+[GameContext] [Access] Runner may trash Moon Pool for 3 credits (Runner has 0 total).
+[GameContext] [Access] Runner cannot afford to trash.
+[GameContext] [End] Run ended successfully.
+[GameContext] Game over — Replicating Perfection wins. "Versatile Smuggler" flatlined (empty grip)
+  [  3/ 10]  CORP      "Versatile Smuggler" flatlined (empty grip)  12 turns
+[GameContext] Replicating Perfection draws Envelopment.
+[GameContext] === Replicating Perfection Turn 1 begins. Credits: 5, Clicks: 3 ===
+[GameContext] [MCTS] slow search: 603 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection installs Karunā in HQ.
+[GameContext] [MCTS] slow search: 604 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection installs Envelopment in R&D.
+[GameContext] [MCTS] slow search: 533 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection gains 9 credits.
+[GameContext] Replicating Perfection plays Hedge Fund.
+[GameContext] === Versatile Smuggler Turn 2 begins. Credits: 5, Clicks: 4 ===
+[GameContext] --- Run on R&D begins ---
+[GameContext] [Initiation] Run declared on R&D.
+[GameContext] [Approach] Runner approaches unrezzed ice (position 0).
+[CorpRunAI] AI: Envelopment — rez_cost=5  tax/enc=9.0  enc=3.0  LTV=27.0
+[GameContext] [Rez] Corp rezzes Envelopment for 5 credits.
+[GameContext] Placed 4 power counter(s) on Envelopment.
+[GameContext] [Encounter] Runner encounters Envelopment.
+[GameContext] [Encounter] Envelopment: 4 dynamic ETR sub(s) from power counters.
+[GameContext] Run ended.
+[GameContext] [Encounter] Run ended by subroutine.
+[GameContext] [End] Run ended unsuccessfully.
+[GameContext] Versatile Smuggler gains 1 credit. (6 total)
+[GameContext] --- Run on HQ begins ---
+[GameContext] [Initiation] Run declared on HQ.
+[GameContext] [Approach] Runner approaches unrezzed ice (position 0).
+[CorpRunAI] AI: rezzing Karunā would breach credit floor — holding.
+[GameContext] [Approach] Corp declines to rez. Runner passes unrezzed ice.
+[GameContext] [Movement] Runner approaches the server root.
+[GameContext] [Success] Run successful on HQ!
+[GameContext] [Debug/gain_on_success] run_modifiers at success: {  }
+[GameContext] [Breach] Runner breaches HQ.
+[GameContext] [Access] Runner accesses: Bladderwort
+[GameContext] [Access] Runner may trash Bladderwort for 3 credits (Runner has 6 total).
+[GameContext] [Access] Runner trashes Bladderwort.
+[GameContext] [End] Run ended successfully.
+[GameContext] Versatile Smuggler draws Pennyshaver.
+[GameContext] Versatile Smuggler discards VRcation to hand limit. (5 cards remaining)
+[GameContext] Replicating Perfection draws Anoetic Void.
+[GameContext] === Replicating Perfection Turn 2 begins. Credits: 4, Clicks: 3 ===
+[GameContext] [MCTS] slow search: 437 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection gains 1 credit. (5 total)
+[GameContext] [MCTS] slow search: 433 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection draws Bathynomus.
+[heartbeat] game 4/10 — turn 2, time 97s
+[GameContext] [MCTS] slow search: 519 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection installs Bathynomus in Server 0.
+[GameContext] === Versatile Smuggler Turn 3 begins. Credits: 3, Clicks: 4 ===
+[GameContext] --- Run on HQ begins ---
+[GameContext] [Initiation] Run declared on HQ.
+[GameContext] [Approach] Runner approaches unrezzed ice (position 0).
+[CorpRunAI] AI: rezzing Karunā would breach credit floor — holding.
+[GameContext] [Approach] Corp declines to rez. Runner passes unrezzed ice.
+[GameContext] [Movement] Runner approaches the server root.
+[GameContext] [Success] Run successful on HQ!
+[GameContext] [Debug/gain_on_success] run_modifiers at success: {  }
+[GameContext] [Breach] Runner breaches HQ.
+[GameContext] [Access] Runner accesses: Anoetic Void
+[GameContext] [Access] Runner may trash Anoetic Void for 1 credits (Runner has 3 total).
+[GameContext] [End] Run ended successfully.
+[GameContext] Versatile Smuggler gains 1 credit. (4 total)
+Player install: card is: Buzzsaw and charged cost is: 4
+[GameContext] Versatile Smuggler installs Buzzsaw. [MU: 1/4 used]
+[GameContext] Versatile Smuggler draws Overclock.
+[GameContext] Replicating Perfection draws Regenesis.
+[GameContext] === Replicating Perfection Turn 3 begins. Credits: 5, Clicks: 3 ===
+[GameContext] [MCTS] slow search: 769 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection installs Regenesis in Server 0.
+[GameContext] [MCTS] slow search: 734 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection advances Regenesis (1 counters).
+[GameContext] [MCTS] slow search: 731 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection advances Regenesis (2 counters).
+[GameContext] === Versatile Smuggler Turn 4 begins. Credits: 0, Clicks: 4 ===
+[GameContext] Versatile Smuggler gains 1 credit. (1 total)
+[GameContext] Run modifier set: overclock_credits = 5
+[GameContext] --- Run on HQ begins ---
+[GameContext] [Initiation] Run declared on HQ.
+[GameContext] [Approach] Runner approaches unrezzed ice (position 0).
+[GameContext] [Approach] Corp declines to rez. Runner passes unrezzed ice.
+[GameContext] [Movement] Runner approaches the server root.
+[GameContext] [Success] Run successful on HQ!
+[GameContext] [Debug/gain_on_success] run_modifiers at success: { "overclock_credits": 5, "run_event_active": 1 }
+[GameContext] [Breach] Runner breaches HQ.
+[GameContext] [Access] Runner accesses: Moon Pool
+[GameContext] [Access] Runner may trash Moon Pool for 3 credits (Runner has 5 total).
+[GameContext] [End] Run ended successfully.
+[GameContext] Overclock: 5 unspent credit(s) returned to the bank.
+[GameContext] Versatile Smuggler plays Overclock.
+[GameContext] Versatile Smuggler gains 1 credit. (1 total)
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler: too many consecutive invalid actions — ending turn.
+[GameContext] Replicating Perfection draws Bathynomus.
+[GameContext] === Replicating Perfection Turn 4 begins. Credits: 3, Clicks: 3 ===
+[GameContext] [MCTS] Scoring line detected — executing: Advance regenesis
+[GameContext] Replicating Perfection advances Regenesis (3 counters).
+[GameContext] Replicating Perfection scores Regenesis! (1 agenda points)
+[GameContext] [Regenesis] No facedown agendas in Archives.
+[heartbeat] game 4/10 — turn 4, time 102s
+[GameContext] [MCTS] slow search: 709 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection gains 1 credit. (3 total)
+[GameContext] [MCTS] slow search: 683 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection gains 1 credit. (4 total)
+[GameContext] === Versatile Smuggler Turn 5 begins. Credits: 1, Clicks: 4 ===
+[GameContext] Versatile Smuggler gains 1 credit. (2 total)
+[GameContext] --- Run on HQ begins ---
+[GameContext] [Initiation] Run declared on HQ.
+[GameContext] [Approach] Runner approaches unrezzed ice (position 0).
+[CorpRunAI] AI: rezzing Karunā would breach credit floor — holding.
+[GameContext] [Approach] Corp declines to rez. Runner passes unrezzed ice.
+[GameContext] [Movement] Runner approaches the server root.
+[GameContext] [Success] Run successful on HQ!
+[GameContext] [Debug/gain_on_success] run_modifiers at success: {  }
+[GameContext] [Breach] Runner breaches HQ.
+[GameContext] [Access] Runner accesses: Spin Doctor
+[GameContext] [Access] Runner may trash Spin Doctor for 2 credits (Runner has 2 total).
+[GameContext] [Access] Runner trashes Spin Doctor.
+[GameContext] [End] Run ended successfully.
+[GameContext] Versatile Smuggler draws T400 Memory Diamond.
+[GameContext] Versatile Smuggler gains 1 credit. (1 total)
+[GameContext] Replicating Perfection draws Regenesis.
+[GameContext] === Replicating Perfection Turn 5 begins. Credits: 4, Clicks: 3 ===
+[GameContext] [MCTS] slow search: 650 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection gains 1 credit. (5 total)
+[GameContext] [MCTS] slow search: 699 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection installs Regenesis in Server 0.
+[GameContext] [MCTS] slow search: 689 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection advances Regenesis (1 counters).
+[heartbeat] game 4/10 — turn 5, time 108s
+[GameContext] === Versatile Smuggler Turn 6 begins. Credits: 1, Clicks: 4 ===
+[GameContext] Versatile Smuggler gains 1 credit. (2 total)
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler: too many consecutive invalid actions — ending turn.
+[GameContext] Replicating Perfection draws Spin Doctor.
+[GameContext] === Replicating Perfection Turn 6 begins. Credits: 4, Clicks: 3 ===
+[GameContext] [MCTS] Scoring line detected — executing: Advance regenesis
+[GameContext] Replicating Perfection advances Regenesis (2 counters).
+[GameContext] [MCTS] Scoring line detected — executing: Advance regenesis
+[GameContext] Replicating Perfection advances Regenesis (3 counters).
+[GameContext] Replicating Perfection scores Regenesis! (1 agenda points)
+[GameContext] [Regenesis] No facedown agendas in Archives.
+[GameContext] [MCTS] slow search: 686 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection gains 1 credit. (3 total)
+[GameContext] === Versatile Smuggler Turn 7 begins. Credits: 2, Clicks: 4 ===
+[GameContext] --- Run on HQ begins ---
+[GameContext] [Initiation] Run declared on HQ.
+[GameContext] [Approach] Runner approaches unrezzed ice (position 0).
+[GameContext] [Approach] Corp declines to rez. Runner passes unrezzed ice.
+[GameContext] [Movement] Runner approaches the server root.
+[GameContext] [Success] Run successful on HQ!
+[GameContext] [Debug/gain_on_success] run_modifiers at success: {  }
+[GameContext] [Breach] Runner breaches HQ.
+[GameContext] [Access] Runner accesses: Bathynomus
+[GameContext] [End] Run ended successfully.
+[GameContext] Versatile Smuggler gains 1 credit. (3 total)
+[GameContext] Versatile Smuggler gains 1 credit. (4 total)
+[GameContext] Versatile Smuggler gains 1 credit. (5 total)
+[GameContext] Replicating Perfection draws Ivik.
+[GameContext] === Replicating Perfection Turn 7 begins. Credits: 3, Clicks: 3 ===
+[GameContext] [MCTS] slow search: 959 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection gains 1 credit. (4 total)
+[GameContext] [MCTS] slow search: 937 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection installs Anoetic Void in Server 1.
+[heartbeat] game 4/10 — turn 7, time 113s
+[GameContext] [MCTS] slow search: 882 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection gains 1 credit. (5 total)
+[GameContext] === Versatile Smuggler Turn 8 begins. Credits: 5, Clicks: 4 ===
+[GameContext] --- Run on HQ begins ---
+[GameContext] [Initiation] Run declared on HQ.
+[GameContext] [Approach] Runner approaches unrezzed ice (position 0).
+[CorpRunAI] AI: rezzing Karunā would breach credit floor — holding.
+[GameContext] [Approach] Corp declines to rez. Runner passes unrezzed ice.
+[GameContext] [Movement] Runner approaches the server root.
+[GameContext] [Success] Run successful on HQ!
+[GameContext] [Debug/gain_on_success] run_modifiers at success: {  }
+[GameContext] [Breach] Runner breaches HQ.
+[GameContext] [Access] Runner accesses: Ivik
+[GameContext] [End] Run ended successfully.
+[GameContext] Versatile Smuggler gains 1 credit. (6 total)
+[GameContext] Versatile Smuggler gains 1 credit. (7 total)
+[GameContext] Versatile Smuggler gains 1 credit. (8 total)
+[GameContext] Replicating Perfection draws Blood in the Water.
+[GameContext] === Replicating Perfection Turn 8 begins. Credits: 5, Clicks: 3 ===
+[GameContext] Replicating Perfection rezzes Anoetic Void for 0 cr.
+[GameContext] [MCTS] slow search: 1098 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection installs Blood in the Water in Server 0.
+[GameContext] [MCTS] Scoring line detected — executing: Advance blood_in_the_water
+[GameContext] Replicating Perfection advances Blood in the Water (1 counters).
+[GameContext] Replicating Perfection scores Blood in the Water! (2 agenda points)
+[GameContext] [MCTS] slow search: 909 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection gains 1 credit. (5 total)
+[heartbeat] game 4/10 — turn 8, time 118s
+[GameContext] === Versatile Smuggler Turn 9 begins. Credits: 8, Clicks: 4 ===
+[GameContext] --- Run on HQ begins ---
+[GameContext] [Initiation] Run declared on HQ.
+[GameContext] [Approach] Runner approaches unrezzed ice (position 0).
+[CorpRunAI] AI: rezzing Karunā would breach credit floor — holding.
+[GameContext] [Approach] Corp declines to rez. Runner passes unrezzed ice.
+[GameContext] [Movement] Runner approaches the server root.
+[GameContext] [Success] Run successful on HQ!
+[GameContext] [Debug/gain_on_success] run_modifiers at success: {  }
+[GameContext] [Breach] Runner breaches HQ.
+[GameContext] [Access] Runner accesses: Spin Doctor
+[GameContext] [Access] Runner may trash Spin Doctor for 2 credits (Runner has 8 total).
+[GameContext] [Access] Runner trashes Spin Doctor.
+[GameContext] [End] Run ended successfully.
+[GameContext] Versatile Smuggler gains 1 credit. (7 total)
+[GameContext] Versatile Smuggler gains 1 credit. (8 total)
+[GameContext] Versatile Smuggler gains 1 credit. (9 total)
+[GameContext] Replicating Perfection draws Mitosis.
+[GameContext] === Replicating Perfection Turn 9 begins. Credits: 5, Clicks: 3 ===
+[GameContext] [MCTS] slow search: 549 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection gains 1 credit. (6 total)
+[GameContext] [MCTS] slow search: 544 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection gains 1 credit. (7 total)
+[GameContext] [MCTS] slow search: 572 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection gains 1 credit. (8 total)
+[GameContext] === Versatile Smuggler Turn 10 begins. Credits: 9, Clicks: 4 ===
+[GameContext] --- Run on HQ begins ---
+[GameContext] [Initiation] Run declared on HQ.
+[GameContext] [Approach] Runner approaches unrezzed ice (position 0).
+[CorpRunAI] AI: Karunā — rez_cost=4  tax/enc=9.0  enc=3.0  LTV=27.0
+[GameContext] [Rez] Corp rezzes Karunā for 4 credits.
+[GameContext] [Encounter] Runner encounters Karunā.
+[GameContext] Runner takes 2 net damage.
+[GameContext]   Trashed from grip: leech
+[GameContext]   Trashed from grip: pennyshaver
+[GameContext] 2 card(s) trashed from Versatile Smuggler's grip.
+[GameContext] Run ended.
+[GameContext] [Encounter] Run ended by subroutine.
+[GameContext] [End] Run ended unsuccessfully.
+[GameContext] Versatile Smuggler draws Mutual Favor.
+[GameContext] Versatile Smuggler reveals and takes Marjanah from their deck.
+[GameContext] Versatile Smuggler's deck is shuffled.
+[GameContext] Versatile Smuggler plays Mutual Favor.
+Player install: card is: Marjanah and charged cost is: 0
+[GameContext] Versatile Smuggler installs Marjanah. [MU: 2/4 used]
+[GameContext] Replicating Perfection draws Ivik.
+[GameContext] === Replicating Perfection Turn 10 begins. Credits: 4, Clicks: 3 ===
+[GameContext] [MCTS] slow search: 880 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection pays 1 credit(s) to install ice.
+[GameContext] Replicating Perfection installs Bathynomus in R&D.
+[GameContext] [MCTS] slow search: 608 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection gains 1 credit. (4 total)
+[heartbeat] game 4/10 — turn 10, time 123s
+[GameContext] [MCTS] slow search: 614 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection gains 1 credit. (5 total)
+[GameContext] === Versatile Smuggler Turn 11 begins. Credits: 9, Clicks: 4 ===
+[GameContext] --- Run on R&D begins ---
+[GameContext] [Initiation] Run declared on R&D.
+[GameContext] [Approach] Runner approaches unrezzed ice (position 0).
+[CorpRunAI] AI: Bathynomus — rez_cost=3  tax/enc=5.0  enc=3.0  LTV=15.0
+[GameContext] [Rez] Corp rezzes Bathynomus for 3 credits.
+[GameContext] [Encounter] Runner encounters Bathynomus.
+[GameContext] Runner takes 3 net damage.
+[GameContext]   Trashed from grip: docklands_pass
+[GameContext]   Trashed from grip: t400_memory_diamond
+[GameContext]   Trashed from grip: pennyshaver
+[GameContext] 3 card(s) trashed from Versatile Smuggler's grip.
+[GameContext] Placed 1 power counter(s) on Marjanah.
+[GameContext] [Approach] Runner approaches Envelopment (position 1).
+[GameContext] [Encounter] Runner encounters Envelopment.
+[GameContext] [Encounter] Envelopment: 4 dynamic ETR sub(s) from power counters.
+[GameContext] [Encounter] Marjanah boosted ×3 +3 str (now 5). Cost: 3 cr.
+[GameContext] [Encounter] Marjanah breaks 'End the run.' for 2 cr.
+[GameContext] [Encounter] Marjanah breaks 'End the run.' for 2 cr.
+[GameContext] [Encounter] Marjanah breaks 'End the run.' for 2 cr.
+[GameContext] [Encounter] Subroutine 0 broken.
+[GameContext] [Encounter] Subroutine 1 broken.
+[GameContext] [Encounter] Subroutine 2 broken.
+[GameContext] Run ended.
+[GameContext] [Encounter] Run ended by subroutine.
+[GameContext] [End] Run ended unsuccessfully.
+[GameContext] Game over — Replicating Perfection wins. "Versatile Smuggler" flatlined (empty grip)
+  [  4/ 10]  CORP      "Versatile Smuggler" flatlined (empty grip)  11 turns
+[GameContext] Replicating Perfection draws Envelopment.
+[GameContext] === Replicating Perfection Turn 1 begins. Credits: 5, Clicks: 3 ===
+[GameContext] [MCTS] slow search: 800 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection installs Anemone in HQ.
+[GameContext] [MCTS] slow search: 713 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection installs Envelopment in R&D.
+[GameContext] [MCTS] slow search: 666 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection gains 1 credit. (6 total)
+[GameContext] === Versatile Smuggler Turn 2 begins. Credits: 5, Clicks: 4 ===
+[GameContext] --- Run on R&D begins ---
+[GameContext] [Initiation] Run declared on R&D.
+[GameContext] [Approach] Runner approaches unrezzed ice (position 0).
+[CorpRunAI] AI: rezzing Envelopment would breach credit floor — holding.
+[GameContext] [Approach] Corp declines to rez. Runner passes unrezzed ice.
+[GameContext] [Movement] Runner approaches the server root.
+[GameContext] [Success] Run successful on R&D!
+[GameContext] [Debug/gain_on_success] run_modifiers at success: {  }
+[GameContext] [Breach] Runner breaches R&D.
+[GameContext] [Access] Runner accesses: Blood in the Water
+[GameContext] [Access] Runner steals Blood in the Water! (2 agenda points)
+[GameContext] [End] Run ended successfully.
+[GameContext] Run modifier set: overclock_credits = 5
+[GameContext] --- Run on HQ begins ---
+[GameContext] [Initiation] Run declared on HQ.
+[GameContext] [Approach] Runner approaches unrezzed ice (position 0).
+[CorpRunAI] AI: Anemone — rez_cost=3  tax/enc=6.0  enc=3.0  LTV=18.0
+[CorpRunAI] AI: deferring Anemone (pri=12.00) — saving for Envelopment on rd (pri=16.20)
+[GameContext] [Approach] Corp declines to rez. Runner passes unrezzed ice.
+[GameContext] [Movement] Runner approaches the server root.
+[GameContext] [Success] Run successful on HQ!
+[GameContext] [Debug/gain_on_success] run_modifiers at success: { "overclock_credits": 5, "run_event_active": 1 }
+[GameContext] [Breach] Runner breaches HQ.
+[GameContext] [Access] Runner accesses: Spin Doctor
+[GameContext] [Access] Runner may trash Spin Doctor for 2 credits (Runner has 9 total).
+[GameContext] [Access] Runner trashes Spin Doctor.
+[GameContext] [End] Run ended successfully.
+[GameContext] Overclock: 3 unspent credit(s) returned to the bank.
+[GameContext] Versatile Smuggler plays Overclock.
+[GameContext] --- Run on HQ begins ---
+[GameContext] [Initiation] Run declared on HQ.
+[GameContext] [Approach] Runner approaches unrezzed ice (position 0).
+[CorpRunAI] AI: Anemone — rez_cost=3  tax/enc=6.0  enc=3.0  LTV=18.0
+[GameContext] [Rez] Corp rezzes Anemone for 3 credits.
+[GameContext] [Encounter] Runner encounters Anemone.
+[GameContext] Runner takes 1 net damage.
+[GameContext]   Trashed from grip: smartware_distributor
+[GameContext] 1 card(s) trashed from Versatile Smuggler's grip.
+[GameContext] [Movement] Runner approaches the server root.
+[GameContext] [Success] Run successful on HQ!
+[GameContext] [Debug/gain_on_success] run_modifiers at success: {  }
+[GameContext] [Breach] Runner breaches HQ.
+[GameContext] [Access] Runner accesses: Longevity Serum
+[GameContext] [Access] Runner steals Longevity Serum! (2 agenda points)
+[GameContext] [End] Run ended successfully.
+[GameContext] Versatile Smuggler reveals and takes Marjanah from their deck.
+[GameContext] Versatile Smuggler's deck is shuffled.
+[GameContext] Versatile Smuggler plays Mutual Favor.
+[heartbeat] game 5/10 — turn 2, time 128s
+[GameContext] Replicating Perfection draws Hedge Fund.
+[GameContext] === Replicating Perfection Turn 2 begins. Credits: 3, Clicks: 3 ===
+[GameContext] [MCTS] slow search: 453 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection draws Moon Pool.
+[GameContext] [MCTS] slow search: 577 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection gains 1 credit. (4 total)
+[GameContext] [MCTS] slow search: 561 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection gains 1 credit. (5 total)
+[GameContext] === Versatile Smuggler Turn 3 begins. Credits: 4, Clicks: 4 ===
+[GameContext] --- Run on R&D begins ---
+[GameContext] [Initiation] Run declared on R&D.
+[GameContext] [Approach] Runner approaches unrezzed ice (position 0).
+[CorpRunAI] AI: rezzing Envelopment would breach credit floor — holding.
+[GameContext] [Approach] Corp declines to rez. Runner passes unrezzed ice.
+[GameContext] [Movement] Runner approaches the server root.
+[GameContext] [Success] Run successful on R&D!
+[GameContext] [Debug/gain_on_success] run_modifiers at success: {  }
+[GameContext] [Breach] Runner breaches R&D.
+[GameContext] [Access] Runner accesses: Send a Message
+[GameContext] [Access] Runner steals Send a Message! (3 agenda points)
+[GameContext] Rezzed Envelopment for free.
+[GameContext] Runner wins by stealing agendas!
+[GameContext] [End] Run ended successfully.
+[GameContext] Game over — Versatile Smuggler wins. Versatile Smuggler stole enough agendas to win
+  [  5/ 10]  RUNNER    Versatile Smuggler stole enough agendas to win   3 turns
+[GameContext] Replicating Perfection draws Blood in the Water.
+[GameContext] === Replicating Perfection Turn 1 begins. Credits: 5, Clicks: 3 ===
+[GameContext] [MCTS] slow search: 391 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection installs Blood in the Water in Server 0.
+[GameContext] [MCTS] Scoring line detected — executing: Advance blood_in_the_water
+[GameContext] Replicating Perfection advances Blood in the Water (1 counters).
+[GameContext] Replicating Perfection scores Blood in the Water! (2 agenda points)
+[GameContext] [MCTS] slow search: 468 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection installs Bathynomus in R&D.
+[heartbeat] game 6/10 — turn 1, time 133s
+[GameContext] === Versatile Smuggler Turn 2 begins. Credits: 5, Clicks: 4 ===
+[GameContext] --- Run on R&D begins ---
+[GameContext] [Initiation] Run declared on R&D.
+[GameContext] [Approach] Runner approaches unrezzed ice (position 0).
+[CorpRunAI] AI: rezzing Bathynomus would breach credit floor — holding.
+[GameContext] [Approach] Corp declines to rez. Runner passes unrezzed ice.
+[GameContext] [Movement] Runner approaches the server root.
+[GameContext] [Success] Run successful on R&D!
+[GameContext] [Debug/gain_on_success] run_modifiers at success: {  }
+[GameContext] [Breach] Runner breaches R&D.
+[GameContext] [Access] Runner accesses: Spin Doctor
+[GameContext] [Access] Runner may trash Spin Doctor for 2 credits (Runner has 5 total).
+[GameContext] [Access] Runner trashes Spin Doctor.
+[GameContext] [End] Run ended successfully.
+[GameContext] Run modifier set: overclock_credits = 5
+[GameContext] --- Run on HQ begins ---
+[GameContext] [Initiation] Run declared on HQ.
+[GameContext] [Initiation] No ice protecting server — proceeding to root.
+[GameContext] [Movement] Runner approaches the server root.
+[GameContext] [Success] Run successful on HQ!
+[GameContext] [Debug/gain_on_success] run_modifiers at success: { "overclock_credits": 5, "run_event_active": 1 }
+[GameContext] [Breach] Runner breaches HQ.
+[GameContext] [Access] Runner accesses: Anoetic Void
+[GameContext] [Access] Runner may trash Anoetic Void for 1 credits (Runner has 7 total).
+[GameContext] [End] Run ended successfully.
+[GameContext] Overclock: 5 unspent credit(s) returned to the bank.
+[GameContext] Versatile Smuggler plays Overclock.
+[GameContext] --- Run on HQ begins ---
+[GameContext] [Initiation] Run declared on HQ.
+[GameContext] [Initiation] No ice protecting server — proceeding to root.
+[GameContext] [Movement] Runner approaches the server root.
+[GameContext] [Success] Run successful on HQ!
+[GameContext] [Debug/gain_on_success] run_modifiers at success: {  }
+[GameContext] [Breach] Runner breaches HQ.
+[GameContext] [Access] Runner accesses: Spin Doctor
+[GameContext] [Access] Runner may trash Spin Doctor for 2 credits (Runner has 2 total).
+[GameContext] [Access] Runner trashes Spin Doctor.
+[GameContext] [End] Run ended successfully.
+Player install: card is: Marjanah and charged cost is: 0
+[GameContext] Versatile Smuggler installs Marjanah. [MU: 1/4 used]
+[GameContext] Replicating Perfection draws Spin Doctor.
+[GameContext] === Replicating Perfection Turn 2 begins. Credits: 4, Clicks: 3 ===
+[GameContext] [MCTS] slow search: 249 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection draws Bladderwort.
+[GameContext] [MCTS] slow search: 424 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection installs Blood in the Water in Server 0.
+[GameContext] [MCTS] Scoring line detected — executing: Advance blood_in_the_water
+[GameContext] Replicating Perfection advances Blood in the Water (1 counters).
+[GameContext] Replicating Perfection scores Blood in the Water! (2 agenda points)
+[GameContext] === Versatile Smuggler Turn 3 begins. Credits: 0, Clicks: 4 ===
+[GameContext] Versatile Smuggler gains 1 credit. (1 total)
+[GameContext] Run modifier set: extra_rez_cost = 3
+[GameContext] --- Run on HQ begins ---
+[GameContext] [Initiation] Run declared on HQ.
+[GameContext] [Initiation] No ice protecting server — proceeding to root.
+[GameContext] [Movement] Runner approaches the server root.
+[GameContext] [Success] Run successful on HQ!
+[GameContext] [Debug/gain_on_success] run_modifiers at success: { "extra_rez_cost": 3, "run_event_active": 1 }
+[GameContext] [Breach] Runner breaches HQ.
+[GameContext] [Access] Runner accesses: Spin Doctor
+[GameContext] [Access] Runner may trash Spin Doctor for 2 credits (Runner has 0 total).
+[GameContext] [Access] Runner cannot afford to trash.
+[GameContext] [End] Run ended successfully.
+[GameContext] Versatile Smuggler plays Tread Lightly.
+[GameContext] Versatile Smuggler gains 1 credit. (1 total)
+[GameContext] --- Run on R&D begins ---
+[GameContext] [Initiation] Run declared on R&D.
+[GameContext] [Approach] Runner approaches unrezzed ice (position 0).
+[CorpRunAI] AI: rezzing Bathynomus would breach credit floor — holding.
+[GameContext] [Approach] Corp declines to rez. Runner passes unrezzed ice.
+[GameContext] Placed 1 power counter(s) on Marjanah.
+[GameContext] [Movement] Runner approaches the server root.
+[GameContext] [Success] Run successful on R&D!
+[GameContext] [Debug/gain_on_success] run_modifiers at success: {  }
+[GameContext] [Breach] Runner breaches R&D.
+[GameContext] [Access] Runner accesses: Bladderwort
+[GameContext] [Access] Runner may trash Bladderwort for 3 credits (Runner has 1 total).
+[GameContext] [Access] Runner cannot afford to trash.
+[GameContext] [End] Run ended successfully.
+[GameContext] Replicating Perfection draws Bladderwort.
+[GameContext] === Replicating Perfection Turn 3 begins. Credits: 3, Clicks: 3 ===
+[GameContext] [MCTS] slow search: 359 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection gains 1 credit. (4 total)
+[GameContext] [MCTS] slow search: 374 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection gains 1 credit. (5 total)
+[GameContext] [MCTS] slow search: 402 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection installs Anoetic Void in R&D.
+[GameContext] === Versatile Smuggler Turn 4 begins. Credits: 1, Clicks: 4 ===
+[GameContext] Versatile Smuggler gains 1 credit. (2 total)
+[GameContext] --- Run on R&D begins ---
+[GameContext] [Initiation] Run declared on R&D.
+[GameContext] [Rez] Corp rezzes Anoetic Void for 0 credits.
+[GameContext] [Approach] Runner approaches unrezzed ice (position 0).
+[CorpRunAI] AI: Bathynomus — rez_cost=3  tax/enc=5.0  enc=3.0  LTV=15.0
+[GameContext] [Rez] Corp rezzes Bathynomus for 3 credits.
+[GameContext] [Encounter] Runner encounters Bathynomus.
+[GameContext] Runner takes 3 net damage.
+[GameContext]   Trashed from grip: red_team
+[GameContext]   Trashed from grip: t400_memory_diamond
+[GameContext] Versatile Smuggler is flatlined! (no cards remaining in grip)
+[GameContext] 2 card(s) trashed from Versatile Smuggler's grip.
+[GameContext] Placed 1 power counter(s) on Marjanah.
+[GameContext] [Movement] Runner approaches the server root.
+[GameContext] [Success] Run successful on R&D!
+[GameContext] [Debug/gain_on_success] run_modifiers at success: {  }
+[GameContext] [Breach] Runner breaches R&D.
+[GameContext] Anoetic Void: Corp trashes Spin Doctor from HQ.
+[GameContext] Anoetic Void: Corp trashes Bladderwort from HQ.
+[GameContext] Anoetic Void: Breach ended before access.
+[GameContext] [Breach] Breach ended before access (Corp ability).
+[GameContext] [End] Run ended successfully.
+[GameContext] Game over — Replicating Perfection wins. Replicating Perfection wins
+  [  6/ 10]  CORP      Replicating Perfection wins        4 turns
+[GameContext] Replicating Perfection draws Anoetic Void.
+[GameContext] === Replicating Perfection Turn 1 begins. Credits: 5, Clicks: 3 ===
+[GameContext] [MCTS] slow search: 708 ms (100 iterations, depth 3)
+[heartbeat] game 7/10 — turn 1, time 139s
+[GameContext] Replicating Perfection installs Envelopment in HQ.
+[GameContext] [MCTS] slow search: 668 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection installs Envelopment in Server 0.
+[GameContext] [MCTS] slow search: 675 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection installs Karunā in R&D.
+[GameContext] === Versatile Smuggler Turn 2 begins. Credits: 5, Clicks: 4 ===
+[GameContext] --- Run on R&D begins ---
+[GameContext] [Initiation] Run declared on R&D.
+[GameContext] [Approach] Runner approaches unrezzed ice (position 0).
+[CorpRunAI] AI: rezzing Karunā would breach credit floor — holding.
+[GameContext] [Approach] Corp declines to rez. Runner passes unrezzed ice.
+[GameContext] [Movement] Runner approaches the server root.
+[GameContext] [Success] Run successful on R&D!
+[GameContext] [Debug/gain_on_success] run_modifiers at success: {  }
+[GameContext] [Breach] Runner breaches R&D.
+[GameContext] [Access] Runner accesses: Karunā
+[GameContext] [End] Run ended successfully.
+[GameContext] --- Run on HQ begins ---
+[GameContext] [Initiation] Run declared on HQ.
+[GameContext] [Approach] Runner approaches unrezzed ice (position 0).
+[CorpRunAI] AI: rezzing Envelopment would breach credit floor — holding.
+[GameContext] [Approach] Corp declines to rez. Runner passes unrezzed ice.
+[GameContext] [Movement] Runner approaches the server root.
+[GameContext] [Success] Run successful on HQ!
+[GameContext] [Debug/gain_on_success] run_modifiers at success: {  }
+[GameContext] [Breach] Runner breaches HQ.
+[GameContext] [Access] Runner accesses: Moon Pool
+[GameContext] [Access] Runner may trash Moon Pool for 3 credits (Runner has 5 total).
+[GameContext] [Access] Runner trashes Moon Pool.
+[GameContext] [End] Run ended successfully.
+[GameContext] Versatile Smuggler reveals and takes Buzzsaw from their deck.
+[GameContext] Versatile Smuggler's deck is shuffled.
+[GameContext] Versatile Smuggler plays Mutual Favor.
+[GameContext] Versatile Smuggler draws Mutual Favor.
+[GameContext] Versatile Smuggler discards Smartware Distributor to hand limit. (5 cards remaining)
+[GameContext] Replicating Perfection draws Karunā.
+[GameContext] === Replicating Perfection Turn 2 begins. Credits: 5, Clicks: 3 ===
+[GameContext] [MCTS] slow search: 507 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection gains 1 credit. (6 total)
+[GameContext] [MCTS] slow search: 509 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection draws Anoetic Void.
+[GameContext] [MCTS] slow search: 731 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection gains 1 credit. (7 total)
+[heartbeat] game 7/10 — turn 2, time 144s
+[GameContext] === Versatile Smuggler Turn 3 begins. Credits: 2, Clicks: 4 ===
+[GameContext] --- Run on R&D begins ---
+[GameContext] [Initiation] Run declared on R&D.
+[GameContext] [Approach] Runner approaches unrezzed ice (position 0).
+[CorpRunAI] AI: Karunā — rez_cost=4  tax/enc=9.0  enc=3.0  LTV=27.0
+[GameContext] [Rez] Corp rezzes Karunā for 4 credits.
+[GameContext] [Encounter] Runner encounters Karunā.
+[GameContext] Runner takes 2 net damage.
+[GameContext]   Trashed from grip: t400_memory_diamond
+[GameContext]   Trashed from grip: carmen
+[GameContext] 2 card(s) trashed from Versatile Smuggler's grip.
+[GameContext] Run ended.
+[GameContext] [Encounter] Run ended by subroutine.
+[GameContext] [End] Run ended unsuccessfully.
+[GameContext] --- Run on HQ begins ---
+[GameContext] [Initiation] Run declared on HQ.
+[GameContext] [Approach] Runner approaches unrezzed ice (position 0).
+[GameContext] [Approach] Corp declines to rez. Runner passes unrezzed ice.
+[GameContext] [Movement] Runner approaches the server root.
+[GameContext] [Success] Run successful on HQ!
+[GameContext] [Debug/gain_on_success] run_modifiers at success: {  }
+[GameContext] [Breach] Runner breaches HQ.
+[GameContext] [Access] Runner accesses: Karunā
+[GameContext] [End] Run ended successfully.
+[GameContext] Versatile Smuggler reveals and takes Marjanah from their deck.
+[GameContext] Versatile Smuggler's deck is shuffled.
+[GameContext] Versatile Smuggler plays Mutual Favor.
+Player install: card is: Marjanah and charged cost is: 0
+[GameContext] Versatile Smuggler installs Marjanah. [MU: 1/4 used]
+[GameContext] Replicating Perfection draws Blood in the Water.
+[GameContext] === Replicating Perfection Turn 3 begins. Credits: 3, Clicks: 3 ===
+[GameContext] [MCTS] slow search: 1058 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection installs Longevity Serum in Server 0.
+[GameContext] [MCTS] slow search: 827 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection advances Longevity Serum (1 counters).
+[GameContext] [MCTS] slow search: 835 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection installs Anoetic Void in Server 0.
+[GameContext] === Versatile Smuggler Turn 4 begins. Credits: 2, Clicks: 4 ===
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler: too many consecutive invalid actions — ending turn.
+[GameContext] Replicating Perfection draws Regenesis.
+[GameContext] === Replicating Perfection Turn 4 begins. Credits: 2, Clicks: 3 ===
+[GameContext] Replicating Perfection rezzes Anoetic Void for 0 cr.
+[GameContext] [MCTS] Scoring line detected — executing: Advance longevity_serum
+[GameContext] Replicating Perfection advances Longevity Serum (2 counters).
+[heartbeat] game 7/10 — turn 4, time 149s
+[GameContext] [MCTS] Scoring line detected — executing: Advance longevity_serum
+[GameContext] Replicating Perfection advances Longevity Serum (3 counters).
+[GameContext] Replicating Perfection scores Longevity Serum! (2 agenda points)
+[GameContext] [MCTS] slow search: 652 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection installs Blood in the Water in Server 0.
+[GameContext] === Versatile Smuggler Turn 5 begins. Credits: 2, Clicks: 4 ===
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler: too many consecutive invalid actions — ending turn.
+[GameContext] Replicating Perfection draws Ivik.
+[GameContext] === Replicating Perfection Turn 5 begins. Credits: 0, Clicks: 3 ===
+[GameContext] [MCTS] Scoring line detected — executing: Advance blood_in_the_water
+[GameContext] Replicating Perfection action rejected: Cannot afford advance (costs 1 credit)
+[GameContext] === Versatile Smuggler Turn 6 begins. Credits: 2, Clicks: 4 ===
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler: too many consecutive invalid actions — ending turn.
+[GameContext] Replicating Perfection draws Bathynomus.
+[GameContext] === Replicating Perfection Turn 6 begins. Credits: 0, Clicks: 3 ===
+[GameContext] [MCTS] Scoring line detected — executing: Advance blood_in_the_water
+[GameContext] Replicating Perfection action rejected: Cannot afford advance (costs 1 credit)
+[GameContext] === Versatile Smuggler Turn 7 begins. Credits: 2, Clicks: 4 ===
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler: too many consecutive invalid actions — ending turn.
+[GameContext] Replicating Perfection draws Regenesis.
+[GameContext] === Replicating Perfection Turn 7 begins. Credits: 0, Clicks: 3 ===
+[GameContext] [MCTS] Scoring line detected — executing: Advance blood_in_the_water
+[GameContext] Replicating Perfection action rejected: Cannot afford advance (costs 1 credit)
+[GameContext] Replicating Perfection discards Anoetic Void to hand limit.
+[GameContext] === Versatile Smuggler Turn 8 begins. Credits: 2, Clicks: 4 ===
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler: too many consecutive invalid actions — ending turn.
+[GameContext] Replicating Perfection draws Mitosis.
+[GameContext] === Replicating Perfection Turn 8 begins. Credits: 0, Clicks: 3 ===
+[GameContext] [MCTS] Scoring line detected — executing: Advance blood_in_the_water
+[GameContext] Replicating Perfection action rejected: Cannot afford advance (costs 1 credit)
+[GameContext] Replicating Perfection discards Mitosis to hand limit.
+[GameContext] === Versatile Smuggler Turn 9 begins. Credits: 2, Clicks: 4 ===
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler: too many consecutive invalid actions — ending turn.
+[GameContext] Replicating Perfection draws Moon Pool.
+[GameContext] === Replicating Perfection Turn 9 begins. Credits: 0, Clicks: 3 ===
+[GameContext] [MCTS] Scoring line detected — executing: Advance blood_in_the_water
+[GameContext] Replicating Perfection action rejected: Cannot afford advance (costs 1 credit)
+[GameContext] Replicating Perfection discards Moon Pool to hand limit.
+[GameContext] === Versatile Smuggler Turn 10 begins. Credits: 2, Clicks: 4 ===
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler: too many consecutive invalid actions — ending turn.
+[GameContext] Replicating Perfection draws Send a Message.
+[GameContext] === Replicating Perfection Turn 10 begins. Credits: 0, Clicks: 3 ===
+[GameContext] [MCTS] Scoring line detected — executing: Advance blood_in_the_water
+[GameContext] Replicating Perfection action rejected: Cannot afford advance (costs 1 credit)
+[GameContext] Replicating Perfection discards Bathynomus to hand limit.
+[GameContext] === Versatile Smuggler Turn 11 begins. Credits: 2, Clicks: 4 ===
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler: too many consecutive invalid actions — ending turn.
+[GameContext] Replicating Perfection draws Hedge Fund.
+[GameContext] === Replicating Perfection Turn 11 begins. Credits: 0, Clicks: 3 ===
+[GameContext] [MCTS] Scoring line detected — executing: Advance blood_in_the_water
+[GameContext] Replicating Perfection action rejected: Cannot afford advance (costs 1 credit)
+[GameContext] Replicating Perfection discards Hedge Fund to hand limit.
+[GameContext] === Versatile Smuggler Turn 12 begins. Credits: 2, Clicks: 4 ===
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler: too many consecutive invalid actions — ending turn.
+[GameContext] Replicating Perfection draws Longevity Serum.
+[GameContext] === Replicating Perfection Turn 12 begins. Credits: 0, Clicks: 3 ===
+[GameContext] [MCTS] Scoring line detected — executing: Advance blood_in_the_water
+[GameContext] Replicating Perfection action rejected: Cannot afford advance (costs 1 credit)
+[GameContext] Replicating Perfection discards Karunā to hand limit.
+[GameContext] === Versatile Smuggler Turn 13 begins. Credits: 2, Clicks: 4 ===
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler: too many consecutive invalid actions — ending turn.
+[GameContext] Replicating Perfection draws Blood in the Water.
+[GameContext] === Replicating Perfection Turn 13 begins. Credits: 0, Clicks: 3 ===
+[GameContext] [MCTS] Scoring line detected — executing: Advance blood_in_the_water
+[GameContext] Replicating Perfection action rejected: Cannot afford advance (costs 1 credit)
+[GameContext] Replicating Perfection discards Ivik to hand limit.
+[GameContext] === Versatile Smuggler Turn 14 begins. Credits: 2, Clicks: 4 ===
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler: too many consecutive invalid actions — ending turn.
+[GameContext] Replicating Perfection draws Hedge Fund.
+[GameContext] === Replicating Perfection Turn 14 begins. Credits: 0, Clicks: 3 ===
+[GameContext] [MCTS] Scoring line detected — executing: Advance blood_in_the_water
+[GameContext] Replicating Perfection action rejected: Cannot afford advance (costs 1 credit)
+[GameContext] Replicating Perfection discards Hedge Fund to hand limit.
+[GameContext] === Versatile Smuggler Turn 15 begins. Credits: 2, Clicks: 4 ===
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler: too many consecutive invalid actions — ending turn.
+[GameContext] Replicating Perfection draws Anemone.
+[GameContext] === Replicating Perfection Turn 15 begins. Credits: 0, Clicks: 3 ===
+[GameContext] [MCTS] Scoring line detected — executing: Advance blood_in_the_water
+[GameContext] Replicating Perfection action rejected: Cannot afford advance (costs 1 credit)
+[GameContext] Replicating Perfection discards Anemone to hand limit.
+[GameContext] === Versatile Smuggler Turn 16 begins. Credits: 2, Clicks: 4 ===
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler: too many consecutive invalid actions — ending turn.
+[GameContext] Replicating Perfection draws Moon Pool.
+[GameContext] === Replicating Perfection Turn 16 begins. Credits: 0, Clicks: 3 ===
+[GameContext] [MCTS] Scoring line detected — executing: Advance blood_in_the_water
+[GameContext] Replicating Perfection action rejected: Cannot afford advance (costs 1 credit)
+[GameContext] Replicating Perfection discards Moon Pool to hand limit.
+[GameContext] === Versatile Smuggler Turn 17 begins. Credits: 2, Clicks: 4 ===
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler: too many consecutive invalid actions — ending turn.
+[GameContext] Replicating Perfection draws Anemone.
+[GameContext] === Replicating Perfection Turn 17 begins. Credits: 0, Clicks: 3 ===
+[GameContext] [MCTS] Scoring line detected — executing: Advance blood_in_the_water
+[GameContext] Replicating Perfection action rejected: Cannot afford advance (costs 1 credit)
+[GameContext] Replicating Perfection discards Anemone to hand limit.
+[GameContext] === Versatile Smuggler Turn 18 begins. Credits: 2, Clicks: 4 ===
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler: too many consecutive invalid actions — ending turn.
+[GameContext] Replicating Perfection draws Bladderwort.
+[GameContext] === Replicating Perfection Turn 18 begins. Credits: 0, Clicks: 3 ===
+[GameContext] [MCTS] Scoring line detected — executing: Advance blood_in_the_water
+[GameContext] Replicating Perfection action rejected: Cannot afford advance (costs 1 credit)
+[GameContext] Replicating Perfection discards Bladderwort to hand limit.
+[GameContext] === Versatile Smuggler Turn 19 begins. Credits: 2, Clicks: 4 ===
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler: too many consecutive invalid actions — ending turn.
+[GameContext] Replicating Perfection draws Bathynomus.
+[GameContext] === Replicating Perfection Turn 19 begins. Credits: 0, Clicks: 3 ===
+[GameContext] [MCTS] Scoring line detected — executing: Advance blood_in_the_water
+[GameContext] Replicating Perfection action rejected: Cannot afford advance (costs 1 credit)
+[GameContext] Replicating Perfection discards Bathynomus to hand limit.
+[GameContext] === Versatile Smuggler Turn 20 begins. Credits: 2, Clicks: 4 ===
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler: too many consecutive invalid actions — ending turn.
+[GameContext] Replicating Perfection draws Mitosis.
+[GameContext] === Replicating Perfection Turn 20 begins. Credits: 0, Clicks: 3 ===
+[GameContext] [MCTS] Scoring line detected — executing: Advance blood_in_the_water
+[GameContext] Replicating Perfection action rejected: Cannot afford advance (costs 1 credit)
+[GameContext] Replicating Perfection discards Mitosis to hand limit.
+[GameContext] === Versatile Smuggler Turn 21 begins. Credits: 2, Clicks: 4 ===
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler: too many consecutive invalid actions — ending turn.
+[GameContext] Replicating Perfection draws Spin Doctor.
+[GameContext] === Replicating Perfection Turn 21 begins. Credits: 0, Clicks: 3 ===
+[GameContext] [MCTS] Scoring line detected — executing: Advance blood_in_the_water
+[GameContext] Replicating Perfection action rejected: Cannot afford advance (costs 1 credit)
+[GameContext] Replicating Perfection discards Spin Doctor to hand limit.
+[GameContext] === Versatile Smuggler Turn 22 begins. Credits: 2, Clicks: 4 ===
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler: too many consecutive invalid actions — ending turn.
+[GameContext] Replicating Perfection draws Mavirus.
+[GameContext] === Replicating Perfection Turn 22 begins. Credits: 0, Clicks: 3 ===
+[GameContext] [MCTS] Scoring line detected — executing: Advance blood_in_the_water
+[GameContext] Replicating Perfection action rejected: Cannot afford advance (costs 1 credit)
+[GameContext] Replicating Perfection discards Mavirus to hand limit.
+[GameContext] === Versatile Smuggler Turn 23 begins. Credits: 2, Clicks: 4 ===
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler: too many consecutive invalid actions — ending turn.
+[GameContext] Replicating Perfection draws Bathynomus.
+[GameContext] === Replicating Perfection Turn 23 begins. Credits: 0, Clicks: 3 ===
+[GameContext] [MCTS] Scoring line detected — executing: Advance blood_in_the_water
+[GameContext] Replicating Perfection action rejected: Cannot afford advance (costs 1 credit)
+[GameContext] Replicating Perfection discards Bathynomus to hand limit.
+[GameContext] === Versatile Smuggler Turn 24 begins. Credits: 2, Clicks: 4 ===
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler: too many consecutive invalid actions — ending turn.
+[GameContext] Replicating Perfection draws Mavirus.
+[GameContext] === Replicating Perfection Turn 24 begins. Credits: 0, Clicks: 3 ===
+[GameContext] [MCTS] Scoring line detected — executing: Advance blood_in_the_water
+[GameContext] Replicating Perfection action rejected: Cannot afford advance (costs 1 credit)
+[GameContext] Replicating Perfection discards Mavirus to hand limit.
+[GameContext] === Versatile Smuggler Turn 25 begins. Credits: 2, Clicks: 4 ===
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler: too many consecutive invalid actions — ending turn.
+[GameContext] Replicating Perfection draws Bladderwort.
+[GameContext] === Replicating Perfection Turn 25 begins. Credits: 0, Clicks: 3 ===
+[GameContext] [MCTS] Scoring line detected — executing: Advance blood_in_the_water
+[GameContext] Replicating Perfection action rejected: Cannot afford advance (costs 1 credit)
+[GameContext] Replicating Perfection discards Bladderwort to hand limit.
+[GameContext] === Versatile Smuggler Turn 26 begins. Credits: 2, Clicks: 4 ===
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler: too many consecutive invalid actions — ending turn.
+[GameContext] Replicating Perfection draws Regenesis.
+[GameContext] === Replicating Perfection Turn 26 begins. Credits: 0, Clicks: 3 ===
+[GameContext] [MCTS] Scoring line detected — executing: Advance blood_in_the_water
+[GameContext] Replicating Perfection action rejected: Cannot afford advance (costs 1 credit)
+[GameContext] Replicating Perfection discards Regenesis to hand limit.
+[GameContext] === Versatile Smuggler Turn 27 begins. Credits: 2, Clicks: 4 ===
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler: too many consecutive invalid actions — ending turn.
+[GameContext] Replicating Perfection draws Hedge Fund.
+[GameContext] === Replicating Perfection Turn 27 begins. Credits: 0, Clicks: 3 ===
+[GameContext] [MCTS] Scoring line detected — executing: Advance blood_in_the_water
+[GameContext] Replicating Perfection action rejected: Cannot afford advance (costs 1 credit)
+[GameContext] Replicating Perfection discards Hedge Fund to hand limit.
+[GameContext] === Versatile Smuggler Turn 28 begins. Credits: 2, Clicks: 4 ===
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler: too many consecutive invalid actions — ending turn.
+[GameContext] Replicating Perfection draws Spin Doctor.
+[GameContext] === Replicating Perfection Turn 28 begins. Credits: 0, Clicks: 3 ===
+[GameContext] [MCTS] Scoring line detected — executing: Advance blood_in_the_water
+[GameContext] Replicating Perfection action rejected: Cannot afford advance (costs 1 credit)
+[GameContext] Replicating Perfection discards Spin Doctor to hand limit.
+[GameContext] === Versatile Smuggler Turn 29 begins. Credits: 2, Clicks: 4 ===
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler: too many consecutive invalid actions — ending turn.
+[GameContext] Replicating Perfection draws Ivik.
+[GameContext] === Replicating Perfection Turn 29 begins. Credits: 0, Clicks: 3 ===
+[GameContext] [MCTS] Scoring line detected — executing: Advance blood_in_the_water
+[GameContext] Replicating Perfection action rejected: Cannot afford advance (costs 1 credit)
+[GameContext] Replicating Perfection discards Ivik to hand limit.
+[GameContext] === Versatile Smuggler Turn 30 begins. Credits: 2, Clicks: 4 ===
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler: too many consecutive invalid actions — ending turn.
+[GameContext] Replicating Perfection draws Send a Message.
+[GameContext] === Replicating Perfection Turn 30 begins. Credits: 0, Clicks: 3 ===
+[GameContext] [MCTS] Scoring line detected — executing: Advance blood_in_the_water
+[GameContext] Replicating Perfection action rejected: Cannot afford advance (costs 1 credit)
+[GameContext] Replicating Perfection discards Regenesis to hand limit.
+[GameContext] === Versatile Smuggler Turn 31 begins. Credits: 2, Clicks: 4 ===
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler: too many consecutive invalid actions — ending turn.
+[GameContext] Replicating Perfection draws Spin Doctor.
+[GameContext] === Replicating Perfection Turn 31 begins. Credits: 0, Clicks: 3 ===
+[GameContext] [MCTS] Scoring line detected — executing: Advance blood_in_the_water
+[GameContext] Replicating Perfection action rejected: Cannot afford advance (costs 1 credit)
+[GameContext] Replicating Perfection discards Spin Doctor to hand limit.
+[GameContext] === Versatile Smuggler Turn 32 begins. Credits: 2, Clicks: 4 ===
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler: too many consecutive invalid actions — ending turn.
+[GameContext] Replicating Perfection draws Bladderwort.
+[GameContext] === Replicating Perfection Turn 32 begins. Credits: 0, Clicks: 3 ===
+[GameContext] [MCTS] Scoring line detected — executing: Advance blood_in_the_water
+[GameContext] Replicating Perfection action rejected: Cannot afford advance (costs 1 credit)
+[GameContext] Replicating Perfection discards Bladderwort to hand limit.
+[GameContext] === Versatile Smuggler Turn 33 begins. Credits: 2, Clicks: 4 ===
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler: too many consecutive invalid actions — ending turn.
+[GameContext] Replicating Perfection deck is empty — Replicating Perfection loses!
+[GameContext] Game over — Versatile Smuggler wins. Corp could not draw (empty R&D)
+[GameContext] === Replicating Perfection Turn 33 begins. Credits: 0, Clicks: 3 ===
+  [  7/ 10]  RUNNER    Corp could not draw (empty R&D)   33 turns
+[GameContext] Replicating Perfection draws Moon Pool.
+[GameContext] === Replicating Perfection Turn 1 begins. Credits: 5, Clicks: 3 ===
+[GameContext] [MCTS] slow search: 507 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection gains 9 credits.
+[GameContext] Replicating Perfection plays Hedge Fund.
+[GameContext] [MCTS] slow search: 506 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection installs Envelopment in R&D.
+[GameContext] [MCTS] slow search: 377 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection gains 1 credit. (10 total)
+[heartbeat] game 8/10 — turn 1, time 154s
+[GameContext] === Versatile Smuggler Turn 2 begins. Credits: 5, Clicks: 4 ===
+[GameContext] Run modifier set: overclock_credits = 5
+[GameContext] --- Run on HQ begins ---
+[GameContext] [Initiation] Run declared on HQ.
+[GameContext] [Initiation] No ice protecting server — proceeding to root.
+[GameContext] [Movement] Runner approaches the server root.
+[GameContext] [Success] Run successful on HQ!
+[GameContext] [Debug/gain_on_success] run_modifiers at success: { "overclock_credits": 5, "run_event_active": 1 }
+[GameContext] [Breach] Runner breaches HQ.
+[GameContext] [Access] Runner accesses: Send a Message
+[GameContext] [Access] Runner steals Send a Message! (3 agenda points)
+[GameContext] Rezzed Envelopment for free.
+[GameContext] [End] Run ended successfully.
+[GameContext] Overclock: 5 unspent credit(s) returned to the bank.
+[GameContext] Versatile Smuggler plays Overclock.
+[GameContext] Versatile Smuggler reveals and takes Buzzsaw from their deck.
+[GameContext] Versatile Smuggler's deck is shuffled.
+[GameContext] Versatile Smuggler plays Mutual Favor.
+[GameContext] Run modifier set: bonus_access = 1
+[GameContext] --- Run on HQ begins ---
+[GameContext] [Initiation] Run declared on HQ.
+[GameContext] [Initiation] No ice protecting server — proceeding to root.
+[GameContext] [Movement] Runner approaches the server root.
+[GameContext] [Success] Run successful on HQ!
+[GameContext] [Debug/gain_on_success] run_modifiers at success: { "bonus_access": 1, "run_event_active": 1 }
+[GameContext] [Breach] Runner breaches HQ.
+[GameContext] [Breach] Bonus access: 1 extra card(s).
+[GameContext] [Access] Runner accesses: Spin Doctor
+[GameContext] [Access] Runner may trash Spin Doctor for 2 credits (Runner has 4 total).
+[GameContext] [Access] Runner trashes Spin Doctor.
+[GameContext] [Access] Runner accesses: Bladderwort
+[GameContext] [Access] Runner may trash Bladderwort for 3 credits (Runner has 2 total).
+[GameContext] [Access] Runner cannot afford to trash.
+[GameContext] [End] Run ended successfully.
+[GameContext] Versatile Smuggler plays Jailbreak.
+[GameContext] --- Run on HQ begins ---
+[GameContext] [Initiation] Run declared on HQ.
+[GameContext] [Initiation] No ice protecting server — proceeding to root.
+[GameContext] [Movement] Runner approaches the server root.
+[GameContext] [Success] Run successful on HQ!
+[GameContext] [Debug/gain_on_success] run_modifiers at success: {  }
+[GameContext] [Breach] Runner breaches HQ.
+[GameContext] [Access] Runner accesses: Moon Pool
+[GameContext] [Access] Runner may trash Moon Pool for 3 credits (Runner has 2 total).
+[GameContext] [Access] Runner cannot afford to trash.
+[GameContext] [End] Run ended successfully.
+[GameContext] Replicating Perfection draws Mitosis.
+[GameContext] === Replicating Perfection Turn 2 begins. Credits: 10, Clicks: 3 ===
+[GameContext] Replicating Perfection draws Longevity Serum.
+[GameContext] Replicating Perfection gains 1 credit. (11 total)
+[GameContext] Replicating Perfection draws Bathynomus.
+[GameContext] === Versatile Smuggler Turn 3 begins. Credits: 2, Clicks: 4 ===
+[GameContext] --- Run on HQ begins ---
+[GameContext] [Initiation] Run declared on HQ.
+[GameContext] [Initiation] No ice protecting server — proceeding to root.
+[GameContext] [Movement] Runner approaches the server root.
+[GameContext] [Success] Run successful on HQ!
+[GameContext] [Debug/gain_on_success] run_modifiers at success: {  }
+[GameContext] [Breach] Runner breaches HQ.
+[GameContext] [Access] Runner accesses: Bladderwort
+[GameContext] [Access] Runner may trash Bladderwort for 3 credits (Runner has 2 total).
+[GameContext] [Access] Runner cannot afford to trash.
+[GameContext] [End] Run ended successfully.
+[GameContext] Versatile Smuggler gains 1 credit. (3 total)
+[GameContext] Versatile Smuggler gains 1 credit. (4 total)
+Player install: card is: Buzzsaw and charged cost is: 4
+[GameContext] Versatile Smuggler installs Buzzsaw. [MU: 1/4 used]
+[GameContext] Replicating Perfection draws Hedge Fund.
+[GameContext] === Replicating Perfection Turn 3 begins. Credits: 11, Clicks: 3 ===
+[GameContext] [MCTS] slow search: 330 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection installs Bathynomus in HQ.
+[GameContext] [MCTS] slow search: 572 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection gains 9 credits.
+[GameContext] Replicating Perfection plays Hedge Fund.
+[GameContext] [MCTS] slow search: 539 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection draws Bladderwort.
+[GameContext] === Versatile Smuggler Turn 4 begins. Credits: 0, Clicks: 4 ===
+[GameContext] Versatile Smuggler draws VRcation.
+[GameContext] Versatile Smuggler draws Smartware Distributor.
+[GameContext] Versatile Smuggler draws Verbal Plasticity.
+[GameContext] Versatile Smuggler draws Marjanah.
+[GameContext] Versatile Smuggler discards Smartware Distributor to hand limit. (5 cards remaining)
+[heartbeat] game 8/10 — turn 4, time 159s
+[GameContext] Replicating Perfection draws Anoetic Void.
+[GameContext] === Replicating Perfection Turn 4 begins. Credits: 15, Clicks: 3 ===
+[GameContext] [MCTS] slow search: 829 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection draws Send a Message.
+[GameContext] [MCTS] slow search: 983 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection installs Bladderwort in Server 0.
+[GameContext] [MCTS] slow search: 1155 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection installs Anoetic Void in HQ.
+[GameContext] === Versatile Smuggler Turn 5 begins. Credits: 0, Clicks: 4 ===
+Player install: card is: Marjanah and charged cost is: 0
+[GameContext] Versatile Smuggler installs Marjanah. [MU: 2/4 used]
+[GameContext] Versatile Smuggler draws T400 Memory Diamond.
+[GameContext] Versatile Smuggler draws Pennyshaver.
+[GameContext] Versatile Smuggler draws Carmen.
+[GameContext] Versatile Smuggler discards Verbal Plasticity to hand limit. (5 cards remaining)
+[GameContext] Versatile Smuggler discards VRcation to hand limit. (5 cards remaining)
+[GameContext] Replicating Perfection draws Ivik.
+[GameContext] === Replicating Perfection Turn 5 begins. Credits: 15, Clicks: 3 ===
+[GameContext] Replicating Perfection rezzes Anoetic Void for 0 cr.
+[GameContext] Replicating Perfection rezzes Bladderwort for 1 cr.
+[GameContext] Replicating Perfection installs Ivik in Server 1.
+[GameContext] Replicating Perfection installs Longevity Serum in Server 1.
+[heartbeat] game 8/10 — turn 5, time 164s
+[GameContext] Replicating Perfection advances Longevity Serum (1 counters).
+[GameContext] === Versatile Smuggler Turn 6 begins. Credits: 0, Clicks: 4 ===
+[GameContext] Versatile Smuggler draws Tread Lightly.
+[GameContext] Versatile Smuggler gains 1 credit. (1 total)
+[GameContext] Run modifier set: extra_rez_cost = 3
+[GameContext] --- Run on HQ begins ---
+[GameContext] [Initiation] Run declared on HQ.
+[GameContext] [Approach] Runner approaches unrezzed ice (position 0).
+[CorpRunAI] AI: Bathynomus — rez_cost=6  tax/enc=5.0  enc=3.0  LTV=15.0
+[GameContext] [Rez] Corp rezzes Bathynomus for 6 credits.
+[GameContext] [Encounter] Runner encounters Bathynomus.
+[GameContext] Runner takes 3 net damage.
+[GameContext]   Trashed from grip: carmen
+[GameContext]   Trashed from grip: pennyshaver
+[GameContext]   Trashed from grip: buzzsaw
+[GameContext] 3 card(s) trashed from Versatile Smuggler's grip.
+[GameContext] Placed 1 power counter(s) on Marjanah.
+[GameContext] [Movement] Runner approaches the server root.
+[GameContext] [Success] Run successful on HQ!
+[GameContext] [Debug/gain_on_success] run_modifiers at success: { "extra_rez_cost": 3, "run_event_active": 1 }
+[GameContext] [Breach] Runner breaches HQ.
+[GameContext] Anoetic Void: Corp declines.
+[GameContext] [Access] Runner accesses: Anoetic Void
+[GameContext] [Access] Runner may trash Anoetic Void for 1 credits (Runner has 0 total).
+[GameContext] [Access] Runner cannot afford to trash.
+[GameContext] [Access] Runner accesses: Bladderwort
+[GameContext] [Access] Runner may trash Bladderwort for 3 credits (Runner has 0 total).
+[GameContext] [Access] Runner cannot afford to trash.
+[GameContext] [End] Run ended successfully.
+[GameContext] Versatile Smuggler plays Tread Lightly.
+[GameContext] Versatile Smuggler draws Docklands Pass.
+[GameContext] Replicating Perfection draws Hedge Fund.
+[GameContext] === Replicating Perfection Turn 6 begins. Credits: 7, Clicks: 3 ===
+[GameContext] [MCTS] Scoring line detected — executing: Advance longevity_serum
+[GameContext] Replicating Perfection advances Longevity Serum (2 counters).
+[GameContext] [MCTS] Scoring line detected — executing: Advance longevity_serum
+[GameContext] Replicating Perfection advances Longevity Serum (3 counters).
+[GameContext] Replicating Perfection scores Longevity Serum! (2 agenda points)
+[GameContext] Replicating Perfection gains 9 credits.
+[GameContext] Replicating Perfection plays Hedge Fund.
+[GameContext] === Versatile Smuggler Turn 7 begins. Credits: 0, Clicks: 4 ===
+[GameContext] Versatile Smuggler draws Leech.
+[GameContext] Versatile Smuggler draws VRcation.
+[GameContext] Versatile Smuggler gains 1 credit. (1 total)
+[GameContext] Versatile Smuggler draws 4 card(s).
+[GameContext] Versatile Smuggler will lose 1 click(s) next turn.
+[GameContext] Versatile Smuggler plays VRcation.
+[GameContext] Versatile Smuggler discards Smartware Distributor to hand limit. (5 cards remaining)
+[GameContext] Versatile Smuggler discards Red Team to hand limit. (5 cards remaining)
+[GameContext] Versatile Smuggler discards Sure Gamble to hand limit. (5 cards remaining)
+[GameContext] Replicating Perfection draws Regenesis.
+[GameContext] === Replicating Perfection Turn 7 begins. Credits: 9, Clicks: 3 ===
+[GameContext] Replicating Perfection installs Regenesis in Server 1.
+[GameContext] Replicating Perfection advances Regenesis (1 counters).
+[GameContext] Replicating Perfection advances Regenesis (2 counters).
+[GameContext] Versatile Smuggler loses 1 click(s) this turn (deferred penalty).
+[GameContext] === Versatile Smuggler Turn 8 begins. Credits: 0, Clicks: 3 ===
+[GameContext] Versatile Smuggler gains 1 credit. (1 total)
+[GameContext] Versatile Smuggler gains 1 credit. (2 total)
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler: too many consecutive invalid actions — ending turn.
+[GameContext] Replicating Perfection draws Spin Doctor.
+[GameContext] === Replicating Perfection Turn 8 begins. Credits: 7, Clicks: 3 ===
+[GameContext] [MCTS] Scoring line detected — executing: Advance regenesis
+[GameContext] Replicating Perfection advances Regenesis (3 counters).
+[GameContext] Replicating Perfection scores Regenesis! (1 agenda points)
+[GameContext] [Regenesis] No facedown agendas in Archives.
+[GameContext] Replicating Perfection installs Send a Message in Server 1.
+[heartbeat] game 8/10 — turn 8, time 170s
+[GameContext] Replicating Perfection advances Send a Message (1 counters).
+[GameContext] === Versatile Smuggler Turn 9 begins. Credits: 2, Clicks: 4 ===
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler: too many consecutive invalid actions — ending turn.
+[GameContext] Replicating Perfection draws Mavirus.
+[GameContext] === Replicating Perfection Turn 9 begins. Credits: 5, Clicks: 3 ===
+[GameContext] Replicating Perfection advances Send a Message (2 counters).
+[GameContext] Replicating Perfection advances Send a Message (3 counters).
+[GameContext] Replicating Perfection advances Send a Message (4 counters).
+[GameContext] === Versatile Smuggler Turn 10 begins. Credits: 2, Clicks: 4 ===
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler: too many consecutive invalid actions — ending turn.
+[GameContext] Replicating Perfection draws Karunā.
+[GameContext] === Replicating Perfection Turn 10 begins. Credits: 2, Clicks: 3 ===
+[GameContext] [MCTS] Scoring line detected — executing: Advance send_a_message
+[GameContext] Replicating Perfection advances Send a Message (5 counters).
+[GameContext] Replicating Perfection scores Send a Message! (3 agenda points)
+[GameContext] Rezzed Ivik for free.
+[GameContext] [MCTS] slow search: 639 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection installs Mavirus in HQ.
+[GameContext] [MCTS] slow search: 396 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection pays 1 credit(s) to install ice.
+[GameContext] Replicating Perfection installs Karunā in R&D.
+[heartbeat] game 8/10 — turn 10, time 175s
+[GameContext] === Versatile Smuggler Turn 11 begins. Credits: 2, Clicks: 4 ===
+[GameContext] Versatile Smuggler gains 1 credit. (3 total)
+[GameContext] Versatile Smuggler gains 1 credit. (4 total)
+[GameContext] --- Run on R&D begins ---
+[GameContext] [Initiation] Run declared on R&D.
+[GameContext] [Approach] Runner approaches unrezzed ice (position 0).
+[GameContext] [Approach] Corp declines to rez. Runner passes unrezzed ice.
+[GameContext] Placed 1 power counter(s) on Marjanah.
+[GameContext] [Approach] Runner approaches Envelopment (position 1).
+[GameContext] [Encounter] Runner encounters Envelopment.
+[GameContext] [Encounter] Marjanah boosted ×2 +2 str (now 5). Cost: 2 cr.
+[GameContext] [Encounter] Marjanah breaks 'Trash this ice.' for 2 cr.
+[GameContext] [Encounter] Subroutine 0 broken.
+[GameContext] Placed 1 power counter(s) on Marjanah.
+[GameContext] [Movement] Runner approaches the server root.
+[GameContext] [Success] Run successful on R&D!
+[GameContext] [Debug/gain_on_success] run_modifiers at success: { "overclock_credits": 0, "concerto_credits": 0, "bad_pub_credits": 0 }
+[GameContext] [Breach] Runner breaches R&D.
+[GameContext] [Access] Runner accesses: Envelopment
+[GameContext] [End] Run ended successfully.
+[GameContext] Versatile Smuggler gains 1 credit. (1 total)
+[GameContext] Replicating Perfection draws Envelopment.
+[GameContext] === Replicating Perfection Turn 11 begins. Credits: 0, Clicks: 3 ===
+[GameContext] [MCTS] slow search: 760 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection gains 1 credit. (1 total)
+[GameContext] [MCTS] slow search: 768 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection pays 1 credit(s) to install ice.
+[GameContext] Replicating Perfection installs Envelopment in HQ.
+[GameContext] [MCTS] slow search: 610 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection gains 1 credit. (1 total)
+[GameContext] === Versatile Smuggler Turn 12 begins. Credits: 1, Clicks: 4 ===
+[GameContext] Versatile Smuggler gains 1 credit. (2 total)
+[GameContext] Versatile Smuggler gains 1 credit. (3 total)
+[GameContext] Versatile Smuggler gains 1 credit. (4 total)
+[GameContext] --- Run on R&D begins ---
+[GameContext] [Initiation] Run declared on R&D.
+[GameContext] [Approach] Runner approaches unrezzed ice (position 0).
+[GameContext] [Approach] Corp declines to rez. Runner passes unrezzed ice.
+[GameContext] Placed 1 power counter(s) on Marjanah.
+[GameContext] [Approach] Runner approaches Envelopment (position 1).
+[GameContext] [Encounter] Runner encounters Envelopment.
+[GameContext] [Encounter] Marjanah breaks 'Trash this ice.' for 2 cr.
+[GameContext] [Encounter] Subroutine 0 broken.
+[GameContext] Placed 1 power counter(s) on Marjanah.
+[GameContext] [Movement] Runner approaches the server root.
+[GameContext] [Success] Run successful on R&D!
+[GameContext] [Debug/gain_on_success] run_modifiers at success: { "overclock_credits": 0, "concerto_credits": 0, "bad_pub_credits": 0 }
+[GameContext] [Breach] Runner breaches R&D.
+[GameContext] [Access] Runner accesses: Regenesis
+[GameContext] [Access] Runner steals Regenesis! (1 agenda points)
+[GameContext] [End] Run ended successfully.
+[GameContext] Replicating Perfection draws Anemone.
+[GameContext] === Replicating Perfection Turn 12 begins. Credits: 1, Clicks: 3 ===
+[GameContext] [MCTS] slow search: 856 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection installs Anemone in Server 2.
+[heartbeat] game 8/10 — turn 12, time 180s
+[GameContext] [MCTS] slow search: 711 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection gains 1 credit. (2 total)
+[GameContext] [MCTS] slow search: 702 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection gains 1 credit. (3 total)
+[GameContext] === Versatile Smuggler Turn 13 begins. Credits: 2, Clicks: 4 ===
+[GameContext] Versatile Smuggler gains 1 credit. (3 total)
+[GameContext] Versatile Smuggler gains 1 credit. (4 total)
+[GameContext] --- Run on R&D begins ---
+[GameContext] [Initiation] Run declared on R&D.
+[GameContext] [Approach] Runner approaches unrezzed ice (position 0).
+[GameContext] [Approach] Corp declines to rez. Runner passes unrezzed ice.
+[GameContext] Placed 1 power counter(s) on Marjanah.
+[GameContext] [Approach] Runner approaches Envelopment (position 1).
+[GameContext] [Encounter] Runner encounters Envelopment.
+[GameContext] [Encounter] Marjanah breaks 'Trash this ice.' for 2 cr.
+[GameContext] [Encounter] Subroutine 0 broken.
+[GameContext] Placed 1 power counter(s) on Marjanah.
+[GameContext] [Movement] Runner approaches the server root.
+[GameContext] [Success] Run successful on R&D!
+[GameContext] [Debug/gain_on_success] run_modifiers at success: { "overclock_credits": 0, "concerto_credits": 0, "bad_pub_credits": 0 }
+[GameContext] [Breach] Runner breaches R&D.
+[GameContext] [Access] Runner accesses: Ivik
+[GameContext] [End] Run ended successfully.
+[GameContext] Versatile Smuggler gains 1 credit. (3 total)
+[GameContext] Replicating Perfection draws Ivik.
+[GameContext] === Replicating Perfection Turn 13 begins. Credits: 3, Clicks: 3 ===
+[GameContext] Replicating Perfection rezzes Mavirus for 3 cr.
+[GameContext] [MCTS] slow search: 956 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection gains 1 credit. (1 total)
+[GameContext] [MCTS] slow search: 965 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection installs Moon Pool in Server 1.
+[heartbeat] game 8/10 — turn 13, time 185s
+[GameContext] [MCTS] slow search: 749 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection gains 1 credit. (2 total)
+[GameContext] === Versatile Smuggler Turn 14 begins. Credits: 3, Clicks: 4 ===
+[GameContext] Versatile Smuggler gains 1 credit. (4 total)
+[GameContext] --- Run on R&D begins ---
+[GameContext] [Initiation] Run declared on R&D.
+[GameContext] [Approach] Runner approaches unrezzed ice (position 0).
+[GameContext] [Approach] Corp declines to rez. Runner passes unrezzed ice.
+[GameContext] Placed 1 power counter(s) on Marjanah.
+[GameContext] [Approach] Runner approaches Envelopment (position 1).
+[GameContext] [Encounter] Runner encounters Envelopment.
+[GameContext] [Encounter] Marjanah breaks 'Trash this ice.' for 2 cr.
+[GameContext] [Encounter] Subroutine 0 broken.
+[GameContext] Placed 1 power counter(s) on Marjanah.
+[GameContext] [Movement] Runner approaches the server root.
+[GameContext] [Success] Run successful on R&D!
+[GameContext] [Debug/gain_on_success] run_modifiers at success: { "overclock_credits": 0, "concerto_credits": 0, "bad_pub_credits": 0 }
+[GameContext] [Breach] Runner breaches R&D.
+[GameContext] [Access] Runner accesses: Bathynomus
+[GameContext] [End] Run ended successfully.
+[GameContext] Versatile Smuggler gains 1 credit. (3 total)
+[GameContext] Versatile Smuggler gains 1 credit. (4 total)
+[GameContext] Replicating Perfection draws Bathynomus.
+[GameContext] === Replicating Perfection Turn 14 begins. Credits: 2, Clicks: 3 ===
+[GameContext] [MCTS] slow search: 1067 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection gains 1 credit. (3 total)
+[GameContext] [MCTS] slow search: 1048 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection gains 1 credit. (4 total)
+[GameContext] [MCTS] slow search: 1040 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection installs Ivik in Server 3.
+[heartbeat] game 8/10 — turn 14, time 190s
+[GameContext] === Versatile Smuggler Turn 15 begins. Credits: 4, Clicks: 4 ===
+[GameContext] Versatile Smuggler gains 1 credit. (5 total)
+[GameContext] --- Run on R&D begins ---
+[GameContext] [Initiation] Run declared on R&D.
+[GameContext] [Approach] Runner approaches unrezzed ice (position 0).
+[CorpRunAI] AI: rezzing Karunā would breach credit floor — holding.
+[GameContext] [Approach] Corp declines to rez. Runner passes unrezzed ice.
+[GameContext] Placed 1 power counter(s) on Marjanah.
+[GameContext] [Approach] Runner approaches Envelopment (position 1).
+[CorpRunAI] AI: rezzing Karunā would breach credit floor — holding.
+[GameContext] [Encounter] Runner encounters Envelopment.
+[GameContext] [Encounter] Marjanah breaks 'Trash this ice.' for 2 cr.
+[GameContext] [Encounter] Subroutine 0 broken.
+[GameContext] Placed 1 power counter(s) on Marjanah.
+[GameContext] [Movement] Runner approaches the server root.
+[GameContext] [Success] Run successful on R&D!
+[GameContext] [Debug/gain_on_success] run_modifiers at success: { "overclock_credits": 0, "concerto_credits": 0, "bad_pub_credits": 0 }
+[GameContext] [Breach] Runner breaches R&D.
+[GameContext] [Access] Runner accesses: Mavirus
+[GameContext] [Mavirus] Rezzed — deals 1 net damage.
+[GameContext] Runner takes 1 net damage.
+[GameContext]   Trashed from grip: pennyshaver
+[GameContext] 1 card(s) trashed from Versatile Smuggler's grip.
+[GameContext] [Access] Runner may trash Mavirus for 0 credits (Runner has 3 total).
+[GameContext] [End] Run ended successfully.
+[GameContext] Versatile Smuggler draws Tread Lightly.
+[GameContext] Versatile Smuggler gains 1 credit. (4 total)
+[GameContext] Replicating Perfection draws Mavirus.
+[GameContext] === Replicating Perfection Turn 15 begins. Credits: 4, Clicks: 3 ===
+[GameContext] Replicating Perfection rezzes Moon Pool for 3 cr.
+[GameContext] [MCTS] slow search: 1056 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection gains 1 credit. (2 total)
+[GameContext] [MCTS] slow search: 1042 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection installs Mavirus in Server 4.
+[GameContext] [MCTS] slow search: 1022 ms (100 iterations, depth 3)
+[GameContext] [Moon Pool] Moon Pool removes itself from the game.
+[GameContext] === Versatile Smuggler Turn 16 begins. Credits: 4, Clicks: 4 ===
+[GameContext] Run modifier set: extra_rez_cost = 3
+[GameContext] --- Run on HQ begins ---
+[GameContext] [Initiation] Run declared on HQ.
+[GameContext] [Approach] Runner approaches unrezzed ice (position 0).
+[GameContext] [Approach] Corp declines to rez. Runner passes unrezzed ice.
+[GameContext] Placed 1 power counter(s) on Marjanah.
+[GameContext] [Approach] Runner approaches Bathynomus (position 1).
+[GameContext] [Encounter] Runner encounters Bathynomus.
+[GameContext] Runner takes 3 net damage.
+[GameContext]   Trashed from grip: t400_memory_diamond
+[GameContext]   Trashed from grip: docklands_pass
+[GameContext]   Trashed from grip: leech
+[GameContext] 3 card(s) trashed from Versatile Smuggler's grip.
+[GameContext] Placed 1 power counter(s) on Marjanah.
+[GameContext] [Movement] Runner approaches the server root.
+[GameContext] [Success] Run successful on HQ!
+[GameContext] [Debug/gain_on_success] run_modifiers at success: { "extra_rez_cost": 3, "run_event_active": 1 }
+[GameContext] [Breach] Runner breaches HQ.
+[GameContext] Anoetic Void: Corp trashes Mitosis from HQ.
+[GameContext] Anoetic Void: Corp trashes Bladderwort from HQ.
+[GameContext] Anoetic Void: Breach ended before access.
+[GameContext] [Breach] Breach ended before access (Corp ability).
+[GameContext] [End] Run ended successfully.
+[GameContext] Versatile Smuggler plays Tread Lightly.
+[GameContext] Versatile Smuggler gains 1 credit. (4 total)
+[GameContext] --- Run on R&D begins ---
+[GameContext] [Initiation] Run declared on R&D.
+[GameContext] [Approach] Runner approaches unrezzed ice (position 0).
+[GameContext] [Approach] Corp declines to rez. Runner passes unrezzed ice.
+[GameContext] Placed 1 power counter(s) on Marjanah.
+[GameContext] [Approach] Runner approaches Envelopment (position 1).
+[GameContext] [Encounter] Runner encounters Envelopment.
+[GameContext] [Encounter] Marjanah breaks 'Trash this ice.' for 2 cr.
+[GameContext] [Encounter] Subroutine 0 broken.
+[GameContext] Placed 1 power counter(s) on Marjanah.
+[GameContext] [Movement] Runner approaches the server root.
+[GameContext] [Success] Run successful on R&D!
+[GameContext] [Debug/gain_on_success] run_modifiers at success: { "overclock_credits": 0, "concerto_credits": 0, "bad_pub_credits": 0 }
+[GameContext] [Breach] Runner breaches R&D.
+[GameContext] [Access] Runner accesses: Anemone
+[GameContext] [End] Run ended successfully.
+[GameContext] Versatile Smuggler draws Overclock.
+[heartbeat] game 8/10 — turn 16, time 195s
+[GameContext] Replicating Perfection draws Anemone.
+[GameContext] === Replicating Perfection Turn 16 begins. Credits: 0, Clicks: 3 ===
+[GameContext] [MCTS] slow search: 919 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection gains 1 credit. (1 total)
+[GameContext] [MCTS] slow search: 918 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection gains 1 credit. (2 total)
+[GameContext] [MCTS] slow search: 967 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection gains 1 credit. (3 total)
+[GameContext] === Versatile Smuggler Turn 17 begins. Credits: 2, Clicks: 4 ===
+[GameContext] Run modifier set: overclock_credits = 5
+[GameContext] --- Run on HQ begins ---
+[GameContext] [Initiation] Run declared on HQ.
+[GameContext] [Approach] Runner approaches unrezzed ice (position 0).
+[GameContext] [Approach] Corp declines to rez. Runner passes unrezzed ice.
+[GameContext] Placed 1 power counter(s) on Marjanah.
+[GameContext] [Approach] Runner approaches Bathynomus (position 1).
+[GameContext] [Encounter] Runner encounters Bathynomus.
+[GameContext] Runner takes 3 net damage.
+[GameContext]   Trashed from grip: pennyshaver
+[GameContext] Versatile Smuggler is flatlined! (no cards remaining in grip)
+[GameContext] 1 card(s) trashed from Versatile Smuggler's grip.
+[GameContext] Placed 1 power counter(s) on Marjanah.
+[GameContext] [Movement] Runner approaches the server root.
+[GameContext] [Success] Run successful on HQ!
+[GameContext] [Debug/gain_on_success] run_modifiers at success: { "overclock_credits": 5, "run_event_active": 1 }
+[GameContext] [Breach] Runner breaches HQ.
+[GameContext] Anoetic Void: Corp trashes Spin Doctor from HQ.
+[GameContext] Anoetic Void: Corp trashes Bathynomus from HQ.
+[GameContext] Anoetic Void: Breach ended before access.
+[GameContext] [Breach] Breach ended before access (Corp ability).
+[GameContext] [End] Run ended successfully.
+[GameContext] Overclock: 5 unspent credit(s) returned to the bank.
+[GameContext] Versatile Smuggler plays Overclock.
+[GameContext] Game over — Replicating Perfection wins. Replicating Perfection wins
+  [  8/ 10]  CORP      Replicating Perfection wins       17 turns
+[GameContext] Replicating Perfection draws Karunā.
+[GameContext] === Replicating Perfection Turn 1 begins. Credits: 5, Clicks: 3 ===
+[GameContext] [MCTS] slow search: 495 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection installs Karunā in HQ.
+[heartbeat] game 9/10 — turn 1, time 200s
+[GameContext] [MCTS] slow search: 463 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection gains 9 credits.
+[GameContext] Replicating Perfection plays Hedge Fund.
+[GameContext] [MCTS] slow search: 457 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection installs Envelopment in R&D.
+[GameContext] === Versatile Smuggler Turn 2 begins. Credits: 5, Clicks: 4 ===
+[GameContext] Run modifier set: overclock_credits = 5
+[GameContext] --- Run on HQ begins ---
+[GameContext] [Initiation] Run declared on HQ.
+[GameContext] [Approach] Runner approaches unrezzed ice (position 0).
+[CorpRunAI] AI: Karunā — rez_cost=4  tax/enc=9.0  enc=3.0  LTV=27.0
+[GameContext] [Rez] Corp rezzes Karunā for 4 credits.
+[GameContext] [Encounter] Runner encounters Karunā.
+[GameContext] Runner takes 2 net damage.
+[GameContext]   Trashed from grip: verbal_plasticity
+[GameContext]   Trashed from grip: conduit
+[GameContext] 2 card(s) trashed from Versatile Smuggler's grip.
+[GameContext] Run ended.
+[GameContext] [Encounter] Run ended by subroutine.
+[GameContext] [End] Run ended unsuccessfully.
+[GameContext] Overclock: 5 unspent credit(s) returned to the bank.
+[GameContext] Versatile Smuggler plays Overclock.
+[GameContext] Run modifier set: bonus_access = 1
+[GameContext] --- Run on HQ begins ---
+[GameContext] [Initiation] Run declared on HQ.
+[GameContext] [Approach] Runner approaches Karunā (position 0).
+[GameContext] [Encounter] Runner encounters Karunā.
+[GameContext] Runner takes 2 net damage.
+[GameContext]   Trashed from grip: sure_gamble
+[GameContext] Versatile Smuggler is flatlined! (no cards remaining in grip)
+[GameContext] 1 card(s) trashed from Versatile Smuggler's grip.
+[GameContext] Run ended.
+[GameContext] [Encounter] Run ended by subroutine.
+[GameContext] [End] Run ended unsuccessfully.
+[GameContext] Versatile Smuggler plays Jailbreak.
+[GameContext] Game over — Replicating Perfection wins. Replicating Perfection wins
+  [  9/ 10]  CORP      Replicating Perfection wins        2 turns
+[GameContext] Replicating Perfection draws Longevity Serum.
+[GameContext] === Replicating Perfection Turn 1 begins. Credits: 5, Clicks: 3 ===
+[GameContext] [MCTS] slow search: 684 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection installs Anemone in R&D.
+[GameContext] [MCTS] slow search: 692 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection installs Bathynomus in HQ.
+[GameContext] [MCTS] slow search: 672 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection draws Moon Pool.
+[heartbeat] game 10/10 — turn 1, time 205s
+[GameContext] === Versatile Smuggler Turn 2 begins. Credits: 5, Clicks: 4 ===
+[GameContext] --- Run on R&D begins ---
+[GameContext] [Initiation] Run declared on R&D.
+[GameContext] [Approach] Runner approaches unrezzed ice (position 0).
+[CorpRunAI] AI: Anemone — rez_cost=3  tax/enc=6.0  enc=3.0  LTV=18.0
+[GameContext] [Rez] Corp rezzes Anemone for 3 credits.
+[GameContext] [Encounter] Runner encounters Anemone.
+[GameContext] Runner takes 1 net damage.
+[GameContext]   Trashed from grip: carmen
+[GameContext] 1 card(s) trashed from Versatile Smuggler's grip.
+[GameContext] [Movement] Runner approaches the server root.
+[GameContext] [Success] Run successful on R&D!
+[GameContext] [Debug/gain_on_success] run_modifiers at success: {  }
+[GameContext] [Breach] Runner breaches R&D.
+[GameContext] [Access] Runner accesses: Mavirus
+[GameContext] [Access] Runner may trash Mavirus for 0 credits (Runner has 5 total).
+[GameContext] [End] Run ended successfully.
+[GameContext] Run modifier set: overclock_credits = 5
+[GameContext] --- Run on HQ begins ---
+[GameContext] [Initiation] Run declared on HQ.
+[GameContext] [Approach] Runner approaches unrezzed ice (position 0).
+[GameContext] [Approach] Corp declines to rez. Runner passes unrezzed ice.
+[GameContext] [Movement] Runner approaches the server root.
+[GameContext] [Success] Run successful on HQ!
+[GameContext] [Debug/gain_on_success] run_modifiers at success: { "overclock_credits": 5, "run_event_active": 1 }
+[GameContext] [Breach] Runner breaches HQ.
+[GameContext] [Access] Runner accesses: Moon Pool
+[GameContext] [Access] Runner may trash Moon Pool for 3 credits (Runner has 9 total).
+[GameContext] [Access] Runner trashes Moon Pool.
+[GameContext] [End] Run ended successfully.
+[GameContext] Overclock: 2 unspent credit(s) returned to the bank.
+[GameContext] Versatile Smuggler plays Overclock.
+[GameContext] --- Run on HQ begins ---
+[GameContext] [Initiation] Run declared on HQ.
+[GameContext] [Approach] Runner approaches unrezzed ice (position 0).
+[GameContext] [Approach] Corp declines to rez. Runner passes unrezzed ice.
+[GameContext] [Movement] Runner approaches the server root.
+[GameContext] [Success] Run successful on HQ!
+[GameContext] [Debug/gain_on_success] run_modifiers at success: {  }
+[GameContext] [Breach] Runner breaches HQ.
+[GameContext] [Access] Runner accesses: Longevity Serum
+[GameContext] [Access] Runner steals Longevity Serum! (2 agenda points)
+[GameContext] [End] Run ended successfully.
+[GameContext] Versatile Smuggler draws Conduit.
+[GameContext] Replicating Perfection draws Mavirus.
+[GameContext] === Replicating Perfection Turn 2 begins. Credits: 2, Clicks: 3 ===
+[GameContext] [MCTS] slow search: 565 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection gains 1 credit. (3 total)
+[GameContext] [MCTS] slow search: 558 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection gains 1 credit. (4 total)
+[GameContext] [MCTS] slow search: 564 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection installs Mavirus in R&D.
+[GameContext] === Versatile Smuggler Turn 3 begins. Credits: 4, Clicks: 4 ===
+[GameContext] --- Run on HQ begins ---
+[GameContext] [Initiation] Run declared on HQ.
+[GameContext] [Approach] Runner approaches unrezzed ice (position 0).
+[CorpRunAI] AI: rezzing Bathynomus would breach credit floor — holding.
+[GameContext] [Approach] Corp declines to rez. Runner passes unrezzed ice.
+[GameContext] [Movement] Runner approaches the server root.
+[GameContext] [Success] Run successful on HQ!
+[GameContext] [Debug/gain_on_success] run_modifiers at success: {  }
+[GameContext] [Breach] Runner breaches HQ.
+[GameContext] [Access] Runner accesses: Mavirus
+[GameContext] [Access] Runner may trash Mavirus for 0 credits (Runner has 4 total).
+[GameContext] [End] Run ended successfully.
+[GameContext] Versatile Smuggler draws Verbal Plasticity.
+[GameContext] Versatile Smuggler draws Smartware Distributor.
+[GameContext] Versatile Smuggler draws Marjanah.
+[GameContext] Versatile Smuggler discards Smartware Distributor to hand limit. (5 cards remaining)
+[GameContext] Versatile Smuggler discards Verbal Plasticity to hand limit. (5 cards remaining)
+[GameContext] Replicating Perfection draws Bathynomus.
+[GameContext] === Replicating Perfection Turn 3 begins. Credits: 4, Clicks: 3 ===
+[GameContext] Replicating Perfection rezzes Mavirus for 3 cr.
+[GameContext] [MCTS] slow search: 659 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection installs Bathynomus in Server 0.
+[GameContext] [MCTS] slow search: 674 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection installs Mavirus in HQ.
+[heartbeat] game 10/10 — turn 3, time 210s
+[GameContext] [MCTS] slow search: 640 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection installs Regenesis in Server 0.
+[GameContext] === Versatile Smuggler Turn 4 begins. Credits: 4, Clicks: 4 ===
+Player install: card is: Marjanah and charged cost is: 0
+[GameContext] Versatile Smuggler installs Marjanah. [MU: 1/4 used]
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler: too many consecutive invalid actions — ending turn.
+[GameContext] Replicating Perfection draws Anoetic Void.
+[GameContext] === Replicating Perfection Turn 4 begins. Credits: 1, Clicks: 3 ===
+[GameContext] [MCTS] slow search: 611 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection advances Regenesis (1 counters).
+[GameContext] [MCTS] slow search: 573 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection draws Envelopment.
+[GameContext] [MCTS] slow search: 675 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection installs Anoetic Void in R&D.
+[GameContext] === Versatile Smuggler Turn 5 begins. Credits: 4, Clicks: 4 ===
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler: too many consecutive invalid actions — ending turn.
+[GameContext] Replicating Perfection draws Moon Pool.
+[GameContext] === Replicating Perfection Turn 5 begins. Credits: 0, Clicks: 3 ===
+[GameContext] Replicating Perfection rezzes Anoetic Void for 0 cr.
+[GameContext] [MCTS] slow search: 812 ms (100 iterations, depth 3)
+[heartbeat] game 10/10 — turn 5, time 216s
+[GameContext] Replicating Perfection installs Longevity Serum in Server 1.
+[GameContext] [MCTS] slow search: 755 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection gains 1 credit. (1 total)
+[GameContext] [MCTS] slow search: 673 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection installs Envelopment in Server 1.
+[GameContext] === Versatile Smuggler Turn 6 begins. Credits: 4, Clicks: 4 ===
+[GameContext] --- Run on HQ begins ---
+[GameContext] [Initiation] Run declared on HQ.
+[GameContext] [Approach] Runner approaches unrezzed ice (position 0).
+[GameContext] [Approach] Corp declines to rez. Runner passes unrezzed ice.
+[GameContext] Placed 1 power counter(s) on Marjanah.
+[GameContext] [Movement] Runner approaches the server root.
+[GameContext] [Success] Run successful on HQ!
+[GameContext] [Debug/gain_on_success] run_modifiers at success: {  }
+[GameContext] [Breach] Runner breaches HQ.
+[GameContext] [Access] Runner accesses: Mavirus
+[GameContext] [Access] Runner may trash Mavirus for 0 credits (Runner has 4 total).
+[GameContext] [Access] Runner accesses: Moon Pool
+[GameContext] [Access] Runner may trash Moon Pool for 3 credits (Runner has 4 total).
+[GameContext] [Access] Runner trashes Moon Pool.
+[GameContext] [End] Run ended successfully.
+[GameContext] --- Run on Server 1 begins ---
+[GameContext] [Initiation] Run declared on Server 1.
+[GameContext] [Approach] Runner approaches unrezzed ice (position 0).
+[GameContext] [Approach] Corp declines to rez. Runner passes unrezzed ice.
+[GameContext] Placed 1 power counter(s) on Marjanah.
+[GameContext] [Movement] Runner approaches the server root.
+[GameContext] [Success] Run successful on Server 1!
+[GameContext] [Debug/gain_on_success] run_modifiers at success: {  }
+[GameContext] [Breach] Runner breaches Server 1.
+[GameContext] [Access] Runner accesses: Longevity Serum
+[GameContext] [Access] Runner steals Longevity Serum! (2 agenda points)
+[GameContext] [End] Run ended successfully.
+[GameContext] --- Run on Server 0 begins ---
+[GameContext] [Initiation] Run declared on Server 0.
+[GameContext] [Approach] Runner approaches unrezzed ice (position 0).
+[GameContext] [Approach] Corp declines to rez. Runner passes unrezzed ice.
+[GameContext] Placed 1 power counter(s) on Marjanah.
+[GameContext] [Movement] Runner approaches the server root.
+[GameContext] [Success] Run successful on Server 0!
+[GameContext] [Debug/gain_on_success] run_modifiers at success: {  }
+[GameContext] [Breach] Runner breaches Server 0.
+[GameContext] [Access] Runner accesses: Regenesis
+[GameContext] [Access] Runner steals Regenesis! (1 agenda points)
+[GameContext] [End] Run ended successfully.
+[GameContext] Versatile Smuggler draws VRcation.
+[GameContext] Replicating Perfection draws Hedge Fund.
+[GameContext] === Replicating Perfection Turn 6 begins. Credits: 1, Clicks: 3 ===
+[GameContext] [MCTS] slow search: 332 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection draws Moon Pool.
+[GameContext] [MCTS] slow search: 381 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection draws Spin Doctor.
+[GameContext] [MCTS] slow search: 538 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection gains 1 credit. (2 total)
+[heartbeat] game 10/10 — turn 6, time 221s
+[GameContext] === Versatile Smuggler Turn 7 begins. Credits: 1, Clicks: 4 ===
+[GameContext] --- Run on HQ begins ---
+[GameContext] [Initiation] Run declared on HQ.
+[GameContext] [Approach] Runner approaches unrezzed ice (position 0).
+[GameContext] [Approach] Corp declines to rez. Runner passes unrezzed ice.
+[GameContext] Placed 1 power counter(s) on Marjanah.
+[GameContext] [Movement] Runner approaches the server root.
+[GameContext] [Success] Run successful on HQ!
+[GameContext] [Debug/gain_on_success] run_modifiers at success: {  }
+[GameContext] [Breach] Runner breaches HQ.
+[GameContext] [Access] Runner accesses: Mavirus
+[GameContext] [Access] Runner may trash Mavirus for 0 credits (Runner has 1 total).
+[GameContext] [Access] Runner accesses: Moon Pool
+[GameContext] [Access] Runner may trash Moon Pool for 3 credits (Runner has 1 total).
+[GameContext] [Access] Runner cannot afford to trash.
+[GameContext] [End] Run ended successfully.
+[GameContext] Versatile Smuggler draws 4 card(s).
+[GameContext] Versatile Smuggler will lose 1 click(s) next turn.
+[GameContext] Versatile Smuggler plays VRcation.
+[GameContext] Versatile Smuggler gains 1 credit. (1 total)
+[GameContext] Versatile Smuggler gains 1 credit. (2 total)
+[GameContext] Versatile Smuggler discards Smartware Distributor to hand limit. (5 cards remaining)
+[GameContext] Versatile Smuggler discards Verbal Plasticity to hand limit. (5 cards remaining)
+[GameContext] Versatile Smuggler discards Red Team to hand limit. (5 cards remaining)
+[GameContext] Replicating Perfection draws Karunā.
+[GameContext] === Replicating Perfection Turn 7 begins. Credits: 2, Clicks: 3 ===
+[GameContext] [MCTS] slow search: 672 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection gains 1 credit. (3 total)
+[GameContext] [MCTS] slow search: 716 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection gains 1 credit. (4 total)
+[GameContext] [MCTS] slow search: 719 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection gains 1 credit. (5 total)
+[GameContext] Versatile Smuggler loses 1 click(s) this turn (deferred penalty).
+[GameContext] === Versatile Smuggler Turn 8 begins. Credits: 2, Clicks: 3 ===
+[GameContext] --- Run on HQ begins ---
+[GameContext] [Initiation] Run declared on HQ.
+[GameContext] [Rez] Corp rezzes Mavirus for 3 credits.
+[GameContext] [Approach] Runner approaches unrezzed ice (position 0).
+[GameContext] [Approach] Corp declines to rez. Runner passes unrezzed ice.
+[GameContext] Placed 1 power counter(s) on Marjanah.
+[GameContext] [Movement] Runner approaches the server root.
+[GameContext] [Success] Run successful on HQ!
+[GameContext] [Debug/gain_on_success] run_modifiers at success: {  }
+[GameContext] [Breach] Runner breaches HQ.
+[GameContext] [Access] Runner accesses: Mavirus
+[GameContext] [Mavirus] Rezzed — deals 1 net damage.
+[GameContext] Runner takes 1 net damage.
+[GameContext]   Trashed from grip: docklands_pass
+[GameContext] 1 card(s) trashed from Versatile Smuggler's grip.
+[GameContext] [Access] Runner may trash Mavirus for 0 credits (Runner has 2 total).
+[GameContext] [Access] Runner accesses: Moon Pool
+[GameContext] [Access] Runner may trash Moon Pool for 3 credits (Runner has 2 total).
+[GameContext] [Access] Runner cannot afford to trash.
+[GameContext] [End] Run ended successfully.
+[GameContext] Versatile Smuggler draws Jailbreak.
+[GameContext] Versatile Smuggler gains 1 credit. (3 total)
+[GameContext] Replicating Perfection draws Bladderwort.
+[GameContext] === Replicating Perfection Turn 8 begins. Credits: 2, Clicks: 3 ===
+[GameContext] [MCTS] slow search: 1056 ms (100 iterations, depth 3)
+[heartbeat] game 10/10 — turn 8, time 226s
+[GameContext] Replicating Perfection pays 1 credit(s) to install ice.
+[GameContext] Replicating Perfection installs Karunā in R&D.
+[GameContext] [MCTS] slow search: 803 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection gains 1 credit. (2 total)
+[GameContext] [MCTS] slow search: 768 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection gains 1 credit. (3 total)
+[GameContext] === Versatile Smuggler Turn 9 begins. Credits: 3, Clicks: 4 ===
+[GameContext] Run modifier set: bonus_access = 1
+[GameContext] --- Run on HQ begins ---
+[GameContext] [Initiation] Run declared on HQ.
+[GameContext] [Approach] Runner approaches unrezzed ice (position 0).
+[CorpRunAI] AI: rezzing Bathynomus would breach credit floor — holding.
+[GameContext] [Approach] Corp declines to rez. Runner passes unrezzed ice.
+[GameContext] Placed 1 power counter(s) on Marjanah.
+[GameContext] [Movement] Runner approaches the server root.
+[GameContext] [Success] Run successful on HQ!
+[GameContext] [Debug/gain_on_success] run_modifiers at success: { "bonus_access": 1, "run_event_active": 1 }
+[GameContext] [Breach] Runner breaches HQ.
+[GameContext] [Breach] Bonus access: 1 extra card(s).
+[GameContext] [Access] Runner accesses: Mavirus
+[GameContext] [Mavirus] Rezzed — deals 1 net damage.
+[GameContext] Runner takes 1 net damage.
+[GameContext]   Trashed from grip: sure_gamble
+[GameContext] 1 card(s) trashed from Versatile Smuggler's grip.
+[GameContext] [Access] Runner may trash Mavirus for 0 credits (Runner has 3 total).
+[GameContext] [Access] Runner accesses: Moon Pool
+[GameContext] [Access] Runner may trash Moon Pool for 3 credits (Runner has 3 total).
+[GameContext] [Access] Runner trashes Moon Pool.
+[GameContext] [Access] Runner accesses: Hedge Fund
+[GameContext] [End] Run ended successfully.
+[GameContext] Versatile Smuggler plays Jailbreak.
+[GameContext] Versatile Smuggler gains 1 credit. (1 total)
+[GameContext] --- Run on HQ begins ---
+[GameContext] [Initiation] Run declared on HQ.
+[GameContext] [Approach] Runner approaches unrezzed ice (position 0).
+[CorpRunAI] AI: rezzing Bathynomus would breach credit floor — holding.
+[GameContext] [Approach] Corp declines to rez. Runner passes unrezzed ice.
+[GameContext] Placed 1 power counter(s) on Marjanah.
+[GameContext] [Movement] Runner approaches the server root.
+[GameContext] [Success] Run successful on HQ!
+[GameContext] [Debug/gain_on_success] run_modifiers at success: {  }
+[GameContext] [Breach] Runner breaches HQ.
+[GameContext] [Access] Runner accesses: Mavirus
+[GameContext] [Mavirus] Rezzed — deals 1 net damage.
+[GameContext] Runner takes 1 net damage.
+[GameContext]   Trashed from grip: t400_memory_diamond
+[GameContext] 1 card(s) trashed from Versatile Smuggler's grip.
+[GameContext] [Access] Runner may trash Mavirus for 0 credits (Runner has 1 total).
+[GameContext] [Access] Runner accesses: Spin Doctor
+[GameContext] [Access] Runner may trash Spin Doctor for 2 credits (Runner has 1 total).
+[GameContext] [Access] Runner cannot afford to trash.
+[GameContext] [End] Run ended successfully.
+[GameContext] Versatile Smuggler draws Buzzsaw.
+[GameContext] Replicating Perfection draws Anoetic Void.
+[GameContext] === Replicating Perfection Turn 9 begins. Credits: 3, Clicks: 3 ===
+[GameContext] [MCTS] slow search: 623 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection gains 1 credit. (4 total)
+[GameContext] [MCTS] slow search: 622 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection gains 1 credit. (5 total)
+[heartbeat] game 10/10 — turn 9, time 231s
+[GameContext] [MCTS] slow search: 717 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection gains 9 credits.
+[GameContext] Replicating Perfection plays Hedge Fund.
+[GameContext] === Versatile Smuggler Turn 10 begins. Credits: 1, Clicks: 4 ===
+[GameContext] Versatile Smuggler gains 1 credit. (2 total)
+[GameContext] Versatile Smuggler gains 1 credit. (3 total)
+[GameContext] --- Run on HQ begins ---
+[GameContext] [Initiation] Run declared on HQ.
+[GameContext] [Approach] Runner approaches unrezzed ice (position 0).
+[CorpRunAI] AI: Bathynomus — rez_cost=3  tax/enc=5.0  enc=3.0  LTV=15.0
+[CorpRunAI] AI: deferring Bathynomus (pri=10.00) — saving for Karunā on rd (pri=16.88)
+[GameContext] [Approach] Corp declines to rez. Runner passes unrezzed ice.
+[GameContext] Placed 1 power counter(s) on Marjanah.
+[GameContext] [Movement] Runner approaches the server root.
+[GameContext] [Success] Run successful on HQ!
+[GameContext] [Debug/gain_on_success] run_modifiers at success: {  }
+[GameContext] [Breach] Runner breaches HQ.
+[GameContext] [Access] Runner accesses: Mavirus
+[GameContext] [Mavirus] Rezzed — deals 1 net damage.
+[GameContext] Runner takes 1 net damage.
+[GameContext]   Trashed from grip: buzzsaw
+[GameContext] 1 card(s) trashed from Versatile Smuggler's grip.
+[GameContext] [Access] Runner may trash Mavirus for 0 credits (Runner has 3 total).
+[GameContext] [Access] Runner accesses: Spin Doctor
+[GameContext] [Access] Runner may trash Spin Doctor for 2 credits (Runner has 3 total).
+[GameContext] [Access] Runner trashes Spin Doctor.
+[GameContext] [End] Run ended successfully.
+[GameContext] Versatile Smuggler draws VRcation.
+[GameContext] Replicating Perfection draws Bladderwort.
+[GameContext] === Replicating Perfection Turn 10 begins. Credits: 9, Clicks: 3 ===
+[GameContext] [MCTS] slow search: 506 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection draws Send a Message.
+[GameContext] [MCTS] slow search: 1302 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection installs Send a Message in Server 1.
+[GameContext] [MCTS] slow search: 1206 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection advances Send a Message (1 counters).
+[heartbeat] game 10/10 — turn 10, time 236s
+[GameContext] === Versatile Smuggler Turn 11 begins. Credits: 1, Clicks: 4 ===
+[GameContext] Versatile Smuggler draws Pennyshaver.
+[GameContext] Versatile Smuggler draws Pennyshaver.
+[GameContext] Versatile Smuggler draws 4 card(s).
+[GameContext] Versatile Smuggler will lose 1 click(s) next turn.
+[GameContext] Versatile Smuggler plays VRcation.
+[GameContext] Versatile Smuggler gains 1 credit. (1 total)
+[GameContext] Versatile Smuggler discards Overclock to hand limit. (5 cards remaining)
+[GameContext] Versatile Smuggler discards Sure Gamble to hand limit. (5 cards remaining)
+[GameContext] Versatile Smuggler discards Pennyshaver to hand limit. (5 cards remaining)
+[GameContext] Replicating Perfection draws Envelopment.
+[GameContext] === Replicating Perfection Turn 11 begins. Credits: 8, Clicks: 3 ===
+[GameContext] [MCTS] slow search: 1173 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection advances Send a Message (2 counters).
+[GameContext] [MCTS] slow search: 1185 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection advances Send a Message (3 counters).
+[GameContext] [MCTS] slow search: 1194 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection advances Send a Message (4 counters).
+[heartbeat] game 10/10 — turn 11, time 241s
+[GameContext] Versatile Smuggler loses 1 click(s) this turn (deferred penalty).
+[GameContext] === Versatile Smuggler Turn 12 begins. Credits: 1, Clicks: 3 ===
+[GameContext] Versatile Smuggler gains 1 credit. (2 total)
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler: too many consecutive invalid actions — ending turn.
+[GameContext] Replicating Perfection draws Karunā.
+[GameContext] === Replicating Perfection Turn 12 begins. Credits: 5, Clicks: 3 ===
+[GameContext] [MCTS] Scoring line detected — executing: Advance send_a_message
+[GameContext] Replicating Perfection advances Send a Message (5 counters).
+[GameContext] Replicating Perfection scores Send a Message! (3 agenda points)
+[GameContext] Rezzed Bathynomus for free.
+[GameContext] [MCTS] slow search: 1302 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection installs Anoetic Void in Server 2.
+[GameContext] [MCTS] slow search: 1051 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection gains 1 credit. (5 total)
+[GameContext] === Versatile Smuggler Turn 13 begins. Credits: 2, Clicks: 4 ===
+[GameContext] Versatile Smuggler gains 1 credit. (3 total)
+[GameContext] Versatile Smuggler gains 1 credit. (4 total)
+[GameContext] Versatile Smuggler gains 1 credit. (5 total)
+[GameContext] Versatile Smuggler gains 1 credit. (6 total)
+[GameContext] Replicating Perfection draws Regenesis.
+[GameContext] === Replicating Perfection Turn 13 begins. Credits: 5, Clicks: 3 ===
+[GameContext] Replicating Perfection rezzes Anoetic Void for 0 cr.
+[GameContext] [◆ Unique] Duplicate Anoetic Void trashed (cannot be prevented).
+[GameContext] [MCTS] slow search: 1578 ms (100 iterations, depth 3)
+[heartbeat] game 10/10 — turn 13, time 247s
+[GameContext] Replicating Perfection installs Regenesis in Server 0.
+[GameContext] [MCTS] slow search: 1583 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection advances Regenesis (1 counters).
+[GameContext] [MCTS] slow search: 1589 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection advances Regenesis (2 counters).
+[GameContext] === Versatile Smuggler Turn 14 begins. Credits: 6, Clicks: 4 ===
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler: too many consecutive invalid actions — ending turn.
+[GameContext] Replicating Perfection draws Spin Doctor.
+[GameContext] === Replicating Perfection Turn 14 begins. Credits: 3, Clicks: 3 ===
+[GameContext] [MCTS] Scoring line detected — executing: Advance regenesis
+[GameContext] Replicating Perfection advances Regenesis (3 counters).
+[GameContext] Replicating Perfection scores Regenesis! (1 agenda points)
+[GameContext] [Regenesis] No facedown agendas in Archives.
+[GameContext] [MCTS] slow search: 1525 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection pays 1 credit(s) to install ice.
+[GameContext] Replicating Perfection installs Envelopment in HQ.
+[heartbeat] game 10/10 — turn 14, time 253s
+[GameContext] [MCTS] slow search: 1244 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection gains 1 credit. (2 total)
+[GameContext] === Versatile Smuggler Turn 15 begins. Credits: 6, Clicks: 4 ===
+[GameContext] Versatile Smuggler gains 1 credit. (7 total)
+[GameContext] Versatile Smuggler gains 1 credit. (8 total)
+[GameContext] Versatile Smuggler gains 1 credit. (9 total)
+[GameContext] Versatile Smuggler gains 1 credit. (10 total)
+[GameContext] Replicating Perfection draws Anemone.
+[GameContext] === Replicating Perfection Turn 15 begins. Credits: 2, Clicks: 3 ===
+[GameContext] [MCTS] slow search: 1589 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection installs Bladderwort in Server 1.
+[GameContext] [MCTS] slow search: 1145 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection gains 1 credit. (3 total)
+[heartbeat] game 10/10 — turn 15, time 258s
+[GameContext] [MCTS] slow search: 1113 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection gains 1 credit. (4 total)
+[GameContext] === Versatile Smuggler Turn 16 begins. Credits: 10, Clicks: 4 ===
+[GameContext] Versatile Smuggler gains 1 credit. (11 total)
+[GameContext] Versatile Smuggler gains 1 credit. (12 total)
+[GameContext] Versatile Smuggler gains 1 credit. (13 total)
+[GameContext] Versatile Smuggler gains 1 credit. (14 total)
+[GameContext] Replicating Perfection draws Send a Message.
+[GameContext] === Replicating Perfection Turn 16 begins. Credits: 4, Clicks: 3 ===
+[GameContext] Replicating Perfection rezzes Bladderwort for 1 cr.
+[GameContext] [MCTS] slow search: 845 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection installs Send a Message in Server 0.
+[GameContext] [MCTS] slow search: 857 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection advances Send a Message (1 counters).
+[GameContext] [MCTS] slow search: 874 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection advances Send a Message (2 counters).
+[heartbeat] game 10/10 — turn 16, time 264s
+[GameContext] === Versatile Smuggler Turn 17 begins. Credits: 14, Clicks: 4 ===
+Player install: card is: Conduit and charged cost is: 4
+[GameContext] Versatile Smuggler installs Conduit. [MU: 2/4 used]
+Player install: card is: Leech and charged cost is: 1
+[GameContext] Versatile Smuggler installs Leech. [MU: 3/4 used]
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler: too many consecutive invalid actions — ending turn.
+[GameContext] Replicating Perfection draws Blood in the Water.
+[GameContext] === Replicating Perfection Turn 17 begins. Credits: 1, Clicks: 3 ===
+[GameContext] [MCTS] slow search: 222 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection installs Blood in the Water in Server 3.
+[GameContext] [MCTS] Scoring line detected — executing: Advance blood_in_the_water
+[GameContext] Replicating Perfection advances Blood in the Water (1 counters).
+[GameContext] Replicating Perfection scores Blood in the Water! (2 agenda points)
+[GameContext] [MCTS] slow search: 775 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection gains 1 credit. (1 total)
+[GameContext] === Versatile Smuggler Turn 18 begins. Credits: 9, Clicks: 4 ===
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler: too many consecutive invalid actions — ending turn.
+[GameContext] Replicating Perfection draws Spin Doctor.
+[GameContext] === Replicating Perfection Turn 18 begins. Credits: 1, Clicks: 3 ===
+[GameContext] Replicating Perfection gains 1 credit. (2 total)
+[GameContext] [MCTS] slow search: 246 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection advances Send a Message (3 counters).
+[GameContext] [MCTS] slow search: 234 ms (100 iterations, depth 3)
+[GameContext] Replicating Perfection advances Send a Message (4 counters).
+[GameContext] === Versatile Smuggler Turn 19 begins. Credits: 9, Clicks: 4 ===
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler action rejected: Replicating Perfection: you must run a central server before running on a remote.
+[GameContext] Versatile Smuggler: too many consecutive invalid actions — ending turn.
+[GameContext] Replicating Perfection draws Blood in the Water.
+[GameContext] === Replicating Perfection Turn 19 begins. Credits: 0, Clicks: 3 ===
+[GameContext] Replicating Perfection gains 1 credit. (1 total)
+[heartbeat] game 10/10 — turn 19, time 269s
+[GameContext] [MCTS] Scoring line detected — executing: Advance send_a_message
+[GameContext] Replicating Perfection advances Send a Message (5 counters).
+[GameContext] Replicating Perfection scores Send a Message! (3 agenda points)
+[GameContext] Rezzed Envelopment for free.
+[GameContext] Game over — Replicating Perfection wins. Replicating Perfection scored 9 agenda points
+  [ 10/ 10]  CORP      Replicating Perfection scored 9 agenda points  19 turns
+
+╔══════════════════════════════════════════════════════╗
+║  BATCH SUMMARY  (10 games)                           
+╠══════════════════════════════════════════════════════╣
+║  Corp   wins :   8  ( 80.0%)                        
+║  Runner wins :   2  ( 20.0%)                        
+║  Draws       :   0  (  0.0%)                        
+║  Avg turns   : 12.5                                  
+╠══════════════════════════════════════════════════════╣
+║  Win reasons:
+║    "Versatile Smuggler" flatlined (empty grip)    2
+║    Corp could not draw (empty R&D)     1
+║    Replicating Perfection scored 7 agenda points    2
+║    Replicating Perfection scored 9 agenda points    1
+║    Replicating Perfection wins         3
+║    Versatile Smuggler stole enough agendas to win    1
+╚══════════════════════════════════════════════════════╝
