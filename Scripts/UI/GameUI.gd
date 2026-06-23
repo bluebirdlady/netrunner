@@ -1773,6 +1773,125 @@ func _show_score_popup(title: String, cards: Array) -> void:
 	)
 
 
+# ── Install-up-to-N prompt ────────────────────────────────────────────────────
+
+## Persistent "install up to N cards" dialog for effects like Illumination.
+## Stays open between picks; removes installed cards from the display.
+## Returns an Array of chosen hand-entry dicts in pick order.
+func show_install_up_to_n_prompt(
+		installable: Array,
+		max_installs: int,
+		discount: int,
+		remaining_credits: int,
+		remaining_mu: int,
+		prompt_text: String) -> Array:
+
+	var chosen: Array = []
+	var available: Array = installable.duplicate()
+	var credits: int = remaining_credits
+	var mu: int = remaining_mu
+	var done := [false]
+	var needs_rebuild := [true]
+
+	var backdrop := ColorRect.new()
+	backdrop.color = Color(0, 0, 0, 0.5)
+	backdrop.set_anchors_preset(Control.PRESET_FULL_RECT)
+	backdrop.mouse_filter = Control.MOUSE_FILTER_STOP
+	add_child(backdrop)
+
+	var panel := PanelContainer.new()
+	panel.set_anchors_preset(Control.PRESET_CENTER)
+	panel.custom_minimum_size = Vector2(640, 0)
+	backdrop.add_child(panel)
+
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 10)
+	panel.add_child(vbox)
+
+	var header_lbl := Label.new()
+	header_lbl.add_theme_font_size_override("font_size", 14)
+	header_lbl.add_theme_color_override("font_color", Color(0.7, 0.95, 0.75))
+	header_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	vbox.add_child(header_lbl)
+
+	var scroll := ScrollContainer.new()
+	scroll.custom_minimum_size = Vector2(0, 220)
+	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	vbox.add_child(scroll)
+
+	var card_row := HBoxContainer.new()
+	card_row.add_theme_constant_override("separation", 8)
+	scroll.add_child(card_row)
+
+	var done_btn := Button.new()
+	done_btn.text = "Done installing"
+	done_btn.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
+	done_btn.pressed.connect(func(): done[0] = true)
+	vbox.add_child(done_btn)
+
+	# Button callbacks only mutate state and flag a rebuild.
+	# The actual rebuild runs at the top of each while-loop iteration, safely
+	# inside the coroutine body where no closure-self-reference is needed.
+	_modal_depth += 1
+	while not done[0]:
+		if needs_rebuild[0]:
+			needs_rebuild[0] = false
+			for ch in card_row.get_children():
+				ch.queue_free()
+			header_lbl.text = "%s  (%d / %d installed)" % [
+				prompt_text, chosen.size(), max_installs]
+			if chosen.size() >= max_installs or available.is_empty():
+				done[0] = true
+				break
+			for entry in available:
+				var r: CardRecord = (entry as Dictionary).get("card_record", null) as CardRecord
+				if r == null:
+					continue
+				var cost: int = max(0, r.cost - discount)
+				var col := VBoxContainer.new()
+				col.add_theme_constant_override("separation", 4)
+				card_row.add_child(col)
+				var cv := CardView.new()
+				col.add_child(cv)
+				cv.setup(r, true)
+				var cost_lbl := Label.new()
+				cost_lbl.text = "%d¢" % cost
+				cost_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+				cost_lbl.add_theme_font_size_override("font_size", 11)
+				col.add_child(cost_lbl)
+				var btn := Button.new()
+				btn.text = "Install"
+				btn.add_theme_color_override("font_color", Color(0.4, 0.9, 0.5))
+				var captured_entry: Variant = entry
+				var captured_cost: int = cost
+				var captured_mu_cost: int = r.memory_cost if r.card_type == "program" else 0
+				btn.pressed.connect(func() -> void:
+					chosen.append(captured_entry)
+					available.erase(captured_entry)
+					credits -= captured_cost
+					mu -= captured_mu_cost
+					var still_ok: Array = []
+					for ae in available:
+						var ar: CardRecord = (ae as Dictionary).get("card_record", null) as CardRecord
+						if ar == null:
+							continue
+						if credits < max(0, ar.cost - discount):
+							continue
+						if ar.card_type == "program" and ar.memory_cost > 0 \
+								and mu < ar.memory_cost:
+							continue
+						still_ok.append(ae)
+					available = still_ok
+					needs_rebuild[0] = true
+				)
+				col.add_child(btn)
+		await get_tree().process_frame
+	_modal_depth -= 1
+
+	backdrop.queue_free()
+	return chosen
+
+
 # ── Choose-from-hand prompt ───────────────────────────────────────────────────
 
 func show_choose_from_hand_prompt(hand: Array, prompt_text: String) -> Variant:
@@ -1842,11 +1961,12 @@ func show_choose_from_hand_prompt(hand: Array, prompt_text: String) -> Variant:
 	)
 	vbox.add_child(decline_btn)
 
+	_modal_depth += 1
 	while not done[0]:
 		await get_tree().process_frame
+	_modal_depth -= 1
 
 	backdrop.queue_free()
-	_update_all_displays()
 	return resolved
 
 

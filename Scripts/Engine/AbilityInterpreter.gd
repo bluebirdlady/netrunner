@@ -10473,42 +10473,80 @@ func _execute_effect(effect: Dictionary, ctx: GameContext, chosen_target: Varian
 			if ifgd_require_success and not ctx.run_successful:
 				ctx.send_log("Illumination: run was not successful — no installation.")
 				return
-			var ifgd_max: int   = params.get("max_installs", 3)
-			var ifgd_disc: int  = params.get("discount_per_card", 1)
-			var ifgd_count: int = 0
-			for _ifgd_i in range(ifgd_max):
-				var ifgd_installable: Array = []
-				for ifgd_entry in ctx.runner_hand:
-					var ifgd_e: Dictionary = ifgd_entry as Dictionary
-					var ifgd_r: CardRecord = ifgd_e.get("card_record", null) as CardRecord
-					if ifgd_r == null:
+			var ifgd_max: int  = params.get("max_installs", 3)
+			var ifgd_disc: int = params.get("discount_per_card", 1)
+
+			# Build initial installable list.
+			var ifgd_installable: Array = []
+			for ifgd_entry in ctx.runner_hand:
+				var ifgd_e: Dictionary = ifgd_entry as Dictionary
+				var ifgd_r: CardRecord = ifgd_e.get("card_record", null) as CardRecord
+				if ifgd_r == null:
+					continue
+				if ifgd_r.card_type not in ["program", "hardware", "resource"]:
+					continue
+				var ifgd_cost: int = max(0, ifgd_r.cost - ifgd_disc)
+				if ctx.runner_credits < ifgd_cost:
+					continue
+				if ifgd_r.card_type == "program" and ifgd_r.memory_cost > 0:
+					if ctx.runner_mu_available() < ifgd_r.memory_cost:
 						continue
-					if ifgd_r.card_type not in ["program", "hardware", "resource"]:
-						continue
-					var ifgd_cost: int = max(0, ifgd_r.cost - ifgd_disc)
-					if ctx.runner_credits < ifgd_cost:
-						continue
-					if ifgd_r.card_type == "program" and ifgd_r.memory_cost > 0:
-						if ctx.runner_mu_available() < ifgd_r.memory_cost:
-							continue
-					ifgd_installable.append(ifgd_entry)
-				if ifgd_installable.is_empty():
-					if ifgd_count == 0:
-						ctx.send_log("Illumination: no cards in grip that can be installed.")
+				ifgd_installable.append(ifgd_entry)
+
+			if ifgd_installable.is_empty():
+				ctx.send_log("Illumination: no cards in grip that can be installed.")
+				return
+
+			# Collect all chosen entries up-front via a persistent dialog (human)
+			# or greedy pick (AI). On_rez effects fire as each card is installed.
+			var ifgd_chosen_entries: Array = []
+			if ctx.runner_decision_maker != null and \
+					ctx.runner_decision_maker.has_method("choose_multi_install"):
+				ifgd_chosen_entries = await ctx.runner_decision_maker.choose_multi_install(
+					ifgd_installable, ifgd_max, ifgd_disc,
+					ctx.runner_credits, ctx.runner_mu_available(), ctx)
+			else:
+				# AI / fallback: loop with choose_card_from_hand.
+				var ifgd_credits_rem: int = ctx.runner_credits
+				var ifgd_mu_rem: int = ctx.runner_mu_available()
+				var ifgd_avail: Array = ifgd_installable.duplicate()
+				for _ifgd_i in range(ifgd_max):
+					if ifgd_avail.is_empty():
+						break
+					var ifgd_pick: Variant = null
+					if ctx.runner_decision_maker != null and \
+							ctx.runner_decision_maker.has_method("choose_card_from_hand"):
+						ifgd_pick = await ctx.runner_decision_maker.choose_card_from_hand(ifgd_avail, ctx)
 					else:
-						ctx.send_log("Illumination: no further cards can be installed.")
-					break
-				var ifgd_chosen_entry: Variant = null
-				if ctx.runner_decision_maker != null and ctx.runner_decision_maker.has_method("choose_card_from_hand"):
-					ifgd_chosen_entry = await ctx.runner_decision_maker.choose_card_from_hand(ifgd_installable, ctx)
-				else:
-					ifgd_chosen_entry = ifgd_installable[0]
-				if ifgd_chosen_entry == null:
-					ctx.send_log("Illumination: runner done installing.")
-					break
+						ifgd_pick = ifgd_avail[0]
+					if ifgd_pick == null:
+						break
+					ifgd_chosen_entries.append(ifgd_pick)
+					var ifgd_pr: CardRecord = (ifgd_pick as Dictionary).get("card_record", null) as CardRecord
+					if ifgd_pr != null:
+						ifgd_credits_rem -= max(0, ifgd_pr.cost - ifgd_disc)
+						ifgd_mu_rem -= ifgd_pr.memory_cost if ifgd_pr.card_type == "program" else 0
+					ifgd_avail.erase(ifgd_pick)
+					# Re-filter for updated affordability.
+					var ifgd_still: Array = []
+					for ifgd_ae in ifgd_avail:
+						var ifgd_ar: CardRecord = (ifgd_ae as Dictionary).get("card_record", null) as CardRecord
+						if ifgd_ar == null:
+							continue
+						if ifgd_credits_rem < max(0, ifgd_ar.cost - ifgd_disc):
+							continue
+						if ifgd_ar.card_type == "program" and ifgd_ar.memory_cost > 0 \
+								and ifgd_mu_rem < ifgd_ar.memory_cost:
+							continue
+						ifgd_still.append(ifgd_ae)
+					ifgd_avail = ifgd_still
+
+			# Install each chosen card in sequence.
+			var ifgd_count: int = 0
+			for ifgd_chosen_entry in ifgd_chosen_entries:
 				var ifgd_record: CardRecord = (ifgd_chosen_entry as Dictionary).get("card_record", null) as CardRecord
 				if ifgd_record == null:
-					break
+					continue
 				var ifgd_pay: int = max(0, ifgd_record.cost - ifgd_disc)
 				ctx.runner_credits -= ifgd_pay
 				ctx.runner_hand.erase(ifgd_chosen_entry)
@@ -10536,6 +10574,8 @@ func _execute_effect(effect: Dictionary, ctx: GameContext, chosen_target: Varian
 				])
 			if ifgd_count > 0:
 				ctx.send_log("Illumination: %s installed %d card(s)." % [ctx.runner_name(), ifgd_count])
+			elif ifgd_chosen_entries.is_empty():
+				ctx.send_log("Illumination: runner declined to install.")
 
 		"charm_offensive_trash_rezzed_copy":
 			var cotrc_accessed: Array = ctx.run_accessed_archives_card_ids
@@ -10543,6 +10583,8 @@ func _execute_effect(effect: Dictionary, ctx: GameContext, chosen_target: Varian
 				ctx.send_log("Charm Offensive: no cards were accessed in Archives.")
 				return
 			var cotrc_candidates: Array = []
+			var cotrc_ab_reg: AbilityRegistry = ctx.get_meta("ability_registry") as AbilityRegistry \
+					if ctx.has_meta("ability_registry") else null
 			for cotrc_server in ctx.servers.values():
 				var cotrc_s: Server = cotrc_server as Server
 				if cotrc_s == null:
@@ -10551,14 +10593,16 @@ func _execute_effect(effect: Dictionary, ctx: GameContext, chosen_target: Varian
 					var cotrc_c: InstalledCard = cotrc_root as InstalledCard
 					if cotrc_c != null and cotrc_c.is_rezzed and cotrc_c.card_record != null:
 						if cotrc_c.card_id in cotrc_accessed:
-							var cotrc_def: Dictionary = ability_registry._abilities.get(cotrc_c.card_id, {}) as Dictionary
+							var cotrc_def: Dictionary = cotrc_ab_reg._abilities.get(cotrc_c.card_id, {}) as Dictionary \
+									if cotrc_ab_reg != null else {}
 							if not cotrc_def.get("cannot_be_trashed_while_rezzed", false):
 								cotrc_candidates.append(cotrc_c)
 				for cotrc_ice in cotrc_s.ice:
 					var cotrc_c: InstalledCard = cotrc_ice as InstalledCard
 					if cotrc_c != null and cotrc_c.is_rezzed and cotrc_c.card_record != null:
 						if cotrc_c.card_id in cotrc_accessed:
-							var cotrc_def: Dictionary = ability_registry._abilities.get(cotrc_c.card_id, {}) as Dictionary
+							var cotrc_def: Dictionary = cotrc_ab_reg._abilities.get(cotrc_c.card_id, {}) as Dictionary \
+									if cotrc_ab_reg != null else {}
 							if not cotrc_def.get("cannot_be_trashed_while_rezzed", false):
 								cotrc_candidates.append(cotrc_c)
 			if cotrc_candidates.is_empty():

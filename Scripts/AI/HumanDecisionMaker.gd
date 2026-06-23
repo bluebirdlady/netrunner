@@ -25,6 +25,7 @@ var trash_proxy:             Callable
 var choose_modes_proxy:      Callable   # func(modes, max_choices) -> Array[int]
 var choose_server_proxy:      Callable   # func(allowed_servers) -> String
 var choose_card_from_hand_proxy:  Callable # func(hand) -> Dictionary
+var choose_multi_install_proxy:   Callable # func(installable, max, discount, credits, mu) -> Array
 var host_ice_proxy:           Callable   # func(candidates: Array[InstalledCard]) -> InstalledCard
 var choose_from_search_proxy:          Callable # func(candidates) -> CardRecord
 var choose_payment_option_proxy:       Callable # func(options) -> Dictionary or null
@@ -97,6 +98,37 @@ func choose_card_from_hand(hand: Array, _ctx: GameContext) -> Variant:
 	if choose_card_from_hand_proxy.is_valid():
 		return await choose_card_from_hand_proxy.call(hand)
 	return hand[0] if not hand.is_empty() else null
+
+
+func choose_multi_install(
+		installable: Array,
+		max_installs: int,
+		discount: int,
+		runner_credits: int,
+		runner_mu: int,
+		_ctx: GameContext) -> Array:
+	if choose_multi_install_proxy.is_valid():
+		return await choose_multi_install_proxy.call(
+			installable, max_installs, discount, runner_credits, runner_mu)
+	# Fallback: greedily take up to max_installs affordable cards.
+	var result: Array = []
+	var remaining_credits: int = runner_credits
+	var remaining_mu: int = runner_mu
+	for entry in installable:
+		if result.size() >= max_installs:
+			break
+		var r: CardRecord = (entry as Dictionary).get("card_record", null) as CardRecord
+		if r == null:
+			continue
+		var cost: int = max(0, r.cost - discount)
+		if remaining_credits < cost:
+			continue
+		if r.card_type == "program" and r.memory_cost > 0 and remaining_mu < r.memory_cost:
+			continue
+		result.append(entry)
+		remaining_credits -= cost
+		remaining_mu -= r.memory_cost if r.card_type == "program" else 0
+	return result
 
 
 func choose_from_search(candidates: Array, _ctx: GameContext) -> CardRecord:

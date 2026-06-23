@@ -166,7 +166,11 @@ func _wire_proxies_to_game_ui() -> void:
 	runner_brain.choose_server_proxy = func(allowed: Array) -> String:
 		return await game_ui.show_server_choice_prompt(allowed)
 	runner_brain.choose_card_from_hand_proxy = func(hand: Array) -> Variant:
-		return await game_ui.show_choose_from_hand_prompt(hand, "Pantograph: choose a card to install for free (or decline)")
+		return await game_ui.show_choose_from_hand_prompt(hand, "Choose a card to install (or Decline to stop):")
+	runner_brain.choose_multi_install_proxy = func(
+			installable: Array, max_i: int, disc: int, cr: int, mu_av: int) -> Array:
+		return await game_ui.show_install_up_to_n_prompt(
+			installable, max_i, disc, cr, mu_av, "Install a card (1¢ discount each):")
 	runner_brain.ice_swap_proxy = func(eligible_servers: Array) -> Variant:
 		return await game_ui.show_ice_swap_prompt(eligible_servers)
 	runner_brain.carnivore_proxy = func(card_record: CardRecord) -> bool:
@@ -243,7 +247,11 @@ func _wire_proxies_to_run_scene(run_scene: RunScene) -> void:
 	runner_brain.choose_server_proxy = func(allowed: Array) -> String:
 		return await run_scene.show_server_choice_prompt(allowed)
 	runner_brain.choose_card_from_hand_proxy = func(hand: Array) -> Variant:
-		return await game_ui.show_choose_from_hand_prompt(hand, "Choose a card to install")
+		return await game_ui.show_choose_from_hand_prompt(hand, "Choose a card to install (or Decline to stop):")
+	runner_brain.choose_multi_install_proxy = func(
+			installable: Array, max_i: int, disc: int, cr: int, mu_av: int) -> Array:
+		return await game_ui.show_install_up_to_n_prompt(
+			installable, max_i, disc, cr, mu_av, "Install a card (1¢ discount each):")
 	runner_brain.choose_discard_to_hand_limit_proxy = func(hand: Array, excess: int) -> Array:
 		return await run_scene.show_discard_to_hand_limit_prompt(hand, excess)
 	runner_brain.choose_subs_to_break_proxy = func(candidates: Array, max_count: int, encounter: EncounterState) -> Array:
