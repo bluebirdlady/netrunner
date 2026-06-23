@@ -10551,12 +10551,16 @@ func _execute_effect(effect: Dictionary, ctx: GameContext, chosen_target: Varian
 					var cotrc_c: InstalledCard = cotrc_root as InstalledCard
 					if cotrc_c != null and cotrc_c.is_rezzed and cotrc_c.card_record != null:
 						if cotrc_c.card_id in cotrc_accessed:
-							cotrc_candidates.append(cotrc_c)
+							var cotrc_def: Dictionary = ability_registry._abilities.get(cotrc_c.card_id, {}) as Dictionary
+							if not cotrc_def.get("cannot_be_trashed_while_rezzed", false):
+								cotrc_candidates.append(cotrc_c)
 				for cotrc_ice in cotrc_s.ice:
 					var cotrc_c: InstalledCard = cotrc_ice as InstalledCard
 					if cotrc_c != null and cotrc_c.is_rezzed and cotrc_c.card_record != null:
 						if cotrc_c.card_id in cotrc_accessed:
-							cotrc_candidates.append(cotrc_c)
+							var cotrc_def: Dictionary = ability_registry._abilities.get(cotrc_c.card_id, {}) as Dictionary
+							if not cotrc_def.get("cannot_be_trashed_while_rezzed", false):
+								cotrc_candidates.append(cotrc_c)
 			if cotrc_candidates.is_empty():
 				ctx.send_log("Charm Offensive: no rezzed copies of accessed cards found.")
 				return
@@ -10588,6 +10592,10 @@ func _execute_effect(effect: Dictionary, ctx: GameContext, chosen_target: Varian
 			if cotrc_chosen.card_record != null:
 				ctx.corp_discard.append(cotrc_chosen.card_record)
 			ctx.send_log("Charm Offensive: %s trashes %s." % [ctx.runner_name(), cotrc_chosen.display_name()])
+			await ctx.notify_event("runner_trashes_during_breach", {
+				"card_id":   cotrc_chosen.card_id,
+				"server_id": cotrc_chosen.server_id,
+			}, self)
 
 		# ── Identity flip ────────────────────────────────────────────────────────
 

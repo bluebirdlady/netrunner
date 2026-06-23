@@ -54,6 +54,9 @@ var _ability_registry: AbilityRegistry = null
 var _score_popup: Control = null
 # Persistent "Corp is planning…" overlay shown while MCTS computes.
 var _corp_thinking_panel: Control = null
+# Guard: while > 0, _populate_action_menu() is a no-op so it cannot destroy
+# buttons that a show_*_prompt coroutine is waiting on.
+var _modal_depth: int = 0
 
 ## Initializes UI wiring by subscribing directly to engine component signals
 func setup(ctx: GameContext, turn_manager: TurnManager, run_machine: RunStateMachine, ability_registry: AbilityRegistry = null) -> void:
@@ -371,6 +374,8 @@ func _create_server_column(server_id: String, server: Server) -> VBoxContainer:
 
 ## Generates click choices dynamically based on which side holds active framework clicks
 func _populate_action_menu() -> void:
+	if _modal_depth > 0:
+		return
 	for child in action_menu.get_children():
 		child.queue_free()
 
@@ -1408,7 +1413,9 @@ func show_modal_prompt(modes: Array, max_choices: int) -> Array:
 		)
 		prompt_box.add_child(btn)
 
+	_modal_depth += 1
 	var result: Array = await modal_choice_resolved
+	_modal_depth -= 1
 	prompt_box.queue_free()
 	return result
 
@@ -1440,7 +1447,9 @@ func show_modes_prompt(modes: Array, max_choices: int) -> Array:
 		)
 		prompt_box.add_child(btn)
 
+	_modal_depth += 1
 	var result: Array = await mode_choice_resolved
+	_modal_depth -= 1
 	prompt_box.queue_free()
 	return result
 
