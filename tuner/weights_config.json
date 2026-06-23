@@ -22,8 +22,30 @@
   },
 
   "matchups": [
-    { "corp": "nbn_reality_plus_tags",    "runner": "runner_arissana_lilypad_gamble" },
-    { "corp": "ob_weyland_fast_advance",  "runner": "runner_convention_breaker"      },
-    { "corp": "jinteki_regenesis",        "runner": "runner_zahya_versatile_smuggler"}
+    {
+      "_note": "HB glacier vs Lat Shaper — balanced; setup-vs-setup, covers largest HB cluster",
+      "corp":   "hb_midnight_glacier",
+      "runner": "runner_lat_lateral_thinking"
+    },
+    {
+      "_note": "NBN tag-punishment vs Zahya Criminal — corp-favoured; tag pressure vs multiaccess",
+      "corp":   "nbn_reality_plus_tags",
+      "runner": "runner_zahya_versatile_smuggler"
+    },
+    {
+      "_note": "RP lockdown vs Arissana ICE-destroy — balanced; exercises the central-first restriction",
+      "corp":   "jinteki_regenesis",
+      "runner": "runner_arissana_lilypad_gamble"
+    },
+    {
+      "_note": "Weyland BtL glacier vs Tao Shaper — runner-favoured; Tao run-events pressure glacier",
+      "corp":   "weyland_built_to_last",
+      "runner": "runner_tao_telepresence_magician"
+    },
+    {
+      "_note": "Ob FA vs Loup Virus Anarch — contested; virus disruption vs Corp install-chain speed",
+      "corp":   "ob_weyland_fast_advance",
+      "runner": "runner_loup_party_animal"
+    }
   ]
 }
