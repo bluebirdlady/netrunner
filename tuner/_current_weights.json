@@ -1,9 +1,9 @@
 {
-  "w_phase_econ_mult": 0.5,
-  "w_rd_bare_penalty": 0.0,
+  "w_phase_econ_mult": 3.0,
+  "w_rd_bare_penalty": 0.676238146080141,
   "w_hq_bare_penalty": 0.0,
-  "w_breached_1ice_penalty": 40.0,
+  "w_breached_1ice_penalty": 37.69345378564287,
   "w_breached_multi_ice_penalty": 0.0,
   "w_proven_access_boost": 0.0,
-  "mcts_iterations": 95.59179204055062
+  "mcts_iterations": 112.02387279523036
 }
